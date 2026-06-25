@@ -18,7 +18,7 @@
 	} = $props();
 </script>
 
-<div class="shrink-0 border-t border-border p-2">
+<div class="shrink-0 border-border p-2">
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger
 			class={cn(

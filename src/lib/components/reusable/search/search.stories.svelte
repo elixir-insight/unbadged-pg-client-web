@@ -34,7 +34,10 @@
 </Story>
 
 <!-- Custom placeholder -->
-<Story name="Custom Placeholder" args={{ placeholder: 'Search transactions…', variant: 'bordered' }}>
+<Story
+	name="Custom Placeholder"
+	args={{ placeholder: 'Search transactions…', variant: 'bordered' }}
+>
 	{#snippet template(args)}
 		<div class="w-72">
 			<Search {...args} />

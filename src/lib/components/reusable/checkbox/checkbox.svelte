@@ -1,7 +1,3 @@
-<script module>
-	let count = 0;
-</script>
-
 <script lang="ts">
 	import { Checkbox as UICheckbox } from '$lib/components/ui/checkbox';
 	import { cn } from '$lib/utils';
@@ -26,8 +22,8 @@
 		class: className
 	}: Props = $props();
 
-	const uid = ++count;
-	const checkboxId = $derived(id ?? `checkbox-${uid}`);
+	const generatedId = $props.id();
+	const checkboxId = $derived(id ?? generatedId);
 </script>
 
 {#if label || description}

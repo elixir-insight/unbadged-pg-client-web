@@ -49,9 +49,7 @@
 	let open = $state(false);
 	let query = $state('');
 
-	const allFlat: DropdownOption[] = $derived(
-		options.flatMap((o) => (isGroup(o) ? o.items : [o]))
-	);
+	const allFlat: DropdownOption[] = $derived(options.flatMap((o) => (isGroup(o) ? o.items : [o])));
 
 	const selectedLabel = $derived(allFlat.find((o) => o.value === value)?.label ?? '');
 
