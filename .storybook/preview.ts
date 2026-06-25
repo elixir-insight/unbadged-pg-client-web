@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/sveltekit';
-import '../src/routes/app.css';
+import '../src/routes/layout.css';
 
 const preview: Preview = {
 	parameters: {
