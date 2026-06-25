@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import { UploadCloud, Paperclip, X } from '@lucide/svelte';
+	import { UploadCloud, Paperclip, X } from '$lib/assets/icons';
 	import { fly } from 'svelte/transition';
 
 	interface Props {

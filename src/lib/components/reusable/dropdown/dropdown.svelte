@@ -10,7 +10,7 @@
 	} from '$lib/components/ui/select';
 	import { PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { cn } from '$lib/utils';
-	import { Check, ChevronDown, Search } from '@lucide/svelte';
+	import { Check, ChevronDown, Search } from '$lib/assets/icons';
 
 	export type DropdownOption = { value: string; label: string; disabled?: boolean };
 	export type DropdownGroup = { group: string; items: DropdownOption[] };
@@ -87,7 +87,7 @@
 			data-size={size}
 			class={cn(
 				'flex w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none',
-				'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+				'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer',
 				'disabled:cursor-not-allowed disabled:opacity-50',
 				'dark:bg-input/30 dark:hover:bg-input/50',
 				size === 'sm' ? 'h-8' : 'h-9',
@@ -106,11 +106,7 @@
 			/>
 		</PopoverTrigger>
 
-		<PopoverContent
-			align="start"
-			sideOffset={4}
-			class="w-(--bits-popover-trigger-width) min-w-36 p-0"
-		>
+		<PopoverContent align="start" sideOffset={4} class="w-(--bits-popover-anchor-width) p-0">
 			<!-- Search input -->
 			<div class="flex items-center gap-2 border-b border-white/20 px-2.5 py-2">
 				<Search class="size-3.5 shrink-0 text-muted-foreground" />
@@ -139,20 +135,20 @@
 									disabled={item.disabled}
 									onclick={() => pick(item)}
 									class={cn(
-										'flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-										'hover:bg-white/30 dark:hover:bg-white/10',
+										'flex w-full items-center gap-2 justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors ',
+										'hover:bg-accent cursor-pointer',
 										'disabled:cursor-not-allowed disabled:opacity-50',
 										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-										value === item.value && 'font-medium'
+										value === item.value && 'font-medium bg-accent'
 									)}
 								>
+									{item.label}
 									<Check
 										class={cn(
 											'size-3.5 shrink-0 transition-opacity',
 											value === item.value ? 'opacity-100' : 'opacity-0'
 										)}
 									/>
-									{item.label}
 								</button>
 							{/each}
 						{:else}
@@ -162,20 +158,20 @@
 								disabled={flat.disabled}
 								onclick={() => pick(flat)}
 								class={cn(
-									'flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-									'hover:bg-white/30 dark:hover:bg-white/10',
+									'flex w-full items-center gap-2 justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+									'hover:bg-accent cursor-pointer',
 									'disabled:cursor-not-allowed disabled:opacity-50',
 									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-									value === flat.value && 'font-medium'
+									value === flat.value && 'font-medium bg-accent'
 								)}
 							>
+								{flat.label}
 								<Check
 									class={cn(
 										'size-3.5 shrink-0 transition-opacity',
 										value === flat.value ? 'opacity-100' : 'opacity-0'
 									)}
 								/>
-								{flat.label}
 							</button>
 						{/if}
 					{/each}

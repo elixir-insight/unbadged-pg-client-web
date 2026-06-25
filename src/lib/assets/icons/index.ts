@@ -149,3 +149,5 @@ export { default as Info } from '@lucide/svelte/icons/info';
 export { default as XCircle } from '@lucide/svelte/icons/x-circle';
 export { default as Upload } from '@lucide/svelte/icons/upload';
 export { default as Home } from '@lucide/svelte/icons/home';
+export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
+export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';

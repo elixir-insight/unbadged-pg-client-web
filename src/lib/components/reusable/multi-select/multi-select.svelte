@@ -5,8 +5,9 @@
 <script lang="ts">
 	import { Popover as PopoverPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils';
-	import { Check, ChevronDown, X } from '@lucide/svelte';
+	import { ChevronDown, X } from '$lib/assets/icons';
 	import { PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 
 	let {
 		value = $bindable<string[]>([]),
@@ -42,8 +43,8 @@
 	<PopoverTrigger
 		{disabled}
 		class={cn(
-			'flex min-h-9 w-full min-w-48 flex-wrap items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
-			'border-white/40 bg-white/80 dark:border-white/10 dark:bg-white/5',
+			'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
+			'border-border  dark:border-white/10 dark:bg-white/5',
 			'glass-dropdown-trigger cursor-pointer focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
 			disabled && 'cursor-not-allowed opacity-50',
 			className
@@ -55,7 +56,7 @@
 			{#each value as v (v)}
 				{@const label = options.find((o) => o.value === v)?.label ?? v}
 				<span
-					class="inline-flex items-center gap-1 rounded-md border border-white/40 bg-white/60 px-2 py-0.5 text-xs font-medium dark:border-white/10 dark:bg-white/10"
+					class="inline-flex items-center gap-1 rounded-md border border-border bg-gray-50 px-2 py-0.5 text-xs font-medium dark:border-white/10 dark:bg-white/10"
 				>
 					{label}
 					<button
@@ -77,11 +78,7 @@
 		/>
 	</PopoverTrigger>
 
-	<PopoverContent
-		align="start"
-		sideOffset={6}
-		class="w-(--bits-popover-trigger-width) max-w-full p-1"
-	>
+	<PopoverContent align="start" sideOffset={6} class="w-(--bits-popover-anchor-width) p-1">
 		<ul role="listbox" aria-multiselectable="true" class="flex flex-col gap-0.5">
 			{#each options as opt (opt.value)}
 				<li role="option" aria-selected={value.includes(opt.value)} aria-disabled={opt.disabled}>
@@ -90,23 +87,20 @@
 						disabled={opt.disabled}
 						onclick={() => toggle(opt.value)}
 						class={cn(
-							'flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-							'hover:bg-white/30 dark:hover:bg-white/10',
+							'flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+							'hover:bg-accent cursor-pointer ',
 							'disabled:cursor-not-allowed disabled:opacity-50',
 							'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none'
 						)}
 					>
-						<span
-							class={cn(
-								'flex size-4 shrink-0 items-center justify-center rounded-sm border border-white/40 transition-colors dark:border-white/20',
-								value.includes(opt.value) && 'border-primary bg-primary'
-							)}
-						>
-							{#if value.includes(opt.value)}
-								<Check class="size-3 text-primary-foreground" />
-							{/if}
-						</span>
 						{opt.label}
+						<Checkbox
+							checked={value.includes(opt.value)}
+							disabled={opt.disabled}
+							tabindex={-1}
+							aria-hidden={true}
+							class="pointer-events-none"
+						/>
 					</button>
 				</li>
 			{/each}
