@@ -25,3 +25,4 @@ export type { TabItem } from './tabs/tabs.svelte';
 export { default as Tooltip } from './tooltip/tooltip.svelte';
 export { default as Sidebar } from './sidebar/sidebar.svelte';
 export { default as AppShell } from './app-shell/app-shell.svelte';
+export { default as Drawer } from './drawer/drawer.svelte';
