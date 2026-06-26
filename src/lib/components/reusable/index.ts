@@ -23,3 +23,4 @@ export { toast } from 'svelte-sonner';
 export { default as Tabs } from './tabs/tabs.svelte';
 export type { TabItem } from './tabs/tabs.svelte';
 export { default as Tooltip } from './tooltip/tooltip.svelte';
+export { default as Drawer } from './drawer/drawer.svelte';
