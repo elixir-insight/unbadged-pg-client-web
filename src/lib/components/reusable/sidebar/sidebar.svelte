@@ -36,6 +36,10 @@
 		if (href === rootRoutes[app]) return false;
 		return page.url.pathname.startsWith(href + '/');
 	}
+
+	$effect(() => {
+		if (page.url.pathname) isMobileOpen = false;
+	});
 </script>
 
 <!-- Mobile backdrop -->

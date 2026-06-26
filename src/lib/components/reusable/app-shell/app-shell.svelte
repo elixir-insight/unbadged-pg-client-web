@@ -71,30 +71,26 @@
 <div class="flex h-screen overflow-hidden bg-background">
 	<Sidebar {app} bind:isMobileOpen />
 
-	<main class="flex min-w-0 flex-1 flex-col overflow-y-auto bg-muted p-4">
+	<main class="flex min-w-0 flex-1 flex-col overflow-y-auto bg-background md:bg-muted md:p-4">
 		<div
-			class="flex h-full flex-col overflow-hidden rounded-xl bg-background shadow-sm ring-1 ring-border"
+			class="flex h-full flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
-			{#if !isDashboard}
-				<header class="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
-					<!-- Mobile: open drawer -->
-					<button
-						class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
-						onclick={() => (isMobileOpen = true)}
-						aria-label="Open navigation"
-					>
-						<Menu class="h-4 w-4" />
-					</button>
+			<header
+				class={`flex h-14 shrink-0 items-center gap-3 border-b border-border px-4${isDashboard ? ' md:hidden' : ''}`}
+			>
+				<!-- Mobile: open drawer -->
+				<button
+					class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
+					onclick={() => (isMobileOpen = true)}
+					aria-label="Open navigation"
+				>
+					<Menu class="h-4 w-4" />
+				</button>
 
-					<!-- Desktop: decorative icon -->
-					<!-- <PanelLeft
-						class="hidden h-4 w-4 shrink-0 text-muted-foreground md:block"
-						aria-hidden="true"
-					/> -->
-
+				{#if !isDashboard}
 					<Breadcrumb items={breadcrumbItems} class="text-sm font-semibold" />
-				</header>
-			{/if}
+				{/if}
+			</header>
 
 			<div class="app-shell-content flex-1 overflow-y-auto p-5">
 				{@render children()}
