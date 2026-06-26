@@ -18,7 +18,6 @@ export { default as Briefcase } from '@lucide/svelte/icons/briefcase';
 export { default as Building2 } from '@lucide/svelte/icons/building-2';
 export { default as Calendar } from '@lucide/svelte/icons/calendar';
 export { default as Check } from '@lucide/svelte/icons/check';
-export { default as CheckCircle2 } from '@lucide/svelte/icons/check-circle-2';
 export { default as ChevronDown } from '@lucide/svelte/icons/chevron-down';
 export { default as ChevronLeft } from '@lucide/svelte/icons/chevron-left';
 export { default as ChevronRight } from '@lucide/svelte/icons/chevron-right';
