@@ -17,7 +17,7 @@
 	const attrs = $derived({
 		'data-slot': 'breadcrumb-link',
 		class: cn(
-			'inline-flex items-center rounded-md px-2 py-0.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-accent-foreground',
+			'inline-flex items-center rounded-md px-2 py-0.5 text-sm font-semibold text-foreground hover:underline underline-offset-4 decoration-primary/40 hover:text-primary hover:decoration-primary/70 disabled:pointer-events-none disabled:opacity-50',
 			className
 		),
 		href,

@@ -87,7 +87,9 @@
 					{#each group.items as item (item.href)}
 						<li class="relative">
 							{#if isActive(item.href)}
-								<span class="absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"></span>
+								<span
+									class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
+								></span>
 							{/if}
 							<a
 								href={resolve(...([item.href] as Parameters<typeof resolve>))}

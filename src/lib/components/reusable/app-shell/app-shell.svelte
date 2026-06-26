@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import type { AppId } from '$lib/navigation/types';
 	import { managementNav } from '$lib/navigation/management-nav';
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
 	import Sidebar from '../sidebar/sidebar.svelte';
-	import { Menu, PanelLeft } from '$lib/assets/icons';
+	import { Menu } from '$lib/assets/icons';
+	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
 
 	let {
 		app,
@@ -19,9 +21,9 @@
 	let isMobileOpen = $state(false);
 
 	const rootRoutes: Record<AppId, string> = {
-		management: '/management',
-		merchant: '/merchant',
-		partner: '/partner'
+		management: resolve('/management'),
+		merchant: resolve('/merchant'),
+		partner: resolve('/partner')
 	};
 
 	const navConfig = { management: managementNav, merchant: merchantNav, partner: partnerNav };
@@ -41,6 +43,23 @@
 			allItems.find((i) => page.url.pathname.startsWith(i.href + '/'))?.title ??
 			appLabels[app]
 	);
+
+	const navTitleMap = $derived(new Map(allItems.map((i) => [i.href, i.title])));
+
+	function formatSegment(seg: string): string {
+		return seg.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	}
+
+	const breadcrumbItems = $derived.by(() => {
+		const root = rootRoutes[app];
+		const rest = page.url.pathname.startsWith(root) ? page.url.pathname.slice(root.length) : '';
+		const segments = rest.split('/').filter(Boolean);
+
+		return segments.map((seg, i) => {
+			const href = root + '/' + segments.slice(0, i + 1).join('/');
+			return { label: navTitleMap.get(href) ?? formatSegment(seg), href };
+		});
+	});
 </script>
 
 <svelte:head>
@@ -68,16 +87,16 @@
 					</button>
 
 					<!-- Desktop: decorative icon -->
-					<PanelLeft
+					<!-- <PanelLeft
 						class="hidden h-4 w-4 shrink-0 text-muted-foreground md:block"
 						aria-hidden="true"
-					/>
+					/> -->
 
-					<h1 class="text-sm font-semibold text-foreground">{pageTitle}</h1>
+					<Breadcrumb items={breadcrumbItems} class="text-sm font-semibold" />
 				</header>
 			{/if}
 
-			<div class="flex-1 overflow-y-auto p-5">
+			<div class="app-shell-content flex-1 overflow-y-auto p-5">
 				{@render children()}
 			</div>
 		</div>

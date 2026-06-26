@@ -16,7 +16,7 @@
 	data-slot="breadcrumb-separator"
 	role="presentation"
 	aria-hidden="true"
-	class={cn('flex items-center text-muted-foreground/40 [&>svg]:size-3', className)}
+	class={cn('flex items-center text-muted-foreground/40 [&>svg]:size-4', className)}
 	{...restProps}
 >
 	{#if children}
