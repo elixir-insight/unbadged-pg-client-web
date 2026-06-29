@@ -24,3 +24,5 @@ export { default as Tabs } from './tabs/tabs.svelte';
 export type { TabItem } from './tabs/tabs.svelte';
 export { default as Tooltip } from './tooltip/tooltip.svelte';
 export { default as Drawer } from './drawer/drawer.svelte';
+export { createUrlPagination } from './pagination/use-url-pagination.svelte.js';
+export type { UrlPaginationOptions } from './pagination/use-url-pagination.svelte.js';
