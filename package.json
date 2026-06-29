@@ -83,5 +83,9 @@
 		"cz-customizable": {
 			"config": ".cz-config.cjs"
 		}
+	},
+	"dependencies": {
+		"install": "^0.13.0",
+		"npm": "^11.17.0"
 	}
 }
