@@ -44,7 +44,8 @@
 
 				<div>
 					<div class="flex items-center gap-2">
-						<span class="text-sm font-semibold" style="color: var(--foreground);">{entry.name}</span>
+						<span class="text-sm font-semibold" style="color: var(--foreground);">{entry.name}</span
+						>
 						<span
 							class="rounded-full px-2 py-0.5 text-xs"
 							style="background-color: var(--secondary); color: var(--secondary-foreground);"

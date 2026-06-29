@@ -242,7 +242,7 @@ Components are copied into `$lib/components/ui/` — they are yours to modify.
 	import { Card } from '$lib/components/ui/card';
 </script>
 ```
- 
+
 ## Storybook — component-only scope
 
 Storybook is used **exclusively for isolated components in `src/lib/components/`**. It is not used for routes, pages, layouts, or anything that depends on SvelteKit's request lifecycle.
@@ -256,7 +256,7 @@ Storybook is used **exclusively for isolated components in `src/lib/components/`
 
 - `+page.svelte` / `+layout.svelte` files — these depend on SvelteKit's `load` data and routing context, which Storybook can only mock, not faithfully reproduce.
 - Any component that calls a `*.remote.ts` function (`query`, `form`, `command`) directly inside its own script — if a component does this, either:
-  - refactor it so the parent route passes data in as props (then the *inner* presentational piece is storyable), or
+  - refactor it so the parent route passes data in as props (then the _inner_ presentational piece is storyable), or
   - skip Storybook for it and rely on Playwright/component tests instead.
 - Payment gateway hosted fields/iframes (Stripe Elements, Razorpay Checkout, etc.) — these require a live publishable key and real network calls; they don't render meaningfully in isolation.
 - Full checkout/payment flows (multi-step forms, redirect-based 3DS, webhook-driven status updates) — these are integration concerns, not component concerns.
@@ -274,16 +274,20 @@ Storybook is used **exclusively for isolated components in `src/lib/components/`
 	let { id } = $props();
 	const tx = $derived(await getTransaction(id));
 </script>
+
 <TransactionCard {tx} />
 ```
+
 ```svelte
 <!-- ✅ Storyable: pure presentational component, data passed as prop -->
 <!-- transaction-card.svelte -->
 <script>
 	let { tx } = $props();
 </script>
+
 <div>{tx.amount} — {tx.status}</div>
 ```
+
 ```svelte
 <!-- transaction-card.stories.svelte -->
 <script module>
@@ -294,10 +298,12 @@ Storybook is used **exclusively for isolated components in `src/lib/components/`
 		component: TransactionCard
 	});
 </script>
+
 <Story name="Success" args={{ tx: { amount: '₹4,999', status: 'success' } }} />
 <Story name="Failed" args={{ tx: { amount: '₹4,999', status: 'failed' } }} />
 <Story name="Pending" args={{ tx: { amount: '₹4,999', status: 'pending' } }} />
 ```
+
 The route's `+page.svelte` then owns the `getTransaction()` call and passes the resolved value into `TransactionCard` — keeping data-fetching at the route level and visuals at the component level, which is also exactly what makes the component testable in Storybook.
 
 ### Key docs

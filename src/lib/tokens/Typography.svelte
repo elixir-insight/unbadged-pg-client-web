@@ -46,13 +46,13 @@
 
 	<!-- Size scale -->
 	<section class="mb-12">
-		<h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
-			Type Scale
-		</h2>
+		<h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">Type Scale</h2>
 		<div class="overflow-hidden rounded-xl border border-gray-100">
 			{#each sizeEntries as entry, i (entry.key)}
 				<div
-					class="flex items-center gap-6 border-b border-gray-50 px-6 py-4 last:border-b-0 {i % 2 === 0
+					class="flex items-center gap-6 border-b border-gray-50 px-6 py-4 last:border-b-0 {i %
+						2 ===
+					0
 						? 'bg-white'
 						: 'bg-gray-50/50'}"
 				>
@@ -93,9 +93,7 @@
 			<div class="flex flex-col gap-3">
 				{#each weightEntries as [name, value] (name)}
 					<div class="flex items-baseline gap-4 rounded-lg bg-gray-50 px-5 py-3">
-						<span class="w-24 font-mono text-xs text-gray-400"
-							>{name} · {value}</span
-						>
+						<span class="w-24 font-mono text-xs text-gray-400">{name} · {value}</span>
 						<span class="text-base text-gray-800" style="font-weight: {value};">
 							Payment confirmed ₹1,200.00
 						</span>

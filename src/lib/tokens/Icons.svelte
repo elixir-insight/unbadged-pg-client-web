@@ -23,9 +23,7 @@
 
 	let filteredIcons: IconEntry[] = $derived(
 		effectiveSearch.trim()
-			? allIcons.filter((e) =>
-					e.name.toLowerCase().includes(effectiveSearch.trim().toLowerCase())
-				)
+			? allIcons.filter((e) => e.name.toLowerCase().includes(effectiveSearch.trim().toLowerCase()))
 			: allIcons
 	);
 
@@ -89,7 +87,10 @@
 	</div>
 
 	{#if filteredIcons.length === 0}
-		<div class="flex flex-col items-center justify-center py-20" style="color: var(--muted-foreground);">
+		<div
+			class="flex flex-col items-center justify-center py-20"
+			style="color: var(--muted-foreground);"
+		>
 			<svg
 				width="40"
 				height="40"

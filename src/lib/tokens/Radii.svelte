@@ -16,13 +16,13 @@
 		full: 'Pills · Avatars · Toggles'
 	};
 
-	const radiusEntries: RadiusEntry[] = (Object.entries(tokens.radii) as Array<[string, string]>).map(
-		([name, value]) => ({
-			name,
-			value,
-			useCase: useCases[name] ?? ''
-		})
-	);
+	const radiusEntries: RadiusEntry[] = (
+		Object.entries(tokens.radii) as Array<[string, string]>
+	).map(([name, value]) => ({
+		name,
+		value,
+		useCase: useCases[name] ?? ''
+	}));
 </script>
 
 <div class="min-h-screen p-8 font-sans" style="background-color: var(--background);">

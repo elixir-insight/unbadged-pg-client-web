@@ -36,7 +36,16 @@
 
 	const shadowEntries = Object.entries(tokens.shadows) as Array<[string, string]>;
 
-	const iconPreviews = [CreditCard, Wallet, Shield, Banknote, Receipt, Landmark, DollarSign, ArrowRight];
+	const iconPreviews = [
+		CreditCard,
+		Wallet,
+		Shield,
+		Banknote,
+		Receipt,
+		Landmark,
+		DollarSign,
+		ArrowRight
+	];
 </script>
 
 <div class="min-h-screen p-8 font-sans" style="background-color: var(--muted);">
@@ -63,7 +72,8 @@
 						{colorGroups.length} groups · {totalColorTokens} tokens
 					</p>
 				</div>
-				<span class="text-xs" style="color: var(--muted-foreground);">Design Tokens / Colors →</span>
+				<span class="text-xs" style="color: var(--muted-foreground);">Design Tokens / Colors →</span
+				>
 			</div>
 			<div class="flex flex-wrap gap-3 px-6 py-5">
 				{#each colorPreviews as swatch (swatch.id)}
@@ -73,7 +83,9 @@
 							style="background-color: {swatch.value}; border-color: var(--border);"
 							title="{swatch.label}: {swatch.cssVar}"
 						></div>
-						<span class="font-mono text-xs" style="color: var(--muted-foreground);">{swatch.label}</span>
+						<span class="font-mono text-xs" style="color: var(--muted-foreground);"
+							>{swatch.label}</span
+						>
 					</div>
 				{/each}
 			</div>
@@ -90,14 +102,20 @@
 			>
 				<div>
 					<h2 class="text-sm font-semibold" style="color: var(--foreground);">Typography</h2>
-					<p class="text-xs" style="color: var(--muted-foreground);">8 sizes · 3 weights · 3 line heights</p>
+					<p class="text-xs" style="color: var(--muted-foreground);">
+						8 sizes · 3 weights · 3 line heights
+					</p>
 				</div>
-				<span class="text-xs" style="color: var(--muted-foreground);">Design Tokens / Typography →</span>
+				<span class="text-xs" style="color: var(--muted-foreground);"
+					>Design Tokens / Typography →</span
+				>
 			</div>
 			<div class="flex flex-col gap-1 px-6 py-4">
 				{#each typePreviews as entry (entry.key)}
 					<div class="flex items-baseline gap-4">
-						<span class="w-12 shrink-0 font-mono text-xs" style="color: var(--muted-foreground);">{entry.px}</span>
+						<span class="w-12 shrink-0 font-mono text-xs" style="color: var(--muted-foreground);"
+							>{entry.px}</span
+						>
 						<span style="font-size: {entry.px}; color: var(--foreground);">
 							Payment confirmed ₹1,200.00
 						</span>
@@ -118,17 +136,22 @@
 				>
 					<div>
 						<h2 class="text-sm font-semibold" style="color: var(--foreground);">Spacing</h2>
-						<p class="text-xs" style="color: var(--muted-foreground);">{tokens.spacing.length} values</p>
+						<p class="text-xs" style="color: var(--muted-foreground);">
+							{tokens.spacing.length} values
+						</p>
 					</div>
 					<span class="text-xs" style="color: var(--muted-foreground);">→</span>
 				</div>
 				<div class="flex flex-col gap-2 px-6 py-4">
 					{#each spacingPreviews as value (value)}
 						<div class="flex items-center gap-3">
-							<span class="w-10 shrink-0 font-mono text-xs" style="color: var(--muted-foreground);">{value}px</span>
+							<span class="w-10 shrink-0 font-mono text-xs" style="color: var(--muted-foreground);"
+								>{value}px</span
+							>
 							<div
 								class="h-3 rounded-sm"
-								style="width: {(value / maxSpacing) * 100}%; background-color: var(--primary); min-width: 2px;"
+								style="width: {(value / maxSpacing) *
+									100}%; background-color: var(--primary); min-width: 2px;"
 							></div>
 						</div>
 					{/each}
@@ -145,7 +168,9 @@
 				>
 					<div>
 						<h2 class="text-sm font-semibold" style="color: var(--foreground);">Border Radius</h2>
-						<p class="text-xs" style="color: var(--muted-foreground);">{Object.keys(tokens.radii).length} values</p>
+						<p class="text-xs" style="color: var(--muted-foreground);">
+							{Object.keys(tokens.radii).length} values
+						</p>
 					</div>
 					<span class="text-xs" style="color: var(--muted-foreground);">→</span>
 				</div>
@@ -174,9 +199,13 @@
 			>
 				<div>
 					<h2 class="text-sm font-semibold" style="color: var(--foreground);">Shadows</h2>
-					<p class="text-xs" style="color: var(--muted-foreground);">{Object.keys(tokens.shadows).length} elevation levels</p>
+					<p class="text-xs" style="color: var(--muted-foreground);">
+						{Object.keys(tokens.shadows).length} elevation levels
+					</p>
 				</div>
-				<span class="text-xs" style="color: var(--muted-foreground);">Design Tokens / Shadows →</span>
+				<span class="text-xs" style="color: var(--muted-foreground);"
+					>Design Tokens / Shadows →</span
+				>
 			</div>
 			<div class="flex flex-wrap gap-6 px-6 py-6">
 				{#each shadowEntries as [name, value] (name)}

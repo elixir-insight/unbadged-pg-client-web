@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/sveltekit';
+import * as IconExports from '$lib/assets/icons';
 import Icons from './Icons.svelte';
+
+const iconCount = Object.keys(IconExports).length;
 
 const meta = {
 	title: 'Design Tokens / Icons',
@@ -9,8 +12,7 @@ const meta = {
 		layout: 'fullscreen',
 		docs: {
 			description: {
-				component:
-					'All 103 icons available in `$lib/assets/icons` (from `@lucide/svelte`). Search by name, then click any icon to copy its import statement.'
+				component: `All ${iconCount} icons available in \`$lib/assets/icons\` (from \`@lucide/svelte\`). Search by name, then click any icon to copy its import statement.`
 			}
 		}
 	},

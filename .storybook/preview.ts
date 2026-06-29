@@ -18,15 +18,7 @@ const preview: Preview = {
 			storySort: {
 				order: [
 					'Design Tokens',
-					[
-						'Overview',
-						'Colors',
-						'Typography',
-						'Spacing',
-						'Border Radius',
-						'Shadows',
-						'Icons'
-					],
+					['Overview', 'Colors', 'Typography', 'Spacing', 'Border Radius', 'Shadows', 'Icons'],
 					'Payment',
 					['Icon Gallery', 'Icons', '*']
 				]

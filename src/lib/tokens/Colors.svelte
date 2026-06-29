@@ -1,19 +1,19 @@
 <script lang="ts">
+	import { SvelteMap } from 'svelte/reactivity';
 	import { colorGroups, type CssColorToken } from '$lib/tokens/tokens';
 
-	let computedValues: Map<string, string> = $state(new Map());
+	let computedValues = new SvelteMap<string, string>();
 
 	$effect(() => {
 		if (typeof window === 'undefined') return;
 		const style = getComputedStyle(document.documentElement);
-		const map = new Map<string, string>();
+		computedValues.clear();
 		for (const group of colorGroups) {
 			for (const token of group.tokens) {
 				const val = style.getPropertyValue(token.cssVar).trim();
-				map.set(token.cssVar, val);
+				computedValues.set(token.cssVar, val);
 			}
 		}
-		computedValues = map;
 	});
 
 	let toastText = $state('');
@@ -72,7 +72,9 @@
 							>
 								<span
 									class="absolute inset-0 flex items-center justify-center rounded-lg text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100"
-									style="color: {token.isLight ? 'var(--foreground)' : 'var(--primary-foreground)'};"
+									style="color: {token.isLight
+										? 'var(--foreground)'
+										: 'var(--primary-foreground)'};"
 								>
 									Copy
 								</span>

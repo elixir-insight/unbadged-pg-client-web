@@ -42,7 +42,8 @@
 				<div class="flex flex-1 items-center">
 					<div
 						class="h-4 rounded-sm"
-						style="width: {(entry.value / maxValue) * 100}%; background-color: var(--primary); min-width: 2px;"
+						style="width: {(entry.value / maxValue) *
+							100}%; background-color: var(--primary); min-width: 2px;"
 						aria-label="{entry.value}px"
 					></div>
 				</div>
