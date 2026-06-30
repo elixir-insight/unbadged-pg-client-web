@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { getTransferStore } from '../state/transfer.svelte';
-	import { formatInr, maskAccountNumber } from '../types';
+	import { getTransferStore, formatInr, maskAccountNumber } from '../fund-transfer.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Check, XCircle, FileClock } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';

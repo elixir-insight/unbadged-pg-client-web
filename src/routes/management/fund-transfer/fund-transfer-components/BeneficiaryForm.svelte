@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Beneficiary, TransferMethod } from '../types';
+	import type { Beneficiary, TransferMethod } from '../fund-transfer.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import { cn } from '$lib/utils';

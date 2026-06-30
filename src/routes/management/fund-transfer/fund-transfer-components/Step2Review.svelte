@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { getTransferStore } from '../state/transfer.svelte';
-	import { formatInr, maskAccountNumber } from '../types';
-	import ReviewSummaryCard from '../components/ReviewSummaryCard.svelte';
+	import { getTransferStore, formatInr, maskAccountNumber } from '../fund-transfer.svelte';
+	import ReviewSummaryCard from './ReviewSummaryCard.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Chip as Badge } from '$lib/components/ui/badge';
 	import { Wallet, Send, User, FileText } from '$lib/assets/icons';

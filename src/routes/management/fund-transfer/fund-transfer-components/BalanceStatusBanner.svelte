@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BalanceStatus } from '../types';
+	import type { BalanceStatus } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
 	import { Info, AlertCircle, CheckCircle2 } from '$lib/assets/icons';
 

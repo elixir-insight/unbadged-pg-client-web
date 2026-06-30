@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { ReviewRow } from '../types';
+	import type { ReviewRow } from '../fund-transfer.svelte';
 	import * as Card from '$lib/components/ui/card';
 
 	let {

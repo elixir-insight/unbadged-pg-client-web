@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { TransferSummary } from '../types';
-	import { formatInr, maskAccountNumber } from '../types';
-	import { getFeatureIcon } from '../utils/icons';
+	import type { TransferSummary } from '../fund-transfer.svelte';
+	import { formatInr, maskAccountNumber, getFeatureIcon } from '../fund-transfer.svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Chip as Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';

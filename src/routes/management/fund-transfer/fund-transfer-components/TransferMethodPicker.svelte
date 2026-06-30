@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { TransferMethod } from '../types';
-	import { getFeatureIcon } from '../utils/icons';
+	import type { TransferMethod } from '../fund-transfer.svelte';
+	import { getFeatureIcon } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
 
 	let {

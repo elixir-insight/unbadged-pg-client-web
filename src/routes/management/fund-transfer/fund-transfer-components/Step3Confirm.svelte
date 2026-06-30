@@ -4,11 +4,11 @@
 		OTP_LENGTH,
 		MAX_OTP_ATTEMPTS,
 		DEMO_OTP,
-		DEMO_FAIL_OTP
-	} from '../state/transfer.svelte';
-	import { formatInr } from '../types';
-	import OtpInput from '../components/OtpInput.svelte';
-	import ConfirmResultPanel from '../components/ConfirmResultPanel.svelte';
+		DEMO_FAIL_OTP,
+		formatInr
+	} from '../fund-transfer.svelte';
+	import OtpInput from './OtpInput.svelte';
+	import ConfirmResultPanel from './ConfirmResultPanel.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
 	import { ShieldCheck, MailIcon, PhoneIcon } from '$lib/assets/icons';

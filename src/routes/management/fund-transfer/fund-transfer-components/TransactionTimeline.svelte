@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TimelineStep } from '../types';
+	import type { TimelineStep } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
 	import { Check, Loader2, Circle, XCircle } from '$lib/assets/icons';
 

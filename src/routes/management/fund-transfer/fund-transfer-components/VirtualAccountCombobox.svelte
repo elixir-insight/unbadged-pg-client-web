@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { VirtualAccount } from '../types';
-	import { formatInr, maskAccountNumber } from '../types';
+	import type { VirtualAccount } from '../fund-transfer.svelte';
+	import { formatInr, maskAccountNumber } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
 	import { ArrowUpDown, Search } from '$lib/assets/icons';
 	import * as Popover from '$lib/components/ui/popover';

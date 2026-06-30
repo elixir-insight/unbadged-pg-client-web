@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { getTransferStore } from '../state/transfer.svelte';
-	import VirtualAccountCombobox from '../components/VirtualAccountCombobox.svelte';
-	import TransferMethodPicker from '../components/TransferMethodPicker.svelte';
-	import BeneficiaryForm from '../components/BeneficiaryForm.svelte';
-	import AmountField from '../components/AmountField.svelte';
+	import { getTransferStore } from '../fund-transfer.svelte';
+	import VirtualAccountCombobox from './VirtualAccountCombobox.svelte';
+	import TransferMethodPicker from './TransferMethodPicker.svelte';
+	import BeneficiaryForm from './BeneficiaryForm.svelte';
+	import AmountField from './AmountField.svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Wallet, Send, User } from '$lib/assets/icons';

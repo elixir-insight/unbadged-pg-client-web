@@ -1,17 +1,301 @@
 import { getContext, setContext } from 'svelte';
+import type { Component } from 'svelte';
 import { SvelteDate } from 'svelte/reactivity';
-import { virtualAccounts } from '../data/virtual-accounts';
-import { transferMethods } from '../data/transfer-methods';
-import type {
-	BalanceStatus,
-	Beneficiary,
-	StepConfig,
-	TransferMethod,
-	TransferSummary,
-	TxnStatus,
-	VirtualAccount
-} from '../types';
-import { formatInr } from '../types';
+import Briefcase from '@lucide/svelte/icons/briefcase';
+import Users from '@lucide/svelte/icons/users';
+import Handshake from '@lucide/svelte/icons/handshake';
+import Coins from '@lucide/svelte/icons/coins';
+import TrendingUp from '@lucide/svelte/icons/trending-up';
+import Receipt from '@lucide/svelte/icons/receipt';
+import Landmark from '@lucide/svelte/icons/landmark';
+import Wallet from '@lucide/svelte/icons/wallet';
+import Banknote from '@lucide/svelte/icons/banknote';
+import Building2 from '@lucide/svelte/icons/building-2';
+import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+import Shield from '@lucide/svelte/icons/shield';
+import Zap from '@lucide/svelte/icons/zap';
+import Clock from '@lucide/svelte/icons/clock';
+import Smartphone from '@lucide/svelte/icons/smartphone';
+import User from '@lucide/svelte/icons/user';
+import CreditCard from '@lucide/svelte/icons/credit-card';
+import Send from '@lucide/svelte/icons/send';
+import FileText from '@lucide/svelte/icons/file-text';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type VirtualAccountType =
+	| 'Corporate'
+	| 'Payroll'
+	| 'Vendor'
+	| 'Expense'
+	| 'Collections'
+	| 'Treasury';
+
+export interface VirtualAccount {
+	id: string;
+	name: string;
+	accountNumber: string;
+	balance: number;
+	limit: number;
+	type: VirtualAccountType;
+	icon: string;
+}
+
+export interface TransferMethod {
+	id: 'IMPS' | 'NEFT' | 'RTGS' | 'UPI';
+	label: string;
+	description: string;
+	limitLabel: string;
+	icon: string;
+	info: string;
+}
+
+export interface Beneficiary {
+	name: string;
+	accountNumber: string;
+	confirmAccountNumber: string;
+	ifsc: string;
+	bankName: string;
+	upiId: string;
+}
+
+export interface TransferStep {
+	id: string;
+	label: string;
+	sublabel: string;
+}
+
+export type TxnStatus = 'idle' | 'pending' | 'processing' | 'success' | 'failed';
+
+export type BalanceStatus = 'ok' | 'warning' | 'error';
+
+export type TimelineState = 'done' | 'active' | 'pending' | 'failed';
+
+export interface TimelineStep {
+	label: string;
+	sublabel: string;
+	state: TimelineState;
+}
+
+export interface StepConfig {
+	id: string;
+	label: string;
+	sublabel: string;
+}
+
+export interface TransferSummary {
+	amount: number;
+	fromAccount: VirtualAccount | null;
+	method: TransferMethod | null;
+	beneficiary: Beneficiary;
+	remarks: string;
+	reference: string;
+	status: TxnStatus;
+	userName: string;
+	userRole: string;
+	utr?: string;
+	errorCode?: string;
+	failureReason?: string;
+	processedAt?: string;
+}
+
+export interface ReviewRow {
+	label: string;
+	value: string;
+}
+
+export type ConfirmStepStatus = 'pending' | 'success' | 'failed';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export function formatInr(amount: number): string {
+	return new Intl.NumberFormat('en-IN', {
+		style: 'currency',
+		currency: 'INR',
+		maximumFractionDigits: 0
+	}).format(amount);
+}
+
+export function maskAccountNumber(accountNumber: string): string {
+	if (accountNumber.length <= 4) return accountNumber;
+	return `•••• ${accountNumber.slice(-4)}`;
+}
+
+const iconMap: Record<string, Component<{ class?: string }>> = {
+	briefcase: Briefcase,
+	users: Users,
+	handshake: Handshake,
+	coins: Coins,
+	'trending-up': TrendingUp,
+	receipt: Receipt,
+	landmark: Landmark,
+	wallet: Wallet,
+	banknote: Banknote,
+	'building-2': Building2,
+	'rotate-ccw': RotateCcw,
+	shield: Shield,
+	zap: Zap,
+	clock: Clock,
+	smartphone: Smartphone,
+	user: User,
+	'credit-card': CreditCard,
+	send: Send,
+	'file-text': FileText
+};
+
+export function getFeatureIcon(name: string): Component<{ class?: string }> {
+	return iconMap[name] ?? Wallet;
+}
+
+// ─── Mock data ───────────────────────────────────────────────────────────────
+
+export const virtualAccounts: VirtualAccount[] = [
+	{
+		id: 'va-001',
+		name: 'Operations A/C',
+		accountNumber: '8901234567890123',
+		balance: 48_75_000,
+		limit: 50_00_000,
+		type: 'Corporate',
+		icon: 'briefcase'
+	},
+	{
+		id: 'va-002',
+		name: 'Payroll A/C',
+		accountNumber: '8901234567890456',
+		balance: 22_40_000,
+		limit: 25_00_000,
+		type: 'Payroll',
+		icon: 'users'
+	},
+	{
+		id: 'va-003',
+		name: 'Vendor Payments',
+		accountNumber: '8901234567890789',
+		balance: 15_60_000,
+		limit: 20_00_000,
+		type: 'Vendor',
+		icon: 'handshake'
+	},
+	{
+		id: 'va-004',
+		name: 'Petty Cash A/C',
+		accountNumber: '8901234567891011',
+		balance: 1_85_000,
+		limit: 2_00_000,
+		type: 'Expense',
+		icon: 'coins'
+	},
+	{
+		id: 'va-005',
+		name: 'Marketing Escrow',
+		accountNumber: '8901234567891213',
+		balance: 8_20_000,
+		limit: 10_00_000,
+		type: 'Corporate',
+		icon: 'trending-up'
+	},
+	{
+		id: 'va-006',
+		name: 'HR Reimbursements',
+		accountNumber: '8901234567891415',
+		balance: 3_45_000,
+		limit: 5_00_000,
+		type: 'Payroll',
+		icon: 'receipt'
+	},
+	{
+		id: 'va-007',
+		name: 'GST Collections',
+		accountNumber: '8901234567891617',
+		balance: 12_30_000,
+		limit: 15_00_000,
+		type: 'Collections',
+		icon: 'landmark'
+	},
+	{
+		id: 'va-008',
+		name: 'Treasury Reserve',
+		accountNumber: '8901234567891819',
+		balance: 1_25_00_000,
+		limit: 1_50_00_000,
+		type: 'Treasury',
+		icon: 'wallet'
+	},
+	{
+		id: 'va-009',
+		name: 'Advance Salary',
+		accountNumber: '8901234567892021',
+		balance: 6_75_000,
+		limit: 8_00_000,
+		type: 'Payroll',
+		icon: 'banknote'
+	},
+	{
+		id: 'va-010',
+		name: 'Office Expenses',
+		accountNumber: '8901234567892223',
+		balance: 4_10_000,
+		limit: 6_00_000,
+		type: 'Expense',
+		icon: 'building-2'
+	},
+	{
+		id: 'va-011',
+		name: 'Client Refunds',
+		accountNumber: '8901234567892425',
+		balance: 9_80_000,
+		limit: 12_00_000,
+		type: 'Collections',
+		icon: 'rotate-ccw'
+	},
+	{
+		id: 'va-012',
+		name: 'Insurance Premium',
+		accountNumber: '8901234567892627',
+		balance: 2_90_000,
+		limit: 4_00_000,
+		type: 'Vendor',
+		icon: 'shield'
+	}
+];
+
+export const transferMethods: TransferMethod[] = [
+	{
+		id: 'IMPS',
+		label: 'IMPS',
+		description: 'Instant transfer',
+		limitLabel: '≤ ₹5L per txn',
+		icon: 'zap',
+		info: 'Immediate credit, available 24×7 including holidays.'
+	},
+	{
+		id: 'NEFT',
+		label: 'NEFT',
+		description: 'Hourly batch',
+		limitLabel: 'No limit',
+		icon: 'clock',
+		info: 'Settled in hourly batches during banking hours.'
+	},
+	{
+		id: 'RTGS',
+		label: 'RTGS',
+		description: 'Real-time gross',
+		limitLabel: 'Min ₹2L',
+		icon: 'landmark',
+		info: 'High-value real-time settlement for large transfers.'
+	},
+	{
+		id: 'UPI',
+		label: 'UPI',
+		description: 'Instant VPA',
+		limitLabel: '≤ ₹1L per txn',
+		icon: 'smartphone',
+		info: 'Transfer to a UPI ID or VPA instantly.'
+	}
+];
+
+// ─── Store ───────────────────────────────────────────────────────────────────
 
 const TRANSFER_CONTEXT_KEY = Symbol('fund-transfer');
 
@@ -22,8 +306,6 @@ export const MAX_OTP_ATTEMPTS = 3;
 export const OTP_COUNTDOWN_SECONDS = 600;
 
 const VALID_OTPS = [DEMO_OTP, DEMO_FAIL_OTP] as const;
-
-export type ConfirmStepStatus = 'pending' | 'success' | 'failed';
 
 export class TransferStore {
 	selectedAccount = $state<VirtualAccount | null>(null);
@@ -166,6 +448,27 @@ export class TransferStore {
 		processedAt: this.txnProcessedAt || undefined
 	});
 
+	readonly confirmAttemptsRemaining = $derived(MAX_OTP_ATTEMPTS - this.otpAttempts);
+
+	readonly otpInputVisualState = $derived.by((): 'default' | 'success' | 'error' => {
+		if (this.otpVerified) return 'success';
+		if (this.otpError && this.confirmStepStatus === 'pending') return 'error';
+		if (this.confirmStepStatus === 'failed' && !this.otpVerified) return 'error';
+		return 'default';
+	});
+
+	readonly canResendOtp = $derived(
+		!this.otpCountdownActive &&
+			this.otpCountdownRemaining === 0 &&
+			this.otpAttempts < MAX_OTP_ATTEMPTS
+	);
+
+	readonly otpProgressValue = $derived((this.otpCountdownRemaining / OTP_COUNTDOWN_SECONDS) * 100);
+
+	readonly isOtpPhase = $derived(this.txnStatus === 'idle' || this.txnStatus === 'pending');
+
+	readonly showBackToReview = $derived(this.confirmStepStatus === 'pending' && !this.otpVerified);
+
 	selectAccount(account: VirtualAccount) {
 		this.selectedAccount = account;
 	}
@@ -217,15 +520,6 @@ export class TransferStore {
 		this.txnFailureReason = '';
 		this.txnProcessedAt = '';
 	}
-
-	readonly confirmAttemptsRemaining = $derived(MAX_OTP_ATTEMPTS - this.otpAttempts);
-
-	readonly otpInputVisualState = $derived.by((): 'default' | 'success' | 'error' => {
-		if (this.otpVerified) return 'success';
-		if (this.otpError && this.confirmStepStatus === 'pending') return 'error';
-		if (this.confirmStepStatus === 'failed' && !this.otpVerified) return 'error';
-		return 'default';
-	});
 
 	startOtpCountdown(resetAttempts = false) {
 		this.stopOtpCountdown();
@@ -336,18 +630,6 @@ export class TransferStore {
 			this.processingTimeout = null;
 		}, 1500);
 	}
-
-	readonly canResendOtp = $derived(
-		!this.otpCountdownActive &&
-			this.otpCountdownRemaining === 0 &&
-			this.otpAttempts < MAX_OTP_ATTEMPTS
-	);
-
-	readonly otpProgressValue = $derived((this.otpCountdownRemaining / OTP_COUNTDOWN_SECONDS) * 100);
-
-	readonly isOtpPhase = $derived(this.txnStatus === 'idle' || this.txnStatus === 'pending');
-
-	readonly showBackToReview = $derived(this.confirmStepStatus === 'pending' && !this.otpVerified);
 
 	formatCountdown(): string {
 		const minutes = Math.floor(this.otpCountdownRemaining / 60);

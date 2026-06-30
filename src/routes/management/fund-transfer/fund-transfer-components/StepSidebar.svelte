@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { StepConfig } from '../types';
+	import type { StepConfig } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
 	import { Check } from '$lib/assets/icons';
 
