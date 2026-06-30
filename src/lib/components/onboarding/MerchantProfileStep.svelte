@@ -205,7 +205,7 @@
 								onValueChange={onFieldInput}
 								options={businessTypes.map((t) => ({ value: t, label: t }))}
 								placeholder="Select Business Type"
-								class={cn('h-10 w-full', errors.orgBusinessType && 'border-destructive')}
+								class={cn('!h-10 w-full', errors.orgBusinessType && 'border-destructive')}
 							/>
 							{#if errors.orgBusinessType}
 								<p class="text-xs text-destructive" in:fly={{ y: -4, duration: 160 }}>

@@ -2,7 +2,7 @@
 	import * as v from 'valibot';
 	import { toast } from 'svelte-sonner';
 	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
-	import { ClientTypeStep, MerchantProfileStep } from './components';
+	import { ClientTypeStep, MerchantProfileStep } from '$lib/components/onboarding';
 	import {
 		type ClientType,
 		categories,

@@ -129,7 +129,7 @@
 							label: `${b.logo} ${b.value}`
 						}))}
 						placeholder="Select Bank Pipeline"
-						class={cn('h-10 w-full', errors.bankPipelines && 'border-destructive')}
+						class={cn('!h-10 w-full', errors.bankPipelines && 'border-destructive')}
 					/>
 					{#if errors.bankPipelines}
 						<p class="text-xs text-destructive" in:fly={{ y: -4, duration: 160 }}>
@@ -152,7 +152,7 @@
 							label: a.label
 						}))}
 						placeholder={!selectedBankPipeline ? 'Select Bank Pipeline first' : 'Select Affiliate'}
-						class="h-10 w-full"
+						class="!h-10 w-full"
 					/>
 				</div>
 			</div>

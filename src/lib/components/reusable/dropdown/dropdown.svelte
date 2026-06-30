@@ -90,7 +90,7 @@
 				'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer',
 				'disabled:cursor-not-allowed disabled:opacity-50',
 				'dark:bg-input/30 dark:hover:bg-input/50',
-				size === 'sm' ? 'h-8' : 'h-9',
+				size === 'sm' ? 'h-8' : 'h-10',
 				bordered && 'border-border',
 				className
 			)}

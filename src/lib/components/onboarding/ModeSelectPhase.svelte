@@ -178,7 +178,7 @@
 								</button>
 							{:else}
 								<button
-									onclick={() => goto(resolve('/management/onboarding/surepass'))}
+									// onclick={() => goto(resolve('/management/onboarding/surepass'))}
 									class={cn(
 										'cta-btn mt-7 flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold transition-all duration-200',
 										'hover:-translate-y-0.5 active:translate-y-0',
