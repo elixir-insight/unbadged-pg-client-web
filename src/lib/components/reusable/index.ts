@@ -26,3 +26,5 @@ export { default as Tooltip } from './tooltip/tooltip.svelte';
 export { default as Drawer } from './drawer/drawer.svelte';
 export { createUrlPagination } from './pagination/use-url-pagination.svelte.js';
 export type { UrlPaginationOptions } from './pagination/use-url-pagination.svelte.js';
+export { default as FilterCards } from './filter-cards/filter-cards.svelte';
+export type { FilterCard } from './filter-cards/filter-cards.svelte';
