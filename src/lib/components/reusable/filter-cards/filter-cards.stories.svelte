@@ -25,21 +25,34 @@
 </script>
 
 <!-- Default — first card selected -->
-<Story name="Default" args={{ cards: sampleCards, selected: 'All' }}>
+<Story
+	name="Default"
+	args={{ cards: sampleCards, selected: 'All', class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6' }}
+>
 	{#snippet template(args)}
 		<FilterCards {...args} />
 	{/snippet}
 </Story>
 
 <!-- None selected -->
-<Story name="None Selected" args={{ cards: sampleCards, selected: '' }}>
+<Story
+	name="None Selected"
+	args={{ cards: sampleCards, selected: '', class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6' }}
+>
 	{#snippet template(args)}
 		<FilterCards {...args} />
 	{/snippet}
 </Story>
 
 <!-- Middle card selected -->
-<Story name="Pending Selected" args={{ cards: sampleCards, selected: 'Pending' }}>
+<Story
+	name="Pending Selected"
+	args={{
+		cards: sampleCards,
+		selected: 'Pending',
+		class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6'
+	}}
+>
 	{#snippet template(args)}
 		<FilterCards {...args} />
 	{/snippet}
@@ -54,7 +67,8 @@
 			{ label: 'Active', count: 0 },
 			{ label: 'Pending', count: 0 }
 		],
-		selected: 'All'
+		selected: 'All',
+		class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6'
 	}}
 >
 	{#snippet template(args)}
@@ -70,7 +84,8 @@
 			{ label: 'Open', count: 7 },
 			{ label: 'Closed', count: 3 }
 		],
-		selected: 'Open'
+		selected: 'Open',
+		class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6'
 	}}
 >
 	{#snippet template(args)}
@@ -79,14 +94,21 @@
 </Story>
 
 <!-- Skeleton loading — default 6 cards -->
-<Story name="Loading" args={{ loading: true }}>
+<Story name="Loading" args={{ loading: true, class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6' }}>
 	{#snippet template(args)}
 		<FilterCards {...args} />
 	{/snippet}
 </Story>
 
 <!-- Skeleton with custom count -->
-<Story name="Loading 3 Cards" args={{ loading: true, skeletonCount: 3 }}>
+<Story
+	name="Loading 3 Cards"
+	args={{
+		loading: true,
+		skeletonCount: 3,
+		class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 '
+	}}
+>
 	{#snippet template(args)}
 		<FilterCards {...args} />
 	{/snippet}
@@ -102,7 +124,8 @@
 			{ label: 'Pending', count: 2184 },
 			{ label: 'Failed', count: 1453 }
 		],
-		selected: 'All'
+		selected: 'All',
+		class: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6'
 	}}
 >
 	{#snippet template(args)}

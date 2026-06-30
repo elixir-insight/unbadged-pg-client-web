@@ -35,12 +35,12 @@
 	}
 </script>
 
-<div class={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6', className)}>
+<div class={cn('grid gap-4 ', className)}>
 	{#if loading}
 		{#each skeletonItems as i (i)}
 			<div class="rounded-lg border border-border bg-background p-4 shadow-xs">
-				<Skeleton dir="ltr" />
-				<Skeleton dir="ltr" />
+				<Skeleton class="mb-2 h-4 w-3/4" />
+				<Skeleton class="h-7 w-3/4" />
 			</div>
 		{/each}
 	{:else}
