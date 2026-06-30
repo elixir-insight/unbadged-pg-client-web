@@ -1,1 +1,5 @@
-<p class="text-sm text-muted-foreground">Coming soon.</p>
+<script lang="ts">
+	import FundTransferFlow from './FundTransferFlow.svelte';
+</script>
+
+<FundTransferFlow />
