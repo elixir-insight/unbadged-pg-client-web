@@ -18,7 +18,7 @@
 	let {
 		value = $bindable<string | undefined>(),
 		options = [] as (DropdownOption | DropdownGroup)[],
-		placeholder = 'Select an option…',
+		placeholder = 'Select an option',
 		disabled = false,
 		size = 'default' as 'sm' | 'default',
 		class: className,
@@ -113,7 +113,7 @@
 				<input
 					type="text"
 					bind:value={query}
-					placeholder="Search…"
+					placeholder="Search"
 					class="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 				/>
 			</div>
@@ -183,7 +183,9 @@
 	<!-- Standard select (no search) -->
 	<SelectPrimitive.Root type="single" bind:value {disabled} {onValueChange} {name} {required}>
 		<SelectTrigger {size} class={cn('w-full', bordered && 'border-border', className)}>
-			<SelectPrimitive.Value {placeholder} />
+			<span class={cn('truncate', !selectedLabel && 'text-muted-foreground')}>
+				{selectedLabel || placeholder}
+			</span>
 		</SelectTrigger>
 		<SelectContent>
 			{#each options as opt, i (isGroup(opt) ? `g:${opt.group}` : `f:${(opt as DropdownOption).value}`)}

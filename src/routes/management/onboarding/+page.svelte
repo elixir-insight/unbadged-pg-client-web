@@ -6,7 +6,8 @@
 		Button,
 		Table,
 		Drawer,
-		FilterCards
+		FilterCards,
+		createUrlPagination
 	} from '$lib/components/reusable';
 	import type { FilterCard } from '$lib/components/reusable';
 	import { renderComponent } from '$lib/components/ui/data-table';
@@ -21,49 +22,59 @@
 		Calendar,
 		BadgeCheck,
 		ArrowRight,
-		ClipboardListIcon,
 		X
 	} from '$lib/assets/icons';
 	import { organizations, type Organization } from '$lib/data/mockData';
 	import type { ColumnDef } from '@tanstack/table-core';
+	import { debounce } from '$lib/utils/debounce';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
 	const statusVariantMap: Record<string, BadgeVariant> = {
-		Pending: 'warning',
-		'In Review': 'info',
-		'In Progress': 'alert'
+		PENDING: 'warning',
+		IN_REVIEW: 'info',
+		IN_PROGRESS: 'alert'
 	};
 
-	const PAGE_SIZE = 5;
+	const ACRONYMS = new Set(['LLP']);
 
-	let q = $state('');
-	let status = $state('all');
-	let type = $state('');
-	let pageNumber = $state(1);
+	function formatLabel(value: string): string {
+		return value
+			.split('_')
+			.map((word) =>
+				ACRONYMS.has(word) ? word : word[0].toUpperCase() + word.slice(1).toLowerCase()
+			)
+			.join(' ');
+	}
 
 	let selectedOrg = $state<Organization | null>(null);
 	let drawerOpen = $state(false);
 
 	const businessTypeOptions = [
-		{ value: 'Partnership', label: 'Partnership' },
-		{ value: 'Private Limited', label: 'Private Limited' },
+		{ value: 'PARTNERSHIP', label: 'Partnership' },
+		{ value: 'PRIVATE_LIMITED', label: 'Private Limited' },
 		{ value: 'LLP', label: 'LLP' },
-		{ value: 'Sole Proprietorship', label: 'Sole Proprietorship' }
+		{ value: 'SOLE_PROPRIETORSHIP', label: 'Sole Proprietorship' }
 	];
 
 	const columns: ColumnDef<Organization>[] = [
 		{
 			accessorKey: 'name',
 			header: 'Organization'
-			// cell: ({ row }) => renderComponent(OrgCell, { org: row.original })
 		},
 		{
 			accessorKey: 'businessType',
-			header: 'Business Type'
+			header: 'Business Type',
+			cell: ({ row }) => formatLabel(row.original.businessType as string)
 		},
 		{
 			accessorKey: 'category',
-			header: 'Category'
+			header: 'Category',
+			cell: ({ row }) => formatLabel(row.original.category as string)
+		},
+		{
+			accessorKey: 'createdAt',
+			header: 'Created At'
 		},
 		{
 			accessorKey: 'status',
@@ -71,96 +82,83 @@
 			cell: ({ row }) => {
 				const status = row.original.status as string;
 				const variant = statusVariantMap[status] ?? 'secondary';
-				const children = createRawSnippet(() => ({ render: () => status }));
+				const children = createRawSnippet(() => ({ render: () => formatLabel(status) }));
 				return renderComponent(Chip, { variant, children });
 			}
-		},
-		{
-			accessorKey: 'assignedAdmin',
-			header: 'Assigned Admin'
-		},
-		{
-			accessorKey: 'createdAt',
-			header: 'Created At'
 		}
 	];
 
 	const allOnboarding = $derived(
-		organizations.filter((o) => ['Pending', 'In Review', 'In Progress'].includes(o.status))
+		organizations.filter((o) => ['PENDING', 'IN_REVIEW', 'IN_PROGRESS'].includes(o.status))
 	);
+
+	// All filter + pagination state lives in the URL.
+	const pagination = createUrlPagination({ defaultLimit: 5, total: () => filtered.length });
+
+	// Derived from URL — back/forward navigation automatically restores these values.
+	const searchInput = $derived(pagination.search);
+	// const typeInput = $derived(pagination.type);
+	const businessTypeDropdown = $state('');
+	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 300);
+
+	function handleSearchInput(value: string) {
+		debouncedSearch(value);
+	}
 
 	const filtered = $derived(
 		allOnboarding
-			.filter((o) => status === 'all' || o.status === status)
-			.filter((o) => type === '' || o.businessType === type)
-			.filter((o) => o.name.toLowerCase().includes(q.toLowerCase()))
+			.filter((o) => !pagination.status || o.status === pagination.status)
+			.filter((o) => !pagination.type || o.businessType === pagination.type)
+			.filter((o) => o.name.toLowerCase().includes(pagination.search.toLowerCase()))
 	);
 
-	const totalPages = $derived(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+	const pagedData = $derived(filtered.slice(pagination.skip, pagination.skip + pagination.limit));
 
-	$effect(() => {
-		void q;
-		void status;
-		void type;
-		pageNumber = 1;
-	});
+	const pendingCount = $derived(allOnboarding.filter((o) => o.status === 'PENDING').length);
+	const inReviewCount = $derived(allOnboarding.filter((o) => o.status === 'IN_REVIEW').length);
+	const inProgressCount = $derived(allOnboarding.filter((o) => o.status === 'IN_PROGRESS').length);
 
-	const pagedData = $derived(filtered.slice((pageNumber - 1) * PAGE_SIZE, pageNumber * PAGE_SIZE));
+	const STATUS_ENUMS = ['PENDING', 'IN_REVIEW', 'IN_PROGRESS'] as const;
 
-	const showingText = $derived(
-		filtered.length === 0
-			? 'No results'
-			: `Showing ${(pageNumber - 1) * PAGE_SIZE + 1}–${Math.min(pageNumber * PAGE_SIZE, filtered.length)} of ${filtered.length}`
-	);
-
-	const pendingCount = $derived(allOnboarding.filter((o) => o.status === 'Pending').length);
-	const inReviewCount = $derived(allOnboarding.filter((o) => o.status === 'In Review').length);
-	const inProgressCount = $derived(allOnboarding.filter((o) => o.status === 'In Progress').length);
-
-	let selectedFilter = $state('All');
+	const selectedFilter = $derived(pagination.status ? formatLabel(pagination.status) : 'All');
 
 	const filterCards: FilterCard[] = $derived([
 		{ label: 'All', count: allOnboarding.length },
-		{ label: 'Pending', count: pendingCount },
-		{ label: 'In Review', count: inReviewCount },
-		{ label: 'In Progress', count: inProgressCount }
+		{ label: formatLabel('PENDING'), count: pendingCount },
+		{ label: formatLabel('IN_REVIEW'), count: inReviewCount },
+		{ label: formatLabel('IN_PROGRESS'), count: inProgressCount }
 	]);
 
 	function onFilterSelect(label: string) {
-		status = label === 'All' ? 'all' : label;
-	}
-
-	function clearFilters() {
-		type = '';
-		q = '';
-		selectedFilter = 'All';
-		status = 'all';
+		const enumVal = STATUS_ENUMS.find((s) => formatLabel(s) === label) ?? '';
+		pagination.setStatus(label === 'All' ? '' : enumVal);
 	}
 
 	const activeFilters = $derived([
-		...(status !== 'all' ? [{ key: 'status', label: `Status: ${status}` }] : []),
-		...(type !== ''
+		...(pagination.status
+			? [{ key: 'status', label: `Status: ${formatLabel(pagination.status)}` }]
+			: []),
+		...(pagination.type
 			? [
 					{
 						key: 'type',
-						label: `Type: ${businessTypeOptions.find((o) => o.value === type)?.label ?? type}`
+						label: `Type: ${businessTypeOptions.find((o) => o.value === pagination.type)?.label ?? pagination.type}`
 					}
 				]
 			: []),
-		...(q ? [{ key: 'search', label: `Search: "${q}"` }] : [])
+		...(pagination.search ? [{ key: 'search', label: `Search: "${pagination.search}"` }] : [])
 	]);
 
 	const hasActiveFilters = $derived(activeFilters.length > 0);
 
 	function removeFilter(key: string) {
-		if (key === 'status') {
-			status = 'all';
-			selectedFilter = 'All';
-		} else if (key === 'type') {
-			type = '';
-		} else if (key === 'search') {
-			q = '';
-		}
+		if (key === 'status') pagination.setStatus('');
+		else if (key === 'type') pagination.setType('');
+		else if (key === 'search') pagination.setSearch('');
+	}
+
+	function clearFilters() {
+		pagination.clearAllFilters();
 	}
 
 	function openOrgDrawer(org: Organization) {
@@ -171,20 +169,13 @@
 
 <div class="space-y-5">
 	<!-- ── Filter cards + Add Organization ────────────────────────────────── -->
-	<div class="section-appear grid gap-4 sm:grid-cols-5 sm:items-stretch">
+	<div class="section-appear grid gap-4 sm:grid-cols-4 sm:items-stretch">
 		<FilterCards
 			cards={filterCards}
-			bind:selected={selectedFilter}
+			selected={selectedFilter}
 			onselect={onFilterSelect}
 			class="sm:col-span-4 sm:grid-cols-4"
 		/>
-		<a
-			href={resolve('/management/create-org')}
-			class="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-4 shadow-xs transition-all duration-150 hover:border-primary/60 hover:bg-primary/10 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
-		>
-			<Building2 class="size-5 text-primary" />
-			<h4 class="text-sm font-medium text-primary">Add Organization</h4>
-		</a>
 	</div>
 
 	<!-- ── Search + filters (outside card) ───────────────────────────────── -->
@@ -193,9 +184,18 @@
 		style="animation-delay: 40ms"
 	>
 		<div class="w-full sm:max-w-sm sm:flex-1">
-			<Search bind:value={q} placeholder="Search organizations…" />
+			<Search
+				value={searchInput}
+				oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
+				placeholder="Search organizations"
+			/>
 		</div>
-		<Dropdown bind:value={type} options={businessTypeOptions} class="w-full sm:w-44" />
+		<Dropdown
+			value={businessTypeDropdown}
+			onValueChange={(v) => pagination.setType(v)}
+			options={businessTypeOptions}
+			class="w-full sm:w-44"
+		/>
 	</div>
 
 	<!-- ── Active filter tags ─────────────────────────────────────────────── -->
@@ -228,17 +228,24 @@
 
 	<!-- ── Table card ──────────────────────────────────────────────────────── -->
 	<div
-		class="surface-card section-appear rounded-lg border shadow-sm px-2 pb-4"
+		class="surface-card section-appear border rounded-lg shadow-sm pb-4"
 		style="animation-delay: 80ms"
 	>
+		<div class="flex gap-2 justify-between items-center p-4">
+			<p class="text-xs text-gray-500">{pagination.showingText}</p>
+			<Button
+				class="flex gap-2"
+				onclick={() => goto(resolve('/management/onboarding/create-organization'))}
+				><Building2 /> Create Organization</Button
+			>
+		</div>
 		<Table
 			data={pagedData}
 			{columns}
-			{showingText}
 			variant="default"
-			{pageNumber}
-			setPageNumber={(e) => (pageNumber = e)}
-			{totalPages}
+			pageNumber={pagination.currentPage}
+			totalPages={pagination.pageCount}
+			setPageNumber={pagination.setPage}
 			onRowClick={openOrgDrawer}
 		/>
 	</div>
@@ -254,7 +261,7 @@
 	{#snippet footer()}
 		{#if selectedOrg}
 			<div class="flex gap-2">
-				{#if selectedOrg.status === 'Pending'}
+				{#if selectedOrg.status === 'PENDING' || selectedOrg.status === 'IN_PROGRESS'}
 					<Button
 						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
@@ -262,7 +269,7 @@
 						<ArrowRight class="size-3.5" />
 						Continue Editing
 					</Button>
-				{:else if selectedOrg.status === 'In Review'}
+				{:else if selectedOrg.status === 'IN_REVIEW'}
 					<Button
 						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						variant="outline"
@@ -276,7 +283,7 @@
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<Eye class="size-3.5" />
-						In Review
+						Review
 					</Button>
 				{:else}
 					<Button
@@ -286,14 +293,6 @@
 					>
 						<Eye class="size-3.5" />
 						View Details
-					</Button>
-					<Button
-						// href={resolve('/management/onboarding/[orgId]/review', { orgId: selectedOrg.id })}
-						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
-					>
-						<ClipboardListIcon class="size-3.5" />
-						Start Review
-						<ArrowRight class="size-3.5" />
 					</Button>
 				{/if}
 			</div>
