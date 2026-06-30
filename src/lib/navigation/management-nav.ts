@@ -3,16 +3,10 @@ import {
 	LayoutDashboard,
 	ClipboardCheck,
 	Building2,
-	Users,
 	ShieldCheck,
-	Wallet,
-	Send,
-	ArrowLeftRight,
-	TrendingUp,
-	Landmark,
-	FileText,
-	Fingerprint,
-	CircleCheck
+	ArrowDownToLine,
+	ArrowUpFromLine,
+	FileText
 } from '$lib/assets/icons';
 
 export const managementNav: NavGroup[] = [
@@ -21,35 +15,35 @@ export const managementNav: NavGroup[] = [
 		items: [{ title: 'Dashboard', href: '/management', icon: LayoutDashboard }]
 	},
 	{
-		title: 'Organization',
+		title: 'Client',
 		items: [
 			{ title: 'Onboarding', href: '/management/onboarding', icon: ClipboardCheck },
-			{ title: 'Organizations', href: '/management/organizations', icon: Building2 }
+			{ title: 'Organizations', href: '/management/organizations', icon: Building2 },
+			{ title: 'Recent Reports', href: '/management/reports', icon: FileText }
 		]
 	},
 	{
-		title: 'Access Control',
+		title: 'Services',
 		items: [
-			{ title: 'User Management', href: '/management/users', icon: Users },
-			{ title: 'Role Management', href: '/management/roles', icon: ShieldCheck }
+			{
+				title: 'PayIn Service',
+				href: '/management/refunds',
+				icon: ArrowDownToLine,
+				children: [
+					{ title: 'Transactions', href: '/management/transactions' },
+					{ title: 'Refunds', href: '/management/refunds' },
+					{ title: 'Settlements', href: '/management/settlements' }
+				]
+			},
+			{
+				title: 'Payout Service',
+				href: '/management/fund-transfer',
+				icon: ArrowUpFromLine
+			}
 		]
 	},
 	{
-		title: 'Financial Operations',
-		items: [
-			{ title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
-			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
-			{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
-			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
-			{ title: 'Settlements', href: '/management/settlements', icon: Landmark }
-		]
-	},
-	{
-		title: 'Monitoring',
-		items: [
-			{ title: 'Reports', href: '/management/reports', icon: FileText },
-			{ title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
-			{ title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
-		]
+		title: 'Access',
+		items: [{ title: 'Role Management', href: '/management/roles', icon: ShieldCheck }]
 	}
 ];

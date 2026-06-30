@@ -6,7 +6,7 @@
 	let {
 		items,
 		class: className = 'hidden md:block'
-	}: { items: { label: string; href: string }[]; class?: string } = $props();
+	}: { items: { label: string; href?: string; onClick?: () => void }[]; class?: string } = $props();
 </script>
 
 <!--
@@ -29,9 +29,18 @@
 			</Breadcrumb.Item>
 		{:else if items.length === 2}
 			<Breadcrumb.Item>
-				<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(items[0].href as '/')}
-					>{items[0].label}</Breadcrumb.Link
-				>
+				{#if items[0].onClick}
+					<button
+						onclick={items[0].onClick}
+						class="font-semibold text-foreground transition-colors hover:text-muted-foreground"
+						>{items[0].label}</button
+					>
+				{:else}
+					<Breadcrumb.Link
+						class="font-semibold text-foreground"
+						href={resolve(items[0].href as '/')}>{items[0].label}</Breadcrumb.Link
+					>
+				{/if}
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator>
 				<ChevronRight size={50} />
