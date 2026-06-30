@@ -11,7 +11,7 @@
 	let roles = $state<RoleItem[]>([]);
 	let hasMore = $state(true);
 	let loading = $state(false);
-	let selectedId = $state<string | null>(null);
+	let selectedId = $state<number | null>(null);
 	let sentinel = $state<HTMLDivElement | null>(null);
 
 	async function loadRoles(reset = false) {
@@ -40,8 +40,10 @@
 	}
 
 	function selectRole(role: RoleItem) {
-		selectedId = role.id;
-		goto(resolve('/management/role-management/view-role'));
+		selectedId = role.roleId;
+		goto(resolve('/management/role-management/view-role/[id]', { id: String(role.roleId) }), {
+			state: { description: role.description }
+		});
 	}
 
 	$effect(() => {
@@ -105,8 +107,8 @@
 		</button>
 
 		<!-- Role cards -->
-		{#each roles as role (role.id)}
-			<RoleCard {role} selected={selectedId === role.id} onclick={() => selectRole(role)} />
+		{#each roles as role (role.roleId)}
+			<RoleCard {role} selected={selectedId === role.roleId} onclick={() => selectRole(role)} />
 		{/each}
 	</div>
 

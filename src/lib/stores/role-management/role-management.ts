@@ -1,7 +1,6 @@
 import type { Component } from 'svelte';
 
-export type RoleType = 'Custom' | 'Default' | 'System Default';
-export type PermStatus = 'granted' | 'denied' | 'none';
+export type PermStatus = 'granted' | 'denied';
 
 export type PermKey =
 	| 'read'
@@ -20,14 +19,6 @@ export type ModuleDef = {
 	icon: Component;
 };
 
-export type RoleItem = {
-	id: string;
-	name: string;
-	type: RoleType;
-	userCount: number;
-	description: string;
-};
-
 export type PermModule = {
 	name: string;
 	icon: Component;
@@ -39,10 +30,35 @@ export type PermModule = {
 	fullAccess?: PermStatus;
 };
 
-export type AssignedUser = {
-	id: string;
+// Matches the real list API shape
+export type RoleItem = {
+	roleId: number;
+	roleName: string;
+	roleAssignedCount: number;
+	defaultRole: boolean;
+	description: string;
+};
+
+// Matches the real detail API shape
+export type RolePermission = {
 	name: string;
+	id: number;
+	// description: string;
+};
+
+export type RoleUser = {
+	userName: string;
 	email: string;
-	initials: string;
-	color: string;
+};
+
+export type RoleDetail = {
+	roleInfo: {
+		roleId: number;
+		roleName: string;
+		roleAssignedCount: number;
+		defaultRole: boolean;
+		// description: string;
+	};
+	permissions: RolePermission[];
+	users: RoleUser[];
 };

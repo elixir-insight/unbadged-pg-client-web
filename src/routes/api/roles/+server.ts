@@ -4,179 +4,92 @@ import type { RoleItem } from '$lib/stores/role-management/role-management';
 
 const MOCK_ROLES: RoleItem[] = [
 	{
-		id: '1',
-		name: 'Admin',
-		type: 'Default',
-		userCount: 5,
+		roleId: 199,
+		roleName: 'QA_LEAD',
+		roleAssignedCount: 4,
+		defaultRole: false,
 		description:
-			'Create & view payouts, invoices, taxes, view statement & all financial operations.'
+			'QA Lead drives the testing strategy, mentors QA analysts, and coordinates with product and development teams to deliver bug-free releases on schedule.'
 	},
 	{
-		id: '2',
-		name: 'Finance',
-		type: 'Default',
-		userCount: 3,
-		description: 'Create & view payouts, invoices, taxes, view account statements and reports.'
-	},
-	{
-		id: '3',
-		name: 'Operations',
-		type: 'Default',
-		userCount: 8,
-		description: 'Create & view payouts, view invoices and taxes. Limited access to financial data.'
-	},
-	{
-		id: '4',
-		name: 'Chartered Accountant',
-		type: 'Default',
-		userCount: 2,
+		roleId: 166,
+		roleName: 'DELIVERY_MANAGER',
+		roleAssignedCount: 6,
+		defaultRole: false,
 		description:
-			'View & download reports only. No access to the payment or payout creation features.'
+			'Delivery Manager oversees project delivery timelines, coordinates between engineering and business teams, and ensures features reach production on schedule.'
 	},
 	{
-		id: '5',
-		name: 'View Only',
-		type: 'Default',
-		userCount: 6,
-		description: 'View & download payouts, invoices, taxes, reports, and account statements.'
-	},
-	{
-		id: '6',
-		name: 'QA Manager',
-		type: 'Custom',
-		userCount: 3,
+		roleId: 133,
+		roleName: 'BUSINESS_DEVELOPMENT_LEAD',
+		roleAssignedCount: 3,
+		defaultRole: false,
 		description:
-			'Manage QA workflows, review test reports, approve releases, and view all test metrics.'
+			'Business Development Lead identifies growth opportunities, manages partner onboarding, and tracks revenue performance across the platform.'
 	},
 	{
-		id: '7',
-		name: 'Organization Wallet Admin',
-		type: 'Custom',
-		userCount: 3,
+		roleId: 100,
+		roleName: 'HEAD_OF_GLOBAL_PARTNERSHIPS',
+		roleAssignedCount: 2,
+		defaultRole: false,
 		description:
-			'Full control over organization wallet management, fund transfers, and balance reports.'
+			'Head of Global Partnerships leads the international partner strategy, manages high-value partner relationships, and oversees cross-border settlement configurations.'
 	},
 	{
-		id: '8',
-		name: 'Onboarding Read Only',
-		type: 'Custom',
-		userCount: 2,
+		roleId: 67,
+		roleName: 'ONBOARDING_TEAM_LEAD',
+		roleAssignedCount: 1,
+		defaultRole: false,
 		description:
-			'View onboarding workflows and application statuses. Cannot approve or modify submissions.'
+			'Onboarding Team Lead manages the onboarding process, approves new accounts, and coordinates with cross-functional teams to ensure smooth merchant activation.'
 	},
 	{
-		id: '9',
-		name: 'Billing Manager',
-		type: 'Custom',
-		userCount: 4,
-		description: 'Manage billing cycles, invoices, payment terms, and subscription configuration.'
-	},
-	{
-		id: '10',
-		name: 'Support Agent',
-		type: 'Default',
-		userCount: 7,
-		description: 'Handle customer support tickets, view transaction history, and initiate refunds.'
-	},
-	{
-		id: '11',
-		name: 'Read Only Auditor',
-		type: 'Custom',
-		userCount: 1,
-		description: 'Full read access to all financial records, audit logs, and compliance documents.'
-	},
-	{
-		id: '12',
-		name: 'Developer',
-		type: 'Default',
-		userCount: 5,
-		description: 'Access API keys, webhooks, sandbox environment, and integration testing tools.'
-	},
-	{
-		id: '13',
-		name: 'Finance Analyst',
-		type: 'Custom',
-		userCount: 2,
-		description: 'Analyze revenue data, generate financial reports, and track KPIs and metrics.'
-	},
-	{
-		id: '14',
-		name: 'Super Admin',
-		type: 'System Default',
-		userCount: 3,
+		roleId: 34,
+		roleName: 'QUALITY_ANALYST',
+		roleAssignedCount: 1,
+		defaultRole: false,
 		description:
-			'Unrestricted access to all features including user management, billing, and system configuration.'
+			'A Quality Analyst ensures software quality by testing applications, identifying bugs, validating requirements, and improving user experience. They perform functional, regression, and usability testing while collaborating with developers and teams.'
 	},
 	{
-		id: '15',
-		name: 'Compliance Officer',
-		type: 'Custom',
-		userCount: 1,
+		roleId: 32,
+		roleName: 'ADMIN',
+		roleAssignedCount: 3,
+		defaultRole: false,
 		description:
-			'Access compliance dashboard, KYC reports, risk flags, and regulatory filing tools.'
+			'Admin has full access to all modules including user management, billing, and system configuration. Can create, update, and delete records across the platform.'
 	},
 	{
-		id: '16',
-		name: 'Settlements Manager',
-		type: 'Custom',
-		userCount: 2,
+		roleId: 31,
+		roleName: 'QA_MANAGER',
+		roleAssignedCount: 2,
+		defaultRole: false,
 		description:
-			'Manage settlement schedules, view settlement reports, and configure payout frequencies.'
+			'QA Manager oversees quality assurance workflows, manages QA teams, reviews test plans, approves releases, and ensures all deliverables meet quality standards.'
 	},
 	{
-		id: '17',
-		name: 'Tax Consultant',
-		type: 'Custom',
-		userCount: 1,
-		description: 'View and download tax invoices, GST reports, and financial statements for filing.'
-	},
-	{
-		id: '18',
-		name: 'Refund Manager',
-		type: 'Custom',
-		userCount: 2,
-		description: 'Initiate and approve refunds, view refund history, and manage dispute resolution.'
-	},
-	{
-		id: '19',
-		name: 'Risk Analyst',
-		type: 'Custom',
-		userCount: 1,
+		roleId: 30,
+		roleName: 'TESTER',
+		roleAssignedCount: 6,
+		defaultRole: false,
 		description:
-			'Monitor transaction risk scores, review flagged payments, and configure risk rules.'
+			'Tester is responsible for executing test cases, logging defects, and verifying fixes. Has read access to most modules for testing purposes.'
 	},
 	{
-		id: '20',
-		name: 'Partner Manager',
-		type: 'Custom',
-		userCount: 3,
+		roleId: 7,
+		roleName: 'ORGANIZATION_WALLET_MANAGEMENT_READ_ONLY',
+		roleAssignedCount: 4,
+		defaultRole: true,
 		description:
-			'Manage partner accounts, view partner transaction data, and configure revenue splits.'
-	},
-	{
-		id: '21',
-		name: 'KYC Verifier',
-		type: 'Custom',
-		userCount: 4,
-		description:
-			'Review KYC submissions, approve or reject documents, and escalate flagged accounts.'
-	},
-	{
-		id: '22',
-		name: 'Product Manager',
-		type: 'Custom',
-		userCount: 2,
-		description:
-			'View product analytics, manage feature flags, and access payment method configuration.'
+			'Read-only access to organization wallet balances, transaction history, and activity logs. Cannot initiate transfers or modify wallet configurations.'
 	}
 ];
 
 export const GET: RequestHandler = async ({ url }) => {
 	const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
 	await new Promise((r) => setTimeout(r, 400));
-	const filtered = query
-		? MOCK_ROLES.filter((r) => r.name.toLowerCase().includes(query))
+	const items = query
+		? MOCK_ROLES.filter((r) => r.roleName.toLowerCase().includes(query))
 		: MOCK_ROLES;
-	const items = filtered;
-	return json({ filtered, items });
+	return json({ items });
 };
