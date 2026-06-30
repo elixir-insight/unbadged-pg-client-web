@@ -23,7 +23,7 @@
 	--destructive: oklch(0.588 0.2078 25.3313);
 	--destructive-foreground: oklch(1 0 0);
 	--border: oklch(0.9288 0.0126 255.5078);
-	--input: oklch(0.9683 0.0069 247.8956);
+	--input: oklch(0.9288 0.0126 255.5078);
 	--ring: oklch(0.5419 0.1389 241.9661);
 	--chart-1: oklch(0.5876 0.1389 241.9661);
 	--chart-2: oklch(0.6847 0.1479 237.3225);
@@ -190,9 +190,7 @@
 		@apply bg-background text-foreground;
 		letter-spacing: var(--tracking-normal);
 	}
-	aside {
-		border-right: 1px solid var(--color-sidebar-border);
-	}
+
 	h1 {
 		font-size: var(--font-size-h1);
 	}
@@ -207,5 +205,144 @@
 	}
 	h5 {
 		font-size: var(--font-size-h5);
+	}
+}
+
+/* === View Transitions === */
+
+/* Assign stable view-transition-name values via class selectors */
+.app-shell-content {
+	view-transition-name: page;
+}
+
+.sidebar-active-indicator {
+	view-transition-name: sidebar-indicator;
+}
+
+/* Page content: simple fade */
+@keyframes page-exit {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes page-enter {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* Page title: simple fade */
+@keyframes title-exit {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes title-enter {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* Navigation loading shimmer bar */
+@keyframes nav-shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@keyframes nav-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* View transition rules */
+::view-transition-old(page) {
+	animation: page-exit 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::view-transition-new(page) {
+	animation: page-enter 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::view-transition-old(page-title) {
+	animation: title-exit 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::view-transition-new(page-title) {
+	animation: title-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Sidebar active indicator — disable crossfade so only the group position animates.
+   This produces a smooth sliding pill that moves between nav items (Linear-style). */
+::view-transition-old(sidebar-indicator),
+::view-transition-new(sidebar-indicator) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+
+::view-transition-group(sidebar-indicator) {
+	animation-duration: 300ms;
+	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Navigation loading bar — shimmer that only appears after 200ms to avoid flicker on fast navigations */
+.app-nav-progress {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	z-index: 9999;
+	background: linear-gradient(90deg, transparent, var(--primary) 40%, transparent);
+	background-size: 200% 100%;
+	animation:
+		nav-shimmer 1.2s linear infinite,
+		nav-fade-in 0.2s ease 0.2s both;
+	/* Isolate from view transition snapshots so it never bleeds into the new page */
+	view-transition-name: nav-progress;
+}
+
+/* Hide the progress bar in both old and new snapshots.
+   The bar should only be visible during the live navigation, never inside a frozen frame. */
+::view-transition-old(nav-progress),
+::view-transition-new(nav-progress) {
+	animation: none;
+	opacity: 0;
+}
+
+/* Accessibility: respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+
+	::view-transition-group(*) {
+		animation: none !important;
+	}
+
+	.app-nav-progress {
+		display: none !important;
 	}
 }

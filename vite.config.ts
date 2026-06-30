@@ -12,7 +12,7 @@ const dirname =
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
 	ssr: {
-		noExternal: ['bits-ui', 'svelte-toolbelt']
+		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte']
 	},
 	plugins: [
 		tailwindcss(),
