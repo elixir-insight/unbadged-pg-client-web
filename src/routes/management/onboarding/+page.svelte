@@ -1,8 +1,18 @@
 <script lang="ts">
-	import { Search, Dropdown, Button, Table, Chip, Drawer } from '$lib/components/reusable';
-	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
-		Plus,
+		Chip,
+		Search,
+		Dropdown,
+		Button,
+		Table,
+		Drawer,
+		FilterCards
+	} from '$lib/components/reusable';
+	import type { FilterCard } from '$lib/components/reusable';
+	import { renderComponent } from '$lib/components/ui/data-table';
+	import { createRawSnippet } from 'svelte';
+	import { type BadgeVariant } from '$lib/components/ui/badge';
+	import {
 		AlertCircle,
 		Eye,
 		Building2,
@@ -11,40 +21,34 @@
 		Calendar,
 		BadgeCheck,
 		ArrowRight,
-		ClipboardListIcon
+		ClipboardListIcon,
+		X
 	} from '$lib/assets/icons';
 	import { organizations, type Organization } from '$lib/data/mockData';
 	import type { ColumnDef } from '@tanstack/table-core';
-	// import OrgCell from './org-cell.svelte';
-	// import { breadcrumb } from '$lib/stores/breadcrumb.svelte';
+	import { resolve } from '$app/paths';
 
-	// $effect(() => {
-	// 	breadcrumb.set([{ label: 'Onboarding', href: '/management/onboarding' }]);
-	// 	return () => breadcrumb.clear();
-	// });
+	const statusVariantMap: Record<string, BadgeVariant> = {
+		Pending: 'warning',
+		'In Review': 'info',
+		'In Progress': 'alert'
+	};
 
-	const PAGE_SIZE = 10;
+	const PAGE_SIZE = 5;
 
 	let q = $state('');
 	let status = $state('all');
-	let type = $state('all');
+	let type = $state('');
 	let pageNumber = $state(1);
 
 	let selectedOrg = $state<Organization | null>(null);
 	let drawerOpen = $state(false);
 
-	const statusOptions = [
-		{ value: 'all', label: 'All statuses' },
-		{ value: 'Pending', label: 'Pending' },
-		{ value: 'In Review', label: 'In Review' },
-		{ value: 'In Progress', label: 'In Progress' }
-	];
-
-	const typeOptions = [
-		{ value: 'all', label: 'All categories' },
-		{ value: 'Merchant', label: 'Merchant' },
-		{ value: 'Partner', label: 'Partner' },
-		{ value: 'Reseller', label: 'Reseller' }
+	const businessTypeOptions = [
+		{ value: 'Partnership', label: 'Partnership' },
+		{ value: 'Private Limited', label: 'Private Limited' },
+		{ value: 'LLP', label: 'LLP' },
+		{ value: 'Sole Proprietorship', label: 'Sole Proprietorship' }
 	];
 
 	const columns: ColumnDef<Organization>[] = [
@@ -64,11 +68,12 @@
 		{
 			accessorKey: 'status',
 			header: 'Status',
-			cell: ({ row }) =>
-				renderComponent(Chip, {
-					status: row.original.status as string,
-					label: row.original.status as string
-				})
+			cell: ({ row }) => {
+				const status = row.original.status as string;
+				const variant = statusVariantMap[status] ?? 'secondary';
+				const children = createRawSnippet(() => ({ render: () => status }));
+				return renderComponent(Chip, { variant, children });
+			}
 		},
 		{
 			accessorKey: 'assignedAdmin',
@@ -87,7 +92,7 @@
 	const filtered = $derived(
 		allOnboarding
 			.filter((o) => status === 'all' || o.status === status)
-			.filter((o) => type === 'all' || o.category === type)
+			.filter((o) => type === '' || o.businessType === type)
 			.filter((o) => o.name.toLowerCase().includes(q.toLowerCase()))
 	);
 
@@ -108,11 +113,55 @@
 			: `Showing ${(pageNumber - 1) * PAGE_SIZE + 1}–${Math.min(pageNumber * PAGE_SIZE, filtered.length)} of ${filtered.length}`
 	);
 
-	// const pendingCount = $derived(allOnboarding.filter((o) => o.status === 'Pending').length);
-	// const inReviewCount = $derived(allOnboarding.filter((o) => o.status === 'In Review').length);
-	// const inProgressCount = $derived(allOnboarding.filter((o) => o.status === 'In Progress').length);
+	const pendingCount = $derived(allOnboarding.filter((o) => o.status === 'Pending').length);
+	const inReviewCount = $derived(allOnboarding.filter((o) => o.status === 'In Review').length);
+	const inProgressCount = $derived(allOnboarding.filter((o) => o.status === 'In Progress').length);
 
-	// let surepassEnabled = $state(true);
+	let selectedFilter = $state('All');
+
+	const filterCards: FilterCard[] = $derived([
+		{ label: 'All', count: allOnboarding.length },
+		{ label: 'Pending', count: pendingCount },
+		{ label: 'In Review', count: inReviewCount },
+		{ label: 'In Progress', count: inProgressCount }
+	]);
+
+	function onFilterSelect(label: string) {
+		status = label === 'All' ? 'all' : label;
+	}
+
+	function clearFilters() {
+		type = '';
+		q = '';
+		selectedFilter = 'All';
+		status = 'all';
+	}
+
+	const activeFilters = $derived([
+		...(status !== 'all' ? [{ key: 'status', label: `Status: ${status}` }] : []),
+		...(type !== ''
+			? [
+					{
+						key: 'type',
+						label: `Type: ${businessTypeOptions.find((o) => o.value === type)?.label ?? type}`
+					}
+				]
+			: []),
+		...(q ? [{ key: 'search', label: `Search: "${q}"` }] : [])
+	]);
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
+
+	function removeFilter(key: string) {
+		if (key === 'status') {
+			status = 'all';
+			selectedFilter = 'All';
+		} else if (key === 'type') {
+			type = '';
+		} else if (key === 'search') {
+			q = '';
+		}
+	}
 
 	function openOrgDrawer(org: Organization) {
 		selectedOrg = org;
@@ -121,87 +170,87 @@
 </script>
 
 <div class="space-y-5">
-	<!-- ── Page header ─────────────────────────────────────────────────────── -->
-	<div class="section-appear">
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-			<!-- <div>
-				<div class="flex items-center gap-2.5">
-					<div
-						class="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
-					>
-						<ClipboardCheck class="size-4" />
-					</div>
-					<h1 class="text-2xl font-bold tracking-tight">Onboarding</h1>
-				</div>
-				<p class="mt-1.5 text-sm text-muted-foreground">
-					Manage organizations going through KYB and review.
-				</p>
-			</div> -->
-			<Button
-				href="/management/create-org"
-				class="btn-shimmer gradient-primary shrink-0 text-primary-foreground shadow-sm hover:opacity-90"
-			>
-				<Plus class="size-4" /> Add Organization
-			</Button>
-		</div>
+	<!-- ── Filter cards + Add Organization ────────────────────────────────── -->
+	<div class="section-appear grid gap-4 sm:grid-cols-5 sm:items-stretch">
+		<FilterCards
+			cards={filterCards}
+			bind:selected={selectedFilter}
+			onselect={onFilterSelect}
+			class="sm:col-span-4 sm:grid-cols-4"
+		/>
+		<a
+			href={resolve('/management/create-org')}
+			class="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-4 shadow-xs transition-all duration-150 hover:border-primary/60 hover:bg-primary/10 hover:shadow-[0_0_16px_hsl(var(--primary)/0.15)]"
+		>
+			<Building2 class="size-5 text-primary" />
+			<h4 class="text-sm font-medium text-primary">Add Organization</h4>
+		</a>
 	</div>
 
-	<!-- ── Pipeline stats ──────────────────────────────────────────────────── -->
-	<!-- <div class="section-appear grid grid-cols-1 gap-4 sm:grid-cols-3" style="animation-delay: 40ms">
-		<StatCard
-			icon={AlertCircle}
-			label="Pending"
-			value={pendingCount}
-			subtitle="Awaiting review"
-			tint="warning"
-		/>
-		<StatCard
-			icon={Eye}
-			label="In Review"
-			value={inReviewCount}
-			subtitle="Under assessment"
-			tint="info"
-		/>
-		<StatCard
-			icon={Loader2}
-			label="In Progress"
-			value={inProgressCount}
-			subtitle="KYB in progress"
-			tint="primary"
-		/>
-	</div> -->
+	<!-- ── Search + filters (outside card) ───────────────────────────────── -->
+	<div
+		class="section-appear flex flex-col gap-3 sm:flex-row sm:items-center"
+		style="animation-delay: 40ms"
+	>
+		<div class="w-full sm:max-w-sm sm:flex-1">
+			<Search bind:value={q} placeholder="Search organizations…" />
+		</div>
+		<Dropdown bind:value={type} options={businessTypeOptions} class="w-full sm:w-44" />
+	</div>
+
+	<!-- ── Active filter tags ─────────────────────────────────────────────── -->
+	{#if hasActiveFilters}
+		<div class="section-appear flex flex-wrap items-center gap-2" style="animation-delay: 50ms">
+			{#each activeFilters as filter (filter.key)}
+				<span
+					class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-white/10 dark:text-gray-400"
+				>
+					{filter.label}
+					<button
+						type="button"
+						onclick={() => removeFilter(filter.key)}
+						class="text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+						aria-label="Remove {filter.label} filter"
+					>
+						<X class="size-3" />
+					</button>
+				</span>
+			{/each}
+			<button
+				type="button"
+				onclick={clearFilters}
+				class="text-xs text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+			>
+				Clear all filters
+			</button>
+		</div>
+	{/if}
 
 	<!-- ── Table card ──────────────────────────────────────────────────────── -->
-	<div class="surface-card section-appear" style="animation-delay: 80ms">
-		<!-- Filters -->
-		<div class="flex flex-col gap-3 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-			<div class="w-full lg:max-w-md lg:flex-1">
-				<Search bind:value={q} placeholder="Search organizations…" variant="borderless" />
-			</div>
-			<div class="flex flex-col gap-2 sm:flex-row">
-				<Dropdown bind:value={status} options={statusOptions} class="w-full sm:w-40" />
-				<Dropdown bind:value={type} options={typeOptions} class="w-full sm:w-44" />
-			</div>
-		</div>
-
-		<!-- Table -->
-		<div class="border-t pb-4">
-			<Table
-				data={pagedData}
-				{columns}
-				{showingText}
-				variant="default"
-				{pageNumber}
-				setPageNumber={(e) => (pageNumber = e)}
-				{totalPages}
-				onRowClick={openOrgDrawer}
-			/>
-		</div>
+	<div
+		class="surface-card section-appear rounded-lg border shadow-sm px-2 pb-4"
+		style="animation-delay: 80ms"
+	>
+		<Table
+			data={pagedData}
+			{columns}
+			{showingText}
+			variant="default"
+			{pageNumber}
+			setPageNumber={(e) => (pageNumber = e)}
+			{totalPages}
+			onRowClick={openOrgDrawer}
+		/>
 	</div>
 </div>
 
 <!-- ── Org detail drawer ───────────────────────────────────────────────── -->
-<Drawer bind:open={drawerOpen} title={selectedOrg?.name ?? ''} description={selectedOrg?.id ?? ''}>
+<Drawer
+	bind:open={drawerOpen}
+	title={selectedOrg?.name ?? ''}
+	description={selectedOrg?.id ?? ''}
+	direction="right"
+>
 	{#snippet footer()}
 		{#if selectedOrg}
 			<div class="flex gap-2">
