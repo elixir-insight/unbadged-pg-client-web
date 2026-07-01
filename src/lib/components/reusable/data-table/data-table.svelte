@@ -5,6 +5,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import { cn } from '$lib/utils';
 	import Pagination from '$lib/components/reusable/pagination/pagination.svelte';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	let {
 		data,
@@ -15,7 +16,9 @@
 		variant = 'default',
 		pageNumber,
 		setPageNumber,
-		totalPages
+		totalPages,
+		loading = false,
+		skeletonRows = 6
 	}: {
 		data: TData[];
 		columns: ColumnDef<TData>[];
@@ -26,6 +29,8 @@
 		pageNumber: number;
 		setPageNumber: (page: number) => void;
 		totalPages: number;
+		loading?: boolean;
+		skeletonRows?: number;
 	} = $props();
 
 	let sorting = $state<SortingState>([]);
@@ -105,68 +110,88 @@
 		</Table.Header>
 
 		<Table.Body>
-			{#each table.getRowModel().rows as row (row.id)}
-				<Table.Row
-					class={cn(
-						'tr-shine border-b border-border/40',
-						onRowClick && [
-							'cursor-pointer',
-							'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset'
-						],
-						variant === 'borderless' && 'border-b-0',
-						variant === 'bordered' && 'border-b-border/50'
-					)}
-					onclick={() => onRowClick?.(row.original)}
-					onkeydown={onRowClick
-						? (e: KeyboardEvent) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									onRowClick(row.original);
-								}
-							}
-						: undefined}
-					tabindex={onRowClick ? 0 : undefined}
-					data-state={row.getIsSelected() ? 'selected' : undefined}
-				>
-					{#each row.getVisibleCells() as cell (cell.id)}
-						<Table.Cell
-							class={cn('py-3.5 text-sm', variant === 'bordered' && 'border border-border/50')}
-						>
-							<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
-						</Table.Cell>
-					{/each}
-				</Table.Row>
-			{:else}
-				<Table.Row class={cn(variant === 'borderless' && 'border-b-0')}>
-					<Table.Cell
-						colspan={columns.length}
-						class={cn('h-40 text-center', variant === 'bordered' && 'border border-border/50')}
+			{#if loading}
+				{#each Array.from({ length: skeletonRows }, (_, i) => i) as rowIdx (rowIdx)}
+					<Table.Row
+						class={cn(
+							'border-b border-border/40',
+							variant === 'borderless' && 'border-b-0',
+							variant === 'bordered' && 'border-b-border/50'
+						)}
 					>
-						<div class="flex flex-col items-center gap-2 py-4">
-							<div
-								class="flex size-12 items-center justify-center rounded-2xl
-								            border border-dashed border-border bg-muted/10"
+						{#each Array.from({ length: columns.length }, (_, i) => i) as colIdx (colIdx)}
+							<Table.Cell class={cn('py-3.5', variant === 'bordered' && 'border border-border/50')}>
+								<Skeleton
+									class={cn('h-4', colIdx % 3 === 0 ? 'w-24' : colIdx % 3 === 1 ? 'w-32' : 'w-20')}
+								/>
+							</Table.Cell>
+						{/each}
+					</Table.Row>
+				{/each}
+			{:else}
+				{#each table.getRowModel().rows as row (row.id)}
+					<Table.Row
+						class={cn(
+							'tr-shine border-b border-border/40',
+							onRowClick && [
+								'cursor-pointer',
+								'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset'
+							],
+							variant === 'borderless' && 'border-b-0',
+							variant === 'bordered' && 'border-b-border/50'
+						)}
+						onclick={() => onRowClick?.(row.original)}
+						onkeydown={onRowClick
+							? (e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										onRowClick(row.original);
+									}
+								}
+							: undefined}
+						tabindex={onRowClick ? 0 : undefined}
+						data-state={row.getIsSelected() ? 'selected' : undefined}
+					>
+						{#each row.getVisibleCells() as cell (cell.id)}
+							<Table.Cell
+								class={cn('py-3.5 text-sm', variant === 'bordered' && 'border border-border/50')}
 							>
-								<svg
-									class="size-5 text-muted-foreground/25"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
+								<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+							</Table.Cell>
+						{/each}
+					</Table.Row>
+				{:else}
+					<Table.Row class={cn(variant === 'borderless' && 'border-b-0')}>
+						<Table.Cell
+							colspan={columns.length}
+							class={cn('h-40 text-center', variant === 'bordered' && 'border border-border/50')}
+						>
+							<div class="flex flex-col items-center gap-2 py-4">
+								<div
+									class="flex size-12 items-center justify-center rounded-2xl
+									            border border-dashed border-border bg-muted/10"
 								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="1.5"
-										d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
+									<svg
+										class="size-5 text-muted-foreground/25"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="1.5"
+											d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+								</div>
+								<p class="text-sm font-medium text-muted-foreground/60">No results found</p>
+								<p class="text-xs text-muted-foreground/40">Try adjusting your filters</p>
 							</div>
-							<p class="text-sm font-medium text-muted-foreground/60">No results found</p>
-							<p class="text-xs text-muted-foreground/40">Try adjusting your filters</p>
-						</div>
-					</Table.Cell>
-				</Table.Row>
-			{/each}
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			{/if}
 		</Table.Body>
 	</Table.Root>
 </div>
