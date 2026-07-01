@@ -12,7 +12,6 @@
 		caption = '',
 		class: className = '',
 		onRowClick,
-		showingText,
 		variant = 'default',
 		pageNumber,
 		setPageNumber,
@@ -23,7 +22,6 @@
 		caption?: string;
 		class?: string;
 		onRowClick?: (row: TData) => void;
-		showingText?: string;
 		variant?: 'default' | 'bordered' | 'borderless';
 		pageNumber: number;
 		setPageNumber: (page: number) => void;
@@ -77,7 +75,7 @@
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row
 					class={cn(
-						'table-header-premium h-11 border-b border-border/40',
+						'table-header-premium h-11 border-y border-border',
 						variant === 'borderless' && 'border-b-0'
 					)}
 				>
@@ -110,7 +108,7 @@
 			{#each table.getRowModel().rows as row (row.id)}
 				<Table.Row
 					class={cn(
-						'tr-shine border-b border-border/20',
+						'tr-shine border-b border-border/40',
 						onRowClick && [
 							'cursor-pointer',
 							'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset'
@@ -175,11 +173,10 @@
 
 <div
 	class={cn(
-		'flex min-w-0 flex-wrap items-center justify-between gap-y-3 px-4 pt-4 pb-1 sm:flex-nowrap',
+		'flex min-w-0 flex-wrap items-center justify-center gap-y-3 px-4 py-4 sm:flex-nowrap',
 		variant !== 'bordered' && 'border-t border-border/30'
 	)}
 >
-	<div class="flex-1 text-xs text-muted-foreground/60">{showingText ?? ''}</div>
 	{#if totalPages > 1}
 		<Pagination
 			currentPage={pageNumber}
