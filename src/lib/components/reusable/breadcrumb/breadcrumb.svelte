@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
-	import { resolve } from '$app/paths';
 	import { ChevronRight } from '$lib/assets/icons';
 
 	let {
@@ -36,9 +35,8 @@
 						>{items[0].label}</button
 					>
 				{:else}
-					<Breadcrumb.Link
-						class="font-semibold text-foreground"
-						href={resolve(items[0].href as '/')}>{items[0].label}</Breadcrumb.Link
+					<Breadcrumb.Link class="font-semibold text-foreground" href={items[0].href}
+						>{items[0].label}</Breadcrumb.Link
 					>
 				{/if}
 			</Breadcrumb.Item>
@@ -55,7 +53,7 @@
 
 			<!-- Desktop only: first item -->
 			<Breadcrumb.Item class="hidden md:flex">
-				<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(items[0].href as '/')}
+				<Breadcrumb.Link class="font-semibold text-foreground" href={items[0].href}
 					>{items[0].label}</Breadcrumb.Link
 				>
 			</Breadcrumb.Item>
@@ -64,7 +62,7 @@
 			<!-- Desktop only: intermediate items between first and second-to-last -->
 			{#each items.slice(1, -2) as item (item.href)}
 				<Breadcrumb.Item class="hidden md:flex">
-					<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(item.href as '/')}
+					<Breadcrumb.Link class="font-semibold text-foreground" href={item.href}
 						>{item.label}</Breadcrumb.Link
 					>
 				</Breadcrumb.Item>
@@ -79,10 +77,7 @@
 
 			<!-- Both: second-to-last (parent of current page) -->
 			<Breadcrumb.Item>
-				<Breadcrumb.Link
-					class="font-semibold text-foreground"
-					href={resolve(items[items.length - 2].href as '/')}
-				>
+				<Breadcrumb.Link class="font-semibold text-foreground" href={items[items.length - 2].href}>
 					{items[items.length - 2].label}
 				</Breadcrumb.Link>
 			</Breadcrumb.Item>

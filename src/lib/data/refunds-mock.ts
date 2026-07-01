@@ -2,7 +2,7 @@ export type MerchantStatus = 'active' | 'on_hold' | 'inactive';
 export type RefundStatus = 'pending' | 'processing' | 'success' | 'failed' | 'rejected';
 export type RefundType = 'Full' | 'Partial';
 
-export interface Merchant {
+export interface Merchant extends Record<string, unknown> {
 	id: string;
 	name: string;
 	merchantId: string;

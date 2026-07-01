@@ -183,7 +183,9 @@
 	<!-- Standard select (no search) -->
 	<SelectPrimitive.Root type="single" bind:value {disabled} {onValueChange} {name} {required}>
 		<SelectTrigger {size} class={cn('w-full', bordered && 'border-border', className)}>
-			<SelectPrimitive.Value {placeholder} />
+			<span class={cn('truncate', !selectedLabel && 'text-muted-foreground')}>
+				{selectedLabel || placeholder}
+			</span>
 		</SelectTrigger>
 		<SelectContent>
 			{#each options as opt, i (isGroup(opt) ? `g:${opt.group}` : `f:${(opt as DropdownOption).value}`)}

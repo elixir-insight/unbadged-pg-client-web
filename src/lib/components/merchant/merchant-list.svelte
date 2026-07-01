@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { cn } from '$lib/utils';
-	import { Chip, Dropdown } from '$lib/components/reusable';
-	import Pagination from '$lib/components/reusable/pagination/pagination.svelte';
+	import { Chip, Dropdown, Table } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
+	import { renderSnippet } from '$lib/components/ui/data-table';
+	import type { Snippet } from 'svelte';
+	import type { ColumnDef } from '@tanstack/table-core';
 	import {
 		Eye,
 		RotateCcw,
@@ -13,13 +15,34 @@
 		Check,
 		Search as SearchIcon
 	} from '$lib/assets/icons';
-	import { merchants, virtualAccounts } from '$lib/data/refunds-mock';
-	import { createPagination } from '$lib/utils/pagination';
+	import { merchants, virtualAccounts, type Merchant } from '$lib/data/refunds-mock';
+	import { createUrlPagination } from '$lib/components/reusable/pagination/use-url-pagination.svelte';
+	import { goto } from '$app/navigation';
 	import { debounce } from '$lib/utils/debounce';
 
-	const pagination = createPagination();
-
 	const LIMIT = 10;
+
+	const pagination = createUrlPagination({
+		defaultLimit: LIMIT,
+		total: () => filteredMerchants.length
+	});
+
+	function updateParams(params: Record<string, string | null>, replaceState = true) {
+		const url = new URL(page.url);
+		for (const [key, value] of Object.entries(params)) {
+			if (value == null || value === '') {
+				url.searchParams.delete(key);
+			} else {
+				url.searchParams.set(key, value);
+			}
+		}
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto(`${url.pathname}${url.search}${url.hash}`, {
+			replaceState,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
 
 	// ── URL params ────────────────────────────────────────────────────────────
 	const urlMSkip = $derived(Math.max(0, Number(page.url.searchParams.get('mskip')) || 0));
@@ -53,7 +76,6 @@
 		})
 	);
 	const pagedMerchants = $derived(filteredMerchants.slice(urlMSkip, urlMSkip + LIMIT));
-	const merchantTotalPages = $derived(Math.max(1, Math.ceil(filteredMerchants.length / LIMIT)));
 	const merchantPageNumber = $derived(Math.floor(urlMSkip / LIMIT) + 1);
 
 	const filteredVAs = $derived(
@@ -69,7 +91,7 @@
 
 	// ── Debounced search ──────────────────────────────────────────────────────
 	const searchMerchants = debounce((val: string) => {
-		if (val !== urlMSearch) pagination.updateParams({ msearch: val || null, mskip: '0' });
+		if (val !== urlMSearch) updateParams({ msearch: val || null, mskip: '0' });
 	}, 350);
 
 	$effect(() => {
@@ -79,11 +101,11 @@
 	// ── Handlers ──────────────────────────────────────────────────────────────
 	function selectMerchant(m: (typeof merchants)[0]) {
 		vaSearch = '';
-		pagination.updateParams({ merchant: m.id, mskip: '0' });
+		updateParams({ merchant: m.id, mskip: '0' });
 	}
 
 	function openActivity(va: (typeof virtualAccounts)[0]) {
-		pagination.updateParams(
+		updateParams(
 			{
 				view: 'activity',
 				va: va.id,
@@ -97,13 +119,13 @@
 				customFrom: null,
 				customTo: null
 			},
-			true
+			false
 		);
 	}
 
 	function resetLanding() {
 		merchantSearchInput = '';
-		pagination.updateParams({ mstatus: null, msearch: null, mskip: '0' });
+		updateParams({ mstatus: null, msearch: null, mskip: '0' });
 	}
 
 	async function copyToClipboard(text: string, field: string) {
@@ -160,6 +182,35 @@
 		return virtualAccounts.filter((va) => va.merchantId === mid).length;
 	}
 
+	// ── Column factory ────────────────────────────────────────────────────────
+	function getMerchantColumns(s: {
+		merchantCell: Snippet<[{ row: Merchant }]>;
+		idCell: Snippet<[{ value: string }]>;
+		merchantStatusCell: Snippet<[{ value: string }]>;
+	}): ColumnDef<Merchant>[] {
+		return [
+			{
+				id: 'merchant',
+				accessorKey: 'name',
+				header: 'Merchant',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.merchantCell, { row: c.row.original })
+			},
+			{
+				accessorKey: 'merchantId',
+				header: 'Merchant ID',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.idCell, { value: c.getValue() as string })
+			},
+			{
+				accessorKey: 'status',
+				header: 'Status',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.merchantStatusCell, { value: c.getValue() as string })
+			}
+		];
+	}
+
 	// ── Dropdown options ──────────────────────────────────────────────────────
 	const merchantStatusOptions: DropdownOption[] = [
 		{ value: 'active', label: 'Active' },
@@ -172,23 +223,28 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<div class="mb-5 shrink-0">
+	<!-- <div class="mb-5 shrink-0">
 		<h1 class="text-xl font-semibold tracking-tight text-foreground">Refunds</h1>
 		<p class="mt-0.5 text-sm text-muted-foreground">
 			Select a merchant, then a virtual account to view refund activity.
 		</p>
-	</div>
+	</div> -->
 
 	<div class="flex min-h-0 flex-1 gap-4">
 		<!-- ── Merchant Panel ───────────────────────────────────────────────────── -->
 		<div
 			class="flex w-1/2 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm"
 		>
-			<div class="shrink-0 border-b border-border/40 px-5 py-4">
-				<h2 class="text-sm font-semibold text-foreground">Merchants</h2>
-				<p class="mt-0.5 text-xs text-muted-foreground">
-					Select a merchant to view linked virtual accounts
-				</p>
+			<div class="flex shrink-0 items-start justify-between border-b border-border/40 px-5 py-4">
+				<div>
+					<h2 class="text-sm font-semibold text-foreground">Merchants</h2>
+					<p class="mt-0.5 text-xs text-muted-foreground">
+						Select a merchant to view linked virtual accounts
+					</p>
+				</div>
+				<span class="mt-0.5 text-xs text-muted-foreground/60">
+					{filteredMerchants.length} merchant{filteredMerchants.length !== 1 ? 's' : ''}
+				</span>
 			</div>
 
 			<!-- Filter bar -->
@@ -200,7 +256,7 @@
 					size="sm"
 					bordered
 					class="w-32"
-					onValueChange={(v) => pagination.updateParams({ mstatus: v, mskip: '0' })}
+					onValueChange={(v) => updateParams({ mstatus: v, mskip: '0' })}
 				/>
 				<!-- <Dropdown
 					value={urlMFilter}
@@ -209,7 +265,7 @@
 					size="sm"
 					bordered
 					class="w-28"
-					onValueChange={(v) => pagination.updateParams({ mfilter: v, msearch: null, mskip: '0' })}
+					onValueChange={(v) => updateParams({ mfilter: v, msearch: null, mskip: '0' })}
 				/> -->
 				<div class="relative flex flex-1 items-center">
 					<SearchIcon
@@ -230,104 +286,53 @@
 				</button>
 			</div>
 
-			<!-- Merchant table -->
-			<div class="min-h-0 flex-1 overflow-auto">
-				{#if pagedMerchants.length === 0}
-					<div class="flex h-40 flex-col items-center justify-center gap-2">
-						<p class="text-sm text-muted-foreground">No merchants found</p>
+			<!-- Cell snippets for merchant table -->
+			{#snippet merchantCell({ row }: { row: Merchant })}
+				{@const isSelected = urlMerchantId === row.id}
+				<div class="flex items-center gap-3">
+					<div
+						class={cn(
+							'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-shadow',
+							getAvatarClass(row.id),
+							isSelected && 'ring-2 ring-primary ring-offset-1'
+						)}
+					>
+						{getMerchantInitials(row.name)}
 					</div>
-				{:else}
-					<table class="w-full">
-						<thead
-							class="sticky top-0 z-10 border-b border-border/30 bg-card shadow-[0_1px_4px_rgba(0,0,0,0.05)]"
+					<div class="min-w-0">
+						<p
+							class={cn(
+								'truncate text-sm font-medium',
+								isSelected ? 'text-primary' : 'text-foreground'
+							)}
 						>
-							<tr>
-								<th
-									class="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60"
-									>Merchant</th
-								>
-								<th
-									class="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60"
-									>Merchant ID</th
-								>
-								<th
-									class="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60"
-									>Status</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each pagedMerchants as merchant (merchant.id)}
-								{@const isSelected = selectedMerchant?.id === merchant.id}
-								<tr
-									class={cn(
-										'cursor-pointer border-b border-border/20 transition-colors hover:bg-muted/20',
-										isSelected && 'bg-primary/5'
-									)}
-									style:box-shadow={isSelected ? 'inset 3px 0 0 0 hsl(var(--primary))' : 'none'}
-									onclick={() => selectMerchant(merchant)}
-								>
-									<td class="px-5 py-3">
-										<div class="flex items-center gap-3">
-											<div
-												class={cn(
-													'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-													getAvatarClass(merchant.id)
-												)}
-											>
-												{getMerchantInitials(merchant.name)}
-											</div>
-											<div class="min-w-0">
-												<p class="text-sm font-medium text-foreground">{merchant.name}</p>
-												<p class="text-xs text-muted-foreground">
-													{getLinkedCount(merchant.id)} linked account{getLinkedCount(
-														merchant.id
-													) !== 1
-														? 's'
-														: ''}
-												</p>
-											</div>
-										</div>
-									</td>
-									<td class="px-5 py-3">
-										<span
-											class="max-w-24 truncate font-mono text-xs text-muted-foreground"
-											title={merchant.merchantId}>{merchant.merchantId}</span
-										>
-									</td>
-									<td class="px-5 py-3">
-										<Chip variant={statusVariant(merchant.status)}
-											>{statusLabel(merchant.status)}</Chip
-										>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				{/if}
-			</div>
+							{row.name}
+						</p>
+						<p class="text-xs text-muted-foreground">
+							{getLinkedCount(row.id)} linked account{getLinkedCount(row.id) !== 1 ? 's' : ''}
+						</p>
+					</div>
+				</div>
+			{/snippet}
 
-			<!-- Merchant pagination -->
-			<div class="flex shrink-0 items-center justify-between border-t border-border/30 px-4 py-2">
-				<p class="text-xs text-muted-foreground/60">
-					Showing {pagedMerchants.length} of {filteredMerchants.length} merchant{filteredMerchants.length !==
-					1
-						? 's'
-						: ''}
-				</p>
-				{#if merchantTotalPages > 1}
-					<Pagination
-						currentPage={merchantPageNumber}
-						pageCount={merchantTotalPages}
-						handlePreviousClick={() =>
-							pagination.updateParams({ mskip: String(Math.max(0, urlMSkip - LIMIT)) })}
-						handleNextClick={() =>
-							pagination.updateParams({
-								mskip: String(Math.min((merchantTotalPages - 1) * LIMIT, urlMSkip + LIMIT))
-							})}
-						handleEnterPress={(p) => pagination.updateParams({ mskip: String((p - 1) * LIMIT) })}
-					/>
-				{/if}
+			{#snippet idCell({ value }: { value: string })}
+				<span class="font-mono text-xs text-muted-foreground" title={value}>{value}</span>
+			{/snippet}
+
+			{#snippet merchantStatusCell({ value }: { value: string })}
+				<Chip variant={statusVariant(value)}>{statusLabel(value)}</Chip>
+			{/snippet}
+
+			<!-- Merchant table (reusable) -->
+			<div class="min-h-0 flex-1 overflow-auto">
+				<Table
+					data={pagedMerchants}
+					columns={getMerchantColumns({ merchantCell, idCell, merchantStatusCell })}
+					onRowClick={selectMerchant}
+					pageNumber={merchantPageNumber}
+					setPageNumber={(p) => updateParams({ mskip: String((p - 1) * LIMIT) })}
+					totalPages={pagination.pageCount}
+				/>
 			</div>
 		</div>
 

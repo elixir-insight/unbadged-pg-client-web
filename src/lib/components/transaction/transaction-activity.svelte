@@ -30,12 +30,33 @@
 		type Refund,
 		type RefundType
 	} from '$lib/data/refunds-mock';
-	import { createPagination } from '$lib/utils/pagination';
+	import { createUrlPagination } from '$lib/components/reusable/pagination/use-url-pagination.svelte';
+	import { goto } from '$app/navigation';
 	import { debounce } from '$lib/utils/debounce';
 
-	const pagination = createPagination();
-
 	const LIMIT = 10;
+
+	const pagination = createUrlPagination({
+		defaultLimit: LIMIT,
+		total: () => filteredRefunds.length
+	});
+
+	function updateParams(params: Record<string, string | null>, replaceState = true) {
+		const url = new URL(page.url);
+		for (const [key, value] of Object.entries(params)) {
+			if (value == null || value === '') {
+				url.searchParams.delete(key);
+			} else {
+				url.searchParams.set(key, value);
+			}
+		}
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto(`${url.pathname}${url.search}${url.hash}`, {
+			replaceState,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
 
 	// ── URL params ────────────────────────────────────────────────────────────
 	const urlSkip = $derived(Math.max(0, Number(page.url.searchParams.get('skip')) || 0));
@@ -94,8 +115,6 @@
 		})
 	);
 	const pagedRefunds = $derived(filteredRefunds.slice(urlSkip, urlSkip + LIMIT));
-	const totalPages = $derived(Math.max(1, Math.ceil(filteredRefunds.length / LIMIT)));
-	const pageNumber = $derived(Math.floor(urlSkip / LIMIT) + 1);
 
 	// ── Derived display values ────────────────────────────────────────────────
 	// const vaDisplayName = $derived(selectedVA ? `Va ${selectedVA.id.replace('VA', '').padStart(3, '0')}` : '');
@@ -162,7 +181,7 @@
 
 	// ── Debounced search ──────────────────────────────────────────────────────
 	const searchActivity = debounce((val: string) => {
-		if (val !== urlValue) pagination.updateParams({ value: val || null, skip: '0' });
+		if (val !== urlValue) updateParams({ value: val || null, skip: '0' });
 	}, 350);
 
 	$effect(() => {
@@ -171,7 +190,7 @@
 
 	// ── Navigation ────────────────────────────────────────────────────────────
 	function backToLanding() {
-		pagination.updateParams(
+		updateParams(
 			{
 				view: null,
 				va: null,
@@ -184,13 +203,13 @@
 				customFrom: null,
 				customTo: null
 			},
-			true
+			false
 		);
 	}
 
 	function resetActivity() {
 		activitySearchInput = '';
-		pagination.updateParams({
+		updateParams({
 			skip: '0',
 			filter: 'crn',
 			value: null,
@@ -369,7 +388,7 @@
 			size="sm"
 			bordered
 			class="w-40"
-			onValueChange={(v) => pagination.updateParams({ payment: v, skip: '0' })}
+			onValueChange={(v) => updateParams({ payment: v, skip: '0' })}
 		/>
 		<Dropdown
 			value={urlStatus || undefined}
@@ -378,7 +397,7 @@
 			size="sm"
 			bordered
 			class="w-28"
-			onValueChange={(v) => pagination.updateParams({ status: v, skip: '0' })}
+			onValueChange={(v) => updateParams({ status: v, skip: '0' })}
 		/>
 
 		<!-- Date Range -->
@@ -410,7 +429,7 @@
 					{#each extendedDateOptions as opt (opt.value)}
 						<button
 							onclick={() => {
-								pagination.updateParams({
+								updateParams({
 									dateRange: opt.value,
 									customFrom: null,
 									customTo: null,
@@ -438,8 +457,7 @@
 								id="date-from"
 								type="date"
 								value={urlCustomFrom}
-								onchange={(e) =>
-									pagination.updateParams({ customFrom: e.currentTarget.value || null })}
+								onchange={(e) => updateParams({ customFrom: e.currentTarget.value || null })}
 								class="mt-1 h-8 w-full rounded border border-border/60 bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
 							/>
 							<label for="date-to" class="mt-2 block text-xs font-medium text-muted-foreground"
@@ -450,8 +468,7 @@
 								type="date"
 								value={urlCustomTo}
 								min={urlCustomFrom}
-								onchange={(e) =>
-									pagination.updateParams({ customTo: e.currentTarget.value || null })}
+								onchange={(e) => updateParams({ customTo: e.currentTarget.value || null })}
 								class="mt-1 h-8 w-full rounded border border-border/60 bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
 							/>
 						</div>
@@ -475,9 +492,9 @@
 			placeholder="CRN"
 			size="sm"
 			bordered
-			class="w-28"
+			class="w-32"
 			onValueChange={(v) => {
-				pagination.updateParams({ filter: v, value: null, skip: '0' });
+				updateParams({ filter: v, value: null, skip: '0' });
 				activitySearchInput = '';
 			}}
 		/>
@@ -588,13 +605,9 @@
 					data={pagedRefunds}
 					columns={getColumns({ sortHeader, currencyCell, statusCell, paymentCell, actionCell })}
 					onRowClick={openDetails}
-					showingText="Showing {urlSkip + 1}–{Math.min(
-						urlSkip + LIMIT,
-						filteredRefunds.length
-					)} of {filteredRefunds.length} refund{filteredRefunds.length !== 1 ? 's' : ''}"
-					{pageNumber}
-					setPageNumber={(p) => pagination.updateParams({ skip: String((p - 1) * LIMIT) })}
-					{totalPages}
+					pageNumber={pagination.currentPage}
+					setPageNumber={pagination.setPage}
+					totalPages={pagination.pageCount}
 				/>
 			</div>
 		</div>
@@ -1117,10 +1130,10 @@
 						if (reportValid) reportDrawerOpen = false;
 					}}
 					class={cn(
-						'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+						'inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all',
 						reportValid
-							? 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]'
-							: 'cursor-not-allowed bg-muted text-muted-foreground'
+							? 'hover:bg-primary/90 active:scale-[0.98]'
+							: 'cursor-not-allowed opacity-50'
 					)}
 				>
 					<Download class="h-4 w-4" /> Generate Report
