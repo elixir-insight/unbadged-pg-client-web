@@ -1,23 +1,29 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { Input } from '$lib/components/ui/input';
+	import { createUrlPagination, Search } from '$lib/components/reusable';
 	import { RoleCard } from '$lib/components/role-management';
 	import type { RoleItem } from '$lib/stores/role-management/role-management';
-	import { Plus, Search } from '$lib/assets/icons';
+	import { Plus } from '$lib/assets/icons';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
+	import { debounce } from '$lib/utils/debounce';
 
-	let searchQuery = $state('');
+	const pagination = createUrlPagination();
+
+	// searchInput is derived from the URL so back/forward navigation restores it.
+	// It can also be overridden locally for immediate keystroke feedback.
+	let searchInput = $derived(pagination.search);
+
 	let roles = $state<RoleItem[]>([]);
 	let hasMore = $state(true);
 	let loading = $state(false);
 	let selectedId = $state<number | null>(null);
 	let sentinel = $state<HTMLDivElement | null>(null);
 
-	async function loadRoles(reset = false) {
+	async function loadRoles(reset = false, q = '') {
 		if (loading || (!hasMore && !reset)) return;
 		loading = true;
-		const params = new URLSearchParams({ q: searchQuery });
+		const params = new URLSearchParams({ q });
 
 		try {
 			const res = await fetch(`/api/roles?${params}`);
@@ -29,14 +35,21 @@
 		}
 	}
 
-	let searchTimer: ReturnType<typeof setTimeout>;
-	function onSearch(e: Event) {
-		searchQuery = (e.target as HTMLInputElement).value;
-		clearTimeout(searchTimer);
-		searchTimer = setTimeout(() => {
-			hasMore = true;
-			loadRoles(true);
-		}, 300);
+	// Reload whenever the URL search param changes (covers initial load,
+	// debounced typing, and back/forward navigation).
+	$effect(() => {
+		const q = pagination.search;
+		hasMore = true;
+		loadRoles(true, q);
+	});
+
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
+
+	function handleSearchInput(value: string) {
+		searchInput = value;
+		debouncedSearch(value);
 	}
 
 	function selectRole(role: RoleItem) {
@@ -47,15 +60,11 @@
 	}
 
 	$effect(() => {
-		loadRoles(true);
-	});
-
-	$effect(() => {
 		if (!sentinel) return;
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (entries[0].isIntersecting && !loading && hasMore) {
-					loadRoles();
+					loadRoles(false, pagination.search);
 				}
 			},
 			{ rootMargin: '200px' }
@@ -76,16 +85,13 @@
 
 	<!-- Toolbar -->
 	<div class="flex items-center justify-between gap-3">
-		<div class="relative max-w-sm flex-1">
-			<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-			<Input
-				type="search"
-				placeholder="Search roles..."
-				value={searchQuery}
-				oninput={onSearch}
-				class="pl-9"
-			/>
-		</div>
+		<Search
+			value={searchInput}
+			oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
+			placeholder="Search roles..."
+			variant="bordered"
+			class="max-w-sm flex-1"
+		/>
 	</div>
 
 	<!-- Grid -->
@@ -134,12 +140,12 @@
 		</div>
 	{/if} -->
 
-	<!-- No results -->
+	<!-- No results
 	{#if !loading && roles.length === 0}
 		<div class="py-12 text-center text-sm text-muted-foreground">
-			No roles found matching "{searchQuery}".
+			No roles found matching "{searchInput}".
 		</div>
-	{/if}
+	{/if} -->
 
 	<!-- Infinite scroll sentinel -->
 	<div bind:this={sentinel} class="h-1"></div>
