@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { createUrlPagination } from '$lib/components/reusable/pagination/use-url-pagination.svelte.js';
-	import { Search } from '$lib/components/reusable';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
-	import { Chip as Badge } from '$lib/components/reusable';
+	import { Chip as Badge, Search } from '$lib/components/reusable';
+	import { debounce } from '$lib/utils/debounce.js';
 	let { data } = $props();
 
 	type User = {
@@ -33,13 +33,13 @@
 	$effect(() => {
 		searchInput = pagination.search;
 	});
-
-	let debounceTimer: ReturnType<typeof setTimeout>;
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
 
 	function handleSearchInput(value: string) {
 		searchInput = value;
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => pagination.setSearch(value), 300);
+		debouncedSearch(value);
 	}
 </script>
 
@@ -98,7 +98,6 @@
 		{columns}
 		pageNumber={pagination.search ? 1 : pagination.currentPage}
 		totalPages={pagination.search ? 1 : pagination.pageCount}
-		showingText={pagination.showingText}
 		setPageNumber={pagination.setPage}
 		caption="User Table"
 	/>
