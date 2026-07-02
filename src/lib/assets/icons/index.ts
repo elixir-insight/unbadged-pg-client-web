@@ -152,4 +152,4 @@ export { default as Upload } from '@lucide/svelte/icons/upload';
 export { default as Home } from '@lucide/svelte/icons/home';
 export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
-export { default as undo } from '@lucide/svelte/icons/undo';
+export { default as Undo } from '@lucide/svelte/icons/undo-2';

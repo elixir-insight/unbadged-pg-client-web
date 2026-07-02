@@ -28,7 +28,6 @@ export { default as Sidebar } from './sidebar/sidebar.svelte';
 export { default as AppShell } from './app-shell/app-shell.svelte';
 export { default as Drawer } from './drawer/drawer.svelte';
 export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
-export type { Preset as DateRangePreset } from './date-range-picker/date-range-picker.svelte';
 export { createUrlPagination } from './pagination/use-url-pagination.svelte.js';
 export type { UrlPaginationOptions } from './pagination/use-url-pagination.svelte.js';
 export { default as FilterCards } from './filter-cards/filter-cards.svelte';

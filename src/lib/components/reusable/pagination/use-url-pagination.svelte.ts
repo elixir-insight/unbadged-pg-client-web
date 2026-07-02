@@ -1,6 +1,7 @@
 import { page } from '$app/state';
 import { goto } from '$app/navigation';
 import { SvelteURL } from 'svelte/reactivity';
+import { resolve } from '$app/paths';
 
 export type UrlPaginationOptions = {
 	defaultLimit?: number;
@@ -59,8 +60,11 @@ export function createUrlPagination({
 			}
 		}
 
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		goto(url.toString(), { replaceState: replace, noScroll: true, keepFocus: true });
+		goto(resolve(url.toString() as '/'), {
+			replaceState: replace,
+			noScroll: true,
+			keepFocus: true
+		});
 	}
 
 	return {
