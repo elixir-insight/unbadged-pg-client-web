@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Chip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
-	import { PermissionsTable } from '$lib/components/role-management';
+	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES, MODULE_PERMISSION_IDS } from '$lib/stores/role-management/role-modules';
 	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
@@ -73,7 +73,7 @@
 				}
 			}
 		}
-		roleFormStore.loadForEdit(role.roleInfo.roleName, description, perms);
+		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
 		goto(resolve('/management/role-management/edit-role'));
 	}
 </script>
@@ -104,7 +104,12 @@
 				<Pencil class="h-4 w-4" />
 				Edit role
 			</Button>
-			<Button variant="destructive" size="sm" onclick={() => {}} disabled={isDefaultRole}>
+			<Button
+				variant="destructive"
+				size="sm"
+				onclick={() => {}}
+				disabled={isDefaultRole || role.users.length > 0}
+			>
 				<Trash2 class="h-4 w-4" />
 				Delete
 			</Button>
@@ -122,7 +127,7 @@
 	</div>
 
 	<!-- Access & permissions -->
-	<PermissionsTable {modules} />
+	<AccessPreviewTable {modules} />
 
 	<!-- Assigned users -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">

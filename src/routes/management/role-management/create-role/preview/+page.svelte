@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import { Chip } from '$lib/components/reusable';
-	import { PermissionsTable } from '$lib/components/role-management';
+	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES } from '$lib/stores/role-management/role-modules';
 	import type { PermStatus } from '$lib/stores/role-management/role-management';
@@ -60,7 +60,9 @@
 		<div class="divide-y divide-border">
 			<div class="flex items-start gap-4 px-5 py-3">
 				<span class="w-36 shrink-0 text-sm text-muted-foreground">Role name</span>
-				<span class="text-sm font-medium text-foreground">{roleFormStore.name || '—'}</span>
+				<span class="text-sm font-medium text-foreground"
+					>{roleFormStore.name.split('_') || '—'}</span
+				>
 			</div>
 			<div class="flex items-start gap-4 px-5 py-3">
 				<span class="w-36 shrink-0 text-sm text-muted-foreground">Description</span>
@@ -70,5 +72,5 @@
 	</div>
 
 	<!-- Access & permissions -->
-	<PermissionsTable {modules} />
+	<AccessPreviewTable {modules} />
 </div>

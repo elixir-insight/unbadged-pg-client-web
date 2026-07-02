@@ -21,7 +21,7 @@ const MOCK_ROLES: RoleItem[] = [
 	{
 		roleId: 133,
 		roleName: 'BUSINESS_DEVELOPMENT_LEAD',
-		roleAssignedCount: 3,
+		roleAssignedCount: 0,
 		defaultRole: false,
 		description: 'Business Development Lead identifies growth opportunities.'
 	},

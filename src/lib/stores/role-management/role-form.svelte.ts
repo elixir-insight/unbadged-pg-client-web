@@ -23,6 +23,8 @@ let _name = $state('');
 let _description = $state('');
 let _permissions = $state<PermissionsState>(defaultPerms());
 let _isEditMode = $state(false);
+let _roleId = $state<number | null>(null);
+let _snapshot: { name: string; description: string; permissions: string } | null = null;
 
 function countSelected(): number {
 	let n = 0;
@@ -62,8 +64,20 @@ export const roleFormStore = {
 	get isEditMode() {
 		return _isEditMode;
 	},
+	get roleId() {
+		return _roleId;
+	},
 	get isValid() {
 		return _name.trim().length > 0 && _description.trim().length > 0 && countSelected() > 0;
+	},
+	get hasChanges() {
+		const snapshot = _snapshot;
+		if (!_isEditMode || !snapshot) return true;
+		return (
+			_name !== snapshot.name ||
+			_description !== snapshot.description ||
+			JSON.stringify(_permissions) !== snapshot.permissions
+		);
 	},
 	get selectedCount() {
 		return countSelected();
@@ -126,12 +140,16 @@ export const roleFormStore = {
 		_description = '';
 		_permissions = defaultPerms();
 		_isEditMode = false;
+		_roleId = null;
+		_snapshot = null;
 	},
 
-	loadForEdit(roleName: string, roleDesc: string, perms: PermissionsState) {
+	loadForEdit(roleId: number, roleName: string, roleDesc: string, perms: PermissionsState) {
+		_roleId = roleId;
 		_name = roleName;
 		_description = roleDesc;
 		_permissions = perms;
 		_isEditMode = true;
+		_snapshot = { name: roleName, description: roleDesc, permissions: JSON.stringify(perms) };
 	}
 };
