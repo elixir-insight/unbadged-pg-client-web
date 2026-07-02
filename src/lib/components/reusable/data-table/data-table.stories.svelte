@@ -86,3 +86,13 @@
 		<DataTable {...args} {data} {columns} pageNumber={1} totalPages={3} setPageNumber={noop} />
 	{/snippet}
 </Story>
+
+<!-- Loading Indicator -->
+<Story
+	name="With Loading Indicator"
+	args={{ showingText: 'Showing 5 of 5 results', loading: true }}
+>
+	{#snippet template(args)}
+		<DataTable {...args} {data} {columns} pageNumber={1} totalPages={1} setPageNumber={noop} />
+	{/snippet}
+</Story>
