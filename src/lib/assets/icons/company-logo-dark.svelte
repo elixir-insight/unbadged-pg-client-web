@@ -2,11 +2,11 @@
 	let {
 		width = '144',
 		height,
-		className
+		class: className
 	}: {
 		width?: string;
 		height?: string;
-		className?: string;
+		class?: string;
 	} = $props();
 </script>
 
