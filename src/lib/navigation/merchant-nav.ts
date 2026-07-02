@@ -19,11 +19,22 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Payments',
 		items: [
-			{ title: 'Funds', href: '/merchant/funds', icon: Wallet },
 			{ title: 'Transactions', href: '/merchant/transactions', icon: ArrowLeftRight },
-			{ title: 'Collections', href: '/merchant/collections', icon: Receipt },
-			{ title: 'Disputes', href: '/merchant/disputes', icon: MessageSquareWarning },
-			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark }
+			{ title: 'Collections', href: '/merchant/collections', icon: Receipt, service: 'payin' },
+			{
+				title: 'Disputes',
+				href: '/merchant/disputes',
+				icon: MessageSquareWarning,
+				service: 'payin'
+			},
+			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' },
+			{ title: 'Funds', href: '/merchant/funds', icon: Wallet, service: 'payout' },
+			{
+				title: 'Beneficiaries',
+				href: '/merchant/beneficiaries',
+				icon: Users,
+				service: 'payout'
+			}
 		]
 	},
 	{
@@ -37,8 +48,4 @@ export const merchantNav: NavGroup[] = [
 			{ title: 'Role Management', href: '/merchant/roles', icon: ShieldCheck }
 		]
 	}
-	// {
-	// 	title: 'Configuration',
-	// 	items: [{ title: 'Settings', href: '/merchant/settings', icon: Settings }]
-	// }
 ];
