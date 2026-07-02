@@ -1,51 +1,40 @@
 <script lang="ts">
-	import {
-		Chip,
-		Search,
-		Dropdown,
-		Button,
-		Table,
-		Drawer,
-		FilterCards,
-		createUrlPagination
-	} from '$lib/components/reusable';
-	import type { FilterCard } from '$lib/components/reusable';
-	import { renderComponent } from '$lib/components/ui/data-table';
-	import { createRawSnippet } from 'svelte';
-	import { type BadgeVariant } from '$lib/components/ui/badge';
-	import {
-		AlertCircle,
-		Eye,
-		Building2,
-		Layers,
-		User,
-		Calendar,
-		BadgeCheck,
-		ArrowRight,
-		X
-	} from '$lib/assets/icons';
-	import { organizations, type Organization } from '$lib/data/mockData';
-	import type { ColumnDef } from '@tanstack/table-core';
-	import { debounce } from '$lib/utils/debounce';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import {
+		AlertCircle,
+		ArrowRight,
+		BadgeCheck,
+		Building2,
+		Calendar,
+		Eye,
+		Layers,
+		X
+	} from '$lib/assets/icons';
+	import type { FilterCard } from '$lib/components/reusable';
+	import {
+		Button,
+		Chip,
+		Drawer,
+		Dropdown,
+		FilterCards,
+		Search,
+		Table,
+		createUrlPagination
+	} from '$lib/components/reusable';
+	import { type BadgeVariant } from '$lib/components/ui/badge';
+	import { renderComponent } from '$lib/components/ui/data-table';
+	import { organizations, type Organization } from '$lib/data/mockData';
+	import { debounce } from '$lib/utils/debounce';
+	import { formatStatusLabel } from '$lib/utils/status_rename';
+	import type { ColumnDef } from '@tanstack/table-core';
+	import { createRawSnippet } from 'svelte';
 
 	const statusVariantMap: Record<string, BadgeVariant> = {
 		PENDING: 'warning',
 		IN_REVIEW: 'info',
 		IN_PROGRESS: 'alert'
 	};
-
-	const ACRONYMS = new Set(['LLP']);
-
-	function formatLabel(value: string): string {
-		return value
-			.split('_')
-			.map((word) =>
-				ACRONYMS.has(word) ? word : word[0].toUpperCase() + word.slice(1).toLowerCase()
-			)
-			.join(' ');
-	}
 
 	let selectedOrg = $state<Organization | null>(null);
 	let drawerOpen = $state(false);
@@ -65,12 +54,12 @@
 		{
 			accessorKey: 'businessType',
 			header: 'Business Type',
-			cell: ({ row }) => formatLabel(row.original.businessType as string)
+			cell: ({ row }) => formatStatusLabel(row.original.businessType as string)
 		},
 		{
 			accessorKey: 'category',
 			header: 'Category',
-			cell: ({ row }) => formatLabel(row.original.category as string)
+			cell: ({ row }) => formatStatusLabel(row.original.category as string)
 		},
 		{
 			accessorKey: 'createdAt',
@@ -82,7 +71,7 @@
 			cell: ({ row }) => {
 				const status = row.original.status as string;
 				const variant = statusVariantMap[status] ?? 'secondary';
-				const children = createRawSnippet(() => ({ render: () => formatLabel(status) }));
+				const children = createRawSnippet(() => ({ render: () => formatStatusLabel(status) }));
 				return renderComponent(Chip, { variant, children });
 			}
 		}
@@ -120,23 +109,23 @@
 
 	const STATUS_ENUMS = ['PENDING', 'IN_REVIEW', 'IN_PROGRESS'] as const;
 
-	const selectedFilter = $derived(pagination.status ? formatLabel(pagination.status) : 'All');
+	const selectedFilter = $derived(pagination.status ? formatStatusLabel(pagination.status) : 'All');
 
 	const filterCards: FilterCard[] = $derived([
 		{ label: 'All', count: allOnboarding.length },
-		{ label: formatLabel('PENDING'), count: pendingCount },
-		{ label: formatLabel('IN_REVIEW'), count: inReviewCount },
-		{ label: formatLabel('IN_PROGRESS'), count: inProgressCount }
+		{ label: formatStatusLabel('PENDING'), count: pendingCount },
+		{ label: formatStatusLabel('IN_REVIEW'), count: inReviewCount },
+		{ label: formatStatusLabel('IN_PROGRESS'), count: inProgressCount }
 	]);
 
 	function onFilterSelect(label: string) {
-		const enumVal = STATUS_ENUMS.find((s) => formatLabel(s) === label) ?? '';
+		const enumVal = STATUS_ENUMS.find((s) => formatStatusLabel(s) === label) ?? '';
 		pagination.setStatus(label === 'All' ? '' : enumVal);
 	}
 
 	const activeFilters = $derived([
 		...(pagination.status
-			? [{ key: 'status', label: `Status: ${formatLabel(pagination.status)}` }]
+			? [{ key: 'status', label: `Status: ${formatStatusLabel(pagination.status)}` }]
 			: []),
 		...(pagination.type
 			? [
@@ -263,7 +252,7 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'PENDING' || selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
+						href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
@@ -271,7 +260,7 @@
 					</Button>
 				{:else if selectedOrg.status === 'IN_REVIEW'}
 					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
+						href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -279,7 +268,7 @@
 						Continue Editing
 					</Button>
 					<Button
-						// href={resolve('/management/onboarding/[orgId]/review', { orgId: selectedOrg.id })}
+						href={resolve('/management/onboarding/[orgId]/review', { orgId: selectedOrg.id })}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<Eye class="size-3.5" />
@@ -287,7 +276,7 @@
 					</Button>
 				{:else}
 					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
+						href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -301,7 +290,9 @@
 
 	{#if selectedOrg}
 		<div class="space-y-5">
-			<!-- <Chip status={selectedOrg.status} label={selectedOrg.status} /> -->
+			<Chip variant={statusVariantMap[selectedOrg.status]}
+				>{formatStatusLabel(selectedOrg.status)}</Chip
+			>
 
 			<div class="space-y-3">
 				<div
@@ -335,17 +326,6 @@
 							KYB Status
 						</p>
 						<p class="text-sm font-medium">{selectedOrg.kybStatus}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<User class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Assigned Admin
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.assignedAdmin}</p>
 					</div>
 				</div>
 				<div

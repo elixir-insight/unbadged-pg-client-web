@@ -7,6 +7,18 @@ export type NavItem = {
 	href: string;
 	icon: Component;
 	badge?: string;
+	children?: NavChild[];
+	breadcrumbChildren?: {
+		matcher: RegExp;
+		title: string;
+	}[];
+};
+
+export type NavChild = {
+	title: string;
+	href: string;
+	icon: Component;
+	badge?: string;
 };
 
 export type NavGroup = {

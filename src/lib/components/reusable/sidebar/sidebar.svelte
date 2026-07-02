@@ -2,12 +2,12 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { cn } from '$lib/utils';
-	import type { AppId, NavGroup } from '$lib/navigation/types';
+	import type { AppId, NavGroup, NavItem } from '$lib/navigation/types';
 	import { managementNav } from '$lib/navigation/management-nav';
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
 	import ProfileCard from '../profile-card/profile-card.svelte';
-	import { CompanyLogoLight, X } from '$lib/assets/icons';
+	import { CompanyLogoLight, X, ChevronDown } from '$lib/assets/icons';
 
 	let {
 		app,
@@ -35,6 +35,28 @@
 		if (page.url.pathname === href) return true;
 		if (href === rootRoutes[app]) return false;
 		return page.url.pathname.startsWith(href + '/');
+	}
+
+	function isParentActive(item: NavItem): boolean {
+		return item.children?.some((child) => isActive(child.href)) ?? false;
+	}
+
+	// null = no manual override yet, fall back to whichever parent's child route is active.
+	// '' = user explicitly collapsed everything.
+	let expandedTitle = $state<string | null>(null);
+
+	const autoExpandedTitle = $derived(
+		navGroups.flatMap((group) => group.items).find((item) => isParentActive(item))?.title ?? ''
+	);
+
+	const currentExpanded = $derived(expandedTitle === null ? autoExpandedTitle : expandedTitle);
+
+	function isExpanded(item: NavItem): boolean {
+		return currentExpanded === item.title;
+	}
+
+	function toggleExpanded(title: string) {
+		expandedTitle = currentExpanded === title ? '' : title;
 	}
 
 	$effect(() => {
@@ -88,33 +110,96 @@
 				</p>
 
 				<ul class="space-y-0.5" role="list">
-					{#each group.items as item (item.href)}
+					{#each group.items as item (item.title)}
 						<li class="relative">
-							{#if isActive(item.href)}
-								<span
-									class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
-								></span>
-							{/if}
-							<a
-								href={resolve(...([item.href] as Parameters<typeof resolve>))}
-								class={cn(
-									'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
-									isActive(item.href)
-										? 'bg-sidebar-accent text-sidebar-accent-foreground'
-										: 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-								)}
-								aria-current={isActive(item.href) ? 'page' : undefined}
-							>
-								<item.icon class="h-4 w-4 shrink-0" aria-hidden="true" />
-								<span class="flex-1 truncate">{item.title}</span>
-								{#if item.badge}
+							{#if item.children}
+								{@const parentActive = isParentActive(item)}
+								{#if parentActive}
 									<span
-										class="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
-									>
-										{item.badge}
-									</span>
+										class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
+									></span>
 								{/if}
-							</a>
+								<button
+									type="button"
+									class={cn(
+										'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+										parentActive
+											? 'bg-sidebar-accent text-sidebar-accent-foreground'
+											: 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+									)}
+									onclick={() => toggleExpanded(item.title)}
+									aria-expanded={isExpanded(item)}
+								>
+									<item.icon class="h-4 w-4 shrink-0" aria-hidden="true" />
+									<span class="flex-1 truncate text-left">{item.title}</span>
+									<ChevronDown
+										class={cn(
+											'h-4 w-4 shrink-0 transition-transform',
+											isExpanded(item) ? 'rotate-180' : ''
+										)}
+										aria-hidden="true"
+									/>
+								</button>
+								{#if isExpanded(item)}
+									<ul class="mt-0.5 space-y-0.5 pl-5" role="list">
+										{#each item.children as child (child.href)}
+											<li class="relative">
+												{#if isActive(child.href)}
+													<span
+														class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
+													></span>
+												{/if}
+												<a
+													href={resolve(...([child.href] as Parameters<typeof resolve>))}
+													class={cn(
+														'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+														isActive(child.href)
+															? 'bg-sidebar-accent text-sidebar-accent-foreground'
+															: 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+													)}
+													aria-current={isActive(child.href) ? 'page' : undefined}
+												>
+													<child.icon class="h-4 w-4 shrink-0" aria-hidden="true" />
+													<span class="flex-1 truncate">{child.title}</span>
+													{#if child.badge}
+														<span
+															class="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
+														>
+															{child.badge}
+														</span>
+													{/if}
+												</a>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+							{:else}
+								{#if isActive(item.href)}
+									<span
+										class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
+									></span>
+								{/if}
+								<a
+									href={resolve(...([item.href] as Parameters<typeof resolve>))}
+									class={cn(
+										'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+										isActive(item.href)
+											? 'bg-sidebar-accent text-sidebar-accent-foreground'
+											: 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+									)}
+									aria-current={isActive(item.href) ? 'page' : undefined}
+								>
+									<item.icon class="h-4 w-4 shrink-0" aria-hidden="true" />
+									<span class="flex-1 truncate">{item.title}</span>
+									{#if item.badge}
+										<span
+											class="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
+										>
+											{item.badge}
+										</span>
+									{/if}
+								</a>
+							{/if}
 						</li>
 					{/each}
 				</ul>
