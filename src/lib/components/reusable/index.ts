@@ -1,6 +1,7 @@
 export { default as Chip } from './chip/chip.svelte';
 export { default as Button } from './button/button.svelte';
 export { default as Input } from './input/input.svelte';
+export { default as Textarea } from './textarea/textarea.svelte';
 export { default as Switch } from './switch/switch.svelte';
 export { default as Avatar } from './avatar/avatar.svelte';
 export { default as Breadcrumb } from './breadcrumb/breadcrumb.svelte';

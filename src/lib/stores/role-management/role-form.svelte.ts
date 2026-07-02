@@ -1,5 +1,8 @@
-import { ROLE_MODULES, PERM_KEYS, TOTAL_PERMISSIONS } from './role-modules';
+import { ROLE_MODULES, CORE_PERM_KEYS } from './role-modules';
 import type { PermKey, PermissionsState } from './role-management';
+
+const NON_READ_KEYS: PermKey[] = ['writeUnrestricted', 'writeRestricted', 'delete', 'approve'];
+const TOTAL_PERMISSIONS = ROLE_MODULES.length * CORE_PERM_KEYS.length;
 
 function defaultPerms(): PermissionsState {
 	const state: PermissionsState = {};
@@ -26,7 +29,7 @@ function countSelected(): number {
 	for (const mod of ROLE_MODULES) {
 		const perms = _permissions[mod.id];
 		if (perms) {
-			for (const key of PERM_KEYS) {
+			for (const key of CORE_PERM_KEYS) {
 				if (perms[key]) n++;
 			}
 		}
@@ -37,7 +40,7 @@ function countSelected(): number {
 function moduleCount(moduleId: string): number {
 	const perms = _permissions[moduleId];
 	if (!perms) return 0;
-	return PERM_KEYS.filter((k) => perms[k]).length;
+	return CORE_PERM_KEYS.filter((k) => perms[k]).length;
 }
 
 export const roleFormStore = {
@@ -60,7 +63,7 @@ export const roleFormStore = {
 		return _isEditMode;
 	},
 	get isValid() {
-		return _name.trim().length > 0;
+		return _name.trim().length > 0 && _description.trim().length > 0 && countSelected() > 0;
 	},
 	get selectedCount() {
 		return countSelected();
@@ -75,17 +78,40 @@ export const roleFormStore = {
 	moduleCount,
 
 	toggle(moduleId: string, key: PermKey) {
-		if (_permissions[moduleId]) {
-			_permissions[moduleId][key] = !_permissions[moduleId][key];
+		const mod = _permissions[moduleId];
+		if (!mod) return;
+
+		if (key === 'fullAccess') {
+			const next = !mod.fullAccess;
+			for (const k of CORE_PERM_KEYS) mod[k] = next;
+			mod.fullAccess = next;
+			return;
 		}
+
+		if (key === 'read') {
+			// Block unchecking read while any non-read permission is ON
+			if (mod.read && NON_READ_KEYS.some((k) => mod[k])) return;
+			mod.read = !mod.read;
+		} else {
+			mod[key] = !mod[key];
+			if (mod[key]) {
+				mod.read = true;
+			} else if (!NON_READ_KEYS.some((k) => mod[k])) {
+				mod.read = false;
+			}
+		}
+
+		// Sync fullAccess: true only when all 5 regular perms are ON
+		mod.fullAccess = CORE_PERM_KEYS.every((k) => mod[k]);
 	},
 
 	toggleAll() {
 		const selectAll = !roleFormStore.allSelected;
 		for (const mod of ROLE_MODULES) {
-			for (const key of PERM_KEYS) {
+			for (const key of CORE_PERM_KEYS) {
 				_permissions[mod.id][key] = selectAll;
 			}
+			_permissions[mod.id].fullAccess = selectAll;
 		}
 	},
 

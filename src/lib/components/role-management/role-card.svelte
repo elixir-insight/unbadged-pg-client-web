@@ -79,7 +79,7 @@
 		</div>
 
 		<!-- Description -->
-		<p class="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{role.description}</p>
+		<p class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{role.description}</p>
 	</button>
 
 	<!-- Divider -->
