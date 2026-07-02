@@ -1,4 +1,3 @@
-
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
@@ -12,6 +11,9 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
+	ssr: {
+		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte']
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
@@ -69,6 +71,8 @@ export default defineConfig({
 				],
 				test: {
 					name: 'storybook',
+					testTimeout: 30000,
+					fileParallelism: false,
 					browser: {
 						enabled: true,
 						headless: true,

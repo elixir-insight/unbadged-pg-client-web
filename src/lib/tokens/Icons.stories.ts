@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/sveltekit';
 import * as IconExports from '$lib/assets/icons';
 import Icons from './Icons.svelte';
 
-const iconCount = Object.keys(IconExports).length;
+const iconCount = Object.keys(IconExports).filter((name) => !name.startsWith('CompanyLogo')).length;
 
 const meta = {
 	title: 'Design Tokens / Icons',

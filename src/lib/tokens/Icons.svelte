@@ -13,9 +13,9 @@
 
 	let { size = 24, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number } = $props();
 
-	const allIcons: IconEntry[] = (Object.entries(Icons) as Array<[string, LucideIcon]>).map(
-		([name, component]) => ({ name, component })
-	);
+	const allIcons: IconEntry[] = (Object.entries(Icons) as Array<[string, LucideIcon]>)
+		.filter(([name]) => !name.startsWith('CompanyLogo'))
+		.map(([name, component]) => ({ name, component }));
 
 	let _localSearch: string | undefined = $state();
 

@@ -2,4 +2,5 @@
 	import { resolve } from '$app/paths';
 </script>
 
-<a href={resolve('/demo/playwright')}>playwright</a>
+<p>Demo User Table with Dummy JSON Data</p>
+<a href={resolve('/demo/users')}>Click to View Demo User Table </a>
