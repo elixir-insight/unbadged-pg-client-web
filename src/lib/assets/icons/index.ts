@@ -72,19 +72,11 @@ export { default as Network } from '@lucide/svelte/icons/network';
 export { default as Send } from '@lucide/svelte/icons/send';
 
 //kyb
-export { default as CheckIcon } from '@lucide/svelte/icons/check';
-export { default as ChevronLeftIcon } from '@lucide/svelte/icons/chevron-left';
 export { default as Trash2Icon } from '@lucide/svelte/icons/trash-2';
-export { default as CopyIcon } from '@lucide/svelte/icons/copy';
-export { default as RotateCcwIcon } from '@lucide/svelte/icons/rotate-ccw';
 export { default as UploadCloudIcon } from '@lucide/svelte/icons/upload-cloud';
-export { default as XIcon } from '@lucide/svelte/icons/x';
-export { default as PaperclipIcon } from '@lucide/svelte/icons/paperclip';
-export { default as PlusIcon } from '@lucide/svelte/icons/plus';
 export { default as PencilIcon } from '@lucide/svelte/icons/pencil';
 export { default as MailIcon } from '@lucide/svelte/icons/mail';
 export { default as PhoneIcon } from '@lucide/svelte/icons/phone';
-export { default as MapPinIcon } from '@lucide/svelte/icons/map-pin';
 
 // configuration
 export { default as LockIcon } from '@lucide/svelte/icons/lock';
@@ -96,16 +88,8 @@ export { default as DollarSign } from '@lucide/svelte/icons/dollar-sign';
 export { default as Percent } from '@lucide/svelte/icons/percent';
 
 // create org
-export { default as StoreIcon } from '@lucide/svelte/icons/store';
-export { default as HandshakeIcon } from '@lucide/svelte/icons/handshake';
-export { default as UsersIcon } from '@lucide/svelte/icons/users';
-export { default as CheckCircle2Icon } from '@lucide/svelte/icons/check-circle-2';
-export { default as ArrowLeftIcon } from '@lucide/svelte/icons/arrow-left';
-export { default as ArrowRightIcon } from '@lucide/svelte/icons/arrow-right';
-export { default as LayoutGridIcon } from '@lucide/svelte/icons/layout-grid';
 export { default as ClipboardListIcon } from '@lucide/svelte/icons/clipboard-list';
 export { default as FileCheck2Icon } from '@lucide/svelte/icons/file-check-2';
-export { default as Building2Icon } from '@lucide/svelte/icons/building-2';
 export { default as ZapIcon } from '@lucide/svelte/icons/zap';
 
 // review
@@ -113,23 +97,13 @@ export { default as MessageSquare } from '@lucide/svelte/icons/message-square';
 export { default as MessageSquareDiff } from '@lucide/svelte/icons/message-square-diff';
 
 // onboarding
-export { default as FingerprintIcon } from '@lucide/svelte/icons/fingerprint';
 export { default as IdCardIcon } from '@lucide/svelte/icons/id-card';
-export { default as SparklesIcon } from '@lucide/svelte/icons/sparkles';
 export { default as FileUpIcon } from '@lucide/svelte/icons/file-up';
-export { default as LinkIcon } from '@lucide/svelte/icons/link';
 export { default as BotIcon } from '@lucide/svelte/icons/bot';
 export { default as ScanLineIcon } from '@lucide/svelte/icons/scan-line';
-export { default as ShieldIcon } from '@lucide/svelte/icons/shield';
-export { default as ClipboardCheckIcon } from '@lucide/svelte/icons/clipboard-check';
 export { default as UserPlusIcon } from '@lucide/svelte/icons/user-plus';
-export { default as BriefcaseIcon } from '@lucide/svelte/icons/briefcase';
-export { default as CalendarIcon } from '@lucide/svelte/icons/calendar';
-export { default as InfoIcon } from '@lucide/svelte/icons/info';
-export { default as RefreshCwIcon } from '@lucide/svelte/icons/refresh-cw';
 export { default as KeyIcon } from '@lucide/svelte/icons/key';
 export { default as ActivityIcon } from '@lucide/svelte/icons/activity';
-export { default as ChevronRightIcon } from '@lucide/svelte/icons/chevron-right';
 export { default as CompanyLogoAlt } from './company-logo-alt.svelte';
 export { default as CompanyLogoDark } from './company-logo-dark.svelte';
 export { default as CompanyLogoLight } from './company-logo-light.svelte';
