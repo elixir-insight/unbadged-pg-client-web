@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { DateRange } from 'bits-ui';
 	import { page } from '$app/state';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -6,11 +7,10 @@
 	import { SvelteURL } from 'svelte/reactivity';
 	import { CalendarDate } from '@internationalized/date';
 
-	// import { Skeleton } from '$lib/components/ui/skeleton';
-
 	import {
 		Chip,
 		Button,
+		Breadcrumb,
 		Input,
 		Drawer,
 		Modal,
@@ -147,7 +147,7 @@
 		exportFormat = 'csv';
 	}
 
-	// ── Copy to clipboard ─────────────────────────────────────────────────
+	// ── Copy ──────────────────────────────────────────────────────────────
 	let copiedKey = $state<string | null>(null);
 	async function copyToClipboard(value: string, key: string) {
 		try {
@@ -189,6 +189,10 @@
 		return 'warning';
 	}
 
+	onMount(() => {
+		document.querySelector('.app-shell-content')?.scrollTo({ top: 0, behavior: 'instant' });
+	});
+
 	const showingText = $derived.by(() => {
 		const t = total;
 		if (t === 0) return '0 transactions';
@@ -199,69 +203,84 @@
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<!--  Transaction Table View                                              -->
+<!--  Transaction Explorer                                                -->
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<div class="space-y-4">
-	<!-- ── Header row ────────────────────────────────────────────────── -->
-	<div class="flex flex-wrap items-start justify-between gap-4">
-		<div>
-			<h2 class="text-sm font-semibold">Inward Fund Transactions</h2>
-			<p class="mt-0.5 text-sm text-muted-foreground">
-				<span class="font-medium text-foreground">{total.toLocaleString()}</span>
-				{total === 1 ? 'transaction' : 'transactions'}
-				{hasFilters ? 'matched' : 'total'}
-			</p>
-		</div>
+<div class="min-h-full space-y-6 p-6 lg:p-8">
+	<!-- ── Explorer header ───────────────────────────────────────────────── -->
+	<div class="space-y-4">
+		<Breadcrumb
+			items={[
+				{ label: 'Funds', href: '/merchant/funds' },
+				{ label: 'Inward Fund Transactions', href: '/merchant/funds' }
+			]}
+			class="block"
+		/>
 
-		<div class="flex shrink-0 items-center gap-2">
-			<button
-				type="button"
-				onclick={handleRefresh}
-				aria-label="Refresh transactions"
-				class="flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-			>
-				<RefreshCw class={['size-3.5', refreshing && 'animate-spin'].filter(Boolean).join(' ')} />
-			</button>
-			<Button variant="outline" size="sm" onclick={() => (exportOpen = true)}>
-				<Download class="mr-1.5 size-3.5" />
-				Export
-			</Button>
+		<div class="flex flex-wrap items-start justify-between gap-4">
+			<div>
+				<h1 class="text-xl font-semibold tracking-tight">Inward Fund Transactions</h1>
+				<p class="mt-0.5 text-sm text-muted-foreground">
+					<span class="font-medium text-foreground">{total.toLocaleString()}</span>
+					{total === 1 ? 'transaction' : 'transactions'}
+					{hasFilters ? 'matched' : 'total'}
+				</p>
+			</div>
+
+			<div class="flex shrink-0 items-center gap-2">
+				<button
+					type="button"
+					onclick={handleRefresh}
+					aria-label="Refresh transactions"
+					class="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+				>
+					<RefreshCw class={['size-3.5', refreshing && 'animate-spin'].filter(Boolean).join(' ')} />
+				</button>
+				<Button variant="outline" size="sm" onclick={() => (exportOpen = true)} class="rounded-xl">
+					<Download class="mr-1.5 size-3.5" />
+					Export
+				</Button>
+			</div>
 		</div>
 	</div>
 
-	<!-- ── Filter toolbar ────────────────────────────────────────────── -->
-	<div class="flex flex-wrap items-center gap-2">
-		<Dropdown
-			value={selectedStatus}
-			options={statusOptions}
-			onValueChange={(v) => navigate({ status: v || null, skip: null })}
-			placeholder="All Status"
-			size="sm"
-			bordered
-			class="w-32 shrink-0"
-		/>
+	<!-- Gradient accent line -->
+	<div class="h-px bg-linear-to-r from-primary/40 via-primary/10 to-transparent"></div>
 
-		<RangeCalendar value={dateRangeValue} onApply={applyDateRange} />
+	<!-- ── Filter toolbar ────────────────────────────────────────────────── -->
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<div class="flex flex-wrap items-center gap-3">
+			<Dropdown
+				value={selectedStatus}
+				options={statusOptions}
+				onValueChange={(v) => navigate({ status: v || null, skip: null })}
+				placeholder="All Status"
+				size="sm"
+				bordered
+				class="w-32 shrink-0"
+			/>
 
-		<SearchField
-			fields={searchFields}
-			field={searchField}
-			value={searchValue}
-			class="min-w-48 flex-1"
-			onSearch={(f, v) =>
-				navigate({ field: f !== 'crn' ? f : null, search: v || null, skip: null })}
-		/>
-
-		{#if hasFilters}
-			<button
-				type="button"
-				onclick={clearFilters}
-				class="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none"
-			>
-				<X class="size-3 shrink-0" />
-				Clear filters
-			</button>
-		{/if}
+			<RangeCalendar value={dateRangeValue} onApply={applyDateRange} />
+		</div>
+		<div class="flex flex-wrap items-center gap-3">
+			<SearchField
+				fields={searchFields}
+				field={searchField}
+				value={searchValue}
+				class="min-w-48 flex-1"
+				onSearch={(f, v) =>
+					navigate({ field: f !== 'crn' ? f : null, search: v || null, skip: null })}
+			/>
+			{#if hasFilters}
+				<button
+					type="button"
+					onclick={clearFilters}
+					class="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none"
+				>
+					<X class="size-3 shrink-0" />
+					Clear filters
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Active filter chips -->
@@ -280,15 +299,15 @@
 		</div>
 	{/if}
 
-	<!-- ── Table card ─────────────────────────────────────────────────── -->
-	<div class="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+	<!-- ── Table card ─────────────────────────────────────────────────────── -->
+	<div class="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg">
 		<div class="overflow-x-auto">
 			{#if transactions.length === 0}
-				<div class="flex flex-col items-center gap-3 py-20 text-center">
+				<div class="flex flex-col items-center gap-3 py-24 text-center">
 					<div
-						class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20"
+						class="flex size-14 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20"
 					>
-						<AlertCircle class="size-5 text-muted-foreground/30" />
+						<AlertCircle class="size-6 text-muted-foreground/30" />
 					</div>
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">
@@ -313,102 +332,102 @@
 			{:else}
 				<table class="w-full min-w-240 border-collapse text-sm">
 					<thead class="sticky top-0 z-10 bg-card">
-						<tr class="border-b border-border">
+						<tr class="border-b border-border/60 bg-muted/20">
 							<th
-								class="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Txn ID</th
 							>
 							<th
-								class="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Opening Bal.</th
 							>
 							<th
-								class="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Closing Bal.</th
 							>
 							<th
-								class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>UTR</th
 							>
 							<th
-								class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>CRN</th
 							>
 							<th
-								class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Source</th
 							>
 							<th
-								class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Account No.</th
 							>
 							<th
-								class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Amount</th
 							>
 							<th
-								class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Status</th
 							>
 							<th
-								class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Date & Time</th
 							>
 							<th
-								class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+								class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
 								>Actions</th
 							>
 						</tr>
 					</thead>
 
-					<tbody class="divide-y divide-border/40">
+					<tbody class="divide-y divide-border/30">
 						{#each transactions as txn (txn.id)}
 							<tr class="bg-card transition-colors hover:bg-muted/20">
-								<td class="px-5 py-3.5">
-									<span class="font-mono text-xs">{txn.txnId}</span>
+								<td class="px-5 py-4">
+									<span class="font-mono text-xs font-medium">{txn.txnId}</span>
 								</td>
-								<td class="px-4 py-3.5 text-right">
+								<td class="px-4 py-4 text-right">
 									<span class="tabular-nums text-xs text-muted-foreground"
 										>{formatCurrency(txn.openingBalance)}</span
 									>
 								</td>
-								<td class="px-4 py-3.5 text-right">
+								<td class="px-4 py-4 text-right">
 									<span class="tabular-nums text-xs text-muted-foreground"
 										>{formatCurrency(txn.closingBalance)}</span
 									>
 								</td>
-								<td class="px-4 py-3.5">
+								<td class="px-4 py-4">
 									{#if txn.utr}
 										<span class="font-mono text-xs">{txn.utr}</span>
 									{:else}
 										<span class="text-xs text-muted-foreground/40">—</span>
 									{/if}
 								</td>
-								<td class="px-4 py-3.5">
+								<td class="px-4 py-4">
 									<span class="font-mono text-xs">{txn.crn}</span>
 								</td>
-								<td class="px-4 py-3.5 text-xs">{txn.sourceAccount}</td>
-								<td class="px-4 py-3.5">
+								<td class="px-4 py-4 text-xs">{txn.sourceAccount}</td>
+								<td class="px-4 py-4">
 									<span class="font-mono text-xs">{txn.accountNumber}</span>
 								</td>
-								<td class="px-4 py-3.5 text-right">
+								<td class="px-4 py-4 text-right">
 									<span class="font-semibold tabular-nums">{formatCurrency(txn.amount)}</span>
 								</td>
-								<td class="px-4 py-3.5">
+								<td class="px-4 py-4">
 									<Chip variant={statusVariant(txn.status)} class="text-xs">{txn.status}</Chip>
 								</td>
-								<td class="px-4 py-3.5">
+								<td class="px-4 py-4">
 									<div class="whitespace-nowrap">
 										<p class="text-xs">{formatDate(txn.dateTime)}</p>
 										<p class="mt-0.5 text-xs text-muted-foreground">{formatTime(txn.dateTime)}</p>
 									</div>
 								</td>
-								<td class="px-5 py-3.5 text-right">
+								<td class="px-5 py-4 text-right">
 									<button
 										type="button"
 										onclick={() => openDrawer(txn)}
 										aria-label="View transaction {txn.txnId}"
-										class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+										class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 									>
 										<Eye class="size-3.5" />
 										View
@@ -424,7 +443,7 @@
 		<!-- Pagination -->
 		{#if total > 0}
 			<div
-				class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3"
+				class="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 px-5 py-3.5"
 			>
 				<span class="text-xs text-muted-foreground">Showing {showingText} transactions</span>
 				{#if pagination.pageCount > 1}
@@ -455,7 +474,7 @@
 	{#if selectedTxn}
 		<div class="space-y-5 py-2">
 			<!-- Hero: Amount + Status -->
-			<div class="flex items-start justify-between rounded-xl bg-muted/40 px-4 py-4">
+			<div class="flex items-start justify-between rounded-2xl bg-muted/40 px-5 py-5">
 				<div>
 					<p class="text-xs text-muted-foreground">Amount</p>
 					<p class="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(selectedTxn.amount)}</p>
@@ -465,7 +484,7 @@
 
 			<!-- Transaction section -->
 			<div>
-				<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
 					Transaction
 				</p>
 				<dl class="divide-y divide-border/50">
@@ -482,7 +501,7 @@
 										class="text-muted-foreground/40 transition-colors hover:text-muted-foreground focus-visible:outline-none"
 									>
 										{#if copiedKey === row.label}
-											<Check class="size-3 text-green-500" />
+											<Check class="size-3 text-emerald-500" />
 										{:else}
 											<Copy class="size-3" />
 										{/if}
@@ -496,7 +515,7 @@
 
 			<!-- Balance section -->
 			<div>
-				<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
 					Balance
 				</p>
 				<dl class="divide-y divide-border/50">
@@ -511,7 +530,7 @@
 
 			<!-- Account section -->
 			<div>
-				<p class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
 					Account
 				</p>
 				<dl class="divide-y divide-border/50">
@@ -530,7 +549,7 @@
 										class="text-muted-foreground/40 transition-colors hover:text-muted-foreground focus-visible:outline-none"
 									>
 										{#if copiedKey === 'acct-' + row.label}
-											<Check class="size-3 text-green-500" />
+											<Check class="size-3 text-emerald-500" />
 										{:else}
 											<Copy class="size-3" />
 										{/if}
@@ -559,8 +578,8 @@
 >
 	{#if exportDone}
 		<div class="flex flex-col items-center gap-4 py-6 text-center">
-			<div class="flex size-14 items-center justify-center rounded-full bg-green-500/10">
-				<CheckCircle2 class="size-7 text-green-600 dark:text-green-400" />
+			<div class="flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
+				<CheckCircle2 class="size-7 text-emerald-600 dark:text-emerald-400" />
 			</div>
 			<div>
 				<p class="font-semibold">Report ready</p>
@@ -601,7 +620,7 @@
 							type="button"
 							onclick={() => (exportFormat = fmt.v)}
 							class={[
-								'flex flex-1 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+								'flex flex-1 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
 								exportFormat === fmt.v
 									? 'border-primary bg-primary/10 text-primary'
 									: 'border-border bg-background text-foreground hover:bg-accent'
