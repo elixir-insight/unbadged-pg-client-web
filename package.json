@@ -85,7 +85,6 @@
 		}
 	},
 	"dependencies": {
-		"install": "^0.13.0",
-		"npm": "^11.17.0"
+		"valibot": "^1.4.2"
 	}
 }
