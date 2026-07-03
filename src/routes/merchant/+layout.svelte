@@ -1,6 +1,34 @@
 <script lang="ts">
-	import AppShell from '$lib/components/reusable/app-shell/app-shell.svelte';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { AppShell } from '$lib/components/reusable';
+
 	let { children } = $props();
+
+	const PAYIN_ROUTES = ['/merchant/collections', '/merchant/disputes', '/merchant/settlements'];
+
+	const PAYOUT_ROUTES = ['/merchant/funds', '/merchant/beneficiaries'];
+
+	merchantSession.initialize();
+
+	$effect(() => {
+		const path = page.url.pathname;
+		if (merchantSession.loading) return;
+
+		if (
+			PAYIN_ROUTES.some((r) => path === r || path.startsWith(r + '/')) &&
+			!merchantSession.hasPayinAccess()
+		) {
+			goto(resolve('/merchant'));
+		} else if (
+			PAYOUT_ROUTES.some((r) => path === r || path.startsWith(r + '/')) &&
+			!merchantSession.hasPayoutAccess()
+		) {
+			goto(resolve('/merchant'));
+		}
+	});
 </script>
 
 <AppShell app="merchant">

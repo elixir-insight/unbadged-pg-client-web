@@ -6,6 +6,7 @@ export type NavChildItem = {
 	title: string;
 	href: string;
 };
+export type MerchantService = 'payin' | 'payout';
 
 export type NavItem = {
 	title: string;
@@ -13,9 +14,10 @@ export type NavItem = {
 	icon: Component;
 	badge?: string;
 	children?: NavChildItem[];
+	service?: MerchantService;
 };
 
 export type NavGroup = {
-	title: string;
+	title?: string;
 	items: NavItem[];
 };

@@ -6,7 +6,8 @@ import {
 	ShieldCheck,
 	ArrowDownToLine,
 	ArrowUpFromLine,
-	FileText
+	FileText,
+	Users
 } from '$lib/assets/icons';
 
 export const managementNav: NavGroup[] = [
@@ -39,7 +40,9 @@ export const managementNav: NavGroup[] = [
 				title: 'Payout Service',
 				href: '/management/fund-transfer',
 				icon: ArrowUpFromLine
-			}
+			},
+			{ title: 'User Management', href: '/management/users', icon: Users },
+			{ title: 'Role Management', href: '/management/role-management', icon: ShieldCheck }
 		]
 	},
 	{
