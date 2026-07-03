@@ -131,28 +131,98 @@
 	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
-	import { organizations } from '$lib/data/mockData';
+	import { getOnboardingOrgById, type OnboardingOrgRecord } from '$lib/data/mockData';
 	import { formatStatusLabel } from '$lib/utils/status_rename';
 
-	const org = $derived(
-		onboardingDrafts.getById(page?.params?.orgId ?? '') ??
-			organizations.find((o) => o.id === page.params.orgId) ?? {
-				id: page.params.orgId,
-				name: 'Organization',
-				category: 'MERCHANT' as const,
-				businessType: '—',
-				status: 'IN_PROGRESS' as const
-			}
-	);
+	const orgId = $derived(page.params.orgId ?? '');
 
-	const displayStatus = $derived(localStatus ?? org.status);
+	const org = $derived.by((): OnboardingOrgRecord => {
+		const mockOrg = getOnboardingOrgById(orgId);
+		if (mockOrg) return mockOrg;
+
+		const draft = onboardingDrafts.getById(orgId);
+		if (draft) {
+			return {
+				orgId: draft.id,
+				legalCompanyName: draft.name,
+				businessType: draft.businessType,
+				profileStatus: draft.status,
+				profileType: draft.profileType,
+				affiliateId: draft.affiliateId ? Number(draft.affiliateId) : 0,
+				userEmail: draft.email,
+				phoneNumber: draft.phone,
+				createdAt: draft.createdAt,
+				bankAccounts: [],
+				kyb: {
+					businessPan: undefined,
+					gstNumber: undefined,
+					cin: undefined,
+					tan: undefined,
+					businessPhone: undefined,
+					organizationWebsite: undefined,
+					industry: undefined,
+					registeredYear: null,
+					communicationAddress: undefined
+				},
+				addressDetails: {
+					address: undefined,
+					city: undefined,
+					state: undefined,
+					country: undefined,
+					pinCode: undefined
+				},
+				directors: [],
+				integration: { ipAddress: '' },
+				documents: [],
+				createdBy: 0,
+				updatedBy: 0
+			};
+		}
+
+		return {
+			orgId,
+			legalCompanyName: 'Organization',
+			businessType: '—',
+			profileStatus: 'IN_PROGRESS',
+			profileType: 'MERCHANT',
+			affiliateId: 0,
+			userEmail: '',
+			phoneNumber: '',
+			createdAt: '',
+			bankAccounts: [],
+			kyb: {
+				businessPan: undefined,
+				gstNumber: undefined,
+				cin: undefined,
+				tan: undefined,
+				businessPhone: undefined,
+				organizationWebsite: undefined,
+				industry: undefined,
+				registeredYear: null,
+				communicationAddress: undefined
+			},
+			addressDetails: {
+				address: undefined,
+				city: undefined,
+				state: undefined,
+				country: undefined,
+				pinCode: undefined
+			},
+			directors: [],
+			integration: { ipAddress: '' },
+			documents: [],
+			createdBy: 0,
+			updatedBy: 0
+		};
+	});
+
+	const displayStatus = $derived(localStatus ?? org.profileStatus);
 	const statusVariant = $derived(
 		statusVariantMap[normalizeStatusKey(displayStatus)] ?? 'secondary'
 	);
 	const isApproved = $derived(normalizeStatusKey(displayStatus) === 'APPROVED');
 	const canApprove = $derived(!isApproved && allStepsCompleted && allStepsValid);
-	const orgId = page.params.orgId;
-	console.log(orgId);
+
 	$effect(() => {
 		localStatus = null;
 		resetStepProgress();
@@ -161,23 +231,15 @@
 	function handleApprove() {
 		const approvedStatus = 'APPROVED';
 		localStatus = approvedStatus;
-		if (onboardingDrafts.getById(org?.id)) {
-			onboardingDrafts.updateStatus(org?.id, approvedStatus);
+		if (onboardingDrafts.getById(String(org.orgId))) {
+			onboardingDrafts.updateStatus(String(org.orgId), approvedStatus);
 		}
 		showApproveModal = false;
 	}
 
-	// Statuses that should show the steps panel open by default.
 	function shouldOpenStepsByDefault(status: string) {
 		const normalized = normalizeStatusKey(status);
-		return normalized === 'PENDING' || normalized === 'IN_PROGRESS' || normalized === 'IN_REVIEW';
-	}
-
-	// org can be an OnboardingDraft, a mockData Organization, or the untyped
-	// fallback literal — read optional fields defensively across all three.
-	function getStringField(obj: object, key: string): string {
-		const value = (obj as Record<string, unknown>)[key];
-		return typeof value === 'string' ? value : '';
+		return normalized === 'PENDING' || normalized === 'IN_PROGRESS';
 	}
 
 	interface OrgInfoPart {
@@ -187,13 +249,12 @@
 
 	const orgInfoParts = $derived(
 		[
-			{ icon: MailIcon, text: getStringField(org, 'email') },
-			{ icon: PhoneIcon, text: getStringField(org, 'phone') }
+			{ icon: MailIcon, text: org.userEmail },
+			{ icon: PhoneIcon, text: org.phoneNumber }
 		].filter((part): part is OrgInfoPart => !!part.text)
 	);
 
-	// Open by default for Pending / In Progress / In Review orgs.
-	let stepsOpen = $state(untrack(() => shouldOpenStepsByDefault(org.status)));
+	let stepsOpen = $state(untrack(() => shouldOpenStepsByDefault(org.profileStatus)));
 </script>
 
 <div class="p-6">
@@ -207,9 +268,14 @@
 				class="flex flex-col gap-3 border-b border-border/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
 			>
 				<div class="flex min-w-0 items-center gap-3">
-					<Avatar name={org.name} size="default" shape="square" />
+					<Avatar name={org.legalCompanyName} size="default" shape="square" />
 					<div class="min-w-0 leading-tight">
-						<h1 class="truncate text-base font-semibold tracking-tight">{org.name}</h1>
+						<div class="flex flex-wrap items-center gap-2">
+							<h1 class="truncate text-base font-semibold tracking-tight">
+								{org.legalCompanyName}
+							</h1>
+							<Chip variant={statusVariant}>{formatStatusLabel(displayStatus)}</Chip>
+						</div>
 						<div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
 							{#each orgInfoParts as part, i (part.text + i)}
 								{#if i > 0}
@@ -223,8 +289,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="flex shrink-0 flex-wrap items-center gap-2">
-					<Chip variant={statusVariant}>{formatStatusLabel(displayStatus)}</Chip>
+				<div class="flex shrink-0">
 					<Button
 						size="sm"
 						class="gradient-primary text-primary-foreground"
@@ -378,7 +443,9 @@
 <Modal title="Are you sure?" bind:open={showApproveModal}>
 	<div class="space-y-5">
 		<p class="text-sm text-muted-foreground">
-			Are you sure you want to change the status from {formatStatusLabel(displayStatus)} to Approved ?
+			Are you sure you want to change the status from {formatStatusLabel(displayStatus)} to {formatStatusLabel(
+				'APPROVED'
+			)} ?
 		</p>
 		<div class="flex justify-end gap-2 border-t border-border pt-4">
 			<Button variant="outline" onclick={() => (showApproveModal = false)}>Cancel</Button>

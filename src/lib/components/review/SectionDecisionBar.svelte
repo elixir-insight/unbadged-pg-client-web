@@ -27,25 +27,25 @@
 			size="sm"
 			onclick={onReject}
 			class={cn(
-				status === 'changes_requested'
+				status === 'CHANGES_REQUESTED'
 					? 'border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
 					: ''
 			)}
 		>
 			<XIcon class="size-4" />
-			{status === 'changes_requested' ? 'Changes Requested' : 'Request Changes'}
+			{status === 'CHANGES_REQUESTED' ? 'Changes Requested' : 'Request Changes'}
 		</Button>
 		<Button
 			size="sm"
 			onclick={onApprove}
 			class={cn(
-				status === 'approved'
+				status === 'APPROVED'
 					? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600'
 					: 'gradient-primary text-primary-foreground'
 			)}
 		>
 			<CheckIcon class="size-4" />
-			{status === 'approved' ? 'Approved' : 'Approve section'}
+			{status === 'APPROVED' ? 'Approved' : 'Approve section'}
 		</Button>
 	</div>
 </div>

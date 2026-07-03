@@ -54,9 +54,9 @@ export function getReviewSections(org: Organization): ReviewSection[] {
 					}
 				},
 				{
-					key: 'category',
-					label: 'Category',
-					value: org.category
+					key: 'profileType',
+					label: 'Profile Type',
+					value: org.profileType
 				},
 				{
 					key: 'businessType',

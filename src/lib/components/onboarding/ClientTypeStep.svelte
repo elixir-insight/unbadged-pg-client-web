@@ -2,37 +2,36 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
-
-	type ClientType = 'Merchant' | 'Partner';
+	import { formatStatusLabel, type OrgCategory } from '$lib/utils/status_rename';
 
 	const clientTypes: {
-		value: ClientType;
+		value: OrgCategory;
 		title: string;
 		description: string;
 		image: string;
 	}[] = [
 		{
-			value: 'Merchant',
-			title: 'Merchant',
+			value: 'MERCHANT',
+			title: formatStatusLabel('MERCHANT'),
 			description: 'Sell your products or services and accept payments through our platform.',
 			image: '/images/MerchantCategory.png'
 		},
 		{
-			value: 'Partner',
-			title: 'Partner',
+			value: 'PARTNER',
+			title: formatStatusLabel('PARTNER'),
 			description: 'Refer clients, integrate our solutions, or grow your business alongside us.',
 			image: '/images/handShaking.png'
 		}
 	];
 
 	interface Props {
-		selectedCategory: ClientType | null;
+		selectedCategory: OrgCategory | null;
 		onNext: () => void;
 	}
 
 	let { selectedCategory = $bindable(), onNext }: Props = $props();
 
-	function selectAndContinue(value: ClientType) {
+	function selectAndContinue(value: OrgCategory) {
 		selectedCategory = value;
 		onNext();
 	}

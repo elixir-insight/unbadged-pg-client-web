@@ -4,12 +4,12 @@ import ClientTypeStep from './ClientTypeStep.svelte';
 
 const clientTypes = [
 	{
-		value: 'Merchant',
+		value: 'MERCHANT',
 		title: 'Merchant',
 		image: '/images/MerchantCategory.png'
 	},
 	{
-		value: 'Partner',
+		value: 'PARTNER',
 		title: 'Partner',
 		image: '/images/handShaking.png'
 	}
@@ -17,7 +17,7 @@ const clientTypes = [
 
 function renderStep(
 	overrides: {
-		selectedCategory?: 'Merchant' | 'Partner' | null;
+		selectedCategory?: 'MERCHANT' | 'PARTNER' | null;
 		onNext?: () => void;
 	} = {}
 ) {
@@ -61,7 +61,7 @@ describe('ClientTypeStep', () => {
 	it('calls onNext when a category card is clicked', async () => {
 		const onNext = vi.fn();
 		const screen = renderStep({ onNext });
-		const buttons = screen.container.querySelectorAll('button[type="button"]');
+		const buttons = screen.container.querySelectorAll<HTMLButtonElement>('button[type="button"]');
 
 		expect(buttons.length).toBe(2);
 		await buttons[1].click();
@@ -70,7 +70,7 @@ describe('ClientTypeStep', () => {
 	});
 
 	it('marks the selected category card as pressed', async () => {
-		const screen = renderStep({ selectedCategory: 'Merchant' });
+		const screen = renderStep({ selectedCategory: 'MERCHANT' });
 
 		await expect
 			.element(screen.getByRole('button', { name: /Merchant/ }))

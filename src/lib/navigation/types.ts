@@ -9,6 +9,7 @@ export type NavItem = {
 	href: string;
 	icon: Component;
 	badge?: string;
+	service?: MerchantService;
 	children?: NavChild[];
 	breadcrumbChildren?: {
 		matcher: RegExp;

@@ -6,10 +6,10 @@
 		type ClientType,
 		businessTypes,
 		availableServiceTypes,
-		availableBankPipelines,
-		affiliatesByPipeline
+		availableAffiliates
 	} from './constants';
 	import { firstValidationError, validateCreateOrganization } from './validation';
+	import { formatStatusLabel } from '$lib/utils/status_rename';
 
 	let activeStep = $state(0);
 	let completedSteps = $state(new Set<number>());
@@ -20,7 +20,6 @@
 	let orgEmail = $state('');
 	let orgBusinessType = $state('');
 	let selectedServiceTypes = $state<string[]>([]);
-	let servicePipelines = $state<Record<string, string>>({});
 	let affiliateId = $state('');
 
 	let errors = $state<Record<string, string>>({});
@@ -33,8 +32,7 @@
 			orgPhone,
 			orgEmail,
 			orgBusinessType,
-			selectedServiceTypes,
-			servicePipelines
+			selectedServiceTypes
 		});
 		return firstValidationError(errors);
 	}
@@ -46,16 +44,11 @@
 			}
 		} else {
 			selectedServiceTypes = selectedServiceTypes.filter((s) => s !== val);
-			const nextPipelines = { ...servicePipelines };
-			delete nextPipelines[val];
-			servicePipelines = nextPipelines;
-			affiliateId = '';
 		}
 		if (submitAttempted) validate();
 	}
 
-	function onPipelineChange() {
-		affiliateId = '';
+	function onAffiliateChange() {
 		if (submitAttempted) validate();
 	}
 
@@ -68,9 +61,12 @@
 			submitAttempted = true;
 			const validationError = validate();
 			if (validationError) {
-				toast.error(`Could not create ${selectedCategory ?? 'organization'}`, {
-					description: validationError
-				});
+				toast.error(
+					`Could not create ${selectedCategory ? formatStatusLabel(selectedCategory) : 'organization'}`,
+					{
+						description: validationError
+					}
+				);
 				return;
 			}
 
@@ -79,26 +75,29 @@
 				onboardingDrafts.add({
 					id: newId,
 					name: orgName,
-					category: selectedCategory!,
+					profileType: selectedCategory!,
 					businessType: orgBusinessType || '—',
 					phone: orgPhone,
 					email: orgEmail,
 					serviceTypes: selectedServiceTypes,
-					bankPipelines: selectedServiceTypes.map((s) => servicePipelines[s]).filter(Boolean),
+					bankPipelines: [],
 					affiliateId,
-					status: 'In Progress',
+					status: 'IN_PROGRESS',
 					createdAt: new Date().toISOString().slice(0, 10)
 				});
 
-				toast.success(`${selectedCategory} created successfully`, {
+				toast.success(`${formatStatusLabel(selectedCategory!)} created successfully`, {
 					description: `${orgName} has been added. Continue with KYB & compliance.`
 				});
 				// goto(resolve(`/management/onboarding/${newId}`));
 			} catch (error) {
-				toast.error(`Failed to create ${selectedCategory ?? 'organization'}`, {
-					description:
-						error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-				});
+				toast.error(
+					`Failed to create ${selectedCategory ? formatStatusLabel(selectedCategory) : 'organization'}`,
+					{
+						description:
+							error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+					}
+				);
 			}
 			return;
 		}
@@ -124,16 +123,14 @@
 		bind:orgEmail
 		bind:orgBusinessType
 		bind:selectedServiceTypes
-		bind:servicePipelines
 		bind:affiliateId
 		{errors}
 		{businessTypes}
 		{availableServiceTypes}
-		{availableBankPipelines}
-		{affiliatesByPipeline}
+		{availableAffiliates}
 		{onFieldInput}
 		onToggleService={toggleService}
-		{onPipelineChange}
+		{onAffiliateChange}
 		onPrev={prev}
 		onNext={next}
 	/>

@@ -1,7 +1,7 @@
 export interface OnboardingDraft {
 	id: string;
 	name: string;
-	category: 'MERCHANT' | 'PARTNER';
+	profileType: 'MERCHANT' | 'PARTNER';
 	businessType: string;
 	phone: string;
 	email: string;

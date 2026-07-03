@@ -4,6 +4,7 @@
 	import ReviewerNoteDisplay from './ReviewerNoteDisplay.svelte';
 	import { Button } from '$lib/components/reusable';
 	import { MessageSquare } from '$lib/assets/icons';
+	import { formatStatusLabel, isEnumValue } from '$lib/utils/status_rename';
 
 	let {
 		field,
@@ -35,6 +36,12 @@
 		isEditing = false;
 		draftNote = '';
 	}
+
+	const displayValue = $derived(
+		typeof field.value === 'string' && isEnumValue(field.value)
+			? formatStatusLabel(field.value)
+			: field.value
+	);
 
 	const categories: {
 		key: NoteCategory;
@@ -94,7 +101,7 @@
 						{field.label}
 					</p>
 					<p class="mt-1.5 text-sm leading-snug font-medium wrap-break-word text-foreground">
-						{field.value}
+						{displayValue}
 					</p>
 				</div>
 			</div>

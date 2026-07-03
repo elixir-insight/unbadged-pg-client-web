@@ -11,6 +11,7 @@
 	import { PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { cn } from '$lib/utils';
 	import { Check, ChevronDown, Search } from '$lib/assets/icons';
+	import { formatStatusLabel, isEnumValue } from '$lib/utils/status_rename';
 
 	export type DropdownOption = { value: string; label: string; disabled?: boolean };
 	export type DropdownGroup = { group: string; items: DropdownOption[] };
@@ -51,7 +52,10 @@
 
 	const allFlat: DropdownOption[] = $derived(options.flatMap((o) => (isGroup(o) ? o.items : [o])));
 
-	const selectedLabel = $derived(allFlat.find((o) => o.value === value)?.label ?? '');
+	const selectedLabel = $derived(
+		allFlat.find((o) => o.value === value)?.label ??
+			(value && isEnumValue(value) ? formatStatusLabel(value) : '')
+	);
 
 	const filtered = $derived(
 		query.trim() === ''

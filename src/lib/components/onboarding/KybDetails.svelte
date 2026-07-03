@@ -308,23 +308,25 @@
 		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
 	>
 		<button
-			class="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/30"
+			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
 			onclick={() => toggleKybSection('location')}
 			aria-expanded={isKybOpen('location')}
 		>
-			<div class="flex items-center gap-3">
-				<div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+			<div class="flex min-w-0 items-center gap-3">
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+				>
 					<Building2 class="size-4" />
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-sm font-semibold">Address & Location</p>
 					<p class="text-xs text-muted-foreground">Registered address and region</p>
 				</div>
 			</div>
-			<div class="flex shrink-0 items-center gap-2">
+			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
 				{#if locationMissing}
 					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
 					>
 						Required fields missing
 					</span>
@@ -473,23 +475,25 @@
 		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
 	>
 		<button
-			class="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/30"
+			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
 			onclick={() => toggleKybSection('registration')}
 			aria-expanded={isKybOpen('registration')}
 		>
-			<div class="flex items-center gap-3">
-				<div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+			<div class="flex min-w-0 items-center gap-3">
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+				>
 					<FileText class="size-4" />
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-sm font-semibold">Business Registration</p>
 					<p class="text-xs text-muted-foreground">PAN, GST, CIN, TAN and more</p>
 				</div>
 			</div>
-			<div class="flex shrink-0 items-center gap-2">
+			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
 				{#if registrationMissing}
 					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
 					>
 						Required fields missing
 					</span>
@@ -632,23 +636,25 @@
 		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
 	>
 		<button
-			class="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/30"
+			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
 			onclick={() => toggleKybSection('contact')}
 			aria-expanded={isKybOpen('contact')}
 		>
-			<div class="flex items-center gap-3">
-				<div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+			<div class="flex min-w-0 items-center gap-3">
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+				>
 					<Globe class="size-4" />
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-sm font-semibold">Contact & Branding</p>
 					<p class="text-xs text-muted-foreground">Phone, website and company logo</p>
 				</div>
 			</div>
-			<div class="flex shrink-0 items-center gap-2">
+			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
 				{#if contactMissing}
 					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
 					>
 						Required fields missing
 					</span>
@@ -725,27 +731,28 @@
 		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
 	>
 		<button
-			class="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/30"
+			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
 			onclick={() => toggleKybSection('directors')}
 			aria-expanded={isKybOpen('directors')}
 		>
-			<div class="flex items-center gap-3">
-				<div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+			<div class="flex min-w-0 items-center gap-3">
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+				>
 					<Users class="size-4" />
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-sm font-semibold">Directors & Signatories</p>
 					<p class="text-xs text-muted-foreground">
 						{directors.length}
-						{directors.length === 1 ? 'director' : 'directors'} added ·
-						<span class="text-rose-500">all fields required for each</span>
+						{directors.length === 1 ? 'director' : 'directors'} added
 					</p>
 				</div>
 			</div>
-			<div class="flex shrink-0 items-center gap-2">
+			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
 				{#if directorsMissing}
 					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
 					>
 						Required fields missing
 					</span>

@@ -8,6 +8,7 @@
 	import { ChevronDown, X } from '$lib/assets/icons';
 	import { PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { formatStatusLabel, isEnumValue } from '$lib/utils/status_rename';
 
 	let {
 		value = $bindable<string[]>([]),
@@ -54,7 +55,8 @@
 			<span class="text-muted-foreground select-none">{placeholder}</span>
 		{:else}
 			{#each value as v (v)}
-				{@const label = options.find((o) => o.value === v)?.label ?? v}
+				{@const label =
+					options.find((o) => o.value === v)?.label ?? (isEnumValue(v) ? formatStatusLabel(v) : v)}
 				<span
 					class="inline-flex items-center gap-1 rounded-md border border-border bg-gray-50 px-2 py-0.5 text-xs font-medium dark:border-white/10 dark:bg-white/10"
 				>
