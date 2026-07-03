@@ -16,10 +16,7 @@
 	role="link"
 	aria-disabled="true"
 	aria-current="page"
-	class={cn(
-		'inline-flex items-center text-sm font-semibold text-primary underline decoration-primary/40 underline-offset-4',
-		className
-	)}
+	class={cn('inline-flex items-center text-sm font-semibold text-foreground', className)}
 	{...restProps}
 >
 	{@render children?.()}
