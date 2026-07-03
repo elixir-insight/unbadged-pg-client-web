@@ -31,7 +31,7 @@ export const managementNav: NavGroup[] = [
 		title: 'Access Control',
 		items: [
 			{ title: 'User Management', href: '/management/users', icon: Users },
-			{ title: 'Role Management', href: '/management/roles', icon: ShieldCheck }
+			{ title: 'Role Management', href: '/management/role-management', icon: ShieldCheck }
 		]
 	},
 	{
