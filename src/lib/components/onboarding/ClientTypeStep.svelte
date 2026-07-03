@@ -1,33 +1,41 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
-	import { fly, scale } from 'svelte/transition';
-	import { backOut, cubicOut } from 'svelte/easing';
-	import { Button } from '$lib/components/reusable';
-	import { ArrowRightIcon, CheckIcon } from '$lib/assets/icons';
 
 	type ClientType = 'Merchant' | 'Partner';
 
-	interface Category {
+	const clientTypes: {
 		value: ClientType;
-		icon: import('svelte').Component;
 		title: string;
 		description: string;
-		features: string[];
-		activeBorder: string;
-		activeIconBg: string;
-		activeBg: string;
-		checkBg: string;
-		activeGlow: string;
-	}
+		image: string;
+	}[] = [
+		{
+			value: 'Merchant',
+			title: 'Merchant',
+			description: 'Sell your products or services and accept payments through our platform.',
+			image: '/images/MerchantCategory.png'
+		},
+		{
+			value: 'Partner',
+			title: 'Partner',
+			description: 'Refer clients, integrate our solutions, or grow your business alongside us.',
+			image: '/images/handShaking.png'
+		}
+	];
 
 	interface Props {
-		categories: Category[];
 		selectedCategory: ClientType | null;
-		canContinue: boolean;
 		onNext: () => void;
 	}
 
-	let { categories, selectedCategory = $bindable(), canContinue, onNext }: Props = $props();
+	let { selectedCategory = $bindable(), onNext }: Props = $props();
+
+	function selectAndContinue(value: ClientType) {
+		selectedCategory = value;
+		onNext();
+	}
 </script>
 
 <div
@@ -41,94 +49,34 @@
 	></div>
 
 	<div class="relative flex flex-col items-center">
-		<span
-			class="mb-5 inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1 text-[11px] font-semibold tracking-widest text-primary uppercase"
-		>
-			Step 1 of 2
-		</span>
-
-		<h1 class="text-center text-3xl font-bold tracking-tight">Select client category</h1>
-		<p class="mt-3 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
-			Choose the type that best describes this organization's role in the payment ecosystem.
-		</p>
+		<h2 class="text-center font-bold tracking-tight">What category would you like to choose?</h2>
 
 		<div class="mt-10 grid w-full max-w-2xl grid-cols-1 gap-5 sm:grid-cols-2">
-			{#each categories as cat (cat.value)}
-				{@const isSelected = selectedCategory === cat.value}
-				{@const CatIcon = cat.icon}
+			{#each clientTypes as type (type.value)}
+				{@const isSelected = selectedCategory === type.value}
 				<button
-					onclick={() => (selectedCategory = cat.value)}
+					type="button"
+					aria-pressed={isSelected}
+					onclick={() => selectAndContinue(type.value)}
 					class={cn(
-						'group relative flex flex-col items-start gap-3 rounded-2xl border-2 bg-card p-4 text-left shadow-sm transition-all duration-300',
-						'hover:-translate-y-1 hover:shadow-md',
+						'flex cursor-pointer flex-col items-center rounded-2xl border-2 bg-background p-6 text-center shadow-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 						isSelected
-							? [cat.activeBorder, cat.activeBg, 'shadow-md']
-							: 'border-border/50 hover:border-border'
+							? 'border-primary bg-primary/10 ring-1 ring-primary/20'
+							: 'border-border hover:border-primary/40 hover:bg-accent hover:shadow-sm'
 					)}
 				>
-					{#if isSelected}
-						<span
-							class={cn(
-								'absolute top-3 right-3 flex size-5 items-center justify-center rounded-full text-white',
-								cat.checkBg
-							)}
-							in:scale={{ duration: 200, easing: backOut, start: 0.3 }}
-						>
-							<CheckIcon class="size-3" />
-						</span>
-					{/if}
-
-					<div
-						class={cn(
-							'flex size-10 items-center justify-center rounded-xl transition-colors duration-200',
-							isSelected
-								? cat.activeIconBg
-								: 'bg-muted/60 text-muted-foreground group-hover:bg-muted'
-						)}
-					>
-						<CatIcon class="size-5" />
+					<div class={cn('flex size-50 items-center justify-center rounded-xl')}>
+						<img src={type.image} alt={type.title} class="size-50 object-contain" />
 					</div>
 
-					<div>
-						<p class="text-base font-bold tracking-tight">{cat.title}</p>
-						<p class="mt-1 text-xs leading-relaxed text-muted-foreground">
-							{cat.description}
-						</p>
-					</div>
-
-					<hr class="w-full border-t border-border/50" />
-
-					<ul class="w-full space-y-2">
-						{#each cat.features as feat (feat)}
-							<li class="flex items-center gap-2 text-xs">
-								<span
-									class={cn(
-										'flex size-4 shrink-0 items-center justify-center rounded-full transition-colors duration-200',
-										isSelected ? [cat.checkBg, 'text-white'] : 'bg-border text-muted-foreground'
-									)}
-								>
-									<CheckIcon class="size-2" />
-								</span>
-								<span class={isSelected ? 'text-foreground' : 'text-muted-foreground'}>
-									{feat}
-								</span>
-							</li>
-						{/each}
-					</ul>
+					<h3 class={cn('mt-4 font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
+						{type.title}
+					</h3>
+					<p class="mt-2 text-sm text-muted-foreground">
+						{type.description}
+					</p>
 				</button>
 			{/each}
-		</div>
-
-		<div class="mt-8 flex items-center justify-center">
-			<Button
-				disabled={!canContinue}
-				size="lg"
-				onclick={onNext}
-				class="gradient-primary gap-2 rounded-full px-6 text-primary-foreground disabled:opacity-40"
-			>
-				Continue
-				<ArrowRightIcon class="size-4" />
-			</Button>
 		</div>
 	</div>
 </div>

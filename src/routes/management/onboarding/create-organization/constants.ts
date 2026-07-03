@@ -1,4 +1,4 @@
-import { StoreIcon, HandshakeIcon, ArrowDownToLine, ArrowUpFromLine } from '$lib/assets/icons';
+import { ArrowDownToLine, ArrowUpFromLine } from '$lib/assets/icons';
 
 export type Mode = 'manual' | 'surepass';
 export type ClientType = 'Merchant' | 'Partner';
@@ -45,35 +45,6 @@ export const modes = {
 		]
 	}
 } as const;
-
-export const categories = [
-	{
-		value: 'Merchant' as const,
-		icon: StoreIcon,
-		title: 'Merchant',
-		description: 'Online and offline retailers accepting payments via the gateway.',
-		features: ['Payment acceptance', 'Settlement reports', 'Refund management'],
-		activeBorder: 'border-chart-2',
-		activeIconBg: 'bg-chart-2/15 text-chart-2',
-		activeBg: 'bg-chart-2/5',
-		checkBg: 'bg-chart-2',
-		activeGlow:
-			'box-shadow: 0 0 0 0 transparent, 0 4px 20px -4px color-mix(in oklch, var(--chart-2) 45%, transparent)'
-	},
-	{
-		value: 'Partner' as const,
-		icon: HandshakeIcon,
-		title: 'Partner',
-		description: 'Strategic integration partners offering white-label or co-branded services.',
-		features: ['Revenue sharing', 'Sub-merchant management', 'API access'],
-		activeBorder: 'border-primary',
-		activeIconBg: 'bg-primary/15 text-primary',
-		activeBg: 'bg-primary/5',
-		checkBg: 'bg-primary',
-		activeGlow:
-			'box-shadow: 0 0 0 0 transparent, 0 4px 20px -4px color-mix(in oklch, var(--primary) 45%, transparent)'
-	}
-];
 
 export const businessTypes = ['Sole Proprietorship', 'Partnership', 'LLP', 'Private Limited'];
 
