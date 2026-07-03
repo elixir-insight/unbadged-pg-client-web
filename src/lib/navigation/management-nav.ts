@@ -24,7 +24,7 @@ export const managementNav: NavGroup[] = [
 		title: 'Organization',
 		items: [
 			{ title: 'Onboarding', href: '/management/onboarding', icon: ClipboardCheck },
-			{ title: 'Organizations', href: '/management/organizations', icon: Building2 }
+			{ title: 'Organizations', href: '/management/organization', icon: Building2 }
 		]
 	},
 	{
