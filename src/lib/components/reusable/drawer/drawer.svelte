@@ -7,6 +7,7 @@
 		title?: string;
 		description?: string;
 		direction?: 'bottom' | 'top' | 'left' | 'right';
+		class?: string;
 		trigger?: Snippet;
 		children?: Snippet;
 		footer?: Snippet;
@@ -17,6 +18,7 @@
 		title,
 		description,
 		direction = 'bottom',
+		class: className,
 		trigger,
 		children,
 		footer
@@ -29,7 +31,7 @@
 			{@render trigger()}
 		</Drawer.Trigger>
 	{/if}
-	<Drawer.Content>
+	<Drawer.Content class={className}>
 		{#if title || description}
 			<Drawer.Header>
 				{#if title}
@@ -41,7 +43,7 @@
 			</Drawer.Header>
 		{/if}
 		{#if children}
-			<div class="overflow-auto px-4 pb-2">
+			<div class="overflow-y-auto overflow-x-hidden p-6">
 				{@render children()}
 			</div>
 		{/if}
