@@ -31,3 +31,6 @@ export { default as Tabs } from './tabs/tabs.svelte';
 export type { TabItem } from './tabs/tabs.svelte';
 export { default as Toast } from './toast/toast.svelte';
 export { default as Tooltip } from './tooltip/tooltip.svelte';
+export { default as SearchField } from './search-field/search-field.svelte';
+export type { SearchFieldOption } from './search-field/search-field.svelte';
+export { default as Calendar } from './calendar/calendar.svelte';
