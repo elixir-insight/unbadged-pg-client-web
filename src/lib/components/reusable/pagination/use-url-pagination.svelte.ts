@@ -59,8 +59,10 @@ export function createUrlPagination({
 				url.searchParams.set(key, value);
 			}
 		}
+		const href =
+			`${page.url.pathname}?${url.searchParams.toString()}` as `${typeof page.url.pathname}?${string}`;
 
-		goto(resolve(url.toString() as '/'), {
+		goto(resolve(href as '/'), {
 			replaceState: replace,
 			noScroll: true,
 			keepFocus: true

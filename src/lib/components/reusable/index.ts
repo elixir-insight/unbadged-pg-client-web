@@ -34,3 +34,4 @@ export { default as FilterCards } from './filter-cards/filter-cards.svelte';
 export type { FilterCard } from './filter-cards/filter-cards.svelte';
 export { default as SearchField } from './search-field/search-field.svelte';
 export type { SearchFieldOption } from './search-field/search-field.svelte';
+export { default as Calendar } from './calendar/calendar.svelte';
