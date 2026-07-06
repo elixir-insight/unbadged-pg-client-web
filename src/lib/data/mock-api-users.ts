@@ -15,7 +15,7 @@ export const MOCK_API_USERS: ApiUserListItem[] = [
 		userEmail: 'brock@gmail.com',
 		employeeId: 'QA1234',
 		roles: ['QA Manager'],
-		enabled: false
+		enabled: true
 	},
 	{
 		userId: 100363,
@@ -31,7 +31,7 @@ export const MOCK_API_USERS: ApiUserListItem[] = [
 		userEmail: 'Babu12@gmail.com',
 		employeeId: 'B0012',
 		roles: ['Onboarding Admin'],
-		enabled: false
+		enabled: true
 	},
 	{
 		userId: 100066,
