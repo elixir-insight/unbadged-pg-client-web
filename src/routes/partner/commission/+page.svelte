@@ -4,20 +4,25 @@
 	import { navigating, page as pageState } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { SvelteURL } from 'svelte/reactivity';
+	import { getLocalTimeZone } from '@internationalized/date';
+	import type { DateRange } from 'bits-ui';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
 	import Drawer from '$lib/components/reusable/drawer/drawer.svelte';
-	import { X } from '$lib/assets/icons';
+	import { Download, RefreshCw, X } from '$lib/assets/icons';
 	import {
 		Button,
-		Dropdown,
-		CardData,
-		SearchWithDropdown,
 		Chip,
+		CardData,
+		DateRangePicker,
+		FilterCards,
+		SearchField,
+		SearchWithDropdown,
 		createUrlPagination
 	} from '$lib/components/reusable';
-	import type { CommissionRecord } from './types';
+	import type { CommissionPaymentMethod, CommissionRecord } from './types';
 	import { getRuleBreakdown } from './rule-breakdown';
+	import { debounce } from '$lib/utils/debounce.js';
 
 	let { data } = $props();
 
@@ -36,13 +41,39 @@
 		return dateFormatter.format(new Date(value));
 	}
 
-	const selectedDate = $derived(pageState.url.searchParams.get('date') ?? '');
 	const selectedMerchant = $derived(pageState.url.searchParams.get('merchant') ?? undefined);
+	const selectedPaymentMethod = $derived(pageState.url.searchParams.get('paymentMethod') ?? '');
+	const searchField = $derived(
+		pageState.url.searchParams.get('searchField') === 'merchant' ? 'merchant' : 'transactionRef'
+	);
+
+	const paymentMethodCards: { label: string; method: CommissionPaymentMethod | null }[] = [
+		{ label: 'All Methods', method: null },
+		{ label: 'UPI', method: 'UPI' },
+		{ label: 'Card', method: 'Card' },
+		{ label: 'NetBanking', method: 'NetBanking' },
+		{ label: 'Wallet', method: 'Wallet' }
+	];
+
+	const searchFields = [
+		{ value: 'transactionRef', label: 'Transaction Ref', placeholder: 'e.g. TXN-88412001…' },
+		{ value: 'merchant', label: 'Merchant Name', placeholder: 'e.g. BlueCart Retail…' }
+	];
 
 	const pagination = createUrlPagination({
 		defaultLimit: 8,
 		total: () => data.commissions.total
 	});
+
+	let searchInput = $derived(pagination.search);
+
+	$effect(() => {
+		searchInput = pagination.search;
+	});
+
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
 
 	const pageRows = $derived(
 		data.commissions.records.slice(pagination.skip, pagination.skip + pagination.limit)
@@ -52,15 +83,16 @@
 		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
 	);
 
-	const hasActiveFilters = $derived(Boolean(selectedDate || selectedMerchant));
+	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
 
-	const dateOptions = $derived([
-		{ value: '', label: 'All dates' },
-		...data.commissions.availableDates.map((date) => ({
-			value: date,
-			label: formatDate(date)
-		}))
-	]);
+	const hasActiveFilters = $derived(
+		Boolean(
+			(dateRange.start && dateRange.end) ||
+			selectedMerchant ||
+			selectedPaymentMethod ||
+			pagination.search
+		)
+	);
 
 	const merchantOptions = $derived([
 		{ value: 'all', label: 'All merchants', description: 'Every referred merchant' },
@@ -98,7 +130,12 @@
 		drawerBreakdown.reduce((sum, row) => sum + row.commission, 0)
 	);
 
-	const drawerDateLabel = $derived(selectedDate ? formatDate(selectedDate) : 'All dates');
+	const drawerDateLabel = $derived.by(() => {
+		if (!dateRange.start || !dateRange.end) return 'All dates';
+		const tz = getLocalTimeZone();
+		const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+		return `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`;
+	});
 
 	function merchantInitials(name: string) {
 		return name
@@ -114,17 +151,12 @@
 		drawerOpen = true;
 	}
 
-	function setFilters(updates: { date?: string; merchant?: string }) {
+	function setFilters(updates: Record<string, string | null>) {
 		const url = new SvelteURL(pageState.url.toString());
 
-		if ('date' in updates) {
-			if (updates.date) url.searchParams.set('date', updates.date);
-			else url.searchParams.delete('date');
-		}
-
-		if ('merchant' in updates) {
-			if (updates.merchant) url.searchParams.set('merchant', updates.merchant);
-			else url.searchParams.delete('merchant');
+		for (const [key, value] of Object.entries(updates)) {
+			if (value) url.searchParams.set(key, value);
+			else url.searchParams.delete(key);
 		}
 
 		url.searchParams.delete('skip');
@@ -139,17 +171,86 @@
 		});
 	}
 
-	function handleDateChange(value: string) {
-		setFilters({ date: value });
+	function handleDateApply(value: DateRange) {
+		if (value.start && value.end) {
+			const tz = getLocalTimeZone();
+			setFilters({
+				dateFrom: value.start.toDate(tz).toISOString().slice(0, 10),
+				dateTo: value.end.toDate(tz).toISOString().slice(0, 10)
+			});
+		} else {
+			setFilters({ dateFrom: null, dateTo: null });
+		}
 	}
 
 	function handleMerchantChange(value: string) {
 		setFilters({ merchant: value === 'all' ? '' : value });
 	}
 
-	function clearFilters() {
-		setFilters({ date: '', merchant: '' });
+	function selectPaymentMethodCard(label: string) {
+		const card = paymentMethodCards.find((c) => c.label === label);
+		setFilters({ paymentMethod: card?.method ?? '' });
 	}
+
+	function handleSearch(field: string, value: string) {
+		searchInput = value;
+		setFilters({ searchField: field === 'transactionRef' ? null : field });
+		debouncedSearch(value);
+	}
+
+	function removeFilter(key: 'date' | 'merchant' | 'paymentMethod' | 'search') {
+		if (key === 'date') {
+			dateRange = { start: undefined, end: undefined };
+			setFilters({ dateFrom: null, dateTo: null });
+		} else if (key === 'merchant') {
+			setFilters({ merchant: null });
+		} else if (key === 'paymentMethod') {
+			setFilters({ paymentMethod: null });
+		} else if (key === 'search') {
+			searchInput = '';
+			setFilters({ search: null, searchField: null });
+		}
+	}
+
+	function clearFilters() {
+		dateRange = { start: undefined, end: undefined };
+		searchInput = '';
+		setFilters({
+			dateFrom: null,
+			dateTo: null,
+			merchant: null,
+			paymentMethod: null,
+			search: null,
+			searchField: null
+		});
+	}
+
+	const activeFilters = $derived.by(() => {
+		const filters: {
+			key: 'date' | 'merchant' | 'paymentMethod' | 'search';
+			label: string;
+			value: string;
+		}[] = [];
+
+		if (dateRange.start && dateRange.end) {
+			filters.push({ key: 'date', label: 'Date', value: drawerDateLabel });
+		}
+
+		if (selectedMerchant) {
+			filters.push({ key: 'merchant', label: 'Merchant', value: selectedMerchantLabel });
+		}
+
+		if (selectedPaymentMethod) {
+			filters.push({ key: 'paymentMethod', label: 'Method', value: selectedPaymentMethod });
+		}
+
+		if (pagination.search) {
+			const opt = searchFields.find((f) => f.value === searchField);
+			filters.push({ key: 'search', label: opt?.label ?? 'Search', value: pagination.search });
+		}
+
+		return filters;
+	});
 
 	const columns = $derived.by((): ColumnDef<CommissionRecord>[] => {
 		const cols: ColumnDef<CommissionRecord>[] = [
@@ -190,17 +291,14 @@
 				meta: { align: 'right' },
 				cell: (info) =>
 					renderSnippet(amountCell, { value: currency.format(info.getValue<number>()) })
-			}
-		);
-
-		if (!selectedDate) {
-			cols.push({
+			},
+			{
 				accessorKey: 'date',
 				header: 'Date',
 				meta: { align: 'right' },
 				cell: (info) => renderSnippet(textCell, { value: formatDate(info.getValue<string>()) })
-			});
-		}
+			}
+		);
 
 		return cols;
 	});
@@ -273,35 +371,89 @@
 		/>
 	</div>
 
-	<div class="flex flex-wrap items-end gap-3">
-		<div class="flex flex-col gap-1.5">
-			<span class="text-xs font-medium text-muted-foreground">Date</span>
-			<Dropdown
-				value={selectedDate}
-				options={dateOptions}
-				onValueChange={handleDateChange}
-				size="sm"
-				class="w-44"
-			/>
-		</div>
+	<FilterCards
+		loading={isLoading}
+		skeletonCount={5}
+		cards={paymentMethodCards.map((c) => ({
+			label: c.label,
+			count:
+				c.method === null
+					? data.commissions.paymentMethodCounts.all
+					: data.commissions.paymentMethodCounts[c.method]
+		}))}
+		selected={paymentMethodCards.find((c) => c.method === (selectedPaymentMethod || null))?.label ??
+			'All Methods'}
+		onselect={selectPaymentMethodCard}
+		class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+	/>
 
-		<div class="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-xs">
-			<span class="text-xs font-medium text-muted-foreground">Merchant</span>
-			<SearchWithDropdown
-				value={selectedMerchantValue}
-				options={merchantOptions}
-				placeholder="All merchants"
-				onValueChange={handleMerchantChange}
-				size="sm"
-			/>
+	<div class="flex flex-col gap-3">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex flex-wrap items-center gap-2">
+				<DateRangePicker bind:value={dateRange} onApply={handleDateApply} />
+
+				<div class="min-w-0 sm:w-64">
+					<SearchWithDropdown
+						value={selectedMerchantValue}
+						options={merchantOptions}
+						placeholder="All merchants"
+						onValueChange={handleMerchantChange}
+						size="sm"
+					/>
+				</div>
+			</div>
+
+			<div class="w-full max-w-xs">
+				<SearchField
+					fields={searchFields}
+					field={searchField}
+					value={searchInput}
+					onSearch={handleSearch}
+				/>
+			</div>
 		</div>
 
 		{#if hasActiveFilters}
-			<Button size="sm" variant="ghost" onclick={clearFilters}>Clear filters</Button>
+			<div class="flex flex-wrap items-center gap-2">
+				{#each activeFilters as filter (filter.key)}
+					<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+						<span class="text-muted-foreground">{filter.label}:</span>
+						<span class="font-semibold">{filter.value}</span>
+						<button
+							type="button"
+							onclick={() => removeFilter(filter.key)}
+							aria-label="Remove {filter.label} filter"
+							class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+						>
+							<X class="size-3" />
+						</button>
+					</Chip>
+				{/each}
+				<button
+					type="button"
+					onclick={clearFilters}
+					class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
+				>
+					Clear All
+				</button>
+			</div>
 		{/if}
 	</div>
 
 	<div class="rounded-lg border border-border bg-card shadow-2xl">
+		<div class="flex items-center justify-between gap-2 p-4">
+			<span class="text-sm text-muted-foreground">{pagination.showingText} transactions</span>
+			<div class="flex items-center gap-2">
+				<Button variant="outline">
+					<RefreshCw />
+				</Button>
+				<Button variant="outline">
+					<Download />
+					Export
+				</Button>
+			</div>
+		</div>
+
 		{#if !isLoading && data.commissions.total === 0}
 			<div class="flex flex-col items-center gap-3 px-6 py-16 text-center">
 				<div
@@ -326,14 +478,14 @@
 					<p class="text-sm font-medium text-foreground">No commission records found</p>
 					<p class="mt-1 text-sm text-muted-foreground">
 						{#if hasActiveFilters}
-							Try a different date or merchant filter.
+							Try adjusting your filters.
 						{:else}
 							Commission transactions will appear here once merchants start processing.
 						{/if}
 					</p>
 				</div>
 				{#if hasActiveFilters}
-					<Button size="sm" variant="outline" onclick={clearFilters}>Clear filters</Button>
+					<Button size="sm" variant="outline" onclick={clearFilters}>Clear All</Button>
 				{/if}
 			</div>
 		{:else}

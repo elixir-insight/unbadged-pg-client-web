@@ -14,6 +14,7 @@ export type ReferralMerchant = {
 export interface FetchReferralsParams {
 	status?: string;
 	search?: string;
+	searchField?: 'name' | 'email';
 	/** Reserved for server-side pagination — ignored while pagination is client-side. */
 	page?: number;
 }
@@ -35,6 +36,8 @@ export interface ReferralsSummary {
 
 export interface FetchReferralsResponse {
 	merchants: ReferralMerchant[];
+	/** Full unfiltered-by-status/search list — lets the client recompute status card counts under a date filter. */
+	allMerchants: ReferralMerchant[];
 	total: number;
 	statusCounts: ReferralsStatusCounts;
 	summary: ReferralsSummary;

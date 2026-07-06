@@ -1,13 +1,29 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { navigating, page as pageState } from '$app/state';
+	import { SvelteURL } from 'svelte/reactivity';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
-	import { Chip, Button, Search, FilterCards, createUrlPagination } from '$lib/components/reusable';
+	import {
+		Chip,
+		Button,
+		DateRangePicker,
+		Dropdown,
+		FilterCards,
+		SearchField,
+		createUrlPagination
+	} from '$lib/components/reusable';
+	import type { DateRange } from 'bits-ui';
+	import { getLocalTimeZone } from '@internationalized/date';
 	import type { ReferralMerchant, ReferralStatus } from './types';
 	import { debounce } from '$lib/utils/debounce.js';
+	import { goto } from '$app/navigation';
+	import { Download, RefreshCw, X } from '$lib/assets/icons';
 
 	let { data } = $props();
+
+	const DAY_MS = 86_400_000;
 
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
@@ -38,6 +54,17 @@
 		rejected: 'Rejected'
 	} as const;
 
+	const statusOptions = [
+		{ value: 'active', label: 'Active' },
+		{ value: 'pending', label: 'Pending' },
+		{ value: 'inactive', label: 'Inactive' },
+		{ value: 'rejected', label: 'Rejected' }
+	];
+
+	const searchFields = [
+		{ value: 'name', label: 'Merchant Name', placeholder: 'e.g. BlueCart Retail…' }
+	];
+
 	const filterLabelToStatus: Record<string, string> = {
 		All: '',
 		Active: 'active',
@@ -56,33 +83,42 @@
 
 	const pagination = createUrlPagination({
 		defaultLimit: 8,
-		total: () => data.referrals.total
+		total: () => dateFilteredMerchants.length
 	});
 
-	const pageRows = $derived(
-		data.referrals.merchants.slice(pagination.skip, pagination.skip + pagination.limit)
+	const searchField = $derived(
+		pageState.url.searchParams.get('searchField') === 'email' ? 'email' : 'name'
 	);
 
 	const isLoading = $derived(
 		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
 	);
 
-	const filterCards = $derived([
-		{ label: 'All', count: data.referrals.statusCounts.all },
-		{ label: 'Active', count: data.referrals.statusCounts.active },
-		{ label: 'Pending', count: data.referrals.statusCounts.pending },
-		{ label: 'Inactive', count: data.referrals.statusCounts.inactive },
-		{ label: 'Rejected', count: data.referrals.statusCounts.rejected }
-	]);
-
 	let searchInput = $derived(pagination.search);
+
+	$effect(() => {
+		searchInput = pagination.search;
+	});
 
 	const debouncedSearch = debounce((value: string) => {
 		pagination.setSearch(value);
 	}, 300);
 
-	function handleSearchInput(value: string) {
+	function setUrlParams(updates: Record<string, string | null>) {
+		const url = new SvelteURL(pageState.url.toString());
+		for (const [key, value] of Object.entries(updates)) {
+			if (value === null || value === '') url.searchParams.delete(key);
+			else url.searchParams.set(key, value);
+		}
+		url.searchParams.delete('skip');
+		const href =
+			`${pageState.url.pathname}?${url.searchParams.toString()}` as `${typeof pageState.url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
+	function handleSearch(field: string, value: string) {
 		searchInput = value;
+		setUrlParams({ searchField: field === 'name' ? null : field });
 		debouncedSearch(value);
 	}
 
@@ -90,13 +126,107 @@
 		pagination.setStatus(filterLabelToStatus[label] ?? '');
 	}
 
-	function clearFilters() {
-		searchInput = '';
-		pagination.setSearch('');
-		pagination.setStatus('');
+	function onStatusDropdownChange(value: string) {
+		pagination.setStatus(value);
 	}
 
-	const hasActiveFilters = $derived(Boolean(pagination.search || pagination.status));
+	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
+
+	function removeFilter(key: 'date' | 'status' | 'search') {
+		if (key === 'date') {
+			dateRange = { start: undefined, end: undefined };
+		} else if (key === 'status') {
+			pagination.setStatus('');
+		} else if (key === 'search') {
+			searchInput = '';
+			setUrlParams({ search: null, searchField: null });
+		}
+	}
+
+	function clearFilters() {
+		dateRange = { start: undefined, end: undefined };
+		searchInput = '';
+		setUrlParams({ search: null, status: null, searchField: null });
+	}
+
+	const dateFilter = $derived.by(() => {
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			return {
+				start: dateRange.start.toDate(tz).getTime(),
+				end: dateRange.end.toDate(tz).getTime() + DAY_MS
+			};
+		}
+		return null;
+	});
+
+	const dateFilteredMerchants = $derived.by(() => {
+		if (!dateFilter) return data.referrals.merchants;
+		return data.referrals.merchants.filter((merchant) => {
+			const ms = new Date(merchant.referredOn).getTime();
+			return ms >= dateFilter.start && ms <= dateFilter.end;
+		});
+	});
+
+	const pageRows = $derived(
+		dateFilteredMerchants.slice(pagination.skip, pagination.skip + pagination.limit)
+	);
+
+	const dateFilteredAllMerchants = $derived.by(() => {
+		if (!dateFilter) return data.referrals.allMerchants;
+		return data.referrals.allMerchants.filter((merchant) => {
+			const ms = new Date(merchant.referredOn).getTime();
+			return ms >= dateFilter.start && ms <= dateFilter.end;
+		});
+	});
+
+	const filterCards = $derived([
+		{ label: 'All', count: dateFilteredAllMerchants.length },
+		{
+			label: 'Active',
+			count: dateFilteredAllMerchants.filter((m) => m.status === 'active').length
+		},
+		{
+			label: 'Pending',
+			count: dateFilteredAllMerchants.filter((m) => m.status === 'pending').length
+		},
+		{
+			label: 'Inactive',
+			count: dateFilteredAllMerchants.filter((m) => m.status === 'inactive').length
+		},
+		{
+			label: 'Rejected',
+			count: dateFilteredAllMerchants.filter((m) => m.status === 'rejected').length
+		}
+	]);
+
+	const activeFilters = $derived.by(() => {
+		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
+
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+			filters.push({
+				key: 'date',
+				label: 'Date',
+				value: `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`
+			});
+		}
+
+		if (pagination.status) {
+			const opt = statusOptions.find((o) => o.value === pagination.status);
+			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
+		}
+
+		if (pagination.search) {
+			const opt = searchFields.find((f) => f.value === searchField);
+			filters.push({ key: 'search', label: opt?.label ?? 'Search', value: pagination.search });
+		}
+
+		return filters;
+	});
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
 
 	const columns: ColumnDef<ReferralMerchant>[] = [
 		{
@@ -175,25 +305,74 @@
 		class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
 	/>
 
-	<div class="flex flex-wrap items-end gap-3">
-		<div class="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-sm">
-			<span class="text-xs font-medium text-muted-foreground">Search</span>
-			<Search
-				value={searchInput}
-				oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
-				placeholder="Search by name, ID, or email…"
-				variant="bordered"
-				class="w-full"
-			/>
+	<div class="flex flex-col gap-3">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex flex-wrap items-center gap-2">
+				<DateRangePicker bind:value={dateRange} />
+				<div class="w-44">
+					<Dropdown
+						value={pagination.status || undefined}
+						placeholder="Status"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={statusOptions}
+						onValueChange={onStatusDropdownChange}
+					/>
+				</div>
+			</div>
+			<div class="w-full max-w-xs">
+				<SearchField
+					fields={searchFields}
+					field={searchField}
+					value={searchInput}
+					onSearch={handleSearch}
+				/>
+			</div>
 		</div>
 
 		{#if hasActiveFilters}
-			<Button size="sm" variant="ghost" onclick={clearFilters}>Clear filters</Button>
+			<div class="flex flex-wrap items-center gap-2">
+				{#each activeFilters as filter (filter.key)}
+					<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+						<span class="text-muted-foreground">{filter.label}:</span>
+						<span class="font-semibold">{filter.value}</span>
+						<button
+							type="button"
+							onclick={() => removeFilter(filter.key)}
+							aria-label="Remove {filter.label} filter"
+							class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+						>
+							<X class="size-3" />
+						</button>
+					</Chip>
+				{/each}
+				<button
+					type="button"
+					onclick={clearFilters}
+					class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
+				>
+					Clear All
+				</button>
+			</div>
 		{/if}
 	</div>
 
 	<div class="rounded-lg border border-border bg-card shadow-2xl">
-		{#if !isLoading && data.referrals.total === 0}
+		<div class="flex items-center justify-between gap-2 p-4">
+			<span class="text-sm text-muted-foreground">{pagination.showingText} referrals</span>
+			<div class="flex items-center gap-2">
+				<Button variant="outline">
+					<RefreshCw />
+				</Button>
+				<Button variant="outline">
+					<Download />
+					Export
+				</Button>
+			</div>
+		</div>
+
+		{#if !isLoading && dateFilteredMerchants.length === 0}
 			<div class="flex flex-col items-center gap-3 px-6 py-16 text-center">
 				<div
 					class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10"
@@ -217,14 +396,14 @@
 					<p class="text-sm font-medium text-foreground">No referrals found</p>
 					<p class="mt-1 text-sm text-muted-foreground">
 						{#if hasActiveFilters}
-							Try adjusting your search or status filter.
+							Try adjusting your search, status, or date filter.
 						{:else}
 							Referred merchants will appear here once onboarding begins.
 						{/if}
 					</p>
 				</div>
 				{#if hasActiveFilters}
-					<Button size="sm" variant="outline" onclick={clearFilters}>Clear filters</Button>
+					<Button size="sm" variant="outline" onclick={clearFilters}>Clear All</Button>
 				{/if}
 			</div>
 		{:else}

@@ -18,8 +18,12 @@ export type CommissionMerchantOption = {
 };
 
 export type FetchCommissionsParams = {
-	date?: string;
+	dateFrom?: string;
+	dateTo?: string;
 	merchant?: string;
+	paymentMethod?: string;
+	search?: string;
+	searchField?: 'transactionRef' | 'merchant';
 };
 
 export type CommissionsSummary = {
@@ -29,12 +33,17 @@ export type CommissionsSummary = {
 	effectiveRatePercent: number;
 };
 
+export type CommissionPaymentMethodCounts = Record<CommissionPaymentMethod, number> & {
+	all: number;
+};
+
 export type FetchCommissionsResponse = {
 	records: CommissionRecord[];
 	total: number;
 	summary: CommissionsSummary;
 	merchants: CommissionMerchantOption[];
 	availableDates: string[];
+	paymentMethodCounts: CommissionPaymentMethodCounts;
 };
 
 export type RuleBreakdownRow = {

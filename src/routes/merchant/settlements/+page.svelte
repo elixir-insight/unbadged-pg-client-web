@@ -1,16 +1,21 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
-	import { renderSnippet } from '$lib/components/ui/data-table';
+	import { renderComponent } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
 	import {
 		Chip,
 		Button,
-		MultiSelect,
+		DateRangePicker,
 		Dropdown,
-		StatCard,
+		FilterCards,
+		SearchField,
 		createUrlPagination
 	} from '$lib/components/reusable';
-	import type { StatCardTone } from '$lib/components/reusable';
+	import type { DateRange } from 'bits-ui';
+	import { getLocalTimeZone } from '@internationalized/date';
+	import { debounce } from '$lib/utils/debounce.js';
+	import { Download, RefreshCw, X } from '$lib/assets/icons';
+	import StatusBadge from './status-badge.svelte';
 
 	// ── Types + mock data — one-line swap for a real API call later, e.g.:
 	// const settlements = await api.get<Settlement[]>('/merchant/settlements');
@@ -26,6 +31,20 @@
 		settledOn: string | null;
 		transactionCount: number;
 	};
+
+	interface SettlementRow extends Settlement, Record<string, unknown> {
+		_dateMs: number;
+	}
+
+	const DAY_MS = 86_400_000;
+
+	// Settlement IDs encode their cycle date (STL-YYYYMMDD-####), so we can
+	function parseIdDate(id: string): number {
+		const match = id.match(/^STL-(\d{4})(\d{2})(\d{2})-/);
+		if (!match) return Date.now();
+		const [, year, month, day] = match;
+		return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+	}
 
 	const settlements: Settlement[] = [
 		{
@@ -230,6 +249,8 @@
 		}
 	];
 
+	const mockData: SettlementRow[] = settlements.map((s) => ({ ...s, _dateMs: parseIdDate(s.id) }));
+
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
 		currency: 'INR',
@@ -245,176 +266,202 @@
 		return value ? dateFormatter.format(new Date(value)) : null;
 	}
 
-	// Status → chip variant/label, used by the statusCell snippet below.
-	const statusChipVariant = {
-		success: 'success',
-		reject: 'destructive',
-		in_review: 'warning'
-	} as const;
-	const statusChipLabel = {
-		success: 'Success',
-		reject: 'Reject',
-		in_review: 'In Review'
-	} as const;
+	// ── Summary cards — quick status filters, counts derived from the (date
+	// filtered) settlement list, same convention as the transactions pages ────
+	const summaryCards: { label: string; status: SettlementStatus | null }[] = [
+		{ label: 'All Settlements', status: null },
+		{ label: 'Successful', status: 'success' },
+		{ label: 'In Review', status: 'in_review' },
+		{ label: 'Rejected', status: 'reject' }
+	];
 
-	// ── Stat cards — config-driven, derived from the settlement list ───────────
-	const latestSettledDate = $derived(
-		settlements.reduce<string | null>(
-			(latest, s) => (s.settledOn && (!latest || s.settledOn > latest) ? s.settledOn : latest),
-			null
-		)
-	);
-	const yesterdayRows = $derived(settlements.filter((s) => s.settledOn === latestSettledDate));
-	const successRows = $derived(settlements.filter((s) => s.status === 'success'));
-	const inReviewRows = $derived(settlements.filter((s) => s.status === 'in_review'));
-	const rejectRows = $derived(settlements.filter((s) => s.status === 'reject'));
-
-	const sum = (rows: Settlement[], key: 'amount' | 'netAmount') =>
-		rows.reduce((total, s) => total + s[key], 0);
-
-	type StatCardConfig = {
-		label: string;
-		value: string;
-		badgeText: string;
-		badgeVariant: StatCardTone;
-		subText: string;
-	};
-
-	const statCards = $derived<StatCardConfig[]>([
-		{
-			label: "Yesterday's Settlement",
-			value: currency.format(sum(yesterdayRows, 'netAmount')),
-			badgeText: 'T+1',
-			badgeVariant: 'success',
-			subText: `${yesterdayRows.length} txns · Gross ${currency.format(sum(yesterdayRows, 'amount'))}`
-		},
-		{
-			label: 'Total Settled (All Time)',
-			value: currency.format(sum(successRows, 'netAmount')),
-			badgeText: 'PAID',
-			badgeVariant: 'brand',
-			subText: `${successRows.length} settlements`
-		},
-		{
-			label: 'Awaiting Release',
-			value: currency.format(sum(inReviewRows, 'netAmount')),
-			badgeText: 'IN REVIEW',
-			badgeVariant: 'warning',
-			subText: `${inReviewRows.length} in review`
-		},
-		{
-			label: 'Needs Attention',
-			value: currency.format(sum(rejectRows, 'netAmount')),
-			badgeText: 'REJECT',
-			badgeVariant: 'danger',
-			subText: `${rejectRows.length} rejected`
-		}
-	]);
-
-	// ── Status filter — staged locally, committed to the URL on Apply ──────────
 	const statusOptions = [
 		{ value: 'success', label: 'Success' },
+		{ value: 'in_review', label: 'In Review' },
 		{ value: 'reject', label: 'Reject' }
 	];
 
-	// ── Table data + pagination — URL-driven, same convention as demo/users ───
-	// (Real API: `total` becomes `data.data.total` and slicing moves server-side.)
-	const pagination = createUrlPagination({ defaultLimit: 8, total: () => filteredData.length });
-
-	const filteredData = $derived(
-		pagination.statuses.length === 0
-			? settlements
-			: settlements.filter((s) => pagination.statuses.includes(s.status))
-	);
-
-	const pageSizeOptions = [
-		{ value: '5', label: '5 / page' },
-		{ value: '8', label: '8 / page' },
-		{ value: '12', label: '12 / page' }
+	const searchFields = [
+		{ value: 'id', label: 'Settlement ID', placeholder: 'e.g. STL-20260701-0001…' },
+		{ value: 'utr', label: 'UTR', placeholder: 'e.g. UTR2607010001…' }
 	];
 
-	const pageRows = $derived(
-		filteredData.slice(pagination.skip, pagination.skip + pagination.limit)
+	let selectedCard = $state<string>('All Settlements');
+	let settlementStatus = $state<string | undefined>(undefined);
+	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
+	let searchField = $state<string>('id');
+
+	// URL-driven pagination — click handling (Prev/Next/page jump) goes through
+	// this composable instead of local state, same convention as demo/users.
+	const pagination = createUrlPagination({ defaultLimit: 8, total: () => filteredData.length });
+
+	// Local search input — kept in sync with the URL so back/forward navigation
+	// restores the value without an extra round-trip, same convention as demo/users.
+	let searchInput = $derived(pagination.search);
+
+	$effect(() => {
+		searchInput = pagination.search;
+	});
+
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
+
+	function handleSearch(field: string, value: string) {
+		searchField = field;
+		debouncedSearch(value);
+	}
+
+	function selectCard(label: string) {
+		const card = summaryCards.find((c) => c.label === label);
+		selectedCard = label;
+		settlementStatus = card?.status ?? undefined;
+		pagination.setPage(1);
+	}
+
+	// Dropdown offers the same status options as the cards — kept in sync so
+	// either control can drive the filter.
+	function onStatusDropdownChange(val: string) {
+		const match = summaryCards.find((c) => c.status === val);
+		selectedCard = match ? match.label : 'All Settlements';
+		pagination.setPage(1);
+	}
+
+	function removeFilter(key: 'date' | 'status' | 'search') {
+		if (key === 'date') {
+			dateRange = { start: undefined, end: undefined };
+		} else if (key === 'status') {
+			settlementStatus = undefined;
+			selectedCard = 'All Settlements';
+		} else if (key === 'search') {
+			pagination.setSearch('');
+			return;
+		}
+		pagination.setPage(1);
+	}
+
+	function clearAllFilters() {
+		dateRange = { start: undefined, end: undefined };
+		settlementStatus = undefined;
+		selectedCard = 'All Settlements';
+		pagination.setSearch('');
+	}
+
+	const dateFilter = $derived.by(() => {
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			return {
+				start: dateRange.start.toDate(tz).getTime(),
+				end: dateRange.end.toDate(tz).getTime() + DAY_MS
+			};
+		}
+		return null;
+	});
+
+	const dateFilteredData = $derived(
+		dateFilter
+			? mockData.filter((r) => r._dateMs >= dateFilter.start && r._dateMs <= dateFilter.end)
+			: mockData
 	);
 
-	// Local multi-select staging, overriding a derived — reassigning here only
-	// changes the UI's checked options; it resyncs to the URL on nav (back/forward).
-	let pendingStatuses = $derived(pagination.statuses);
+	const cardCounts = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const card of summaryCards) {
+			counts[card.label] =
+				card.status === null
+					? dateFilteredData.length
+					: dateFilteredData.filter((r) => r.status === card.status).length;
+		}
+		return counts;
+	});
 
-	function applyFilter() {
-		pagination.setStatuses(pendingStatuses);
+	const filterCards = $derived(
+		summaryCards.map((c) => ({ label: c.label, count: cardCounts[c.label] ?? 0 }))
+	);
+
+	const filteredData = $derived.by(() => {
+		let result = dateFilteredData;
+		if (settlementStatus) {
+			result = result.filter((r) => r.status === settlementStatus);
+		}
+		if (pagination.search) {
+			const query = pagination.search.toLowerCase();
+			result = result.filter((r) => {
+				const fieldValue = searchField === 'utr' ? r.utr : r.id;
+				return (fieldValue ?? '').toLowerCase().includes(query);
+			});
+		}
+		return result;
+	});
+
+	const activeFilters = $derived.by(() => {
+		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
+
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+			const start = dateRange.start.toDate(tz);
+			const end = dateRange.end.toDate(tz);
+			filters.push({ key: 'date', label: 'Date', value: `${fmt(start)} – ${fmt(end)}` });
+		}
+
+		if (settlementStatus) {
+			const opt = statusOptions.find((o) => o.value === settlementStatus);
+			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? settlementStatus });
+		}
+
+		if (pagination.search) {
+			const opt = searchFields.find((f) => f.value === searchField);
+			filters.push({ key: 'search', label: opt?.label ?? 'Search', value: pagination.search });
+		}
+
+		return filters;
+	});
+
+	const pagedData = $derived(
+		filteredData.slice(pagination.skip, pagination.skip + pagination.limit)
+	);
+	const showingText = $derived(`${pagination.showingText} settlements`);
+
+	// Table-display rows — amounts/dates pre-formatted to plain strings so the
+	// column defs stay simple (accessorKey + header, no per-column snippets),
+	// same convention as the payins/payouts transaction tables.
+	interface SettlementDisplayRow extends Record<string, unknown> {
+		id: string;
+		utr: string;
+		amount: string;
+		fees: string;
+		netAmount: string;
+		settledOn: string;
+		status: SettlementStatus;
 	}
 
-	function clearFilter() {
-		pendingStatuses = [];
-		pagination.setStatuses([]);
-	}
+	const displayRows = $derived<SettlementDisplayRow[]>(
+		pagedData.map((r) => ({
+			id: r.id,
+			utr: r.utr ?? '—',
+			amount: currency.format(r.amount),
+			fees: currency.format(r.fees),
+			netAmount: currency.format(r.netAmount),
+			settledOn: formatDate(r.settledOn) ?? '—',
+			status: r.status
+		}))
+	);
 
-	function handlePageSizeChange(value: string) {
-		pagination.setLimit(Number(value));
-	}
-
-	// Column cells render via snippets declared in the markup below (refCell,
-	// amountCell, amountHeader, statusCell) — closures here only run once those
-	// snippets have initialized, so referencing them ahead of declaration is safe.
-	// Note: FlexRender invokes snippets as `snippet({ ...params, attach })`, so
-	// `params` must always be an object — a bare string/primitive would get
-	// spread into character-indexed keys instead of passed through.
-	const columns: ColumnDef<Settlement>[] = [
+	const columns: ColumnDef<SettlementDisplayRow>[] = [
 		{ accessorKey: 'id', header: 'Settlement ID' },
-		{
-			accessorKey: 'utr',
-			header: 'UTR / Ref',
-			cell: (info) => renderSnippet(refCell, { value: info.getValue<string | null>() })
-		},
-		{
-			accessorKey: 'amount',
-			header: () => renderSnippet(amountHeader, { label: 'Amount' }),
-			cell: (info) => renderSnippet(amountCell, { value: currency.format(info.getValue<number>()) })
-		},
-		{
-			accessorKey: 'fees',
-			header: () => renderSnippet(amountHeader, { label: 'Fees & Tax' }),
-			cell: (info) => renderSnippet(amountCell, { value: currency.format(info.getValue<number>()) })
-		},
-		{
-			accessorKey: 'netAmount',
-			header: () => renderSnippet(amountHeader, { label: 'Net Amount' }),
-			cell: (info) => renderSnippet(amountCell, { value: currency.format(info.getValue<number>()) })
-		},
+		{ accessorKey: 'utr', header: 'UTR / Ref' },
+		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
+		{ accessorKey: 'fees', header: 'Fees & Tax' },
+		{ accessorKey: 'netAmount', header: 'Net Amount' },
+		{ accessorKey: 'settledOn', header: 'Settled On' },
 		{
 			accessorKey: 'status',
 			header: 'Status',
-			cell: (info) => renderSnippet(statusCell, { status: info.getValue<SettlementStatus>() })
-		},
-		{
-			accessorKey: 'settledOn',
-			header: 'Settled On',
-			cell: (info) => renderSnippet(refCell, { value: formatDate(info.getValue<string | null>()) })
+			cell: (info) => renderComponent(StatusBadge, { status: info.getValue<SettlementStatus>() })
 		}
 	];
 </script>
-
-<!-- Cell/header snippets for the data-table columns above -->
-{#snippet refCell({ value }: { value: string | null })}
-	{#if value}
-		<span>{value}</span>
-	{:else}
-		<span class="text-muted-foreground/60">—</span>
-	{/if}
-{/snippet}
-
-{#snippet amountCell({ value }: { value: string })}
-	<div class="block w-full text-right font-mono tabular-nums">{value}</div>
-{/snippet}
-
-{#snippet amountHeader({ label }: { label: string })}
-	<span class="ml-auto">{label}</span>
-{/snippet}
-
-{#snippet statusCell({ status }: { status: SettlementStatus })}
-	<Chip variant={statusChipVariant[status]}>{statusChipLabel[status]}</Chip>
-{/snippet}
 
 <div class="space-y-6 p-6 sm:p-8 lg:p-4">
 	<!-- Header -->
@@ -422,66 +469,97 @@
 		<h1 class="mt-1 text-2xl font-semibold text-foreground">Settlements</h1>
 	</div>
 
-	<!-- Stat cards -->
-	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each statCards as card (card.label)}
-			<StatCard
-				label={card.label}
-				value={card.value}
-				badgeText={card.badgeText}
-				badgeVariant={card.badgeVariant}
-				subText={card.subText}
-			/>
-		{/each}
-	</div>
+	<!-- Summary cards -->
+	<FilterCards
+		loading={false}
+		skeletonCount={4}
+		cards={filterCards}
+		bind:selected={selectedCard}
+		onselect={selectCard}
+		class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+	/>
 
 	<!-- Filter bar -->
-	<div class="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
-		<div class="flex flex-col gap-1.5">
-			<span class="text-xs font-medium text-muted-foreground">Status Filter</span>
-			<div class="flex items-center gap-2">
-				<MultiSelect
-					bind:value={pendingStatuses}
-					options={statusOptions}
-					placeholder="All statuses"
-					class="w-56"
+	<div class="flex flex-col gap-3">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex flex-wrap items-center gap-2">
+				<DateRangePicker
+					bind:value={dateRange}
+					onApply={() => {
+						pagination.setPage(1);
+					}}
 				/>
-				{#if pagination.statuses.length > 0}
-					<Chip variant="secondary">{pagination.statuses.length} active</Chip>
-				{/if}
+				<div class="w-50">
+					<Dropdown
+						bind:value={settlementStatus}
+						placeholder="Status"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={statusOptions}
+						onValueChange={onStatusDropdownChange}
+					/>
+				</div>
+			</div>
+			<div class="w-full max-w-xs">
+				<SearchField
+					fields={searchFields}
+					bind:field={searchField}
+					value={searchInput}
+					onSearch={handleSearch}
+				/>
 			</div>
 		</div>
 
-		<Button size="sm" onclick={applyFilter}>Apply</Button>
-		<Button
-			size="sm"
-			variant="ghost"
-			onclick={clearFilter}
-			disabled={pendingStatuses.length === 0 && pagination.statuses.length === 0}
-		>
-			Clear Filter
-		</Button>
-
-		<div class="ml-auto flex flex-col gap-1.5">
-			<span class="text-xs font-medium text-muted-foreground">Rows per page</span>
-			<Dropdown
-				value={String(pagination.limit)}
-				options={pageSizeOptions}
-				onValueChange={handlePageSizeChange}
-				size="sm"
-				class="w-28"
-			/>
-		</div>
+		<!-- Active filter chips -->
+		{#if activeFilters.length > 0}
+			<div class="flex flex-wrap items-center gap-2">
+				{#each activeFilters as filter (filter.key)}
+					<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+						<span class="text-muted-foreground">{filter.label}:</span>
+						<span class="font-semibold">{filter.value}</span>
+						<button
+							type="button"
+							onclick={() => removeFilter(filter.key)}
+							aria-label="Remove {filter.label} filter"
+							class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+						>
+							<X class="size-3" />
+						</button>
+					</Chip>
+				{/each}
+				<button
+					type="button"
+					onclick={clearAllFilters}
+					class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
+				>
+					Clear All
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Table -->
-	<div class="rounded-lg border border-border bg-card">
+	<div class="rounded-lg border border-border bg-card shadow-2xl">
+		<div class="flex items-center justify-between gap-2 p-4">
+			<span class="text-sm text-muted-foreground">{showingText}</span>
+			<div class="flex items-center gap-2">
+				<Button variant="outline">
+					<RefreshCw />
+				</Button>
+				<Button variant="outline">
+					<Download />
+					Export
+				</Button>
+			</div>
+		</div>
+
 		<Table
-			data={pageRows}
+			data={displayRows}
 			{columns}
 			pageNumber={pagination.currentPage}
-			setPageNumber={pagination.setPage}
 			totalPages={pagination.pageCount}
+			setPageNumber={pagination.setPage}
 			variant="borderless"
 		/>
 	</div>

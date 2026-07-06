@@ -3,6 +3,8 @@
 
 import type {
 	CommissionMerchantOption,
+	CommissionPaymentMethod,
+	CommissionPaymentMethodCounts,
 	CommissionRecord,
 	FetchCommissionsParams,
 	FetchCommissionsResponse,
@@ -282,6 +284,15 @@ function buildAvailableDates(records: CommissionRecord[]): string[] {
 	return [...new Set(records.map((record) => record.date))].sort((a, b) => b.localeCompare(a));
 }
 
+function buildPaymentMethodCounts(records: CommissionRecord[]): CommissionPaymentMethodCounts {
+	const methods: CommissionPaymentMethod[] = ['UPI', 'Card', 'NetBanking', 'Wallet'];
+	const counts = Object.fromEntries(
+		methods.map((method) => [method, records.filter((r) => r.paymentMethod === method).length])
+	) as Record<CommissionPaymentMethod, number>;
+
+	return { all: records.length, ...counts };
+}
+
 function buildSummary(records: CommissionRecord[]): CommissionsSummary {
 	const totalVolume = records.reduce((sum, record) => sum + record.volume, 0);
 	const totalCommission = records.reduce((sum, record) => sum + record.commission, 0);
@@ -296,17 +307,38 @@ function buildSummary(records: CommissionRecord[]): CommissionsSummary {
 }
 
 export function fetchCommissions({
-	date = '',
-	merchant = ''
+	dateFrom = '',
+	dateTo = '',
+	merchant = '',
+	paymentMethod = '',
+	search = '',
+	searchField = 'transactionRef'
 }: FetchCommissionsParams = {}): Promise<FetchCommissionsResponse> {
 	let records = ALL_RECORDS;
 
-	if (date) {
-		records = records.filter((record) => record.date === date);
+	if (dateFrom && dateTo) {
+		records = records.filter((record) => record.date >= dateFrom && record.date <= dateTo);
 	}
 
 	if (merchant) {
 		records = records.filter((record) => record.merchantId === merchant);
+	}
+
+	const normalizedSearch = search.trim().toLowerCase();
+	if (normalizedSearch) {
+		records = records.filter((record) =>
+			searchField === 'merchant'
+				? record.merchantName.toLowerCase().includes(normalizedSearch)
+				: record.transactionRef.toLowerCase().includes(normalizedSearch)
+		);
+	}
+
+	// Counts reflect date/merchant/search filters but not paymentMethod itself, so the
+	// payment-method cards stay comparable while one of them is selected.
+	const paymentMethodCounts = buildPaymentMethodCounts(records);
+
+	if (paymentMethod) {
+		records = records.filter((record) => record.paymentMethod === paymentMethod);
 	}
 
 	return Promise.resolve({
@@ -314,6 +346,7 @@ export function fetchCommissions({
 		total: records.length,
 		summary: buildSummary(records),
 		merchants: buildMerchants(ALL_RECORDS),
-		availableDates: buildAvailableDates(ALL_RECORDS)
+		availableDates: buildAvailableDates(ALL_RECORDS),
+		paymentMethodCounts
 	});
 }

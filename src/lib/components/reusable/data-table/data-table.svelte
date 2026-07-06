@@ -80,7 +80,7 @@
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row
 					class={cn(
-						'table-header-premium h-11 border-y border-border',
+						'table-header-premium h-11 border-y border-border rounded-lg',
 						variant === 'borderless' && 'border-b-0'
 					)}
 				>
@@ -169,7 +169,7 @@
 							<div class="flex flex-col items-center gap-2 py-4">
 								<div
 									class="flex size-12 items-center justify-center rounded-2xl
-								            border border-dashed border-border bg-muted/10"
+									            border border-dashed border-border bg-muted/10"
 								>
 									<svg
 										class="size-5 text-muted-foreground/25"

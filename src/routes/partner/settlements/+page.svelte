@@ -2,23 +2,30 @@
 	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { navigating, page as pageState } from '$app/state';
+	import { SvelteURL } from 'svelte/reactivity';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
-	import { Button, Search, StatCard, createUrlPagination } from '$lib/components/reusable';
-	import type { StatCardTone } from '$lib/components/reusable';
-	import type { PartnerMerchantSummary } from './types';
+	import {
+		Button,
+		Chip,
+		DateRangePicker,
+		Dropdown,
+		FilterCards,
+		SearchField,
+		createUrlPagination
+	} from '$lib/components/reusable';
+	import type { DateRange } from 'bits-ui';
+	import { getLocalTimeZone } from '@internationalized/date';
+	import type { PartnerMerchantSummary, PartnerSettlementStatus } from './types';
 	import { formatInr, formatRecordDate } from './[merchantId]/shared';
 	import PartnerSettlementStatusBadge from './[merchantId]/partner-settlement-status-badge.svelte';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { goto } from '$app/navigation';
+	import { Download, RefreshCw, X } from '$lib/assets/icons';
 
 	let { data } = $props();
 
-	const currency = new Intl.NumberFormat('en-IN', {
-		style: 'currency',
-		currency: 'INR',
-		maximumFractionDigits: 0
-	});
+	const DAY_MS = 86_400_000;
 
 	const isLoading = $derived(
 		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
@@ -27,32 +34,76 @@
 	const hasLoadError = $derived(Boolean(data.loadError));
 	const settlements = $derived(data.settlements);
 
+	const summaryCards: { label: string; status: PartnerSettlementStatus | null }[] = [
+		{ label: 'All Settlements', status: null },
+		{ label: 'Settled', status: 'settled' },
+		{ label: 'Partial', status: 'partial' },
+		{ label: 'Unsettled', status: 'unsettled' },
+		{ label: 'Adjusted', status: 'adjusted' }
+	];
+
+	const statusOptions = [
+		{ value: 'settled', label: 'Settled' },
+		{ value: 'partial', label: 'Partial' },
+		{ value: 'unsettled', label: 'Unsettled' },
+		{ value: 'adjusted', label: 'Adjusted' }
+	];
+
+	const searchFields = [
+		{ value: 'name', label: 'Merchant Name', placeholder: 'e.g. BlueCart Retail…' }
+	];
+
 	const pagination = createUrlPagination({
 		defaultLimit: 8,
-		total: () => settlements?.total ?? 0
+		total: () => dateFilteredMerchants.length
 	});
 
-	const pageRows = $derived(
-		settlements
-			? settlements.merchants.slice(pagination.skip, pagination.skip + pagination.limit)
-			: []
+	const searchField = $derived(
+		pageState.url.searchParams.get('searchField') === 'id' ? 'id' : 'name'
 	);
 
 	let searchInput = $derived(pagination.search);
+
+	$effect(() => {
+		searchInput = pagination.search;
+	});
 
 	const debouncedSearch = debounce((value: string) => {
 		pagination.setSearch(value);
 	}, 300);
 
-	function handleSearchInput(value: string) {
+	function setUrlParams(updates: Record<string, string | null>) {
+		const url = new SvelteURL(pageState.url.toString());
+		for (const [key, value] of Object.entries(updates)) {
+			if (value === null || value === '') url.searchParams.delete(key);
+			else url.searchParams.set(key, value);
+		}
+		url.searchParams.delete('skip');
+		const href =
+			`${pageState.url.pathname}?${url.searchParams.toString()}` as `${typeof pageState.url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
+	function handleSearch(field: string, value: string) {
 		searchInput = value;
+		setUrlParams({ searchField: field === 'name' ? null : field });
 		debouncedSearch(value);
 	}
 
-	function clearSearch() {
-		searchInput = '';
-		pagination.setSearch('');
+	const selectedCard = $derived(
+		summaryCards.find((c) => c.status === (pagination.status || null))?.label ?? 'All Settlements'
+	);
+
+	function selectCard(label: string) {
+		const card = summaryCards.find((c) => c.label === label);
+		pagination.setStatus(card?.status ?? '');
 	}
+
+	function onStatusDropdownChange(value: string) {
+		pagination.setStatus(value);
+	}
+
+	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
 
 	function retryLoad() {
 		goto(resolve('/partner/settlements'), { invalidateAll: true });
@@ -62,48 +113,93 @@
 		goto(resolve('/partner/settlements/[merchantId]', { merchantId: merchant.id }));
 	}
 
-	const statCards = $derived<
-		{
-			label: string;
-			value: string;
-			badgeText: string;
-			badgeVariant: StatCardTone;
-			subText: string;
-		}[]
-	>(
-		settlements
-			? [
-					{
-						label: 'Total Commission',
-						value: currency.format(settlements.summary.totalCommission),
-						badgeText: 'EARNED',
-						badgeVariant: 'brand',
-						subText: `${settlements.total} merchants`
-					},
-					{
-						label: 'Total Settled',
-						value: currency.format(settlements.summary.totalSettled),
-						badgeText: 'PAID',
-						badgeVariant: 'success',
-						subText: 'Across all merchants'
-					},
-					{
-						label: 'Pending',
-						value: currency.format(settlements.summary.pendingAmount),
-						badgeText: 'DUE',
-						badgeVariant: 'warning',
-						subText: `${settlements.summary.unsettledCount} unsettled`
-					},
-					{
-						label: 'Merchants',
-						value: String(settlements.total),
-						badgeText: 'ACTIVE',
-						badgeVariant: 'brand',
-						subText: 'Referred merchant accounts'
-					}
-				]
-			: []
+	function removeFilter(key: 'date' | 'status' | 'search') {
+		if (key === 'date') {
+			dateRange = { start: undefined, end: undefined };
+		} else if (key === 'status') {
+			pagination.setStatus('');
+		} else if (key === 'search') {
+			searchInput = '';
+			setUrlParams({ search: null, searchField: null });
+		}
+	}
+
+	function clearAllFilters() {
+		dateRange = { start: undefined, end: undefined };
+		searchInput = '';
+		setUrlParams({ search: null, status: null, searchField: null });
+	}
+
+	const dateFilter = $derived.by(() => {
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			return {
+				start: dateRange.start.toDate(tz).getTime(),
+				end: dateRange.end.toDate(tz).getTime() + DAY_MS
+			};
+		}
+		return null;
+	});
+
+	const dateFilteredMerchants = $derived.by(() => {
+		const merchants = settlements?.merchants ?? [];
+		if (!dateFilter) return merchants;
+		return merchants.filter((merchant) => {
+			if (!merchant.lastSettlementDate) return false;
+			const ms = new Date(merchant.lastSettlementDate).getTime();
+			return ms >= dateFilter.start && ms <= dateFilter.end;
+		});
+	});
+
+	const pageRows = $derived(
+		dateFilteredMerchants.slice(pagination.skip, pagination.skip + pagination.limit)
 	);
+
+	const dateFilteredAllMerchants = $derived.by(() => {
+		const merchants = settlements?.allMerchants ?? [];
+		if (!dateFilter) return merchants;
+		return merchants.filter((merchant) => {
+			if (!merchant.lastSettlementDate) return false;
+			const ms = new Date(merchant.lastSettlementDate).getTime();
+			return ms >= dateFilter.start && ms <= dateFilter.end;
+		});
+	});
+
+	const cardCounts = $derived.by(() => {
+		const counts: Record<string, number> = { all: dateFilteredAllMerchants.length };
+		for (const status of ['unsettled', 'partial', 'settled', 'adjusted'] as const) {
+			counts[status] = dateFilteredAllMerchants.filter((m) => m.status === status).length;
+		}
+		return counts;
+	});
+
+	const activeFilters = $derived.by(() => {
+		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
+
+		if (dateRange.start && dateRange.end) {
+			const tz = getLocalTimeZone();
+			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+			filters.push({
+				key: 'date',
+				label: 'Date',
+				value: `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`
+			});
+		}
+
+		if (pagination.status) {
+			const opt = statusOptions.find((o) => o.value === pagination.status);
+			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
+		}
+
+		if (pagination.search) {
+			const opt = searchFields.find((f) => f.value === searchField);
+			filters.push({ key: 'search', label: opt?.label ?? 'Search', value: pagination.search });
+		}
+
+		return filters;
+	});
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
 
 	const columns: ColumnDef<PartnerMerchantSummary>[] = [
 		{
@@ -116,14 +212,15 @@
 		{
 			accessorKey: 'commissionEarned',
 			header: () => renderSnippet(amountHeader, { label: 'Commission' }),
+			meta: { align: 'right' },
 			cell: (info) => renderSnippet(amountCell, { value: formatInr(info.getValue<number>()) })
 		},
 		{
 			accessorKey: 'totalSettled',
 			header: () => renderSnippet(amountHeader, { label: 'Settled' }),
+			meta: { align: 'right' },
 			cell: (info) => renderSnippet(amountCell, { value: formatInr(info.getValue<number>()) })
 		},
-
 		{
 			accessorKey: 'lastSettlementDate',
 			header: 'Last settlement',
@@ -135,6 +232,7 @@
 		{
 			accessorKey: 'pendingAmount',
 			header: () => renderSnippet(amountHeader, { label: 'Pending' }),
+			meta: { align: 'right' },
 			cell: (info) => renderSnippet(amountCell, { value: formatInr(info.getValue<number>()) })
 		},
 		{
@@ -146,7 +244,7 @@
 </script>
 
 {#snippet merchantCell(merchant: PartnerMerchantSummary)}
-	<div class="flex items-center gap-2.5">
+	<div class="flex min-w-0 items-center gap-2.5">
 		<span
 			class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary"
 		>
@@ -157,16 +255,16 @@
 				.join('')
 				.toUpperCase()}
 		</span>
-		<span class="font-medium text-foreground">{merchant.name}</span>
+		<span class="min-w-0 truncate font-medium text-foreground">{merchant.name}</span>
 	</div>
 {/snippet}
 
 {#snippet amountCell({ value }: { value: string })}
-	<div class="block w-full text-right font-mono tabular-nums">{value}</div>
+	<span class="block truncate font-mono tabular-nums" title={value}>{value}</span>
 {/snippet}
 
 {#snippet amountHeader({ label }: { label: string })}
-	<span class="ml-auto">{label}</span>
+	<span class="block truncate">{label}</span>
 {/snippet}
 
 {#snippet statusCell({ merchant }: { merchant: PartnerMerchantSummary })}
@@ -193,37 +291,86 @@
 			<Button class="mt-4" size="sm" onclick={retryLoad}>Retry</Button>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			{#each statCards as card (card.label)}
-				<StatCard
-					label={card.label}
-					value={card.value}
-					badgeText={card.badgeText}
-					badgeVariant={card.badgeVariant}
-					subText={card.subText}
-				/>
-			{/each}
-		</div>
+		<FilterCards
+			loading={isLoading}
+			skeletonCount={5}
+			cards={summaryCards.map((c) => ({
+				label: c.label,
+				count: c.status === null ? cardCounts.all : (cardCounts[c.status] ?? 0)
+			}))}
+			selected={selectedCard}
+			onselect={selectCard}
+			class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+		/>
 
-		<div class="flex flex-wrap items-end gap-3">
-			<div class="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-sm">
-				<span class="text-xs font-medium text-muted-foreground">Search</span>
-				<Search
-					value={searchInput}
-					oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
-					placeholder="Search by merchant, ID, or city…"
-					variant="bordered"
-					class="w-full"
-				/>
+		<div class="flex flex-col gap-3">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div class="flex flex-wrap items-center gap-2">
+					<DateRangePicker bind:value={dateRange} />
+					<div class="w-44">
+						<Dropdown
+							value={pagination.status || undefined}
+							placeholder="Status"
+							disabled={false}
+							bordered={false}
+							search={false}
+							options={statusOptions}
+							onValueChange={onStatusDropdownChange}
+						/>
+					</div>
+				</div>
+				<div class="w-full max-w-xs">
+					<SearchField
+						fields={searchFields}
+						field={searchField}
+						value={searchInput}
+						onSearch={handleSearch}
+					/>
+				</div>
 			</div>
 
-			{#if pagination.search}
-				<Button size="sm" variant="ghost" onclick={clearSearch}>Clear search</Button>
+			{#if hasActiveFilters}
+				<div class="flex flex-wrap items-center gap-2">
+					{#each activeFilters as filter (filter.key)}
+						<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+							<span class="text-muted-foreground">{filter.label}:</span>
+							<span class="font-semibold">{filter.value}</span>
+							<button
+								type="button"
+								onclick={() => removeFilter(filter.key)}
+								aria-label="Remove {filter.label} filter"
+								class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+							>
+								<X class="size-3" />
+							</button>
+						</Chip>
+					{/each}
+					<button
+						type="button"
+						onclick={clearAllFilters}
+						class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
+					>
+						Clear All
+					</button>
+				</div>
 			{/if}
 		</div>
 
 		<div class="rounded-lg border border-border bg-card shadow-2xl">
-			{#if !isLoading && settlements && settlements.total === 0}
+			<div class="flex items-center justify-between gap-2 p-4">
+				<span class="text-sm text-muted-foreground">{pagination.showingText} merchants</span>
+				<div class="flex items-center gap-2">
+					<Button variant="outline" onclick={retryLoad}>
+						<RefreshCw />
+					</Button>
+					<Button variant="outline">
+						<Download />
+						Export
+					</Button>
+				</div>
+			</div>
+
+			{#if !isLoading && dateFilteredMerchants.length === 0}
 				<div class="flex flex-col items-center gap-3 px-6 py-16 text-center">
 					<div
 						class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10"
@@ -246,15 +393,15 @@
 					<div>
 						<p class="text-sm font-medium text-foreground">No merchants found</p>
 						<p class="mt-1 text-sm text-muted-foreground">
-							{#if pagination.search}
-								Try a different search term.
+							{#if hasActiveFilters}
+								Try adjusting your search, status, or date filter.
 							{:else}
 								Referred merchants with settlement activity will appear here.
 							{/if}
 						</p>
 					</div>
-					{#if pagination.search}
-						<Button size="sm" variant="outline" onclick={clearSearch}>Clear search</Button>
+					{#if hasActiveFilters}
+						<Button size="sm" variant="outline" onclick={clearAllFilters}>Clear All</Button>
 					{/if}
 				</div>
 			{:else}

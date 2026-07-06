@@ -21,36 +21,51 @@
 		},
 		{
 			accessorKey: 'amount',
-			header: 'Amount (INR)',
-			cell: ({ row }) => renderSnippet(amountCell, { amount: row.original.amount })
+			header: () => renderSnippet(amountHeader, { label: 'Amount (INR)' }),
+			meta: { align: 'right' },
+			cell: ({ row }) =>
+				renderSnippet(amountCell, { value: formatInrDetailed(row.original.amount) })
 		},
 		{
 			accessorKey: 'tds',
-			header: 'TDS 5%',
-			cell: ({ row }) => formatInrDetailed(row.original.tds)
+			header: () => renderSnippet(amountHeader, { label: 'TDS 5%' }),
+			meta: { align: 'right' },
+			cell: ({ row }) => renderSnippet(amountCell, { value: formatInrDetailed(row.original.tds) })
 		},
 		{
 			accessorKey: 'gst',
-			header: 'GST 18%',
-			cell: ({ row }) => formatInrDetailed(row.original.gst)
+			header: () => renderSnippet(amountHeader, { label: 'GST 18%' }),
+			meta: { align: 'right' },
+			cell: ({ row }) => renderSnippet(amountCell, { value: formatInrDetailed(row.original.gst) })
 		},
 		{
 			accessorKey: 'accountNumber',
-			header: 'Account no.'
+			header: 'Account no.',
+			cell: ({ row }) => renderSnippet(textCell, { value: row.original.accountNumber })
 		},
 		{
 			accessorKey: 'ifsc',
-			header: 'IFSC'
+			header: 'IFSC',
+			cell: ({ row }) => renderSnippet(textCell, { value: row.original.ifsc })
 		},
 		{
 			accessorKey: 'utr',
-			header: 'UTR'
+			header: 'UTR',
+			cell: ({ row }) => renderSnippet(textCell, { value: row.original.utr })
 		}
 	];
 </script>
 
-{#snippet amountCell({ amount }: { amount: number })}
-	<span class="font-semibold">{formatInrDetailed(amount)}</span>
+{#snippet textCell({ value }: { value: string })}
+	<span class="block truncate" title={value}>{value}</span>
+{/snippet}
+
+{#snippet amountCell({ value }: { value: string })}
+	<span class="block truncate font-mono tabular-nums" title={value}>{value}</span>
+{/snippet}
+
+{#snippet amountHeader({ label }: { label: string })}
+	<span class="block truncate">{label}</span>
 {/snippet}
 
 <Table
@@ -61,5 +76,4 @@
 	totalPages={1}
 	variant="borderless"
 	{loading}
-	caption="Settlement entries"
 />

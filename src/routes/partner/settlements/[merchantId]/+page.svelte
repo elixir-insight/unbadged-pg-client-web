@@ -72,17 +72,10 @@
 	</div>
 
 	<div class="rounded-lg border border-border bg-card shadow-2xl">
-		<div
-			class="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 px-4 py-3"
-		>
-			<div class="flex items-center gap-2">
-				<h2 class="text-sm font-semibold">Settlement entries</h2>
-				<span
-					class="inline-flex size-5 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"
-				>
-					{entries.length}
-				</span>
-			</div>
+		<div class="flex items-center justify-between gap-2 p-4">
+			<span class="text-sm text-muted-foreground">
+				{entries.length} settlement {entries.length === 1 ? 'entry' : 'entries'}
+			</span>
 		</div>
 
 		{#if !isLoading && entries.length === 0}

@@ -232,18 +232,18 @@ function buildSummary(merchants: ReferralMerchant[]): ReferralsSummary {
 	};
 }
 
-function matchesSearch(merchant: ReferralMerchant, search: string) {
+function matchesSearch(merchant: ReferralMerchant, search: string, field: 'name' | 'email') {
 	const needle = search.toLowerCase();
-	return (
-		merchant.name.toLowerCase().includes(needle) ||
-		merchant.merchantId.toLowerCase().includes(needle) ||
-		merchant.email.toLowerCase().includes(needle)
-	);
+	return field === 'email'
+		? merchant.email.toLowerCase().includes(needle)
+		: merchant.name.toLowerCase().includes(needle) ||
+				merchant.merchantId.toLowerCase().includes(needle);
 }
 
 export function fetchReferrals({
 	status = '',
 	search = '',
+	searchField = 'name',
 	page: _page = 1
 }: FetchReferralsParams = {}): Promise<FetchReferralsResponse> {
 	const normalizedSearch = search.trim().toLowerCase();
@@ -255,7 +255,9 @@ export function fetchReferrals({
 	}
 
 	if (normalizedSearch) {
-		merchants = merchants.filter((merchant) => matchesSearch(merchant, normalizedSearch));
+		merchants = merchants.filter((merchant) =>
+			matchesSearch(merchant, normalizedSearch, searchField)
+		);
 	}
 
 	// Client-side pagination slices in +page.svelte; `page` is kept for future API parity.
@@ -263,6 +265,7 @@ export function fetchReferrals({
 
 	return Promise.resolve({
 		merchants,
+		allMerchants: ALL_MERCHANTS,
 		total: merchants.length,
 		statusCounts: buildStatusCounts(ALL_MERCHANTS),
 		summary: buildSummary(ALL_MERCHANTS)
