@@ -213,6 +213,7 @@
 /* Assign stable view-transition-name values via class selectors */
 .app-shell-content {
 	view-transition-name: page;
+	scrollbar-gutter: stable;
 }
 
 .sidebar-active-indicator {
@@ -362,6 +363,14 @@ select:-webkit-autofill:active {
 ::view-transition-new(nav-progress) {
 	animation: none;
 	opacity: 0;
+}
+
+/* Activation panel — locked ↔ unlocked state transitions */
+::view-transition-group(activation-panel),
+::view-transition-old(activation-panel),
+::view-transition-new(activation-panel) {
+	animation-duration: 0.25s;
+	animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 /* Accessibility: respect prefers-reduced-motion */

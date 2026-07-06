@@ -3,7 +3,7 @@
 	import { Input } from '$lib/components/reusable';
 	import { Dropdown } from '$lib/components/reusable';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import ActivationDrawer from './ActivationDrawer.svelte';
+	import ActivateOrgDialog from './ActivateOrgDialog.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import {
 		XIcon,
@@ -23,6 +23,7 @@
 	import type { VirtualAccount } from '../types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { availableBankPipelines } from '../../../onboarding/create-organization/constants';
 
 	// ── Types ─────────────────────────────────────────────────────────────────
 
@@ -45,17 +46,34 @@
 
 	interface Props {
 		orgId?: string;
+		orgName?: string;
 		orgStatus?: string;
+		showCommissionSetup?: boolean;
 		onactivate?: () => Promise<void>;
 	}
 
-	const { orgId = '', orgStatus = '', onactivate }: Props = $props();
+	const {
+		orgId = '',
+		orgName = 'this organization',
+		orgStatus = '',
+		showCommissionSetup = true,
+		onactivate
+	}: Props = $props();
 
 	// ── Status flags ──────────────────────────────────────────────────────────
 
 	const normalizedOrgStatus = $derived(orgStatus.toUpperCase().replace(/\s+/g, '_'));
 	const isApproved = $derived(normalizedOrgStatus === 'APPROVED');
 	const isActive = $derived(normalizedOrgStatus === 'ACTIVE');
+
+	const bankPipelineOptions = availableBankPipelines.map((pipeline) => ({
+		value: pipeline.value,
+		label: pipeline.value
+	}));
+
+	let selectedBankPipeline = $state('');
+
+	const fieldIdPrefix = $derived(showCommissionSetup ? 'payout' : 'payin');
 
 	// ── Transaction Configuration ─────────────────────────────────────────────
 
@@ -150,9 +168,9 @@
 		virtualAccounts = virtualAccounts.filter((v) => v.id !== id);
 	}
 
-	// ── Activation drawer ─────────────────────────────────────────────────────
+	// ── Activation dialog ─────────────────────────────────────────────────────
 
-	let showActivationDrawer = $state(false);
+	let showActivationDialog = $state(false);
 
 	// ── VA search / filter ────────────────────────────────────────────────────
 
@@ -184,17 +202,18 @@
 	);
 
 	const commissionComplete = $derived(
-		commissionRows.length > 0 &&
-			commissionRows.every(
-				(r) =>
-					r.baseAmount.trim() !== '' && r.gatewayFee.trim() !== '' && r.partnerFee.trim() !== ''
-			)
+		!showCommissionSetup ||
+			(commissionRows.length > 0 &&
+				commissionRows.every(
+					(r) =>
+						r.baseAmount.trim() !== '' && r.gatewayFee.trim() !== '' && r.partnerFee.trim() !== ''
+				))
 	);
 
 	// ── Footer ────────────────────────────────────────────────────────────────
 
 	function handleSaveDraft() {
-		console.log('Save draft:', { txConfig, selectedTypes, commissionRows });
+		console.log('Save draft:', { selectedBankPipeline, txConfig, selectedTypes, commissionRows });
 	}
 
 	function handleCreateVA() {
@@ -239,6 +258,20 @@
 
 				<div class="border-t border-border/40 p-5 sm:p-6">
 					<div class="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+						<div class="space-y-1.5">
+							<label
+								class="block text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase"
+							>
+								Bank Pipeline
+							</label>
+							<Dropdown
+								bind:value={selectedBankPipeline}
+								options={bankPipelineOptions}
+								placeholder="Select bank pipeline…"
+								name={`${fieldIdPrefix}-bank-pipeline`}
+							/>
+						</div>
+
 						{#each [{ id: 'tc-sd', label: 'Security Deposit (SD)', key: 'securityDeposit', ph: 'e.g. 10000' }, { id: 'tc-limit', label: 'Transaction Limit', key: 'transactionLimit', ph: 'e.g. 1000000' }, { id: 'tc-daily', label: 'Daily Deposit Limit', key: 'dailyDepositLimit', ph: 'e.g. 500000' }, { id: 'tc-min', label: 'Min Transaction Amount', key: 'minTxAmount', ph: 'e.g. 100' }, { id: 'tc-max', label: 'Max Transaction Amount', key: 'maxTxAmount', ph: 'e.g. 100000' }] as field (field.id)}
 							<div class="space-y-1.5">
 								<label
@@ -256,8 +289,8 @@
 							</div>
 						{/each}
 
-						<!-- Transaction Types — spans full row -->
-						<div class="space-y-2 sm:col-span-2 lg:col-span-3">
+						<!-- Transaction Types -->
+						<div class="space-y-2">
 							<label
 								for="tx-type-trigger"
 								class="block text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase"
@@ -441,163 +474,165 @@
 			</section>
 
 			<!-- ── 3. Commission Setup ────────────────────────────────────── -->
-			<section
-				class="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/40
+			{#if showCommissionSetup}
+				<section
+					class="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/40
 				       transition-shadow duration-200 hover:shadow-md"
-				in:fade={{ duration: 200 }}
-			>
-				<div class="relative overflow-hidden px-5 py-4">
-					<div class="gradient-soft absolute inset-0 opacity-50"></div>
-					<div class="absolute inset-y-0 left-0 w-0.5 rounded-full bg-success/50"></div>
-					<div class="relative flex items-center justify-between gap-3">
-						<div class="flex items-center gap-3">
-							<div
-								class="flex size-8 shrink-0 items-center justify-center rounded-xl
+					in:fade={{ duration: 200 }}
+				>
+					<div class="relative overflow-hidden px-5 py-4">
+						<div class="gradient-soft absolute inset-0 opacity-50"></div>
+						<div class="absolute inset-y-0 left-0 w-0.5 rounded-full bg-success/50"></div>
+						<div class="relative flex items-center justify-between gap-3">
+							<div class="flex items-center gap-3">
+								<div
+									class="flex size-8 shrink-0 items-center justify-center rounded-xl
 							            bg-success/10 text-success shadow-xs ring-1 ring-success/15"
-							>
-								<Coins class="size-4" />
+								>
+									<Coins class="size-4" />
+								</div>
+								<div>
+									<p class="text-sm font-semibold tracking-tight">Commission Setup</p>
+									<p class="text-xs text-muted-foreground/80">
+										Define fee slabs and commission structure
+									</p>
+								</div>
 							</div>
-							<div>
-								<p class="text-sm font-semibold tracking-tight">Commission Setup</p>
-								<p class="text-xs text-muted-foreground/80">
-									Define fee slabs and commission structure
+							<Button variant="outline" size="sm" onclick={addCommissionRow} class="shrink-0">
+								<PlusIcon class="size-3.5" />
+								Add Row
+							</Button>
+						</div>
+					</div>
+
+					{#if commissionRows.length === 0}
+						<div
+							class="flex flex-col items-center gap-3 border-t border-border/40 px-6 py-14 text-center"
+						>
+							<div
+								class="flex size-12 items-center justify-center rounded-2xl
+						            border border-dashed border-success/25 bg-success/5"
+							>
+								<Coins class="size-5 text-success/25" />
+							</div>
+							<div class="max-w-xs">
+								<p class="text-sm font-medium text-foreground/70">No commission slabs yet</p>
+								<p class="mt-1 text-xs leading-relaxed text-muted-foreground/70">
+									Click "Add Row" to start configuring commission slabs.
 								</p>
 							</div>
+							<Button variant="outline" size="sm" onclick={addCommissionRow}>
+								<PlusIcon class="size-3.5" />
+								Add First Row
+							</Button>
 						</div>
-						<Button variant="outline" size="sm" onclick={addCommissionRow} class="shrink-0">
-							<PlusIcon class="size-3.5" />
-							Add Row
-						</Button>
-					</div>
-				</div>
-
-				{#if commissionRows.length === 0}
-					<div
-						class="flex flex-col items-center gap-3 border-t border-border/40 px-6 py-14 text-center"
-					>
-						<div
-							class="flex size-12 items-center justify-center rounded-2xl
-						            border border-dashed border-success/25 bg-success/5"
-						>
-							<Coins class="size-5 text-success/25" />
-						</div>
-						<div class="max-w-xs">
-							<p class="text-sm font-medium text-foreground/70">No commission slabs yet</p>
-							<p class="mt-1 text-xs leading-relaxed text-muted-foreground/70">
-								Click "Add Row" to start configuring commission slabs.
-							</p>
-						</div>
-						<Button variant="outline" size="sm" onclick={addCommissionRow}>
-							<PlusIcon class="size-3.5" />
-							Add First Row
-						</Button>
-					</div>
-				{:else}
-					<div class="border-t border-border/40">
-						<div class="space-y-2.5 p-5 sm:p-6">
-							{#each commissionRows as row, i (row.id)}
-								<div
-									class="group relative overflow-hidden rounded-xl bg-muted/15
+					{:else}
+						<div class="border-t border-border/40">
+							<div class="space-y-2.5 p-5 sm:p-6">
+								{#each commissionRows as row, i (row.id)}
+									<div
+										class="group relative overflow-hidden rounded-xl bg-muted/15
 									       ring-1 ring-border/30 transition-all duration-200
 									       hover:bg-muted/25 hover:shadow-sm hover:ring-border/50"
-									in:fly={{ y: -6, duration: 200 }}
-									out:slide={{ duration: 150 }}
-								>
-									<!-- Row strip -->
-									<div
-										class="flex items-center justify-between
-									            border-b border-border/25 px-4 py-2"
+										in:fly={{ y: -6, duration: 200 }}
+										out:slide={{ duration: 150 }}
 									>
-										<div class="flex items-center gap-2">
-											<span
-												class="flex size-5 items-center justify-center rounded-full
+										<!-- Row strip -->
+										<div
+											class="flex items-center justify-between
+									            border-b border-border/25 px-4 py-2"
+										>
+											<div class="flex items-center gap-2">
+												<span
+													class="flex size-5 items-center justify-center rounded-full
 											             bg-primary/12 text-[10px] font-bold text-primary"
-											>
-												{i + 1}
-											</span>
-											<span class="text-xs font-medium text-muted-foreground/60"
-												>Commission Slab</span
-											>
-										</div>
-										<button
-											type="button"
-											aria-label="Remove commission row {i + 1}"
-											onclick={() => removeCommissionRow(row.id)}
-											class="flex size-6 items-center justify-center rounded-lg
+												>
+													{i + 1}
+												</span>
+												<span class="text-xs font-medium text-muted-foreground/60"
+													>Commission Slab</span
+												>
+											</div>
+											<button
+												type="button"
+												aria-label="Remove commission row {i + 1}"
+												onclick={() => removeCommissionRow(row.id)}
+												class="flex size-6 items-center justify-center rounded-lg
 											       text-muted-foreground/30 opacity-0 transition-all
 											       group-hover:opacity-100 hover:bg-destructive/10
 											       hover:text-destructive"
-										>
-											<Trash2Icon class="size-3.5" />
-										</button>
-									</div>
+											>
+												<Trash2Icon class="size-3.5" />
+											</button>
+										</div>
 
-									<div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
-										<div class="space-y-1.5">
-											<label
-												for="cr-base-{row.id}"
-												class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
-											>
-												Base Amount
-											</label>
-											<Input
-												id="cr-base-{row.id}"
-												inputmode="decimal"
-												bind:value={row.baseAmount}
-												placeholder="e.g. 1000"
-												class="h-9 text-sm"
-											/>
-										</div>
-										<div class="space-y-1.5">
-											<label
-												for="cr-method-{row.id}"
-												class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
-											>
-												Method
-											</label>
-											<Dropdown
-												bind:value={row.method}
-												options={commissionMethodOptions}
-												placeholder="Select"
-											/>
-										</div>
-										<div class="space-y-1.5">
-											<label
-												for="cr-gfee-{row.id}"
-												class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
-											>
-												Gateway Fee
-											</label>
-											<Input
-												id="cr-gfee-{row.id}"
-												inputmode="decimal"
-												bind:value={row.gatewayFee}
-												placeholder="e.g. 2.5"
-												class="h-9 text-sm"
-											/>
-										</div>
-										<div class="space-y-1.5">
-											<label
-												for="cr-pfee-{row.id}"
-												class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
-											>
-												Partner Fee
-											</label>
-											<Input
-												id="cr-pfee-{row.id}"
-												inputmode="decimal"
-												bind:value={row.partnerFee}
-												placeholder="e.g. 1.5"
-												class="h-9 text-sm"
-											/>
+										<div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+											<div class="space-y-1.5">
+												<label
+													for="cr-base-{row.id}"
+													class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
+												>
+													Base Amount
+												</label>
+												<Input
+													id="cr-base-{row.id}"
+													inputmode="decimal"
+													bind:value={row.baseAmount}
+													placeholder="e.g. 1000"
+													class="h-9 text-sm"
+												/>
+											</div>
+											<div class="space-y-1.5">
+												<label
+													for="cr-method-{row.id}"
+													class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
+												>
+													Method
+												</label>
+												<Dropdown
+													bind:value={row.method}
+													options={commissionMethodOptions}
+													placeholder="Select"
+												/>
+											</div>
+											<div class="space-y-1.5">
+												<label
+													for="cr-gfee-{row.id}"
+													class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
+												>
+													Gateway Fee
+												</label>
+												<Input
+													id="cr-gfee-{row.id}"
+													inputmode="decimal"
+													bind:value={row.gatewayFee}
+													placeholder="e.g. 2.5"
+													class="h-9 text-sm"
+												/>
+											</div>
+											<div class="space-y-1.5">
+												<label
+													for="cr-pfee-{row.id}"
+													class="block text-xs font-semibold tracking-wide text-muted-foreground/60 uppercase"
+												>
+													Partner Fee
+												</label>
+												<Input
+													id="cr-pfee-{row.id}"
+													inputmode="decimal"
+													bind:value={row.partnerFee}
+													placeholder="e.g. 1.5"
+													class="h-9 text-sm"
+												/>
+											</div>
 										</div>
 									</div>
-								</div>
-							{/each}
+								{/each}
+							</div>
 						</div>
-					</div>
-				{/if}
-			</section>
+					{/if}
+				</section>
+			{/if}
 		</div>
 	{/if}
 
@@ -675,7 +710,7 @@
 					<div class="flex flex-col items-center gap-1.5">
 						<Button
 							class="gradient-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-							onclick={commissionComplete ? () => (showActivationDrawer = true) : undefined}
+							onclick={commissionComplete ? () => (showActivationDialog = true) : undefined}
 							disabled={!commissionComplete}
 						>
 							<ShieldCheck class="size-4" />
@@ -901,10 +936,11 @@
 		</section>
 	{/if}
 
-	<!-- ── Activation drawer ──────────────────────────────────────────────── -->
-	<ActivationDrawer
-		open={showActivationDrawer}
-		onclose={() => (showActivationDrawer = false)}
+	<!-- ── Activation dialog ──────────────────────────────────────────────── -->
+	<ActivateOrgDialog
+		{orgName}
+		open={showActivationDialog}
+		onclose={() => (showActivationDialog = false)}
 		onconfirm={async () => {
 			await onactivate?.();
 			setTimeout(() => {
@@ -938,19 +974,14 @@
 						{#if !isActive}
 							<div class="flex flex-col items-end gap-0.5">
 								<Button
-									class="gradient-primary h-9 px-4 text-primary-foreground shadow-sm
-									       transition-all hover:opacity-90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-									// onclick={commissionComplete ? () => (showActivationDrawer = true) : undefined}
-									// disabled={!commissionComplete}
-									onclick={() => (showActivationDrawer = true)}
+									size="sm"
+									onclick={() => (showActivationDialog = true)}
 									title={!commissionComplete ? 'Complete commission setup to activate' : undefined}
+									class="h-9 px-4"
 								>
 									<ShieldCheck class="size-4" />
 									Activate Profile
 								</Button>
-								{#if !commissionComplete}
-									<p class="text-[11px] text-muted-foreground/50">Complete commission setup</p>
-								{/if}
 							</div>
 						{/if}
 					</div>

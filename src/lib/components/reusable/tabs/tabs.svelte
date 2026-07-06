@@ -34,8 +34,13 @@
 	});
 </script>
 
-<UITabs.Tabs bind:value {orientation} class={cn(className)} {...restProps}>
-	<UITabs.TabsList {variant}>
+<UITabs.Tabs
+	bind:value
+	{orientation}
+	class={cn(variant === 'line' && 'gap-6', className)}
+	{...restProps}
+>
+	<UITabs.TabsList {variant} class={cn(variant === 'line' && 'w-full justify-start  ')}>
 		{#each tabs as tab (tab.value)}
 			<UITabs.TabsTrigger value={tab.value} disabled={tab.disabled}>
 				{#if tab.icon}
@@ -46,7 +51,7 @@
 		{/each}
 	</UITabs.TabsList>
 	{#each tabs as tab (tab.value)}
-		<UITabs.TabsContent value={tab.value}>
+		<UITabs.TabsContent value={tab.value} class={variant === 'line' ? 'pt-2' : undefined}>
 			{@render tab.content()}
 		</UITabs.TabsContent>
 	{/each}

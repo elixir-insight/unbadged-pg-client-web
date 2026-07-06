@@ -6,16 +6,14 @@
 		CheckCircle2,
 		AlertCircle,
 		XIcon,
-		ShieldCheck,
-		Pencil,
-		Settings
+		Pencil
 	} from '$lib/assets/icons';
-	import { Button, FileUpload } from '$lib/components/reusable';
+	import { Button } from '$lib/components/reusable';
 	import DocumentUploadFields from './DocumentUploadFields.svelte';
+	import AgreementActivationPanel from './AgreementActivationPanel.svelte';
 	import type { OrgDocument } from '../types';
-	import { fade } from 'svelte/transition';
 	import { cn } from '$lib/utils';
-	import ActivationDrawer from './ActivationDrawer.svelte';
+	import { buildDocumentFormState, type DocumentFormKey } from '$lib/utils/document-upload-form';
 
 	interface Director {
 		id: number;
@@ -27,46 +25,65 @@
 	}
 
 	interface Props {
+		orgName?: string;
 		documents: OrgDocument[];
 		directors?: Director[];
 		businessType?: string;
-		agreementFile?: File | null;
 		agreementUploaded?: boolean;
-		showAgreementSection?: boolean;
-		showActivateButton?: boolean;
-		isPartner?: boolean;
-		onopenconfiguration?: () => void;
+		showProfileActivation?: boolean;
 		onactivate?: () => Promise<void>;
+		onagreementchange?: (file: File | null) => void;
 		onviewdoc?: (doc: OrgDocument) => void;
 		ondownloaddoc?: (doc: OrgDocument) => void;
 	}
 
 	let {
+		orgName = 'this organization',
 		documents,
 		directors = [],
 		businessType = '',
-		agreementFile = $bindable<File | null>(null),
 		agreementUploaded = false,
-		showAgreementSection = false,
-		showActivateButton = false,
-		isPartner = false,
-		onopenconfiguration,
+		showProfileActivation = false,
 		onactivate,
+		onagreementchange,
 		onviewdoc,
 		ondownloaddoc
 	}: Props = $props();
-
-	let showActivationDrawer = $state(false);
 	let isEditingDocuments = $state(false);
+	let formInitialized = $state(false);
+
+	let docFiles = $state<Record<DocumentFormKey, File | null>>({
+		bizCert: null,
+		proofOfFunds: null,
+		rentalAgreement: null,
+		gstCert: null,
+		proprietorPhoto: null,
+		bizPan: null,
+		bizTan: null,
+		aoaCert: null,
+		moaCert: null
+	});
+	let bizCertType = $state('incorporation_certificate');
+	let proofOfFundsType = $state('last_3_months_bank_statements');
+	let rentalAgreementType = $state('');
 	let directorDocFiles = $state<Record<number, { aadhaar: File | null; pan: File | null }>>({});
 
-	$effect(() => {
-		for (const director of directors) {
-			if (!directorDocFiles[director.id]) {
-				directorDocFiles[director.id] = { aadhaar: null, pan: null };
-			}
+	function initializeDocumentForm() {
+		const initial = buildDocumentFormState(documents, directors);
+		docFiles = initial.docFiles;
+		bizCertType = initial.bizCertType;
+		proofOfFundsType = initial.proofOfFundsType;
+		rentalAgreementType = initial.rentalAgreementType;
+		directorDocFiles = initial.directorDocFiles;
+		formInitialized = true;
+	}
+
+	function openDocumentEditor() {
+		if (!formInitialized) {
+			initializeDocumentForm();
 		}
-	});
+		isEditingDocuments = true;
+	}
 
 	interface DocumentSlot {
 		id: string;
@@ -141,6 +158,14 @@
 		return isImageFile(name) ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary';
 	}
 
+	const AGREEMENT_SLOT: DocumentSlot = {
+		id: 'agreement',
+		label: 'Agreement Document',
+		typeKey: 'Agreement',
+		required: true,
+		description: 'Signed organization agreement for profile activation'
+	};
+
 	const approvedCount = $derived(documents.filter((d) => d.status === 'Approved').length);
 
 	const slotDocs = $derived(
@@ -150,15 +175,33 @@
 		}))
 	);
 
-	const showActivateSection = $derived(showActivateButton && agreementUploaded);
-	const showConfigurationSection = $derived(!isPartner && agreementUploaded);
+	const agreementDoc = $derived(documents.find((d) => d.type === 'Agreement') ?? null);
+
+	const displayDocs = $derived([
+		...slotDocs,
+		...(agreementDoc ? [{ slot: AGREEMENT_SLOT, doc: agreementDoc }] : [])
+	]);
 </script>
 
 <div class="space-y-5">
+	{#if showProfileActivation}
+		<AgreementActivationPanel
+			variant="profile"
+			{orgName}
+			{agreementUploaded}
+			onAgreementChange={onagreementchange}
+			{onactivate}
+		/>
+	{/if}
+
 	{#if isEditingDocuments}
 		<DocumentUploadFields
 			{directors}
 			bind:directorDocFiles
+			bind:docFiles
+			bind:bizCertType
+			bind:proofOfFundsType
+			bind:rentalAgreementType
 			{businessType}
 			onsaved={() => (isEditingDocuments = false)}
 			oncancel={() => (isEditingDocuments = false)}
@@ -171,122 +214,14 @@
 					{approvedCount}/{DOCUMENT_SLOTS.length} verified
 				</p>
 			</div>
-			<Button
-				size="sm"
-				variant="outline"
-				onclick={() => (isEditingDocuments = true)}
-				class="shrink-0"
-			>
+			<Button size="sm" variant="outline" onclick={openDocumentEditor} class="shrink-0">
 				<Pencil class="size-4" />
 				Edit Documents
 			</Button>
 		</div>
 
-		{#if showAgreementSection}
-			<div
-				class={cn(
-					'relative overflow-hidden rounded-2xl border shadow-sm transition-all',
-					agreementUploaded ? 'border-success/40 bg-success/5' : 'border-border/60 bg-card'
-				)}
-				in:fade={{ duration: 200 }}
-			>
-				<div
-					class={cn(
-						'absolute inset-y-0 left-0 w-1',
-						agreementUploaded ? 'bg-success' : 'bg-success/80'
-					)}
-				></div>
-				<div class="space-y-4 px-4 py-4 pl-5 sm:px-5 sm:pl-6">
-					<div class="flex items-start gap-3">
-						<div
-							class={cn(
-								'flex size-10 shrink-0 items-center justify-center rounded-xl',
-								agreementUploaded ? 'bg-success/12 text-success' : 'bg-success/10 text-success'
-							)}
-						>
-							{#if agreementUploaded}
-								<CheckCircle2 class="size-5" />
-							{:else}
-								<FileText class="size-5" />
-							{/if}
-						</div>
-						<div class="min-w-0 flex-1">
-							<p class="text-sm font-semibold text-foreground">Agreement Document</p>
-							<p class="mt-0.5 text-sm text-muted-foreground">
-								Upload the agreement document to enable organization activation.
-							</p>
-						</div>
-					</div>
-
-					<FileUpload
-						bind:file={agreementFile}
-						placeholder="Click to upload agreement or drag & drop"
-						accept=".pdf,.png,.jpg,.jpeg"
-					/>
-				</div>
-			</div>
-
-			{#if showActivateSection}
-				<div class="overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 shadow-xs">
-					<div class="gradient-primary h-0.5"></div>
-					<div class="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-						<div class="flex items-center gap-3">
-							<div
-								class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary"
-							>
-								<ShieldCheck class="size-4.5" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold">Activate Profile</p>
-								<p class="mt-0.5 text-xs text-muted-foreground/60">
-									Agreement uploaded. Ready to activate this partner profile.
-								</p>
-							</div>
-						</div>
-						<button
-							type="button"
-							onclick={() => (showActivationDrawer = true)}
-							class="gradient-primary flex items-center justify-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 sm:whitespace-nowrap"
-						>
-							<ShieldCheck class="size-4" />
-							Activate Profile
-						</button>
-					</div>
-				</div>
-			{/if}
-
-			{#if showConfigurationSection}
-				<div class="overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 shadow-xs">
-					<div class="gradient-primary h-0.5"></div>
-					<div class="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-						<div class="flex items-center gap-3">
-							<div
-								class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary"
-							>
-								<Settings class="size-4.5" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold">Configuration</p>
-								<p class="mt-0.5 text-xs text-muted-foreground/60">
-									Agreement uploaded. Continue setup in the Configuration tab.
-								</p>
-							</div>
-						</div>
-						<button
-							type="button"
-							onclick={onopenconfiguration}
-							class="gradient-primary flex items-center justify-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 sm:whitespace-nowrap"
-						>
-							<Settings class="size-4" />
-							Open Configuration
-						</button>
-					</div>
-				</div>
-			{/if}
-		{/if}
-
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each slotDocs as { slot, doc } (slot.id)}
+			{#each displayDocs as { slot, doc } (slot.id)}
 				<div
 					class={cn(
 						'flex flex-col overflow-hidden rounded-2xl border shadow-xs transition-all duration-200',
@@ -364,11 +299,3 @@
 		</div>
 	{/if}
 </div>
-
-<ActivationDrawer
-	open={showActivationDrawer}
-	onclose={() => (showActivationDrawer = false)}
-	onconfirm={async () => {
-		await onactivate?.();
-	}}
-/>

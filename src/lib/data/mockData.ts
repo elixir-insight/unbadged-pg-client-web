@@ -145,8 +145,8 @@ export const organizations: Organization[] = [
 		name: 'BlueSky Commerce',
 		businessType: 'PRIVATE_LIMITED',
 		profileType: 'RESELLER',
-		status: 'REJECTED',
-		kybStatus: 'FAILED',
+		status: 'FROZEN',
+		kybStatus: 'VERIFIED',
 		createdAt: '2025-12-01',
 		assignedAdmin: 'Frank Nguyen'
 	},

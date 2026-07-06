@@ -19,10 +19,10 @@
 	import { resolve } from '$app/paths';
 
 	const statusVariantMap: Record<string, BadgeVariant> = {
-		APPROVED: 'info',
 		ACTIVE: 'success',
+		APPROVED: 'info',
 		ON_HOLD: 'alert',
-		REJECTED: 'error'
+		FROZEN: 'error'
 	};
 
 	const ACRONYMS = new Set(['LLP']);
@@ -78,7 +78,7 @@
 		}
 	];
 
-	const STATUS_ENUMS = ['APPROVED', 'ACTIVE', 'ON_HOLD', 'REJECTED'] as const;
+	const STATUS_ENUMS = ['ACTIVE', 'APPROVED', 'ON_HOLD', 'FROZEN'] as const;
 
 	const allOrganizations = $derived(
 		organizations.filter((o) => (STATUS_ENUMS as readonly string[]).includes(o.status))
@@ -105,19 +105,19 @@
 
 	const pagedData = $derived(filtered.slice(pagination.skip, pagination.skip + pagination.limit));
 
-	const approvedCount = $derived(allOrganizations.filter((o) => o.status === 'APPROVED').length);
 	const activeCount = $derived(allOrganizations.filter((o) => o.status === 'ACTIVE').length);
+	const approvedCount = $derived(allOrganizations.filter((o) => o.status === 'APPROVED').length);
 	const onHoldCount = $derived(allOrganizations.filter((o) => o.status === 'ON_HOLD').length);
-	const rejectedCount = $derived(allOrganizations.filter((o) => o.status === 'REJECTED').length);
+	const frozenCount = $derived(allOrganizations.filter((o) => o.status === 'FROZEN').length);
 
 	const selectedFilter = $derived(pagination.status ? formatLabel(pagination.status) : 'All');
 
 	const filterCards: FilterCard[] = $derived([
 		{ label: 'All', count: allOrganizations.length },
-		{ label: formatLabel('APPROVED'), count: approvedCount },
 		{ label: formatLabel('ACTIVE'), count: activeCount },
+		{ label: formatLabel('APPROVED'), count: approvedCount },
 		{ label: formatLabel('ON_HOLD'), count: onHoldCount },
-		{ label: formatLabel('REJECTED'), count: rejectedCount }
+		{ label: formatLabel('FROZEN'), count: frozenCount }
 	]);
 
 	function onFilterSelect(label: string) {

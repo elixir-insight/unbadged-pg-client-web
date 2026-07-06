@@ -114,8 +114,10 @@
 				{/if}
 			</header>
 
-			<div class="app-shell-content min-h-0 flex-1 overflow-y-auto p-5">
-				{@render children()}
+			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
+				<div class="min-h-full p-5">
+					{@render children()}
+				</div>
 			</div>
 		</div>
 	</main>

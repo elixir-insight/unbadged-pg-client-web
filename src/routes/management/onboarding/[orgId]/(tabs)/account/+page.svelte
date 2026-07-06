@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import BankDetails from '$lib/components/onboarding/BankDetails.svelte';
-	import { getOnboardingOrgContext } from '../onboarding-org.svelte';
+	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';
 
 	const onboarding = getOnboardingOrgContext();
 	const orgId = $derived(page.params.orgId ?? '');

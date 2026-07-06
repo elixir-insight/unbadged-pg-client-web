@@ -5,7 +5,7 @@
 	import Documents from '$lib/components/onboarding/Documents.svelte';
 	import { getOnboardingOrgById } from '$lib/data/mockData';
 	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
-	import { getOnboardingOrgContext } from '../onboarding-org.svelte';
+	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';
 
 	const onboarding = getOnboardingOrgContext();
 	const orgId = $derived(page.params.orgId ?? '');

@@ -57,7 +57,11 @@
 	const currentVA = $derived(mockVAs.find((v) => v.id === page.params.vaId) ?? mockVAs[0]);
 
 	function goBack() {
-		goto(resolve('/management/organization/[orgId]', { orgId: page.params.orgId ?? '' }));
+		goto(
+			resolve('/management/organization/[orgId]/configuration/payout', {
+				orgId: page.params.orgId ?? ''
+			})
+		);
 	}
 
 	// ── VA Status ─────────────────────────────────────────────────────────────
@@ -259,7 +263,7 @@
 	}
 </script>
 
-<div class="flex min-h-full flex-col">
+<div class="-m-5 flex min-h-full flex-col">
 	<!-- ── Sticky header ─────────────────────────────────────────────────── -->
 	<div class="sticky top-0 z-20 border-b border-border/50 bg-card/98 backdrop-blur-sm">
 		<div class="flex items-center gap-4 px-6 py-4">

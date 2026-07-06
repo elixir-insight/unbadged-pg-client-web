@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Button, FileUpload, Dropdown, toast } from '$lib/components/reusable';
-	import DetailSection from '$lib/components/organization/detail-section.svelte';
 	import { Building2, FileText, Users, ArrowLeft, CheckCircle2 } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
+	import type { DocumentFormKey } from '$lib/utils/document-upload-form';
 
 	interface Director {
 		id: number;
@@ -16,6 +16,10 @@
 	interface Props {
 		directors: Director[];
 		directorDocFiles?: Record<number, { aadhaar: File | null; pan: File | null }>;
+		docFiles?: Record<DocumentFormKey, File | null>;
+		bizCertType?: string;
+		proofOfFundsType?: string;
+		rentalAgreementType?: string;
 		businessType?: string;
 		onsaved?: () => void;
 		oncancel?: () => void;
@@ -24,6 +28,20 @@
 	let {
 		directors,
 		directorDocFiles = $bindable<Record<number, { aadhaar: File | null; pan: File | null }>>({}),
+		docFiles = $bindable<Record<DocumentFormKey, File | null>>({
+			bizCert: null,
+			proofOfFunds: null,
+			rentalAgreement: null,
+			gstCert: null,
+			proprietorPhoto: null,
+			bizPan: null,
+			bizTan: null,
+			aoaCert: null,
+			moaCert: null
+		}),
+		bizCertType = $bindable('incorporation_certificate'),
+		proofOfFundsType = $bindable('last_3_months_bank_statements'),
+		rentalAgreementType = $bindable(''),
 		businessType = '',
 		onsaved,
 		oncancel
@@ -32,22 +50,6 @@
 	const isPrivateLimited = $derived(
 		businessType.toUpperCase().replace(/\s+/g, '_') === 'PRIVATE_LIMITED'
 	);
-
-	let docFiles = $state<Record<string, File | null>>({
-		bizCert: null,
-		proofOfFunds: null,
-		rentalAgreement: null,
-		gstCert: null,
-		proprietorPhoto: null,
-		bizPan: null,
-		bizTan: null,
-		aoaCert: null,
-		moaCert: null
-	});
-
-	let bizCertType = $state('incorporation_certificate');
-	let proofOfFundsType = $state('last_3_months_bank_statements');
-	let rentalAgreementType = $state('');
 
 	const bizCertOptions = [
 		{ value: 'incorporation_certificate', label: 'Incorporation Certificate' },
@@ -85,13 +87,6 @@
 	);
 
 	const directorTotal = $derived(directors.length * 2);
-
-	const totalUploaded = $derived(businessUploaded + additionalUploaded + directorUploaded);
-	const totalFields = $derived(businessDocKeys.length + additionalDocKeys.length + directorTotal);
-
-	const progressPercent = $derived(
-		totalFields === 0 ? 0 : Math.round((totalUploaded / totalFields) * 100)
-	);
 
 	$effect(() => {
 		for (const director of directors) {
@@ -140,69 +135,77 @@
 	</div>
 {/snippet}
 
-<div class="space-y-5">
+{#snippet sectionHeading(
+	title: string,
+	description: string,
+	icon: typeof Building2,
+	uploaded: number,
+	total: number
+)}
+	{@const Icon = icon}
+	<div class="flex items-start gap-3">
+		<div
+			class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow"
+		>
+			<Icon class="size-4" />
+		</div>
+		<div class="min-w-0">
+			<h2 class="text-sm font-semibold text-foreground">{title}</h2>
+			<p class="mt-0.5 text-xs text-muted-foreground">
+				{uploaded}/{total} uploaded · {description}
+			</p>
+		</div>
+	</div>
+{/snippet}
+
+<div class="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
+	<div class="gradient-primary h-0.5"></div>
+
 	<!-- Header -->
-	<div class="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs">
-		<div class="gradient-primary h-0.5"></div>
-		<div class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-			<div class="flex items-start gap-3">
-				<button
-					type="button"
-					onclick={oncancel}
-					class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60
-					       text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-					aria-label="Back to documents"
-				>
-					<ArrowLeft class="size-4" />
-				</button>
-				<div class="min-w-0">
-					<p class="text-base font-semibold">Edit Documents</p>
-					<p class="mt-0.5 text-xs text-muted-foreground">
-						Upload or replace compliance documents for this organization
-					</p>
-				</div>
-			</div>
-			<div class="flex items-center gap-3 sm:shrink-0">
-				<div class="min-w-0 flex-1 sm:w-36">
-					<div class="mb-1 flex items-center justify-between text-[11px]">
-						<span class="font-medium text-muted-foreground">Progress</span>
-						<span class="font-semibold tabular-nums">
-							{totalUploaded}<span class="text-muted-foreground">/{totalFields}</span>
-						</span>
-					</div>
-					<div class="h-1.5 overflow-hidden rounded-full bg-muted">
-						<div
-							class="gradient-primary h-full rounded-full transition-all duration-300"
-							style:width="{progressPercent}%"
-						></div>
-					</div>
-				</div>
+	<div class="border-b border-border/60 p-4 sm:p-5">
+		<div class="flex items-start gap-3">
+			<button
+				type="button"
+				onclick={oncancel}
+				class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+				aria-label="Back to documents"
+			>
+				<ArrowLeft class="size-4" />
+			</button>
+			<div class="min-w-0">
+				<p class="text-base font-semibold">Edit Documents</p>
+				<p class="mt-0.5 text-xs text-muted-foreground">
+					Upload or replace compliance documents for this organization
+				</p>
 			</div>
 		</div>
 	</div>
 
-	<!-- Business Documents -->
-	<DetailSection
-		title="Business Documents"
-		description="{businessUploaded}/{businessDocKeys.length} uploaded · Core compliance certificates"
-		icon={Building2}
-	>
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-			{@render uploadCard(
-				'Business Certificate',
-				'Incorporation or registration certificate',
-				'Max 2MB',
-				docFiles.bizCert !== null,
-				businessCertFields
+	<div class="space-y-6 p-4 sm:p-5">
+		<!-- Business Documents -->
+		<section class="space-y-4">
+			{@render sectionHeading(
+				'Business Documents',
+				'Core compliance certificates',
+				Building2,
+				businessUploaded,
+				businessDocKeys.length
 			)}
-			{@render uploadCard(
-				'Proof Of Funds',
-				'Bank statements or audited financials',
-				'Max 1MB',
-				docFiles.proofOfFunds !== null,
-				proofOfFundsFields
-			)}
-			<div class="lg:col-span-2">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				{@render uploadCard(
+					'Business Certificate',
+					'Incorporation or registration certificate',
+					'Max 2MB',
+					docFiles.bizCert !== null,
+					businessCertFields
+				)}
+				{@render uploadCard(
+					'Proof Of Funds',
+					'Bank statements or audited financials',
+					'Max 1MB',
+					docFiles.proofOfFunds !== null,
+					proofOfFundsFields
+				)}
 				{@render uploadCard(
 					'Rental Agreement',
 					'Lease or ownership proof for business premises',
@@ -211,150 +214,129 @@
 					rentalAgreementFields
 				)}
 			</div>
-		</div>
-	</DetailSection>
+		</section>
 
-	<!-- Additional Documents -->
-	<DetailSection
-		title="Additional Documents"
-		description="{additionalUploaded}/{additionalDocKeys.length} uploaded · GST, identity and compliance"
-		icon={FileText}
-	>
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-			{@render uploadCard(
-				'GST Certificate',
-				'Goods and Services Tax registration',
-				'Max 2MB',
-				docFiles.gstCert !== null,
-				gstCertField
+		<!-- Additional Documents -->
+		<section class="space-y-4 border-t border-border/60 pt-6">
+			{@render sectionHeading(
+				'Additional Documents',
+				'GST, identity and compliance',
+				FileText,
+				additionalUploaded,
+				additionalDocKeys.length
 			)}
-			{@render uploadCard(
-				'Proprietor Photo with Stamp',
-				'Photo with official business stamp',
-				'Max 5MB',
-				docFiles.proprietorPhoto !== null,
-				proprietorPhotoField
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				{@render uploadCard(
+					'GST Certificate',
+					'Goods and Services Tax registration',
+					'Max 2MB',
+					docFiles.gstCert !== null,
+					gstCertField
+				)}
+				{@render uploadCard(
+					'Proprietor Photo with Stamp',
+					'Photo with official business stamp',
+					'Max 5MB',
+					docFiles.proprietorPhoto !== null,
+					proprietorPhotoField
+				)}
+
+				{#if isPrivateLimited}
+					{@render uploadCard(
+						'Business PAN card',
+						'Permanent Account Number card',
+						'Max 1MB',
+						docFiles.bizPan !== null,
+						bizPanField
+					)}
+					{@render uploadCard(
+						'Memorandum of Association (MOA)',
+						"Defines the company's scope and objectives",
+						'Max 5MB',
+						docFiles.moaCert !== null,
+						moaCertField
+					)}
+					{@render uploadCard(
+						'Article of Association (AOA)',
+						"Governs the company's internal affairs",
+						'Max 5MB',
+						docFiles.aoaCert !== null,
+						aoaCertField
+					)}
+					{@render uploadCard(
+						'Business TAN',
+						'Tax Deduction Account Number certificate',
+						'Max 5MB',
+						docFiles.bizTan !== null,
+						bizTanField
+					)}
+				{/if}
+			</div>
+		</section>
+
+		<!-- Director Documents -->
+		<section class="space-y-4 border-t border-border/60 pt-6">
+			{@render sectionHeading(
+				'Director Documents',
+				'Identity documents per director',
+				Users,
+				directorUploaded,
+				directorTotal
 			)}
-
-			{#if isPrivateLimited}
-				{@render uploadCard(
-					'Business PAN card',
-					'Permanent Account Number card',
-					'Max 1MB',
-					docFiles.bizPan !== null,
-					bizPanField
-				)}
-				{@render uploadCard(
-					'Memorandum of Association (MOA)',
-					"Defines the company's scope and objectives",
-					'Max 5MB',
-					docFiles.moaCert !== null,
-					moaCertField
-				)}
-				{@render uploadCard(
-					'Article of Association (AOA)',
-					"Governs the company's internal affairs",
-					'Max 5MB',
-					docFiles.aoaCert !== null,
-					aoaCertField
-				)}
-				{@render uploadCard(
-					'Business TAN',
-					'Tax Deduction Account Number certificate',
-					'Max 5MB',
-					docFiles.bizTan !== null,
-					bizTanField
-				)}
-			{/if}
-		</div>
-	</DetailSection>
-
-	<!-- Director Documents -->
-	<DetailSection
-		title="Director Documents"
-		description="{directorUploaded}/{directorTotal} uploaded · Identity documents per director"
-		icon={Users}
-	>
-		<div class="space-y-4">
-			{#each directors as director, i (director.id)}
-				{@const files = directorDocFiles[director.id]}
-				<div class="rounded-xl border border-border/60 bg-background/50 p-4">
-					<div class="mb-4 flex items-center gap-2.5">
-						<div
-							class="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground"
-						>
-							{i + 1}
+			<div class="space-y-6">
+				{#each directors as director, i (director.id)}
+					{@const files = directorDocFiles[director.id]}
+					<div class="space-y-4">
+						<div class="flex items-center gap-2.5">
+							<div
+								class="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground"
+							>
+								{i + 1}
+							</div>
+							<div class="min-w-0">
+								<p class="text-sm font-semibold">{director.name || `Director ${i + 1}`}</p>
+								{#if director.email}
+									<p class="truncate text-xs text-muted-foreground">{director.email}</p>
+								{/if}
+							</div>
 						</div>
-						<div class="min-w-0">
-							<p class="text-sm font-semibold">{director.name || `Director ${i + 1}`}</p>
-							{#if director.email}
-								<p class="truncate text-xs text-muted-foreground">{director.email}</p>
-							{/if}
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							{#snippet directorAadhaarField()}
+								<FileUpload
+									bind:file={directorDocFiles[director.id].aadhaar}
+									placeholder="Upload Aadhaar"
+								/>
+							{/snippet}
+							{#snippet directorPanField()}
+								<FileUpload
+									bind:file={directorDocFiles[director.id].pan}
+									placeholder="Upload PAN"
+								/>
+							{/snippet}
+							{@render uploadCard(
+								'Aadhaar Card',
+								'Government-issued identity proof',
+								'Max 2MB',
+								!!files?.aadhaar,
+								directorAadhaarField
+							)}
+							{@render uploadCard(
+								'PAN Card',
+								'Permanent Account Number card',
+								'Max 2MB',
+								!!files?.pan,
+								directorPanField
+							)}
 						</div>
 					</div>
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<div
-							class={cn(
-								'flex flex-col gap-3 rounded-xl border p-4 transition-colors',
-								files?.aadhaar
-									? 'border-primary/25 bg-primary/3'
-									: 'border-border/60 bg-background/50'
-							)}
-						>
-							<div class="flex items-start justify-between gap-3">
-								<div class="min-w-0 flex-1 space-y-0.5">
-									<div class="flex items-center gap-2">
-										<p class="text-sm font-medium">Aadhaar Card</p>
-										{#if files?.aadhaar}
-											<CheckCircle2 class="size-3.5 shrink-0 text-success" />
-										{/if}
-									</div>
-									<p class="text-xs text-muted-foreground">Government-issued identity proof</p>
-								</div>
-								<span
-									class="shrink-0 rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-								>
-									Max 2MB
-								</span>
-							</div>
-							<FileUpload
-								bind:file={directorDocFiles[director.id].aadhaar}
-								placeholder="Upload Aadhaar"
-							/>
-						</div>
-						<div
-							class={cn(
-								'flex flex-col gap-3 rounded-xl border p-4 transition-colors',
-								files?.pan ? 'border-primary/25 bg-primary/3' : 'border-border/60 bg-background/50'
-							)}
-						>
-							<div class="flex items-start justify-between gap-3">
-								<div class="min-w-0 flex-1 space-y-0.5">
-									<div class="flex items-center gap-2">
-										<p class="text-sm font-medium">PAN Card</p>
-										{#if files?.pan}
-											<CheckCircle2 class="size-3.5 shrink-0 text-success" />
-										{/if}
-									</div>
-									<p class="text-xs text-muted-foreground">Permanent Account Number card</p>
-								</div>
-								<span
-									class="shrink-0 rounded-md border border-border/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-								>
-									Max 2MB
-								</span>
-							</div>
-							<FileUpload bind:file={directorDocFiles[director.id].pan} placeholder="Upload PAN" />
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
-	</DetailSection>
+				{/each}
+			</div>
+		</section>
+	</div>
 
 	<!-- Sticky actions -->
 	<div
-		class="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center justify-end gap-2 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur-sm sm:-mx-6 sm:-mb-6 sm:px-6"
+		class="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-5"
 	>
 		<Button size="sm" variant="ghost" onclick={oncancel}>Cancel</Button>
 		<Button size="sm" class="gradient-primary text-primary-foreground" onclick={handleSave}>

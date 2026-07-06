@@ -141,11 +141,6 @@
 						<li class="relative">
 							{#if item.children}
 								{@const parentActive = isParentActive(item)}
-								{#if parentActive}
-									<span
-										class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
-									></span>
-								{/if}
 								<button
 									type="button"
 									class={cn(

@@ -210,7 +210,7 @@
 	// ── Navigation ────────────────────────────────────────────────────────────
 
 	function handleCancel() {
-		goto(resolve('/management/organization/[orgId]', { orgId }));
+		goto(resolve('/management/organization/[orgId]/configuration/payout', { orgId }));
 	}
 
 	async function handleSubmit() {
@@ -218,11 +218,11 @@
 		await new Promise<void>((res) => setTimeout(res, 900));
 		submitting = false;
 		toast.success('Virtual account created successfully');
-		goto(resolve('/management/organization/[orgId]', { orgId }));
+		goto(resolve('/management/organization/[orgId]/configuration/payout', { orgId }));
 	}
 </script>
 
-<div class="flex min-h-full flex-col">
+<div class="-m-5 flex min-h-full flex-col">
 	<!-- ── Sticky page header + stepper ──────────────────────────────────── -->
 	<div class="sticky top-0 z-20 border-b border-border/50 bg-card/98 backdrop-blur-sm">
 		<!-- Breadcrumb + title -->

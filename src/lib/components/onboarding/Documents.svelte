@@ -1,11 +1,12 @@
 <script lang="ts">
 	import * as v from 'valibot';
-	import { Button, FileUpload, Dropdown } from '$lib/components/reusable';
-	import { fly } from 'svelte/transition';
+	import { FileUpload, Dropdown } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import { buildDocumentsSchema, flattenIssues } from '$lib/validation/onboarding';
-	import { Building2, FileText, Users, ArrowLeft, ArrowRight } from '$lib/assets/icons';
-	import Card from './Card.svelte';
+	import { FileText } from '$lib/assets/icons';
+	import OnboardingStepShell from './OnboardingStepShell.svelte';
+	import OnboardingSection from './OnboardingSection.svelte';
+	import StepNavFooter from './StepNavFooter.svelte';
 
 	interface Director {
 		id: number;
@@ -32,13 +33,10 @@
 		onprev?: () => void;
 	} = $props();
 
-	// businessType arrives either as 'PRIVATE_LIMITED' (mockData) or 'Private Limited'
-	// (onboarding drafts) — normalize before comparing.
 	const isPrivateLimited = $derived(
 		businessType.toUpperCase().replace(/\s+/g, '_') === 'PRIVATE_LIMITED'
 	);
 
-	// ── Document upload state ────────────────────────────────────────
 	function mockFile(name: string, sizeInBytes: number, type = 'application/pdf'): File {
 		return new File([new Uint8Array(sizeInBytes)], name, { type });
 	}
@@ -75,7 +73,6 @@
 		{ value: 'electricity_bill', label: 'Electricity Bill' }
 	];
 
-	// ── Upload progress ───────────────────────────────────────────────
 	const businessDocKeys = ['bizCert', 'proofOfFunds', 'rentalAgreement'];
 	const additionalDocKeys = $derived(
 		isPrivateLimited
@@ -86,8 +83,9 @@
 	const additionalDocsUploaded = $derived(
 		additionalDocKeys.filter((k) => docFiles[k] !== null).length
 	);
+	const totalDocs = $derived(businessDocKeys.length + additionalDocKeys.length);
+	const totalUploaded = $derived(businessDocsUploaded + additionalDocsUploaded);
 
-	// ── Validation ─────────────────────────────────────────────────
 	let errors = $state<Record<string, string>>({});
 	let submitAttempted = $state(false);
 
@@ -117,7 +115,6 @@
 		onnext();
 	}
 
-	// Ensure every director has a doc-file slot before FileUpload binds to it directly.
 	$effect(() => {
 		for (const d of directors) {
 			if (!directorDocFiles[d.id]) directorDocFiles[d.id] = { aadhaar: null, pan: null };
@@ -148,7 +145,6 @@
 	}
 </script>
 
-<!-- Document field -->
 {#snippet documentField(
 	label: string,
 	maxSize: string,
@@ -163,10 +159,7 @@
 					<span class="text-rose-500">*</span>
 				{/if}
 			</p>
-			<span
-				class="shrink-0 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-				>Max {maxSize}</span
-			>
+			<span class="shrink-0 text-[10px] text-muted-foreground">Max {maxSize}</span>
 		</div>
 		{@render body()}
 	</div>
@@ -179,223 +172,124 @@
 	{/if}
 {/snippet}
 
-<div in:fly={{ y: 10, duration: 220 }} class="space-y-3">
-	<Card class="bg-background">
-		{#snippet header()}
-			<div class="flex items-center gap-3">
-				<div
-					class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-				>
-					<FileText class="size-4.5" />
-				</div>
-				<div class="min-w-0 flex-1">
-					<p class="text-base leading-none font-semibold">Document Verification</p>
-					<p class="mt-0.5 text-xs text-muted-foreground">
-						Upload required compliance documents for KYB approval
-					</p>
-				</div>
-				<div class="shrink-0 text-right">
-					<p class="text-sm font-semibold tabular-nums">
-						{businessDocsUploaded + additionalDocsUploaded}<span class="text-muted-foreground"
-							>/{businessDocKeys.length + additionalDocKeys.length}</span
-						>
-					</p>
-					<p class="text-[10px] text-muted-foreground">uploaded</p>
-				</div>
-			</div>
-		{/snippet}
-	</Card>
-
-	<Card class="overflow-hidden bg-background">
-		<div class="-mx-6 -my-4 divide-y divide-border/30">
-			<!-- Business Documents -->
-			<section class="flex flex-col gap-5 px-6 py-5">
-				<div class="flex items-center justify-between gap-3">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<Building2 class="size-3.5" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Business Documents</p>
-							<p class="text-xs text-muted-foreground">Core compliance certificates</p>
-						</div>
-					</div>
-					<span
-						class="rounded-full bg-muted/70 px-2.5 py-1 text-[10px] font-medium text-muted-foreground tabular-nums"
-					>
-						{businessDocsUploaded}/3 uploaded
-					</span>
-				</div>
-
-				<div class="grid grid-cols-2 gap-5">
-					{#snippet bizCertBody()}
-						<Dropdown options={bizCertOptions} bind:value={bizCertType} />
-						{@render uploadField('bizCert', 'Click to upload or drag & drop')}
-					{/snippet}
-					{@render documentField('Business Certificate', '2MB', bizCertBody)}
-
-					{#snippet proofOfFundsBody()}
-						<Dropdown options={proofOfFundsOptions} bind:value={proofOfFundsType} />
-						{@render uploadField('proofOfFunds', 'Click to upload or drag & drop')}
-					{/snippet}
-					{@render documentField('Proof Of Funds', '1MB', proofOfFundsBody)}
-
-					{#snippet rentalAgreementBody()}
-						<Dropdown options={rentalAgreementOptions} bind:value={rentalAgreementType} />
-						{@render uploadField('rentalAgreement', 'Click to upload or drag & drop')}
-					{/snippet}
-					{@render documentField('Rental Agreement', '5MB', rentalAgreementBody)}
-				</div>
-			</section>
-
-			<!-- Additional Documents -->
-			<section class="flex flex-col gap-5 px-6 py-5">
-				<div class="flex items-center justify-between gap-3">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<FileText class="size-3.5" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Additional Documents</p>
-							<p class="text-xs text-muted-foreground">GST, identity and compliance documents</p>
-						</div>
-					</div>
-					<span
-						class="rounded-full bg-muted/70 px-2.5 py-1 text-[10px] font-medium text-muted-foreground tabular-nums"
-					>
-						{additionalDocsUploaded}/{additionalDocKeys.length} uploaded
-					</span>
-				</div>
-
-				<div class="grid grid-cols-2 gap-5">
-					{#snippet gstCertBody()}
-						{@render uploadField('gstCert', 'Click to upload or drag & drop')}
-					{/snippet}
-					{@render documentField('GST Certificate', '2MB', gstCertBody)}
-
-					{#snippet proprietorPhotoBody()}
-						{@render uploadField('proprietorPhoto', 'Click to upload or drag & drop')}
-					{/snippet}
-					{@render documentField('Proprietor Photo with Stamp', '5MB', proprietorPhotoBody)}
-
-					{#if isPrivateLimited}
-						{#snippet bizPanBody()}
-							{@render uploadField('bizPan', 'Click to upload or drag & drop')}
-						{/snippet}
-						{@render documentField('Business PAN card', '1MB', bizPanBody)}
-
-						{#snippet moaCertBody()}
-							{@render uploadField('moaCert', 'Click to upload or drag & drop')}
-						{/snippet}
-						{@render documentField(
-							'Memorandum of Association Certificate (MOA)',
-							'5MB',
-							moaCertBody
-						)}
-
-						{#snippet aoaCertBody()}
-							{@render uploadField('aoaCert', 'Click to upload or drag & drop')}
-						{/snippet}
-						{@render documentField('Article of Association Certificate (AOA)', '5MB', aoaCertBody)}
-
-						{#snippet bizTanBody()}
-							{@render uploadField('bizTan', 'Click to upload or drag & drop')}
-						{/snippet}
-						{@render documentField('Business TAN', '5MB', bizTanBody)}
-					{/if}
-				</div>
-			</section>
-
-			<!-- Director Documents -->
-			<section class="flex flex-col gap-5 px-6 py-5">
-				<div class="flex items-center justify-between gap-3">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<Users class="size-3.5" />
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Director Documents</p>
-							<p class="text-xs text-muted-foreground">Identity documents for each director</p>
-						</div>
-					</div>
-					<span
-						class="rounded-full bg-muted/70 px-2.5 py-1 text-[10px] font-medium text-muted-foreground tabular-nums"
-					>
-						{directors.length}
-						{directors.length === 1 ? 'director' : 'directors'}
-					</span>
-				</div>
-
-				<div class="divide-y divide-border/20">
-					{#each directors as director, i (director.id)}
-						<div
-							class={cn('flex flex-col gap-5', i > 0 && 'pt-5', i < directors.length - 1 && 'pb-5')}
-							in:fly={{ y: 6, duration: 200 }}
-						>
-							<div class="flex items-center gap-2">
-								<div
-									class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
-								>
-									{i + 1}
-								</div>
-								<p class="text-sm font-semibold">
-									{director.name || `Director ${i + 1}`}
-								</p>
-								<span class="text-xs text-muted-foreground">(Director)</span>
-							</div>
-
-							<div class="grid grid-cols-2 gap-5">
-								{#snippet aadhaarBody()}
-									<FileUpload
-										bind:file={directorDocFiles[director.id].aadhaar}
-										placeholder="Upload Aadhaar"
-									/>
-								{/snippet}
-								{@render documentField('Aadhaar Card', '2MB', aadhaarBody, false)}
-
-								{#snippet panBody()}
-									<FileUpload
-										bind:file={directorDocFiles[director.id].pan}
-										placeholder="Upload PAN"
-									/>
-								{/snippet}
-								{@render documentField('PAN Card', '2MB', panBody, false)}
-							</div>
-						</div>
-					{/each}
-				</div>
-			</section>
+<OnboardingStepShell
+	icon={FileText}
+	title="Document Verification"
+	description="Upload required compliance documents for KYB approval"
+>
+	{#snippet trailing()}
+		<div class="shrink-0 text-right">
+			<p class="text-sm font-semibold tabular-nums">
+				{totalUploaded}<span class="text-muted-foreground">/{totalDocs}</span>
+			</p>
+			<p class="text-[10px] text-muted-foreground">uploaded</p>
 		</div>
+	{/snippet}
 
-		{#snippet footer()}
-			<div
-				class="flex w-full flex-wrap items-center justify-between gap-3 border-t border-border pt-4"
-			>
-				<Button variant="ghost" size="sm" onclick={onprev}>
-					<ArrowLeft class="size-4" />
-					Previous
-				</Button>
-				<div class="flex items-center gap-2">
-					<Button variant="ghost" size="sm" onclick={clearDocuments} class="hidden sm:inline-flex">
-						Clear all
-					</Button>
-					<Button
-						size="sm"
-						class="gradient-primary text-primary-foreground"
-						onclick={handleSaveAndContinue}
-						disabled={!canContinue}
-					>
-						Save & Continue
-						<ArrowRight class="size-4" />
-					</Button>
+	<OnboardingSection
+		title="Business Documents"
+		description="Core compliance certificates · {businessDocsUploaded}/3 uploaded"
+	>
+		<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+			{#snippet bizCertBody()}
+				<Dropdown options={bizCertOptions} bind:value={bizCertType} />
+				{@render uploadField('bizCert', 'Click to upload or drag & drop')}
+			{/snippet}
+			{@render documentField('Business Certificate', '2MB', bizCertBody)}
+
+			{#snippet proofOfFundsBody()}
+				<Dropdown options={proofOfFundsOptions} bind:value={proofOfFundsType} />
+				{@render uploadField('proofOfFunds', 'Click to upload or drag & drop')}
+			{/snippet}
+			{@render documentField('Proof Of Funds', '1MB', proofOfFundsBody)}
+
+			{#snippet rentalAgreementBody()}
+				<Dropdown options={rentalAgreementOptions} bind:value={rentalAgreementType} />
+				{@render uploadField('rentalAgreement', 'Click to upload or drag & drop')}
+			{/snippet}
+			{@render documentField('Rental Agreement', '5MB', rentalAgreementBody)}
+		</div>
+	</OnboardingSection>
+
+	<OnboardingSection
+		title="Additional Documents"
+		description="GST, identity and compliance · {additionalDocsUploaded}/{additionalDocKeys.length} uploaded"
+	>
+		<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+			{#snippet gstCertBody()}
+				{@render uploadField('gstCert', 'Click to upload or drag & drop')}
+			{/snippet}
+			{@render documentField('GST Certificate', '2MB', gstCertBody)}
+
+			{#snippet proprietorPhotoBody()}
+				{@render uploadField('proprietorPhoto', 'Click to upload or drag & drop')}
+			{/snippet}
+			{@render documentField('Proprietor Photo with Stamp', '5MB', proprietorPhotoBody)}
+
+			{#if isPrivateLimited}
+				{#snippet bizPanBody()}
+					{@render uploadField('bizPan', 'Click to upload or drag & drop')}
+				{/snippet}
+				{@render documentField('Business PAN card', '1MB', bizPanBody)}
+
+				{#snippet moaCertBody()}
+					{@render uploadField('moaCert', 'Click to upload or drag & drop')}
+				{/snippet}
+				{@render documentField('Memorandum of Association Certificate (MOA)', '5MB', moaCertBody)}
+
+				{#snippet aoaCertBody()}
+					{@render uploadField('aoaCert', 'Click to upload or drag & drop')}
+				{/snippet}
+				{@render documentField('Article of Association Certificate (AOA)', '5MB', aoaCertBody)}
+
+				{#snippet bizTanBody()}
+					{@render uploadField('bizTan', 'Click to upload or drag & drop')}
+				{/snippet}
+				{@render documentField('Business TAN', '5MB', bizTanBody)}
+			{/if}
+		</div>
+	</OnboardingSection>
+
+	<OnboardingSection
+		title="Director Documents"
+		description="Identity documents for {directors.length} director{directors.length === 1
+			? ''
+			: 's'}"
+	>
+		<div class="divide-y divide-border/30">
+			{#each directors as director, i (director.id)}
+				<div class={cn('space-y-4', i > 0 && 'pt-5', i < directors.length - 1 && 'pb-5')}>
+					<p class="text-sm font-medium">
+						{director.name || `Director ${i + 1}`}
+					</p>
+					<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+						{#snippet aadhaarBody()}
+							<FileUpload
+								bind:file={directorDocFiles[director.id].aadhaar}
+								placeholder="Upload Aadhaar"
+							/>
+						{/snippet}
+						{@render documentField('Aadhaar Card', '2MB', aadhaarBody, false)}
+
+						{#snippet panBody()}
+							<FileUpload bind:file={directorDocFiles[director.id].pan} placeholder="Upload PAN" />
+						{/snippet}
+						{@render documentField('PAN Card', '2MB', panBody, false)}
+					</div>
 				</div>
-			</div>
-		{/snippet}
-	</Card>
-</div>
+			{/each}
+		</div>
+	</OnboardingSection>
+
+	{#snippet footer()}
+		<StepNavFooter
+			showPrev
+			{onprev}
+			showClear
+			onclear={clearDocuments}
+			onnext={handleSaveAndContinue}
+			nextLabel="Save & Continue"
+			nextDisabled={!canContinue}
+		/>
+	{/snippet}
+</OnboardingStepShell>

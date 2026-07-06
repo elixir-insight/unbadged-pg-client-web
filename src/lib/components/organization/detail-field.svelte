@@ -15,9 +15,9 @@
 	} = $props();
 </script>
 
-<div class={cn('rounded-lg border border-border/60 bg-background/50 px-4 py-3', className)}>
+<div class={cn('flex flex-col gap-1.5 py-3', className)}>
 	<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-	<p class={cn('mt-1 text-sm font-medium text-foreground', mono && 'font-mono tracking-wide')}>
+	<p class={cn('text-sm font-medium text-foreground', mono && 'font-mono tracking-wide')}>
 		{displayValue(value)}
 	</p>
 </div>

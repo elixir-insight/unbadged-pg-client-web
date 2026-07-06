@@ -1,21 +1,12 @@
 <script lang="ts">
 	import * as v from 'valibot';
 	import { Button, Input } from '$lib/components/reusable';
-	import { fly } from 'svelte/transition';
 	import { cn } from '$lib/utils';
 	import { bankAccountSchema, flattenIssues } from '$lib/validation/onboarding';
-	import {
-		CreditCard,
-		Landmark,
-		Eye,
-		EyeOff,
-		PlusIcon,
-		XIcon,
-		PencilIcon,
-		ArrowRight,
-		ArrowLeft
-	} from '$lib/assets/icons';
-	import Card from './Card.svelte';
+	import { CreditCard, Eye, EyeOff, PlusIcon, XIcon, PencilIcon } from '$lib/assets/icons';
+	import OnboardingStepShell from './OnboardingStepShell.svelte';
+	import OnboardingSection from './OnboardingSection.svelte';
+	import StepNavFooter from './StepNavFooter.svelte';
 
 	interface BankAccount {
 		id: number;
@@ -40,7 +31,6 @@
 		onprev?: () => void;
 	} = $props();
 
-	// ── Internal account state ────────────────────────────────────────
 	let accountHolderName = $state('');
 	let accountNumber = $state('');
 	let confirmAccountNumber = $state('');
@@ -91,7 +81,6 @@
 		}
 	});
 
-	// ── Validation ─────────────────────────────────────────────────
 	let errors = $state<Record<string, string>>({});
 	let submitAttempted = $state(false);
 
@@ -173,52 +162,45 @@
 		errors = {};
 		submitAttempted = false;
 	}
+
 	const canSaveAccount = $derived(bankMandatoryFilled && Object.keys(errors).length === 0);
+
+	const formTitle = $derived(isEditing ? 'Edit Bank Account' : 'Add Bank Account');
+	const formDescription = $derived(
+		isEditing ? 'Update the selected account details' : 'Enter banking details for settlement'
+	);
 </script>
 
-<div in:fly={{ y: 10, duration: 220 }} class="space-y-4">
-	<!-- Bank details form -->
-	<Card class={cn(isEditing && 'border-primary/40 ring-1 ring-primary/20', 'bg-background')}>
-		{#snippet header()}
-			<div class="flex items-center justify-between gap-3">
-				<div class="flex items-center gap-2.5">
-					<div
-						class={cn(
-							'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-							isEditing ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
-						)}
-					>
-						<CreditCard class="size-4.5" />
-					</div>
-					<div>
-						<p class="text-base leading-none font-semibold">
-							{isEditing ? 'Edit Bank Account' : 'Add Bank Account'}
-						</p>
-						<p class="mt-0.5 text-xs text-muted-foreground">
-							{isEditing
-								? 'Update the selected account details'
-								: 'Enter banking details for this organization'}
-						</p>
-					</div>
-				</div>
-				{#if isEditing}
-					<button
-						onclick={clearAccountForm}
-						class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-					>
-						<XIcon class="size-3.5" />
-						Cancel
-					</button>
-				{/if}
-			</div>
+{#snippet bankDetailsFooter()}
+	<StepNavFooter showPrev {onprev} {onnext} nextLabel="Continue" nextDisabled={!canContinue} />
+{/snippet}
+
+<OnboardingStepShell
+	icon={CreditCard}
+	title="Bank Account"
+	description="Add and manage settlement accounts"
+	class={cn(isEditing && 'border-primary/40 ring-1 ring-primary/20')}
+	footer={hideNavigation ? undefined : bankDetailsFooter}
+>
+	<OnboardingSection title={formTitle} description={formDescription}>
+		{#snippet trailing()}
+			{#if isEditing}
+				<button
+					onclick={clearAccountForm}
+					class="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+				>
+					<XIcon class="size-3.5" />
+					Cancel
+				</button>
+			{/if}
 		{/snippet}
 
 		<div class="space-y-4">
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div class="flex flex-col gap-3">
-					<label class="text-sm font-medium" for="accountNum"
-						>Account number <span class="text-rose-500">*</span></label
-					>
+					<label class="text-sm font-medium" for="accountNum">
+						Account number <span class="text-rose-500">*</span>
+					</label>
 					<div class="relative">
 						<Input
 							id="accountNum"
@@ -248,9 +230,9 @@
 					{/if}
 				</div>
 				<div class="flex flex-col gap-3">
-					<label class="text-sm font-medium" for="confirmNum"
-						>Confirm account number <span class="text-rose-500">*</span></label
-					>
+					<label class="text-sm font-medium" for="confirmNum">
+						Confirm account number <span class="text-rose-500">*</span>
+					</label>
 					<div class="relative">
 						<Input
 							id="confirmNum"
@@ -284,9 +266,9 @@
 
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div class="flex flex-col gap-3">
-					<label class="text-sm font-medium" for="bankName"
-						>Bank <span class="text-rose-500">*</span></label
-					>
+					<label class="text-sm font-medium" for="bankName">
+						Bank <span class="text-rose-500">*</span>
+					</label>
 					<Input
 						id="bankName"
 						bind:value={bank}
@@ -308,11 +290,12 @@
 					/>
 				</div>
 			</div>
+
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div class="flex flex-col gap-3">
-					<label class="text-sm font-medium" for="holderName"
-						>Account holder name <span class="text-rose-500">*</span></label
-					>
+					<label class="text-sm font-medium" for="holderName">
+						Account holder name <span class="text-rose-500">*</span>
+					</label>
 					<Input
 						id="holderName"
 						bind:value={accountHolderName}
@@ -326,11 +309,10 @@
 						<p class="text-xs text-rose-500">{errors.accountHolderName}</p>
 					{/if}
 				</div>
-
 				<div class="flex flex-col gap-3">
-					<label class="text-sm font-medium" for="ifsc"
-						>IFSC Code <span class="text-rose-500">*</span></label
-					>
+					<label class="text-sm font-medium" for="ifsc">
+						IFSC Code <span class="text-rose-500">*</span>
+					</label>
 					<Input
 						id="ifsc"
 						bind:value={ifscNumber}
@@ -343,8 +325,8 @@
 					{/if}
 				</div>
 			</div>
-			<!-- Form action -->
-			<div class="flex items-center justify-end gap-2 border-t border-border pt-4">
+
+			<div class="flex justify-end gap-2 pt-2">
 				{#if isEditing}
 					<Button variant="outline" size="sm" onclick={clearAccountForm}>Cancel</Button>
 					<Button
@@ -368,110 +350,46 @@
 				{/if}
 			</div>
 		</div>
-	</Card>
+	</OnboardingSection>
 
-	<!-- Saved bank accounts -->
 	{#if savedAccounts.length > 0}
-		<Card class="bg-background">
-			{#snippet header()}
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-						>
-							<Landmark class="size-4.5" />
-						</div>
-						<p class="text-base leading-none font-semibold">Saved Bank Accounts</p>
-					</div>
-					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-						{savedAccounts.length}
-						{savedAccounts.length === 1 ? 'account' : 'accounts'}
-					</span>
-				</div>
-			{/snippet}
-
-			<div class="space-y-3">
+		<OnboardingSection
+			title="Saved Bank Accounts"
+			description="{savedAccounts.length} account{savedAccounts.length === 1 ? '' : 's'} added"
+		>
+			<div class="divide-y divide-border/30 rounded-lg border border-border/60">
 				{#each savedAccounts as account (account.id)}
 					<div
-						in:fly={{ y: 8, duration: 200 }}
 						class={cn(
-							'group relative flex items-start justify-between gap-3 rounded-xl border p-4',
-							'transition-all duration-200',
-							editingId === account.id
-								? 'border-primary/40 bg-primary/3 shadow-sm ring-1 shadow-primary/10 ring-primary/20'
-								: 'border-border/60 bg-muted/20 hover:border-primary/25 hover:bg-primary/2 hover:shadow-sm dark:hover:bg-primary/4'
+							'flex items-center justify-between gap-3 px-4 py-3',
+							editingId === account.id && 'bg-primary/5'
 						)}
 					>
-						<div class="flex min-w-0 items-start gap-3.5">
-							<!-- Bank initial avatar -->
-							<div
-								class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary"
-							>
-								{account.bank[0]}
-							</div>
-
-							<div class="min-w-0 space-y-1">
-								<p class="text-sm font-semibold">{account.holderName}</p>
-								<p class="font-mono text-sm tracking-widest text-muted-foreground">
-									{maskAccountNumber(account.accountNumber)}
-								</p>
-								<div
-									class="flex flex-wrap items-center gap-x-1.5 gap-y-0 text-xs text-muted-foreground"
-								>
-									<span>{account.bank}</span>
-									{#if account.branch}
-										<span class="text-border">·</span>
-										<span>{account.branch}</span>
-									{/if}
-								</div>
-								<p class="text-xs text-muted-foreground">
-									<span class="font-medium text-foreground/60">IFSC</span>
-									&ensp;{account.ifscNumber}
-								</p>
-							</div>
+						<div class="min-w-0 space-y-0.5">
+							<p class="text-sm font-medium">{account.holderName}</p>
+							<p class="font-mono text-xs tracking-wider text-muted-foreground">
+								{maskAccountNumber(account.accountNumber)}
+							</p>
+							<p class="text-xs text-muted-foreground">
+								{account.bank}{account.branch ? ` · ${account.branch}` : ''} · {account.ifscNumber}
+							</p>
 						</div>
-
-						<!-- Right: edit button -->
-						<div class="flex shrink-0 flex-col items-end gap-2.5">
-							<button
-								onclick={() => editAccount(account)}
-								class={cn(
-									'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium',
-									'transition-all duration-150',
-									editingId === account.id
-										? 'bg-primary/15 text-primary'
-										: 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
-								)}
-								aria-label="Edit {account.holderName}"
-							>
-								<PencilIcon class="size-3.5" />
-								<span>Edit</span>
-							</button>
-						</div>
+						<button
+							onclick={() => editAccount(account)}
+							class={cn(
+								'flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+								editingId === account.id
+									? 'text-primary'
+									: 'text-muted-foreground hover:text-foreground'
+							)}
+							aria-label="Edit {account.holderName}"
+						>
+							<PencilIcon class="size-3.5" />
+							Edit
+						</button>
 					</div>
 				{/each}
 			</div>
-		</Card>
+		</OnboardingSection>
 	{/if}
-
-	<!-- Step navigation -->
-	{#if !hideNavigation}
-		<div
-			class="flex items-center justify-between rounded-2xl border border-border/40 bg-background/80 px-5 py-3.5 shadow-sm backdrop-blur-sm"
-		>
-			<Button variant="ghost" size="sm" onclick={onprev}>
-				<ArrowLeft class="size-4" />
-				Previous
-			</Button>
-			<Button
-				size="sm"
-				class="gradient-primary text-primary-foreground"
-				onclick={onnext}
-				disabled={!canContinue}
-			>
-				Continue
-				<ArrowRight class="size-4" />
-			</Button>
-		</div>
-	{/if}
-</div>
+</OnboardingStepShell>
