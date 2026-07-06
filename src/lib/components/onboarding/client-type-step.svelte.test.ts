@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import ClientTypeStep from './ClientTypeStep.svelte';
+import ClientTypeStep from './client-type-step.svelte';
 
 const clientTypes = [
 	{

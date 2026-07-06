@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import KybDetails from './KybDetails.svelte';
+import KybDetails from './kyb-details.svelte';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {

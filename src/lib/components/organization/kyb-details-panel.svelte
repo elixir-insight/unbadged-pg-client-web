@@ -98,4 +98,5 @@
 			<DetailField label="Legal Name" value={organization.legalCompanyName} class="sm:col-span-2" />
 		</div>
 	</DetailSection>
+	Details section extra
 </div>

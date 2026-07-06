@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'vitest-browser-svelte';
-import SectionWrapper from './SectionWrapper.svelte';
+import SectionWrapper from './section-wrapper.svelte';
 
 const children = createRawSnippet(() => ({
 	render: () => '<p data-testid="section-content">Section body</p>'

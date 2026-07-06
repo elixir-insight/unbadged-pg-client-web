@@ -1,3 +1,3 @@
-export { default as ClientTypeStep } from './ClientTypeStep.svelte';
-export { default as MerchantProfileStep } from './MerchantProfileStep.svelte';
-export { default as MerchantConfigSection } from './MerchantConfigSection.svelte';
+export { default as ClientTypeStep } from './client-type-step.svelte';
+export { default as MerchantProfileStep } from './merchant-profile-step.svelte';
+export { default as MerchantConfigSection } from './merchant-config-section.svelte';

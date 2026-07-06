@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/reusable';
 	import { ShieldCheck, Upload, AlertCircle, ExternalLink } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
-	import ActivateOrgDialog from './ActivateOrgDialog.svelte';
+	import ActivateOrgDialog from './activate-org-dialog.svelte';
 
 	type Variant = 'configuration' | 'profile';
 

@@ -3,7 +3,7 @@
 	import { Input } from '$lib/components/reusable';
 	import { Dropdown } from '$lib/components/reusable';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import ActivateOrgDialog from './ActivateOrgDialog.svelte';
+	import ActivateOrgDialog from './activate-org-dialog.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import {
 		XIcon,
@@ -20,10 +20,10 @@
 		Search
 	} from '$lib/assets/icons';
 	import { slide, fade, fly } from 'svelte/transition';
-	import type { VirtualAccount } from '../types';
+	import type { VirtualAccount } from './types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { availableBankPipelines } from '../../../onboarding/create-organization/constants';
+	import { availableBankPipelines } from '../../../routes/management/onboarding/create-organization/constants';
 
 	// ── Types ─────────────────────────────────────────────────────────────────
 

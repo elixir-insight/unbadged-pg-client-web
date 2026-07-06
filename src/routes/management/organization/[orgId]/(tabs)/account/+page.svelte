@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AccountsTab } from '../../components/index';
+	import { AccountsTab } from '$lib/components/organization';
 	import { getOrganizationOrgContext } from '../../organization-org.svelte';
 	import type { BankingDetail } from '../../types';
 

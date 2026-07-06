@@ -4,9 +4,9 @@
 	import { cn } from '$lib/utils';
 	import { bankAccountSchema, flattenIssues } from '$lib/validation/onboarding';
 	import { CreditCard, Eye, EyeOff, PlusIcon, XIcon, PencilIcon } from '$lib/assets/icons';
-	import OnboardingStepShell from './OnboardingStepShell.svelte';
-	import OnboardingSection from './OnboardingSection.svelte';
-	import StepNavFooter from './StepNavFooter.svelte';
+	import OnboardingStepShell from './onboarding-step-shell.svelte';
+	import OnboardingSection from './onboarding-section.svelte';
+	import StepNavFooter from './step-nav-footer.svelte';
 
 	interface BankAccount {
 		id: number;

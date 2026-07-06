@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import KybDetails from '$lib/components/onboarding/KybDetails.svelte';
+	import KybDetails from '$lib/components/onboarding/kyb-details.svelte';
 	import { getOnboardingOrgById } from '$lib/data/mockData';
 	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
 	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';

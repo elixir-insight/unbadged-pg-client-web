@@ -2,8 +2,8 @@
 	import { Button, Chip, Dropdown, Input } from '$lib/components/reusable';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { PencilIcon, PlusIcon, XIcon, Landmark, Trash2Icon, CheckIcon } from '$lib/assets/icons';
-	import type { BankAccountStatus, BankingDetail } from '../types';
-	import { BANK_ACCOUNT_STATUSES } from '../types';
+	import type { BankAccountStatus, BankingDetail } from './types';
+	import { BANK_ACCOUNT_STATUSES } from './types';
 	import { cn } from '$lib/utils';
 	import { enumToDropdownOptions, formatStatusLabel } from '$lib/utils/status_rename';
 	import * as Drawer from '$lib/components/ui/drawer';

@@ -3,7 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { Button, Input, Dropdown } from '$lib/components/reusable';
-	import MerchantConfigSection from './MerchantConfigSection.svelte';
+	import MerchantConfigSection from './merchant-config-section.svelte';
 	import {
 		enumToDropdownOptions,
 		formatStatusLabel,

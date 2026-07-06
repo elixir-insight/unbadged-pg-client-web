@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import MerchantProfileStep from './MerchantProfileStep.svelte';
+import MerchantProfileStep from './merchant-profile-step.svelte';
 import {
 	availableAffiliates,
 	availableServiceTypes,

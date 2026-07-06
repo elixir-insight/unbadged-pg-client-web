@@ -9,9 +9,9 @@
 		Pencil
 	} from '$lib/assets/icons';
 	import { Button } from '$lib/components/reusable';
-	import DocumentUploadFields from './DocumentUploadFields.svelte';
-	import AgreementActivationPanel from './AgreementActivationPanel.svelte';
-	import type { OrgDocument } from '../types';
+	import DocumentUploadFields from './document-upload-fields.svelte';
+	import AgreementActivationPanel from './agreement-activation-panel.svelte';
+	import type { OrgDocument } from './types';
 	import { cn } from '$lib/utils';
 	import { buildDocumentFormState, type DocumentFormKey } from '$lib/utils/document-upload-form';
 

@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/reusable';
 	import { ShieldCheck } from '$lib/assets/icons';
-	import Integration from '$lib/components/onboarding/Integration.svelte';
+	import Integration from '$lib/components/onboarding/integration.svelte';
 	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';
 
 	const onboarding = getOnboardingOrgContext();

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import MerchantConfigSection from './MerchantConfigSection.svelte';
+import MerchantConfigSection from './merchant-config-section.svelte';
 import {
 	availableAffiliates,
 	availableServiceTypes

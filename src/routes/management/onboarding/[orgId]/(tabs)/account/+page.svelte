@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import BankDetails from '$lib/components/onboarding/BankDetails.svelte';
+	import BankDetails from '$lib/components/onboarding/bank-details.svelte';
 	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';
 
 	const onboarding = getOnboardingOrgContext();

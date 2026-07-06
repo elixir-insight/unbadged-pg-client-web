@@ -1,6 +1,6 @@
 <script lang="ts">
 	import IntegrationPanel from '$lib/components/organization/integration-panel.svelte';
-	import type { IntegrationDetail } from '../types';
+	import type { IntegrationDetail } from './types';
 
 	interface Props {
 		integration: IntegrationDetail;

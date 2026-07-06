@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ApplicationIntegrationTab } from '../../components/index';
+	import { ApplicationIntegrationTab } from '$lib/components/organization';
 	import { getOrganizationOrgContext } from '../../organization-org.svelte';
 
 	const orgState = getOrganizationOrgContext();

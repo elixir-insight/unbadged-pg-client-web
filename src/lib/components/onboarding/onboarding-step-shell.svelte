@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Card from './Card.svelte';
+	import Card from './card.svelte';
 	import { fly } from 'svelte/transition';
 	import type { Component, Snippet } from 'svelte';
 

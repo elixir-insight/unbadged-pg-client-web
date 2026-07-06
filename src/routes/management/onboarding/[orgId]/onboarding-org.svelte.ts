@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { Director } from '$lib/components/onboarding/KybDetails.svelte';
+import type { Director } from '$lib/components/onboarding/kyb-details.svelte';
 import type { OnboardingStepKey } from './steps';
 
 const ONBOARDING_ORG_CTX = Symbol('onboarding-org');

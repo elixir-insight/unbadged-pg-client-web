@@ -1,7 +1,7 @@
 <script lang="ts">
 	import DetailSection from '$lib/components/organization/detail-section.svelte';
 	import DetailField from '$lib/components/organization/detail-field.svelte';
-	import type { KybDetail } from '../types';
+	import type { KybDetail } from './types';
 	import { Building2, Users } from '$lib/assets/icons';
 
 	interface Props {

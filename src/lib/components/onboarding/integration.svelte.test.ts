@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import Integration from './Integration.svelte';
+import Integration from './integration.svelte';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {

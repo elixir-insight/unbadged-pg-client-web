@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { KybTab } from '../../components/index';
+	import { KybTab } from '$lib/components/organization';
 	import { getOrganizationOrgContext } from '../../organization-org.svelte';
 
 	const orgState = getOrganizationOrgContext();

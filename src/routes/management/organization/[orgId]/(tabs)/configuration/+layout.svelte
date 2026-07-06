@@ -5,7 +5,7 @@
 	import { organizations } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
 	import { fade } from 'svelte/transition';
-	import { AgreementActivationPanel } from '../../components/index';
+	import { AgreementActivationPanel } from '$lib/components/organization';
 	import { getOrganizationOrgContext } from '../../organization-org.svelte';
 	import { CONFIG_SERVICE_TABS, type ConfigServiceTabKey } from './service-tabs';
 

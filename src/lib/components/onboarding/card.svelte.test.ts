@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRawSnippet } from 'svelte';
 import { render } from 'vitest-browser-svelte';
-import Card from './Card.svelte';
+import Card from './card.svelte';
 
 const children = createRawSnippet(() => ({
 	render: () => '<p data-testid="card-body">Card content</p>'

@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { organizations } from '$lib/data/mockData';
-	import { DocumentsTab } from '../../components/index';
+	import { DocumentsTab } from '$lib/components/organization';
 	import { getOrganizationOrgContext } from '../../organization-org.svelte';
 
 	const orgState = getOrganizationOrgContext();

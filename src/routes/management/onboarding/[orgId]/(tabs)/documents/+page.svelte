@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import Documents from '$lib/components/onboarding/Documents.svelte';
+	import Documents from '$lib/components/onboarding/documents.svelte';
 	import { getOnboardingOrgById } from '$lib/data/mockData';
 	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
 	import { getOnboardingOrgContext } from '../../onboarding-org.svelte';
