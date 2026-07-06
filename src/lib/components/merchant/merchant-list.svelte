@@ -46,7 +46,7 @@
 
 	// ── URL params ────────────────────────────────────────────────────────────
 	const urlMSkip = $derived(Math.max(0, Number(page.url.searchParams.get('mskip')) || 0));
-	const urlMStatus = $derived(page.url.searchParams.get('mstatus') ?? '');
+	const merchantStatus = $derived(page.url.searchParams.get('mstatus') ?? '');
 	const urlMFilter = $derived(page.url.searchParams.get('mfilter') ?? 'all');
 	const urlMSearch = $derived(page.url.searchParams.get('msearch') ?? '');
 	const urlMerchantId = $derived(page.url.searchParams.get('merchant') ?? merchants[0]?.id ?? '');
@@ -66,7 +66,7 @@
 
 	const filteredMerchants = $derived(
 		merchants.filter((m) => {
-			if (urlMStatus && m.status !== urlMStatus) return false;
+			if (merchantStatus && m.status !== merchantStatus) return false;
 			if (urlMSearch) {
 				const q = urlMSearch.toLowerCase();
 				if (urlMFilter === 'merchantId') return m.merchantId.toLowerCase().includes(q);
@@ -256,7 +256,7 @@
 			<!-- Filter bar -->
 			<div class="flex shrink-0 items-center gap-2 border-b border-border/30 px-4 py-2.5">
 				<Dropdown
-					value={urlMStatus || undefined}
+					value={merchantStatus || undefined}
 					options={merchantStatusOptions}
 					placeholder="All Statuses"
 					size="sm"
