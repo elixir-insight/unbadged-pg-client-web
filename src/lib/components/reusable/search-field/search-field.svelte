@@ -81,7 +81,6 @@
 	{/if}
 
 	<!-- Vertical divider -->
-
 	<div class="my-1.5 w-px self-stretch bg-border"></div>
 
 	<!-- Right zone: field selector -->
