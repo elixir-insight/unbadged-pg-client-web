@@ -362,6 +362,61 @@
 		{ value: 'customerName', label: 'Payee Name', placeholder: 'Enter Payee Name...' },
 		{ value: 'refundId', label: 'Refund ID', placeholder: 'Enter Refund ID...' }
 	];
+
+	// ── Active filter chips ───────────────────────────────────────────────────
+	function formatDisplayDate(s: string): string {
+		if (!s) return '';
+		const [, m, d] = s.split('-').map(Number);
+		const months = [
+			'Jan',
+			'Feb',
+			'Mar',
+			'Apr',
+			'May',
+			'Jun',
+			'Jul',
+			'Aug',
+			'Sep',
+			'Oct',
+			'Nov',
+			'Dec'
+		];
+		return `${String(d).padStart(2, '0')} ${months[m - 1]}`;
+	}
+
+	function formatDateChipValue(from: string, to: string): string {
+		if (from && to) return `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`;
+		if (from) return `From ${formatDisplayDate(from)}`;
+		return `To ${formatDisplayDate(to)}`;
+	}
+
+	const activeFilters = $derived([
+		...(urlCustomFrom || urlCustomTo
+			? [{ key: 'date', label: 'Date', value: formatDateChipValue(urlCustomFrom, urlCustomTo) }]
+			: []),
+		...(urlPayment
+			? [
+					{
+						key: 'payment',
+						label: 'Payment Method',
+						value: paymentMethodOptions.find((o) => o.value === urlPayment)?.label ?? urlPayment
+					}
+				]
+			: []),
+		...(urlStatus ? [{ key: 'status', label: 'Status', value: statusLabel(urlStatus) }] : [])
+	]);
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
+
+	function removeFilter(key: string) {
+		if (key === 'date') {
+			updateParams({ customFrom: null, customTo: null, skip: '0' });
+		} else if (key === 'payment') {
+			updateParams({ payment: null, skip: '0' });
+		} else if (key === 'status') {
+			updateParams({ status: null, skip: '0' });
+		}
+	}
 </script>
 
 <!-- ── Activity View ─────────────────────────────────────────────────────── -->
@@ -443,6 +498,33 @@
 			<Download class="h-4 w-4" /> Generate Report
 		</button>
 	</div>
+
+	<!-- Active filter chips -->
+	{#if hasActiveFilters}
+		<div class="flex shrink-0 flex-wrap items-center gap-2">
+			{#each activeFilters as filter (filter.key)}
+				<Chip variant="outline" class="h-auto gap-0 py-1 pl-3 pr-2">
+					<span class="text-xs text-muted-foreground">{filter.label}:&nbsp;</span>
+					<span class="text-xs font-medium text-foreground">{filter.value}</span>
+					<button
+						type="button"
+						onclick={() => removeFilter(filter.key)}
+						class="ml-1.5 cursor-pointer rounded-sm text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none"
+						aria-label="Remove {filter.label} filter"
+					>
+						<X class="size-3" />
+					</button>
+				</Chip>
+			{/each}
+			<!-- <button
+				type="button"
+				onclick={resetActivity}
+				class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+			>
+				Clear All
+			</button> -->
+		</div>
+	{/if}
 
 	<!-- Cell snippets -->
 	{#snippet sortHeader({ label }: { label: string })}

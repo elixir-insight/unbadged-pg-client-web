@@ -13,6 +13,7 @@
 		Building2,
 		Copy,
 		Check,
+		X,
 		Search as SearchIcon
 	} from '$lib/assets/icons';
 	import { merchants, virtualAccounts, type Merchant } from '$lib/data/refunds-mock';
@@ -226,6 +227,32 @@
 	// const merchantFilterOptions: DropdownOption[] = [
 	// 	{ value: 'all', label: 'All Fields' }, { value: 'merchantName', label: 'Name' }, { value: 'merchantId', label: 'Merchant ID' }
 	// ];
+
+	// ── Active filter chips ───────────────────────────────────────────────────
+	const activeMerchantFilters = $derived([
+		...(merchantStatus
+			? [
+					{
+						key: 'status',
+						label: 'Status',
+						value:
+							merchantStatusOptions.find((o) => o.value === merchantStatus)?.label ?? merchantStatus
+					}
+				]
+			: []),
+		...(urlMSearch ? [{ key: 'search', label: 'Search', value: urlMSearch }] : [])
+	]);
+
+	const hasMerchantFilters = $derived(activeMerchantFilters.length > 0);
+
+	function removeMerchantFilter(key: string) {
+		if (key === 'status') {
+			updateParams({ mstatus: null, mskip: '0' });
+		} else if (key === 'search') {
+			merchantSearchInput = '';
+			updateParams({ msearch: null, mskip: '0' });
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -291,6 +318,33 @@
 					<RotateCcw class="h-3 w-3" /> Reset
 				</button>
 			</div>
+
+			<!-- Active filter chips -->
+			{#if hasMerchantFilters}
+				<div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/30 px-4 py-2">
+					{#each activeMerchantFilters as filter (filter.key)}
+						<Chip variant="outline" class="h-auto gap-0 py-1 pl-3 pr-2">
+							<span class="text-xs text-muted-foreground">{filter.label}:&nbsp;</span>
+							<span class="text-xs font-medium text-foreground">{filter.value}</span>
+							<button
+								type="button"
+								onclick={() => removeMerchantFilter(filter.key)}
+								class="ml-1.5 cursor-pointer rounded-sm text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none"
+								aria-label="Remove {filter.label} filter"
+							>
+								<X class="size-3" />
+							</button>
+						</Chip>
+					{/each}
+					<!-- <button
+						type="button"
+						onclick={resetLanding}
+						class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+					>
+						Clear All
+					</button> -->
+				</div>
+			{/if}
 
 			<!-- Cell snippets for merchant table -->
 			{#snippet merchantCell({ row }: { row: Merchant })}
