@@ -18,6 +18,7 @@
 	} from '$lib/assets/icons';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
+	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import { fetchUserById } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
@@ -55,6 +56,12 @@
 
 	function backToUsers() {
 		goto(resolve('/management/user-management'));
+	}
+
+	function handleEdit() {
+		if (!user) return;
+		createUserFormStore.loadForEdit(user);
+		goto(resolve('/management/user-management/edit-user/[id]', { id: user.id }));
 	}
 
 	function getInitials(name: string): string {
@@ -109,11 +116,6 @@
 				<h1 class="text-2xl font-bold text-foreground">User Details</h1>
 				<p class="mt-1 text-sm text-muted-foreground">View and manage user information.</p>
 			</div>
-
-			<Button variant="outline" class="gap-2" onclick={backToUsers}>
-				<ArrowLeft class="h-4 w-4" />
-				Back
-			</Button>
 		</div>
 
 		<div class="space-y-6 rounded-xl border p-8 shadow">
@@ -212,7 +214,7 @@
 				<Trash2 class="h-4 w-4" />
 				Delete
 			</Button>
-			<Button variant="outline" class="gap-2">
+			<Button variant="outline" class="gap-2" onclick={handleEdit}>
 				<Pencil class="h-4 w-4" />
 				Edit
 			</Button>

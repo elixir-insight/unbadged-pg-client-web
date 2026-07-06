@@ -1,3 +1,40 @@
+import type { UserItem } from './user-management';
+
+interface EditSnapshot {
+	email: string;
+	firstName: string;
+	lastName: string;
+	employeeId: string;
+	mobileNumber: string;
+	selectedRoles: string;
+	reportingManagerId: string | null;
+	reportingManagerName: string;
+	reportingManagerEmployeeId: string;
+	reportingManagerEmail: string;
+}
+
+function splitName(name: string): { firstName: string; lastName: string } {
+	const parts = name.trim().split(/\s+/).filter(Boolean);
+	if (parts.length === 0) return { firstName: '', lastName: '' };
+	if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+	return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+function snapshotFromStore(store: CreateUserFormStore): EditSnapshot {
+	return {
+		email: store.email,
+		firstName: store.firstName,
+		lastName: store.lastName,
+		employeeId: store.employeeId,
+		mobileNumber: store.mobileNumber,
+		selectedRoles: JSON.stringify(store.selectedRoles),
+		reportingManagerId: store.reportingManagerId,
+		reportingManagerName: store.reportingManagerName,
+		reportingManagerEmployeeId: store.reportingManagerEmployeeId,
+		reportingManagerEmail: store.reportingManagerEmail
+	};
+}
+
 class CreateUserFormStore {
 	email = $state('');
 	firstName = $state('');
@@ -9,6 +46,10 @@ class CreateUserFormStore {
 	reportingManagerName = $state('');
 	reportingManagerEmployeeId = $state('');
 	reportingManagerEmail = $state('');
+	isEditMode = $state(false);
+	userId = $state<string | null>(null);
+
+	#snapshot: EditSnapshot | null = null;
 
 	get fullName() {
 		return [this.firstName.trim(), this.lastName.trim()].filter(Boolean).join(' ');
@@ -30,6 +71,12 @@ class CreateUserFormStore {
 
 	get selectedRoleCount() {
 		return this.selectedRoles.length;
+	}
+
+	get hasChanges() {
+		const snapshot = this.#snapshot;
+		if (!this.isEditMode || !snapshot) return true;
+		return JSON.stringify(snapshotFromStore(this)) !== JSON.stringify(snapshot);
 	}
 
 	get statusSummary() {
@@ -69,6 +116,51 @@ class CreateUserFormStore {
 		this.reportingManagerEmail = '';
 	}
 
+	loadForEdit(user: UserItem) {
+		const { firstName, lastName } = splitName(user.name);
+
+		this.isEditMode = true;
+		this.userId = user.id;
+		this.email = user.email;
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.employeeId = user.employeeId;
+		this.mobileNumber = user.mobileNumber ?? '';
+		this.selectedRoles = [...user.roles];
+
+		if (user.reportingManager) {
+			this.setReportingManager(
+				user.reportingManager.id,
+				user.reportingManager.name,
+				user.reportingManager.employeeId,
+				user.reportingManager.email
+			);
+		} else {
+			this.clearReportingManager();
+		}
+
+		this.#snapshot = snapshotFromStore(this);
+	}
+
+	restore() {
+		const snapshot = this.#snapshot;
+		if (!snapshot) {
+			this.clear();
+			return;
+		}
+
+		this.email = snapshot.email;
+		this.firstName = snapshot.firstName;
+		this.lastName = snapshot.lastName;
+		this.employeeId = snapshot.employeeId;
+		this.mobileNumber = snapshot.mobileNumber;
+		this.selectedRoles = JSON.parse(snapshot.selectedRoles) as string[];
+		this.reportingManagerId = snapshot.reportingManagerId;
+		this.reportingManagerName = snapshot.reportingManagerName;
+		this.reportingManagerEmployeeId = snapshot.reportingManagerEmployeeId;
+		this.reportingManagerEmail = snapshot.reportingManagerEmail;
+	}
+
 	clear() {
 		this.email = '';
 		this.firstName = '';
@@ -76,14 +168,14 @@ class CreateUserFormStore {
 		this.employeeId = '';
 		this.mobileNumber = '';
 		this.selectedRoles = [];
-		this.reportingManagerId = null;
-		this.reportingManagerName = '';
-		this.reportingManagerEmployeeId = '';
-		this.reportingManagerEmail = '';
+		this.clearReportingManager();
 	}
 
 	reset() {
 		this.clear();
+		this.isEditMode = false;
+		this.userId = null;
+		this.#snapshot = null;
 	}
 }
 

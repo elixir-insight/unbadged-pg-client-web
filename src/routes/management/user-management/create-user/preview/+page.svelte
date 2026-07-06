@@ -69,14 +69,6 @@
 			<h1 class="text-2xl font-bold text-foreground">Preview User</h1>
 			<p class="mt-1 text-sm text-muted-foreground">Review the details before creating the user</p>
 		</div>
-
-		<div class="flex items-center gap-2">
-			<Button variant="outline" class="gap-2" onclick={backToEdit}>
-				<ArrowLeft class="h-4 w-4" />
-				Back to edit
-			</Button>
-			<Button onclick={handleCreate}>Create</Button>
-		</div>
 	</div>
 
 	<div class="space-y-6 rounded-xl border p-8 shadow">
@@ -168,7 +160,10 @@
 	</div>
 
 	<div class="flex justify-end gap-2 pt-2">
-		<Button variant="ghost" onclick={backToEdit}>Back</Button>
+		<Button variant="outline" class="gap-2" onclick={backToEdit}>
+			<ArrowLeft class="h-4 w-4" />
+			Back to edit
+		</Button>
 		<Button onclick={handleCreate}>Create</Button>
 	</div>
 </div>
