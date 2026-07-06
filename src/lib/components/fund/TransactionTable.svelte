@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import type { DateRange } from 'bits-ui';
 	import { page } from '$app/state';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { SvelteURL } from 'svelte/reactivity';
 	import { CalendarDate } from '@internationalized/date';
+	import type { ColumnDef } from '@tanstack/table-core';
 
 	import {
 		Chip,
@@ -17,10 +19,11 @@
 		SearchField,
 		RangeCalendar,
 		Dropdown,
-		Pagination,
+		Table,
 		createUrlPagination
 	} from '$lib/components/reusable';
 	import type { SearchFieldOption } from '$lib/components/reusable';
+	import { renderSnippet } from '$lib/components/ui/data-table';
 
 	import {
 		RefreshCw,
@@ -38,14 +41,10 @@
 
 	let {
 		transactions,
-		total,
-		skip,
-		limit
+		total
 	}: {
 		transactions: Transaction[];
 		total: number;
-		skip: number;
-		limit: number;
 	} = $props();
 
 	// ── URL navigation ────────────────────────────────────────────────────
@@ -193,13 +192,112 @@
 		document.querySelector('.app-shell-content')?.scrollTo({ top: 0, behavior: 'instant' });
 	});
 
-	const showingText = $derived.by(() => {
-		const t = total;
-		if (t === 0) return '0 transactions';
-		const s = skip + 1;
-		const e = Math.min(skip + limit, t);
-		return `${s}–${e} of ${t}`;
-	});
+	// ── Active filter chips ───────────────────────────────────────────────
+	function formatDisplayDate(s: string): string {
+		if (!s) return '';
+		const [, m, d] = s.split('-').map(Number);
+		const months = [
+			'Jan',
+			'Feb',
+			'Mar',
+			'Apr',
+			'May',
+			'Jun',
+			'Jul',
+			'Aug',
+			'Sep',
+			'Oct',
+			'Nov',
+			'Dec'
+		];
+		return `${String(d).padStart(2, '0')} ${months[m - 1]}`;
+	}
+
+	function formatDateChipValue(from: string, to: string): string {
+		if (from && to) return `${formatDisplayDate(from)} – ${formatDisplayDate(to)}`;
+		if (from) return `From ${formatDisplayDate(from)}`;
+		return `To ${formatDisplayDate(to)}`;
+	}
+
+	const activeFilterChips = $derived([
+		...(fromDate || toDate
+			? [{ key: 'date', label: 'Date', value: formatDateChipValue(fromDate, toDate) }]
+			: []),
+		...(selectedStatus
+			? [
+					{
+						key: 'status',
+						label: 'Status',
+						value: selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)
+					}
+				]
+			: [])
+	]);
+
+	const hasActiveChips = $derived(activeFilterChips.length > 0);
+
+	function removeFilterChip(key: string) {
+		if (key === 'date') navigate({ fromDate: null, toDate: null, skip: null });
+		else if (key === 'status') navigate({ status: null, skip: null });
+	}
+
+	// ── Column definitions ────────────────────────────────────────────────
+	function getColumns(s: {
+		currencyCell: Snippet<[{ value: number }]>;
+		utrCell: Snippet<[{ value: string | null }]>;
+		statusCell: Snippet<[{ value: Transaction['status'] }]>;
+		dateTimeCell: Snippet<[{ value: string }]>;
+		actionCell: Snippet<[{ row: Transaction }]>;
+	}): ColumnDef<Transaction>[] {
+		return [
+			{ accessorKey: 'txnId', header: 'Txn ID', enableSorting: false },
+			{
+				accessorKey: 'openingBalance',
+				header: 'Opening Bal.',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.currencyCell, { value: c.getValue() as number })
+			},
+			{
+				accessorKey: 'closingBalance',
+				header: 'Closing Bal.',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.currencyCell, { value: c.getValue() as number })
+			},
+			{
+				accessorKey: 'utr',
+				header: 'UTR',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.utrCell, { value: c.getValue() as string | null })
+			},
+			{ accessorKey: 'crn', header: 'CRN', enableSorting: false },
+			{ accessorKey: 'sourceAccount', header: 'Source', enableSorting: false },
+			{ accessorKey: 'accountNumber', header: 'Account No.', enableSorting: false },
+			{
+				accessorKey: 'amount',
+				header: 'Amount',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.currencyCell, { value: c.getValue() as number })
+			},
+			{
+				accessorKey: 'status',
+				header: 'Status',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.statusCell, { value: c.getValue() as Transaction['status'] })
+			},
+			{
+				accessorKey: 'dateTime',
+				header: 'Date & Time',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.dateTimeCell, { value: c.getValue() as string })
+			},
+			{
+				id: 'actions',
+				header: '',
+				enableSorting: false,
+				cell: (c) => renderSnippet(s.actionCell, { row: c.row.original })
+			}
+		];
+	}
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -283,187 +381,84 @@
 		</div>
 	</div>
 
-	<!-- Active filter chips -->
-	{#if selectedStatus || fromDate || toDate}
+	<!-- ── Active filter chips ───────────────────────────────────────────── -->
+	{#if hasActiveChips}
 		<div class="flex flex-wrap items-center gap-2">
-			{#if selectedStatus}
-				<Chip variant="secondary" class="capitalize text-xs">{selectedStatus}</Chip>
-			{/if}
-			{#if fromDate && toDate}
-				<Chip variant="secondary" class="text-xs">{fromDate} → {toDate}</Chip>
-			{:else if fromDate}
-				<Chip variant="secondary" class="text-xs">From {fromDate}</Chip>
-			{:else if toDate}
-				<Chip variant="secondary" class="text-xs">Until {toDate}</Chip>
-			{/if}
+			{#each activeFilterChips as chip (chip.key)}
+				<Chip variant="outline" class="h-auto gap-0 py-1 pl-3 pr-2">
+					<span class="text-xs text-muted-foreground">{chip.label}:&nbsp;</span>
+					<span class="text-xs font-medium text-foreground">{chip.value}</span>
+					<button
+						type="button"
+						onclick={() => removeFilterChip(chip.key)}
+						class="ml-1.5 cursor-pointer rounded-sm text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none"
+						aria-label="Remove {chip.label} filter"
+					>
+						<X class="size-3" />
+					</button>
+				</Chip>
+			{/each}
+			<button
+				type="button"
+				onclick={clearFilters}
+				class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+			>
+				Clear All
+			</button>
 		</div>
 	{/if}
+
+	<!-- ── Cell snippets ─────────────────────────────────────────────────── -->
+	{#snippet currencyCell({ value }: { value: number })}
+		<span class="tabular-nums text-xs">{formatCurrency(value)}</span>
+	{/snippet}
+
+	{#snippet utrCell({ value }: { value: string | null })}
+		{#if value}
+			<span class="font-mono text-xs">{value}</span>
+		{:else}
+			<span class="text-xs text-muted-foreground/40">—</span>
+		{/if}
+	{/snippet}
+
+	{#snippet statusCell({ value }: { value: Transaction['status'] })}
+		<Chip variant={statusVariant(value)}>{value}</Chip>
+	{/snippet}
+
+	{#snippet dateTimeCell({ value }: { value: string })}
+		<div class="whitespace-nowrap">
+			<p class="text-xs">{formatDate(value)}</p>
+			<p class="mt-0.5 text-xs text-muted-foreground">{formatTime(value)}</p>
+		</div>
+	{/snippet}
+
+	{#snippet actionCell({ row }: { row: Transaction })}
+		<button
+			type="button"
+			onclick={(e) => {
+				e.stopPropagation();
+				openDrawer(row);
+			}}
+			aria-label="View transaction {row.txnId}"
+			class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+		>
+			<Eye class="size-3.5" />
+			View
+		</button>
+	{/snippet}
 
 	<!-- ── Table card ─────────────────────────────────────────────────────── -->
 	<div class="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg">
 		<div class="overflow-x-auto">
-			{#if transactions.length === 0}
-				<div class="flex flex-col items-center gap-3 py-24 text-center">
-					<div
-						class="flex size-14 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20"
-					>
-						<AlertCircle class="size-6 text-muted-foreground/30" />
-					</div>
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">
-							{searchValue ? 'No results found' : 'No inward fund transactions'}
-						</p>
-						<p class="mt-1 text-xs text-muted-foreground/60">
-							{searchValue
-								? 'Try a different CRN, UTR, or Txn ID.'
-								: 'Transactions will appear here once funds are received.'}
-						</p>
-					</div>
-					{#if hasFilters}
-						<button
-							type="button"
-							onclick={clearFilters}
-							class="text-xs font-medium text-primary hover:underline focus-visible:outline-none"
-						>
-							Clear filters
-						</button>
-					{/if}
-				</div>
-			{:else}
-				<table class="w-full min-w-240 border-collapse text-sm">
-					<thead class="sticky top-0 z-10 bg-card">
-						<tr class="border-b border-border/60 bg-muted/20">
-							<th
-								class="whitespace-nowrap px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Txn ID</th
-							>
-							<th
-								class="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Opening Bal.</th
-							>
-							<th
-								class="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Closing Bal.</th
-							>
-							<th
-								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>UTR</th
-							>
-							<th
-								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>CRN</th
-							>
-							<th
-								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Source</th
-							>
-							<th
-								class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Account No.</th
-							>
-							<th
-								class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Amount</th
-							>
-							<th
-								class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Status</th
-							>
-							<th
-								class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Date & Time</th
-							>
-							<th
-								class="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/60"
-								>Actions</th
-							>
-						</tr>
-					</thead>
-
-					<tbody class="divide-y divide-border/30">
-						{#each transactions as txn (txn.id)}
-							<tr class="bg-card transition-colors hover:bg-muted/20">
-								<td class="px-5 py-4">
-									<span class="font-mono text-xs font-medium">{txn.txnId}</span>
-								</td>
-								<td class="px-4 py-4 text-right">
-									<span class="tabular-nums text-xs text-muted-foreground"
-										>{formatCurrency(txn.openingBalance)}</span
-									>
-								</td>
-								<td class="px-4 py-4 text-right">
-									<span class="tabular-nums text-xs text-muted-foreground"
-										>{formatCurrency(txn.closingBalance)}</span
-									>
-								</td>
-								<td class="px-4 py-4">
-									{#if txn.utr}
-										<span class="font-mono text-xs">{txn.utr}</span>
-									{:else}
-										<span class="text-xs text-muted-foreground/40">—</span>
-									{/if}
-								</td>
-								<td class="px-4 py-4">
-									<span class="font-mono text-xs">{txn.crn}</span>
-								</td>
-								<td class="px-4 py-4 text-xs">{txn.sourceAccount}</td>
-								<td class="px-4 py-4">
-									<span class="font-mono text-xs">{txn.accountNumber}</span>
-								</td>
-								<td class="px-4 py-4 text-right">
-									<span class="font-semibold tabular-nums">{formatCurrency(txn.amount)}</span>
-								</td>
-								<td class="px-4 py-4">
-									<Chip variant={statusVariant(txn.status)} class="text-xs">{txn.status}</Chip>
-								</td>
-								<td class="px-4 py-4">
-									<div class="whitespace-nowrap">
-										<p class="text-xs">{formatDate(txn.dateTime)}</p>
-										<p class="mt-0.5 text-xs text-muted-foreground">{formatTime(txn.dateTime)}</p>
-									</div>
-								</td>
-								<td class="px-5 py-4 text-right">
-									<button
-										type="button"
-										onclick={() => openDrawer(txn)}
-										aria-label="View transaction {txn.txnId}"
-										class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-									>
-										<Eye class="size-3.5" />
-										View
-									</button>
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			{/if}
+			<Table
+				data={transactions}
+				columns={getColumns({ currencyCell, utrCell, statusCell, dateTimeCell, actionCell })}
+				onRowClick={openDrawer}
+				pageNumber={pagination.currentPage}
+				setPageNumber={pagination.setPage}
+				totalPages={pagination.pageCount}
+			/>
 		</div>
-
-		<!-- Pagination -->
-		{#if total > 0}
-			<div
-				class="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 px-5 py-3.5"
-			>
-				<span class="text-xs text-muted-foreground">Showing {showingText} transactions</span>
-				{#if pagination.pageCount > 1}
-					<Pagination
-						currentPage={pagination.currentPage}
-						pageCount={pagination.pageCount}
-						handlePreviousClick={() => {
-							if (pagination.currentPage > 1) pagination.setPage(pagination.currentPage - 1);
-						}}
-						handleNextClick={() => {
-							if (pagination.currentPage < pagination.pageCount)
-								pagination.setPage(pagination.currentPage + 1);
-						}}
-						handleEnterPress={(p) => {
-							if (p >= 1 && p <= pagination.pageCount) pagination.setPage(p);
-						}}
-					/>
-				{/if}
-			</div>
-		{/if}
 	</div>
 </div>
 
