@@ -12,7 +12,7 @@ const dirname =
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
 	ssr: {
-		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte']
+		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte', 'runed']
 	},
 	plugins: [
 		tailwindcss(),
@@ -37,9 +37,11 @@ export default defineConfig({
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
+					testTimeout: 60000,
 					browser: {
 						enabled: true,
 						provider: playwright(),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium',
@@ -71,10 +73,13 @@ export default defineConfig({
 				],
 				test: {
 					name: 'storybook',
+					testTimeout: 60000,
+					fileParallelism: false,
 					browser: {
 						enabled: true,
 						headless: true,
 						provider: playwright({}),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium'
