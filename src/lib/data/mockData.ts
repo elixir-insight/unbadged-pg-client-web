@@ -1,10 +1,17 @@
-export interface Organization {
-	[key: string]: unknown;
+export interface Organization extends Record<string, unknown> {
 	id: string;
 	name: string;
 	businessType: string;
-	category: 'MERCHANT' | 'PARTNER' | 'RESELLER';
-	status: 'PENDING' | 'IN_REVIEW' | 'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'REJECTED';
+	profileType: 'MERCHANT' | 'PARTNER' | 'RESELLER';
+	status:
+		| 'PENDING'
+		| 'IN_REVIEW'
+		| 'IN_PROGRESS'
+		| 'APPROVED'
+		| 'ACTIVE'
+		| 'ON_HOLD'
+		| 'FROZEN'
+		| 'REJECTED';
 	kybStatus: 'Not Started' | 'IN_PROGRESS' | 'VERIFIED' | 'FAILED';
 	createdAt: string;
 	assignedAdmin: string;
@@ -16,7 +23,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1000',
 		name: 'Northwind Capital',
 		businessType: 'PARTNERSHIP',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'PENDING',
 		kybStatus: 'Not Started',
 		createdAt: '2024-12-31',
@@ -26,7 +33,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1001',
 		name: 'Apex Logistics',
 		businessType: 'LLP',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'IN_REVIEW',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2025-03-05',
@@ -37,7 +44,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1002',
 		name: 'Lumen Health',
 		businessType: 'LLP',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'ACTIVE',
 		kybStatus: 'VERIFIED',
 		createdAt: '2025-05-10',
@@ -47,7 +54,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1003',
 		name: 'Vertex Robotics',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'PENDING',
 		kybStatus: 'Not Started',
 		createdAt: '2025-07-15',
@@ -57,7 +64,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1004',
 		name: 'Pulse Payments',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'IN_REVIEW',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2025-09-20',
@@ -67,7 +74,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1005',
 		name: 'Orbit PRIVATE_LIMITED',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'ON_HOLD',
 		kybStatus: 'VERIFIED',
 		createdAt: '2025-11-25',
@@ -77,7 +84,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1006',
 		name: 'Stellar Foods',
 		businessType: 'SOLE_PROPRIETORSHIP',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'PENDING',
 		kybStatus: 'Not Started',
 		createdAt: '2025-01-03',
@@ -87,7 +94,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1007',
 		name: 'Pinnacle Wealth Mgmt',
 		businessType: 'LLP',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'IN_REVIEW',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2025-02-18',
@@ -97,7 +104,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1008',
 		name: 'GreenPay Solutions',
 		businessType: 'LLP',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'APPROVED',
 		kybStatus: 'VERIFIED',
 		createdAt: '2025-04-09',
@@ -107,7 +114,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1009',
 		name: 'Horizon Insurance Co',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'APPROVED',
 		kybStatus: 'VERIFIED',
 		createdAt: '2025-06-22',
@@ -117,7 +124,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1010',
 		name: 'Crestline Digital',
 		businessType: 'PARTNERSHIP',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'PENDING',
 		kybStatus: 'Not Started',
 		createdAt: '2025-08-14',
@@ -127,7 +134,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1011',
 		name: 'Ironclad Payments',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'IN_REVIEW',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2025-10-07',
@@ -137,7 +144,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1012',
 		name: 'BlueSky Commerce',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'REJECTED',
 		kybStatus: 'FAILED',
 		createdAt: '2025-12-01',
@@ -147,7 +154,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1013',
 		name: 'Summit Ventures',
 		businessType: 'LLP',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'ACTIVE',
 		kybStatus: 'VERIFIED',
 		createdAt: '2026-01-19',
@@ -157,7 +164,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1014',
 		name: 'Cascade Fintech',
 		businessType: 'LLP',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'IN_PROGRESS',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2026-03-11',
@@ -167,7 +174,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1015',
 		name: 'Redwood Capital',
 		businessType: 'PARTNERSHIP',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'ON_HOLD',
 		kybStatus: 'VERIFIED',
 		createdAt: '2026-05-02',
@@ -177,7 +184,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1016',
 		name: 'Nimbus Fintech',
 		businessType: 'LLP',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'ACTIVE',
 		kybStatus: 'VERIFIED',
 		createdAt: '2026-01-08',
@@ -187,7 +194,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1017',
 		name: 'Vortex Payments',
 		businessType: 'LLP',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'REJECTED',
 		kybStatus: 'FAILED',
 		createdAt: '2025-11-14',
@@ -197,7 +204,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1018',
 		name: 'Solaris Trade Co',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'RESELLER',
+		profileType: 'RESELLER',
 		status: 'IN_PROGRESS',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2026-04-03',
@@ -207,7 +214,7 @@ export const organizations: Organization[] = [
 		id: 'ORG-1019',
 		name: 'Kestrel Analytics',
 		businessType: 'PARTNERSHIP',
-		category: 'PARTNER',
+		profileType: 'PARTNER',
 		status: 'IN_REVIEW',
 		kybStatus: 'IN_PROGRESS',
 		createdAt: '2026-02-27',
@@ -218,10 +225,28 @@ export const organizations: Organization[] = [
 		id: 'ORG-1020',
 		name: 'Meridian Payments',
 		businessType: 'PRIVATE_LIMITED',
-		category: 'MERCHANT',
+		profileType: 'MERCHANT',
 		status: 'APPROVED',
 		kybStatus: 'VERIFIED',
 		createdAt: '2025-09-11',
 		assignedAdmin: 'Alice Johnson'
 	}
 ];
+
+export type {
+	OrganizationData,
+	OrgDataV2,
+	BankDetailsV2,
+	KYBDetailsV2,
+	AddressV2,
+	Directors,
+	IntegrationV2,
+	Document,
+	OnboardingOrgRecord
+} from '$lib/types/organization';
+
+export {
+	onboardingOrganizations,
+	getOnboardingOrgById,
+	getOnboardingOrgDetail
+} from './onboardingMockData';

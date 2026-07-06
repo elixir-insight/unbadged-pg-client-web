@@ -1,14 +1,14 @@
 export interface OnboardingDraft {
 	id: string;
 	name: string;
-	category: 'Merchant' | 'Partner';
+	profileType: 'MERCHANT' | 'PARTNER';
 	businessType: string;
 	phone: string;
 	email: string;
 	serviceTypes: string[];
 	bankPipelines: string[];
 	affiliateId: string;
-	status: 'In Progress';
+	status: 'IN_PROGRESS' | 'APPROVED';
 	createdAt: string;
 }
 
@@ -21,7 +21,10 @@ export const onboardingDrafts = {
 	add(draft: OnboardingDraft) {
 		drafts = [...drafts, draft];
 	},
-	getById(id: string): OnboardingDraft | undefined {
+	getById(id: string | undefined): OnboardingDraft | undefined {
 		return drafts.find((d) => d.id === id);
+	},
+	updateStatus(id: string | undefined, status: OnboardingDraft['status']) {
+		drafts = drafts.map((d) => (d.id === id ? { ...d, status } : d));
 	}
 };

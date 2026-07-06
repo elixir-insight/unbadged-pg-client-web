@@ -1,103 +1,74 @@
 <script lang="ts">
-	import {
-		Chip,
-		Search,
-		Dropdown,
-		Button,
-		Table,
-		Drawer,
-		FilterCards,
-		createUrlPagination
-	} from '$lib/components/reusable';
-	import type { FilterCard } from '$lib/components/reusable';
-	import { renderComponent } from '$lib/components/ui/data-table';
-	import { createRawSnippet } from 'svelte';
-	import { type BadgeVariant } from '$lib/components/ui/badge';
-	import {
-		AlertCircle,
-		Eye,
-		Building2,
-		Layers,
-		User,
-		Calendar,
-		BadgeCheck,
-		ArrowRight,
-		X
-	} from '$lib/assets/icons';
-	import { organizations, type Organization } from '$lib/data/mockData';
-	import type { ColumnDef } from '@tanstack/table-core';
-	import { debounce } from '$lib/utils/debounce';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { Building2, X } from '$lib/assets/icons';
+	import type { FilterCard } from '$lib/components/reusable';
+	import {
+		Button,
+		Chip,
+		Dropdown,
+		FilterCards,
+		Search,
+		Table,
+		createUrlPagination
+	} from '$lib/components/reusable';
+	import { type BadgeVariant } from '$lib/components/ui/badge';
+	import { renderComponent } from '$lib/components/ui/data-table';
+	import { onboardingOrganizations, type OrganizationData } from '$lib/data/mockData';
+	import { debounce } from '$lib/utils/debounce';
+	import {
+		formatStatusLabel,
+		enumToDropdownOptions,
+		BUSINESS_TYPES
+	} from '$lib/utils/status_rename';
+	import type { ColumnDef } from '@tanstack/table-core';
+	import { createRawSnippet } from 'svelte';
 
 	const statusVariantMap: Record<string, BadgeVariant> = {
 		PENDING: 'warning',
-		IN_REVIEW: 'info',
 		IN_PROGRESS: 'alert'
 	};
 
-	const ACRONYMS = new Set(['LLP']);
+	const businessTypeOptions = enumToDropdownOptions(BUSINESS_TYPES);
 
-	function formatLabel(value: string): string {
-		return value
-			.split('_')
-			.map((word) =>
-				ACRONYMS.has(word) ? word : word[0].toUpperCase() + word.slice(1).toLowerCase()
-			)
-			.join(' ');
-	}
-
-	let selectedOrg = $state<Organization | null>(null);
-	let drawerOpen = $state(false);
-
-	const businessTypeOptions = [
-		{ value: 'PARTNERSHIP', label: 'Partnership' },
-		{ value: 'PRIVATE_LIMITED', label: 'Private Limited' },
-		{ value: 'LLP', label: 'LLP' },
-		{ value: 'SOLE_PROPRIETORSHIP', label: 'Sole Proprietorship' }
-	];
-
-	const columns: ColumnDef<Organization>[] = [
+	const columns: ColumnDef<OrganizationData>[] = [
 		{
-			accessorKey: 'name',
+			accessorKey: 'legalCompanyName',
 			header: 'Organization'
 		},
 		{
 			accessorKey: 'businessType',
 			header: 'Business Type',
-			cell: ({ row }) => formatLabel(row.original.businessType as string)
+			cell: ({ row }) => formatStatusLabel(row.original.businessType)
 		},
 		{
-			accessorKey: 'category',
-			header: 'Category',
-			cell: ({ row }) => formatLabel(row.original.category as string)
+			accessorKey: 'profileType',
+			header: 'Profile Type',
+			cell: ({ row }) => formatStatusLabel(row.original.profileType)
 		},
 		{
 			accessorKey: 'createdAt',
 			header: 'Created At'
 		},
 		{
-			accessorKey: 'status',
+			accessorKey: 'profileStatus',
 			header: 'Status',
 			cell: ({ row }) => {
-				const status = row.original.status as string;
+				const status = row.original.profileStatus;
 				const variant = statusVariantMap[status] ?? 'secondary';
-				const children = createRawSnippet(() => ({ render: () => formatLabel(status) }));
+				const children = createRawSnippet(() => ({ render: () => formatStatusLabel(status) }));
 				return renderComponent(Chip, { variant, children });
 			}
 		}
 	];
 
 	const allOnboarding = $derived(
-		organizations.filter((o) => ['PENDING', 'IN_REVIEW', 'IN_PROGRESS'].includes(o.status))
+		onboardingOrganizations.filter((o) => ['PENDING', 'IN_PROGRESS'].includes(o.profileStatus))
 	);
 
-	// All filter + pagination state lives in the URL.
 	const pagination = createUrlPagination({ defaultLimit: 5, total: () => filtered.length });
 
-	// Derived from URL — back/forward navigation automatically restores these values.
 	const searchInput = $derived(pagination.search);
-	// const typeInput = $derived(pagination.type);
 	const businessTypeDropdown = $state('');
 	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 300);
 
@@ -107,42 +78,42 @@
 
 	const filtered = $derived(
 		allOnboarding
-			.filter((o) => !pagination.status || o.status === pagination.status)
+			.filter((o) => !pagination.status || o.profileStatus === pagination.status)
 			.filter((o) => !pagination.type || o.businessType === pagination.type)
-			.filter((o) => o.name.toLowerCase().includes(pagination.search.toLowerCase()))
+			.filter((o) => o.legalCompanyName.toLowerCase().includes(pagination.search.toLowerCase()))
 	);
 
 	const pagedData = $derived(filtered.slice(pagination.skip, pagination.skip + pagination.limit));
 
-	const pendingCount = $derived(allOnboarding.filter((o) => o.status === 'PENDING').length);
-	const inReviewCount = $derived(allOnboarding.filter((o) => o.status === 'IN_REVIEW').length);
-	const inProgressCount = $derived(allOnboarding.filter((o) => o.status === 'IN_PROGRESS').length);
+	const pendingCount = $derived(allOnboarding.filter((o) => o.profileStatus === 'PENDING').length);
+	const inProgressCount = $derived(
+		allOnboarding.filter((o) => o.profileStatus === 'IN_PROGRESS').length
+	);
 
-	const STATUS_ENUMS = ['PENDING', 'IN_REVIEW', 'IN_PROGRESS'] as const;
+	const STATUS_ENUMS = ['PENDING', 'IN_PROGRESS'] as const;
 
-	const selectedFilter = $derived(pagination.status ? formatLabel(pagination.status) : 'All');
+	const selectedFilter = $derived(pagination.status ? formatStatusLabel(pagination.status) : 'All');
 
 	const filterCards: FilterCard[] = $derived([
 		{ label: 'All', count: allOnboarding.length },
-		{ label: formatLabel('PENDING'), count: pendingCount },
-		{ label: formatLabel('IN_REVIEW'), count: inReviewCount },
-		{ label: formatLabel('IN_PROGRESS'), count: inProgressCount }
+		{ label: formatStatusLabel('PENDING'), count: pendingCount },
+		{ label: formatStatusLabel('IN_PROGRESS'), count: inProgressCount }
 	]);
 
 	function onFilterSelect(label: string) {
-		const enumVal = STATUS_ENUMS.find((s) => formatLabel(s) === label) ?? '';
+		const enumVal = STATUS_ENUMS.find((s) => formatStatusLabel(s) === label) ?? '';
 		pagination.setStatus(label === 'All' ? '' : enumVal);
 	}
 
 	const activeFilters = $derived([
 		...(pagination.status
-			? [{ key: 'status', label: `Status: ${formatLabel(pagination.status)}` }]
+			? [{ key: 'status', label: `Status: ${formatStatusLabel(pagination.status)}` }]
 			: []),
 		...(pagination.type
 			? [
 					{
 						key: 'type',
-						label: `Type: ${businessTypeOptions.find((o) => o.value === pagination.type)?.label ?? pagination.type}`
+						label: `Type: ${businessTypeOptions.find((o) => o.value === pagination.type)?.label ?? formatStatusLabel(pagination.type)}`
 					}
 				]
 			: []),
@@ -161,24 +132,21 @@
 		pagination.clearAllFilters();
 	}
 
-	function openOrgDrawer(org: Organization) {
-		selectedOrg = org;
-		drawerOpen = true;
+	function openOrg(org: OrganizationData) {
+		goto(resolve('/management/onboarding/[orgId]', { orgId: String(org.orgId) }));
 	}
 </script>
 
 <div class="space-y-5">
-	<!-- ── Filter cards + Add Organization ────────────────────────────────── -->
-	<div class="section-appear grid gap-4 sm:grid-cols-4 sm:items-stretch">
+	<div class="section-appear grid gap-4 sm:grid-cols-3 sm:items-stretch">
 		<FilterCards
 			cards={filterCards}
 			selected={selectedFilter}
 			onselect={onFilterSelect}
-			class="sm:col-span-4 sm:grid-cols-4"
+			class="sm:col-span-3 sm:grid-cols-3"
 		/>
 	</div>
 
-	<!-- ── Search + filters (outside card) ───────────────────────────────── -->
 	<div
 		class="section-appear flex flex-col gap-3 sm:flex-row sm:items-center"
 		style="animation-delay: 40ms"
@@ -198,7 +166,6 @@
 		/>
 	</div>
 
-	<!-- ── Active filter tags ─────────────────────────────────────────────── -->
 	{#if hasActiveFilters}
 		<div class="section-appear flex flex-wrap items-center gap-2" style="animation-delay: 50ms">
 			{#each activeFilters as filter (filter.key)}
@@ -226,7 +193,6 @@
 		</div>
 	{/if}
 
-	<!-- ── Table card ──────────────────────────────────────────────────────── -->
 	<div
 		class="surface-card section-appear border rounded-lg shadow-sm pb-4"
 		style="animation-delay: 80ms"
@@ -236,8 +202,9 @@
 			<Button
 				class="flex gap-2"
 				onclick={() => goto(resolve('/management/onboarding/create-organization'))}
-				><Building2 /> Create Organization</Button
 			>
+				<Building2 /> Create Organization
+			</Button>
 		</div>
 		<Table
 			data={pagedData}
@@ -246,129 +213,7 @@
 			pageNumber={pagination.currentPage}
 			totalPages={pagination.pageCount}
 			setPageNumber={pagination.setPage}
-			onRowClick={openOrgDrawer}
+			onRowClick={openOrg}
 		/>
 	</div>
 </div>
-
-<!-- ── Org detail drawer ───────────────────────────────────────────────── -->
-<Drawer
-	bind:open={drawerOpen}
-	title={selectedOrg?.name ?? ''}
-	description={selectedOrg?.id ?? ''}
-	direction="right"
->
-	{#snippet footer()}
-		{#if selectedOrg}
-			<div class="flex gap-2">
-				{#if selectedOrg.status === 'PENDING' || selectedOrg.status === 'IN_PROGRESS'}
-					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
-						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
-					>
-						<ArrowRight class="size-3.5" />
-						Continue Editing
-					</Button>
-				{:else if selectedOrg.status === 'IN_REVIEW'}
-					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
-						variant="outline"
-						class="flex-1 gap-1.5"
-					>
-						<ArrowRight class="size-3.5" />
-						Continue Editing
-					</Button>
-					<Button
-						// href={resolve('/management/onboarding/[orgId]/review', { orgId: selectedOrg.id })}
-						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
-					>
-						<Eye class="size-3.5" />
-						Review
-					</Button>
-				{:else}
-					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
-						variant="outline"
-						class="flex-1 gap-1.5"
-					>
-						<Eye class="size-3.5" />
-						View Details
-					</Button>
-				{/if}
-			</div>
-		{/if}
-	{/snippet}
-
-	{#if selectedOrg}
-		<div class="space-y-5">
-			<!-- <Chip status={selectedOrg.status} label={selectedOrg.status} /> -->
-
-			<div class="space-y-3">
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Building2 class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Business Type
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.businessType}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Layers class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Category
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.category}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<BadgeCheck class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							KYB Status
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.kybStatus}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<User class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Assigned Admin
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.assignedAdmin}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Calendar class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Created At
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.createdAt}</p>
-					</div>
-				</div>
-			</div>
-
-			{#if selectedOrg.resubmitted}
-				<div
-					class="flex items-center gap-2 rounded-xl border border-amber-200/30 bg-amber-50/40 px-4 py-3 text-amber-700 dark:border-amber-800/30 dark:bg-amber-950/30 dark:text-amber-400"
-				>
-					<AlertCircle class="size-4 shrink-0" />
-					<p class="text-sm font-medium">Resubmitted for review</p>
-				</div>
-			{/if}
-		</div>
-	{/if}
-</Drawer>

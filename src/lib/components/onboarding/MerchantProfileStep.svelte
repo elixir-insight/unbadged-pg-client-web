@@ -4,8 +4,11 @@
 	import { cubicOut } from 'svelte/easing';
 	import { Button, Input, Dropdown } from '$lib/components/reusable';
 	import MerchantConfigSection from './MerchantConfigSection.svelte';
-
-	type ClientType = 'Merchant' | 'Partner';
+	import {
+		enumToDropdownOptions,
+		formatStatusLabel,
+		type OrgCategory
+	} from '$lib/utils/status_rename';
 
 	interface ServiceType {
 		value: string;
@@ -14,33 +17,21 @@
 		desc: string;
 	}
 
-	interface BankPipeline {
-		value: string;
-		logo: string;
-	}
-
-	interface Affiliate {
-		value: string;
-		label: string;
-	}
-
 	interface Props {
-		selectedCategory: ClientType | null;
+		selectedCategory: OrgCategory | null;
 		orgName: string;
 		orgPhone: string;
 		orgEmail: string;
 		orgBusinessType: string;
 		selectedServiceTypes: string[];
-		servicePipelines: Record<string, string>;
 		affiliateId: string;
 		errors: Record<string, string>;
 		businessTypes: string[];
 		availableServiceTypes: ServiceType[];
-		availableBankPipelines: BankPipeline[];
-		affiliatesByPipeline: Record<string, Affiliate[]>;
+		availableAffiliates: { value: string; label: string }[];
 		onFieldInput: () => void;
 		onToggleService: (value: string, checked: boolean) => void;
-		onPipelineChange: (serviceType: string) => void;
+		onAffiliateChange: () => void;
 		onPrev: () => void;
 		onNext: () => void;
 	}
@@ -52,19 +43,19 @@
 		orgEmail = $bindable(),
 		orgBusinessType = $bindable(),
 		selectedServiceTypes = $bindable(),
-		servicePipelines = $bindable(),
 		affiliateId = $bindable(),
 		errors,
 		businessTypes,
 		availableServiceTypes,
-		availableBankPipelines,
-		affiliatesByPipeline,
+		availableAffiliates,
 		onFieldInput,
 		onToggleService,
-		onPipelineChange,
+		onAffiliateChange,
 		onPrev,
 		onNext
 	}: Props = $props();
+
+	const businessTypeOptions = $derived(enumToDropdownOptions(businessTypes));
 </script>
 
 <div
@@ -73,7 +64,7 @@
 >
 	<div class="w-full max-w-2xl space-y-6">
 		<h2 class="text-center font-bold tracking-tight">
-			Tell us about your {selectedCategory ?? 'organization'}
+			Tell us about your {selectedCategory ? formatStatusLabel(selectedCategory) : 'organization'}
 		</h2>
 
 		<div class="space-y-6 rounded-2xl border border-border bg-background p-6 shadow-xs">
@@ -141,7 +132,7 @@
 					<Dropdown
 						bind:value={orgBusinessType}
 						onValueChange={onFieldInput}
-						options={businessTypes.map((t) => ({ value: t, label: t }))}
+						options={businessTypeOptions}
 						placeholder="Select Business Type"
 						class={cn(' w-full', errors.orgBusinessType && 'border-destructive')}
 					/>
@@ -153,17 +144,15 @@
 				</div>
 			</div>
 
-			{#if selectedCategory === 'Merchant'}
+			{#if selectedCategory === 'MERCHANT'}
 				<MerchantConfigSection
 					bind:selectedServiceTypes
-					bind:servicePipelines
 					bind:affiliateId
 					{errors}
 					{availableServiceTypes}
-					{availableBankPipelines}
-					{affiliatesByPipeline}
+					{availableAffiliates}
 					{onToggleService}
-					{onPipelineChange}
+					{onAffiliateChange}
 				/>
 			{/if}
 		</div>
@@ -171,7 +160,7 @@
 		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<Button variant="outline" size="lg" onclick={onPrev}>Back</Button>
 			<Button size="lg" onclick={onNext}>
-				Create {selectedCategory ?? 'Organization'}
+				Create {selectedCategory ? formatStatusLabel(selectedCategory) : 'Organization'}
 			</Button>
 		</div>
 	</div>

@@ -3,9 +3,7 @@
 		Chip,
 		Search,
 		Dropdown,
-		Button,
 		Table,
-		Drawer,
 		FilterCards,
 		createUrlPagination
 	} from '$lib/components/reusable';
@@ -13,10 +11,12 @@
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import { createRawSnippet } from 'svelte';
 	import { type BadgeVariant } from '$lib/components/ui/badge';
-	import { Eye, Building2, Layers, User, Calendar, BadgeCheck, X } from '$lib/assets/icons';
+	import { X } from '$lib/assets/icons';
 	import { organizations, type Organization } from '$lib/data/mockData';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { debounce } from '$lib/utils/debounce';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	const statusVariantMap: Record<string, BadgeVariant> = {
 		APPROVED: 'info',
@@ -27,7 +27,8 @@
 
 	const ACRONYMS = new Set(['LLP']);
 
-	function formatLabel(value: string): string {
+	function formatLabel(value: string | undefined | null): string {
+		if (!value) return '—';
 		return value
 			.split('_')
 			.map((word) =>
@@ -35,9 +36,6 @@
 			)
 			.join(' ');
 	}
-
-	let selectedOrg = $state<Organization | null>(null);
-	let drawerOpen = $state(false);
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
@@ -51,9 +49,9 @@
 			header: 'Organization'
 		},
 		{
-			accessorKey: 'category',
+			accessorKey: 'profileType',
 			header: 'Category',
-			cell: ({ row }) => formatLabel(row.original.category as string)
+			cell: ({ row }) => formatLabel(row.original.profileType)
 		},
 		{
 			accessorKey: 'businessType',
@@ -101,7 +99,7 @@
 	const filtered = $derived(
 		allOrganizations
 			.filter((o) => !pagination.status || o.status === pagination.status)
-			.filter((o) => !pagination.type || o.category === pagination.type)
+			.filter((o) => !pagination.type || o.profileType === pagination.type)
 			.filter((o) => o.name.toLowerCase().includes(pagination.search.toLowerCase()))
 	);
 
@@ -154,9 +152,8 @@
 		pagination.clearAllFilters();
 	}
 
-	function openOrgDrawer(org: Organization) {
-		selectedOrg = org;
-		drawerOpen = true;
+	function navigateToOrg(org: Organization) {
+		goto(resolve('/management/organization/[orgId]', { orgId: org.id }));
 	}
 </script>
 
@@ -235,92 +232,7 @@
 			pageNumber={pagination.currentPage}
 			totalPages={pagination.pageCount}
 			setPageNumber={pagination.setPage}
-			onRowClick={openOrgDrawer}
+			onRowClick={navigateToOrg}
 		/>
 	</div>
 </div>
-
-<!-- ── Org detail drawer ───────────────────────────────────────────────── -->
-<Drawer
-	bind:open={drawerOpen}
-	title={selectedOrg?.name ?? ''}
-	description={selectedOrg?.id ?? ''}
-	direction="right"
->
-	{#snippet footer()}
-		{#if selectedOrg}
-			<div class="flex gap-2">
-				<Button
-					// href={resolve('/management/organization/[orgId]', { orgId: selectedOrg.id })}
-					variant="outline"
-					class="flex-1 gap-1.5"
-				>
-					<Eye class="size-3.5" />
-					View Details
-				</Button>
-			</div>
-		{/if}
-	{/snippet}
-
-	{#if selectedOrg}
-		<div class="space-y-5">
-			<div class="space-y-3">
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Building2 class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Business Type
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.businessType}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Layers class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Category
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.category}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<BadgeCheck class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							KYB Status
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.kybStatus}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<User class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Assigned Admin
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.assignedAdmin}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<Calendar class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-							Created At
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.createdAt}</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
-</Drawer>

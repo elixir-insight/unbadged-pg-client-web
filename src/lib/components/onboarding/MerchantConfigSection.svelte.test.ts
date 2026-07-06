@@ -2,35 +2,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import MerchantConfigSection from './MerchantConfigSection.svelte';
 import {
-	availableServiceTypes,
-	availableBankPipelines,
-	affiliatesByPipeline
+	availableAffiliates,
+	availableServiceTypes
 } from '../../../routes/management/onboarding/create-organization/constants';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {
 		selectedServiceTypes: [] as string[],
-		servicePipelines: {} as Record<string, string>,
 		affiliateId: '',
 		errors: {} as Record<string, string>,
 		availableServiceTypes,
-		availableBankPipelines,
-		affiliatesByPipeline,
+		availableAffiliates,
 		onToggleService: vi.fn(),
-		onPipelineChange: vi.fn(),
+		onAffiliateChange: vi.fn(),
 		...overrides
 	};
-}
-
-function countPlaceholderText(container: HTMLElement, text: string) {
-	const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-	let count = 0;
-
-	while (walker.nextNode()) {
-		if (walker.currentNode.textContent?.trim() === text) count += 1;
-	}
-
-	return count;
 }
 
 describe('MerchantConfigSection', () => {
@@ -51,25 +37,22 @@ describe('MerchantConfigSection', () => {
 		expect(onToggleService).toHaveBeenCalledWith('Pay-Ins', true);
 	});
 
-	it('shows a bank pipeline dropdown when a service type is enabled', async () => {
-		const screen = render(MerchantConfigSection, baseProps({ selectedServiceTypes: ['Pay-Ins'] }));
+	it('renders the affiliate id dropdown for merchants', async () => {
+		const screen = render(MerchantConfigSection, baseProps());
 
-		await expect.element(screen.getByText('Select Bank Pipeline')).toBeVisible();
+		await expect.element(screen.getByText(/^Affiliate Id\b/)).toBeVisible();
+		await expect.element(screen.getByText('Select Affiliate Id')).toBeVisible();
 	});
 
-	it('shows separate bank pipeline dropdowns for multiple enabled services', async () => {
+	it('does not render bank pipeline controls', async () => {
 		const screen = render(
 			MerchantConfigSection,
 			baseProps({ selectedServiceTypes: ['Pay-Ins', 'Payouts'] })
 		);
 
-		expect(countPlaceholderText(screen.container, 'Select Bank Pipeline')).toBe(2);
-	});
-
-	it('does not show bank pipeline dropdowns when no service is selected', async () => {
-		const screen = render(MerchantConfigSection, baseProps());
-
-		expect(countPlaceholderText(screen.container, 'Select Bank Pipeline')).toBe(0);
+		await expect.element(screen.getByText('Pay-Ins', { exact: true })).toBeVisible();
+		await expect.element(screen.getByText('Payouts', { exact: true })).toBeVisible();
+		expect(screen.container.textContent).not.toContain('Bank Pipeline');
 	});
 
 	it('shows the service type validation error when present', async () => {
@@ -79,40 +62,5 @@ describe('MerchantConfigSection', () => {
 		);
 
 		await expect.element(screen.getByText('Select at least one service type')).toBeVisible();
-	});
-
-	it('shows per-service bank pipeline validation errors when present', async () => {
-		const screen = render(
-			MerchantConfigSection,
-			baseProps({
-				selectedServiceTypes: ['Pay-Ins'],
-				errors: { 'bankPipeline_Pay-Ins': 'Select a bank pipeline' }
-			})
-		);
-
-		await expect.element(screen.getByText('Select a bank pipeline')).toBeVisible();
-	});
-
-	it('disables the affiliate dropdown until a bank pipeline is selected', async () => {
-		const screen = render(
-			MerchantConfigSection,
-			baseProps({ selectedServiceTypes: ['Pay-Ins'], servicePipelines: {} })
-		);
-
-		await expect
-			.element(screen.getByText('Select a Pay-Ins Bank Pipeline to continue'))
-			.toBeVisible();
-	});
-
-	it('enables the affiliate dropdown once a bank pipeline is selected', async () => {
-		const screen = render(
-			MerchantConfigSection,
-			baseProps({
-				selectedServiceTypes: ['Pay-Ins'],
-				servicePipelines: { 'Pay-Ins': 'HDFC Bank' }
-			})
-		);
-
-		await expect.element(screen.getByText('Select Affiliate')).toBeVisible();
 	});
 });

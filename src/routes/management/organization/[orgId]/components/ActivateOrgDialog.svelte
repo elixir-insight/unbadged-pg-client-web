@@ -1,0 +1,130 @@
+<script lang="ts">
+	import { Button } from '$lib/components/reusable';
+	import { XIcon, ShieldCheck, CheckCircle2, AlertCircle } from '$lib/assets/icons';
+	import { fade, scale } from 'svelte/transition';
+	import { backOut } from 'svelte/easing';
+
+	interface Props {
+		orgName: string;
+		open: boolean;
+		onclose: () => void;
+		onconfirm: () => void;
+	}
+
+	const { orgName, open, onclose, onconfirm }: Props = $props();
+
+	const checklist = [
+		'KYB verification completed',
+		'Documents verified',
+		'Banking details confirmed',
+		'Compliance checklist signed-off'
+	];
+
+	function handleConfirm() {
+		onconfirm();
+		onclose();
+	}
+</script>
+
+{#if open}
+	<!-- Backdrop -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="activate-dialog-title"
+		in:fade={{ duration: 150 }}
+		out:fade={{ duration: 120 }}
+	>
+		<button
+			class="absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm"
+			onclick={onclose}
+			aria-label="Close dialog"
+			tabindex="-1"
+		></button>
+
+		<!-- Dialog panel -->
+		<div
+			class="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-background shadow-2xl
+			       ring-1 ring-border"
+			in:scale={{ start: 0.95, duration: 200, easing: backOut }}
+			out:scale={{ start: 0.95, duration: 150 }}
+		>
+			<!-- Header -->
+			<div class="relative overflow-hidden px-6 pt-6 pb-5">
+				<div class="gradient-soft absolute inset-0 opacity-50"></div>
+				<div class="gradient-primary absolute inset-y-0 left-0 w-0.5"></div>
+				<div class="relative flex items-start justify-between gap-3">
+					<div class="flex items-center gap-3">
+						<div
+							class="flex size-9 shrink-0 items-center justify-center rounded-xl
+							       bg-primary/15 text-primary ring-1 ring-primary/20"
+						>
+							<ShieldCheck class="size-4.5" />
+						</div>
+						<div>
+							<h2 id="activate-dialog-title" class="text-base font-semibold">
+								Activate organization
+							</h2>
+							<p class="mt-0.5 text-xs text-muted-foreground">Review checklist before confirming</p>
+						</div>
+					</div>
+					<button
+						onclick={onclose}
+						aria-label="Close"
+						class="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors
+						       hover:bg-muted hover:text-foreground"
+					>
+						<XIcon class="size-4" />
+					</button>
+				</div>
+			</div>
+
+			<!-- Body -->
+			<div class="px-6 pb-2">
+				<p class="text-sm text-muted-foreground">
+					You're about to activate
+					<span class="font-semibold text-foreground">{orgName}</span>. This will unlock production
+					access.
+				</p>
+
+				<!-- Checklist -->
+				<ul
+					class="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border
+					       bg-muted/20"
+				>
+					{#each checklist as item, i (i)}
+						<li class="flex items-center gap-3 px-4 py-3">
+							<CheckCircle2 class="size-4 shrink-0 text-success" />
+							<span class="text-sm">{item}</span>
+						</li>
+					{/each}
+				</ul>
+
+				<!-- Warning -->
+				<div
+					class="mt-4 flex items-start gap-2.5 rounded-xl border border-warning/25
+					       bg-warning/8 px-4 py-3"
+				>
+					<AlertCircle class="mt-0.5 size-4 shrink-0 text-warning" />
+					<p class="text-xs leading-relaxed text-warning">
+						Activation cannot be undone via this dialog. Use the suspend action to pause access
+						later.
+					</p>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="flex items-center justify-end gap-2.5 px-6 py-4">
+				<Button variant="ghost" onclick={onclose}>Cancel</Button>
+				<Button
+					class="gradient-primary text-primary-foreground shadow-sm hover:opacity-90"
+					onclick={handleConfirm}
+				>
+					<ShieldCheck class="size-4" />
+					Confirm activation
+				</Button>
+			</div>
+		</div>
+	</div>
+{/if}

@@ -28,7 +28,6 @@ export interface CreateOrganizationInput {
 	orgEmail: string;
 	orgBusinessType: string;
 	selectedServiceTypes: string[];
-	servicePipelines: Record<string, string>;
 }
 
 export function validateCreateOrganization(input: CreateOrganizationInput): Record<string, string> {
@@ -48,15 +47,9 @@ export function validateCreateOrganization(input: CreateOrganizationInput): Reco
 		}
 	}
 
-	if (input.selectedCategory === 'Merchant') {
+	if (input.selectedCategory === 'MERCHANT') {
 		if (input.selectedServiceTypes.length === 0) {
 			e.serviceTypes = 'Select at least one service type';
-		}
-
-		for (const serviceType of input.selectedServiceTypes) {
-			if (!input.servicePipelines[serviceType]) {
-				e[`bankPipeline_${serviceType}`] = 'Select a bank pipeline';
-			}
 		}
 	}
 

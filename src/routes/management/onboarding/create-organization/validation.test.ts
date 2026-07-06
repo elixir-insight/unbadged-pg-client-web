@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { firstValidationError, validateCreateOrganization } from './validation';
 
 const validBase = {
-	selectedCategory: 'Merchant' as const,
+	selectedCategory: 'MERCHANT' as const,
 	orgName: 'Acme Inc',
 	orgPhone: '9876543210',
 	orgEmail: 'acme@example.com',
-	orgBusinessType: 'Private Limited',
-	selectedServiceTypes: ['Pay-Ins'],
-	servicePipelines: { 'Pay-Ins': 'HDFC Bank' }
+	orgBusinessType: 'PRIVATE_LIMITED',
+	selectedServiceTypes: ['Pay-Ins']
 };
 
 describe('validateCreateOrganization', () => {
@@ -20,9 +19,8 @@ describe('validateCreateOrganization', () => {
 	it('returns no merchant-specific errors for a valid partner payload', () => {
 		const errors = validateCreateOrganization({
 			...validBase,
-			selectedCategory: 'Partner',
-			selectedServiceTypes: [],
-			servicePipelines: {}
+			selectedCategory: 'PARTNER',
+			selectedServiceTypes: []
 		});
 
 		expect(errors).toEqual({});
@@ -43,21 +41,10 @@ describe('validateCreateOrganization', () => {
 	it('requires at least one service type for merchants', () => {
 		const errors = validateCreateOrganization({
 			...validBase,
-			selectedServiceTypes: [],
-			servicePipelines: {}
+			selectedServiceTypes: []
 		});
 
 		expect(errors.serviceTypes).toBe('Select at least one service type');
-	});
-
-	it('requires a bank pipeline for each enabled merchant service type', () => {
-		const errors = validateCreateOrganization({
-			...validBase,
-			selectedServiceTypes: ['Pay-Ins', 'Payouts'],
-			servicePipelines: { 'Pay-Ins': 'HDFC Bank' }
-		});
-
-		expect(errors['bankPipeline_Payouts']).toBe('Select a bank pipeline');
 	});
 
 	it('returns the first validation error message', () => {

@@ -1,7 +1,8 @@
 import { ArrowDownToLine, ArrowUpFromLine } from '$lib/assets/icons';
+import { BUSINESS_TYPES, ORG_CATEGORIES, type OrgCategory } from '$lib/utils/status_rename';
 
 export type Mode = 'manual' | 'surepass';
-export type ClientType = 'Merchant' | 'Partner';
+export type ClientType = OrgCategory;
 
 export const modeOrder: Record<Mode, number> = { manual: 0, surepass: 1 };
 
@@ -46,7 +47,8 @@ export const modes = {
 	}
 } as const;
 
-export const businessTypes = ['Sole Proprietorship', 'Partnership', 'LLP', 'Private Limited'];
+export const businessTypes = [...BUSINESS_TYPES];
+export const clientCategories = [...ORG_CATEGORIES];
 
 export const availableServiceTypes = [
 	{ value: 'Pay-Ins', label: 'Pay-Ins', icon: ArrowDownToLine, desc: 'Accept incoming payments' },
@@ -56,6 +58,15 @@ export const availableServiceTypes = [
 		icon: ArrowUpFromLine,
 		desc: 'Disburse outgoing payments'
 	}
+];
+
+export const availableAffiliates = [
+	{ value: '1001', label: '1001 – HDFC Merchant Services' },
+	{ value: '1002', label: '1002 – HDFC Digital Partner' },
+	{ value: '1003', label: '1003 – ICICI eCollect' },
+	{ value: '1004', label: '1004 – ICICI MerchantPay' },
+	{ value: '1005', label: '1005 – SBI ePay' },
+	{ value: '1006', label: '1006 – Axis PG Solutions' }
 ];
 
 export const availableBankPipelines = [
