@@ -1,9 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { cn } from '$lib/utils';
-	import { Chip, Dropdown, Table } from '$lib/components/reusable';
+	import {
+		Chip,
+		Dropdown,
+		Table,
+		RangeCalendar,
+		SearchField,
+		Calendar
+	} from '$lib/components/reusable';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
-	import type { DropdownOption } from '$lib/components/reusable';
+	import type { DropdownOption, SearchFieldOption } from '$lib/components/reusable';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import type { Snippet } from 'svelte';
 	import type { ColumnDef } from '@tanstack/table-core';
@@ -17,12 +24,12 @@
 		Info,
 		X,
 		Landmark,
-		Calendar,
 		CreditCard,
 		PhoneIcon,
-		ArrowUpDown,
-		Search as SearchIcon
+		ArrowUpDown
 	} from '$lib/assets/icons';
+	import type { DateRange } from 'bits-ui';
+	import { CalendarDate } from '@internationalized/date';
 	import {
 		merchants,
 		virtualAccounts,
@@ -64,7 +71,6 @@
 	const urlValue = $derived(page.url.searchParams.get('value') ?? '');
 	const urlStatus = $derived(page.url.searchParams.get('status') ?? '');
 	const urlPayment = $derived(page.url.searchParams.get('payment') ?? '');
-	const urlDateRange = $derived(page.url.searchParams.get('dateRange') ?? 'last30');
 	const urlCustomFrom = $derived(page.url.searchParams.get('customFrom') ?? '');
 	const urlCustomTo = $derived(page.url.searchParams.get('customTo') ?? '');
 	const urlMerchantId = $derived(page.url.searchParams.get('merchant') ?? merchants[0]?.id ?? '');
@@ -78,7 +84,7 @@
 
 	// ── Local state ───────────────────────────────────────────────────────────
 	let activitySearchInput = $state(page.url.searchParams.get('value') ?? '');
-	let dateDropdownOpen = $state(false);
+	let activityField = $state(page.url.searchParams.get('filter') ?? 'crn');
 	let selectedRefund = $state<Refund | null>(null);
 	let detailsOpen = $state(false);
 	let createRefundOpen = $state(false);
@@ -88,8 +94,7 @@
 	const maxRemarks = 250;
 	let copiedField = $state<string | null>(null);
 	let reportDrawerOpen = $state(false);
-	let reportFrom = $state('');
-	let reportTo = $state('');
+	let reportDateRange = $state<DateRange>({ start: undefined, end: undefined });
 	let reportStatuses = $state<string[]>([]);
 	let reportPayments = $state<string[]>([]);
 	let reportFormat = $state<'csv' | 'xlsx'>('csv');
@@ -119,17 +124,20 @@
 	// ── Derived display values ────────────────────────────────────────────────
 	// const vaDisplayName = $derived(selectedVA ? `Va ${selectedVA.id.replace('VA', '').padStart(3, '0')}` : '');
 
-	const searchPlaceholder = $derived(
-		urlFilter === 'utr'
-			? 'Enter UTR'
-			: urlFilter === 'customerName'
-				? 'Enter Payee Name'
-				: urlFilter === 'refundId'
-					? 'Enter Refund ID'
-					: 'Enter CRN'
-	);
+	function parseUrlDate(s: string): CalendarDate | undefined {
+		if (!s) return undefined;
+		const [y, m, d] = s.split('-').map(Number);
+		return y && m && d ? new CalendarDate(y, m, d) : undefined;
+	}
 
-	const reportValid = $derived(reportFrom !== '' && reportTo !== '' && reportFrom <= reportTo);
+	const rangeCalendarValue = $derived({
+		start: parseUrlDate(urlCustomFrom),
+		end: parseUrlDate(urlCustomTo)
+	});
+
+	const reportFrom = $derived(reportDateRange.start?.toString() ?? '');
+	const reportTo = $derived(reportDateRange.end?.toString() ?? '');
+	const reportValid = $derived(reportFrom !== '' && reportTo !== '');
 
 	const refundValid = $derived(
 		refundType === 'Full' ||
@@ -209,25 +217,35 @@
 
 	function resetActivity() {
 		activitySearchInput = '';
+		activityField = 'crn';
 		updateParams({
 			skip: '0',
 			filter: 'crn',
 			value: null,
 			status: null,
 			payment: null,
-			dateRange: 'last30',
+			dateRange: null,
 			customFrom: null,
 			customTo: null
 		});
 	}
 
 	function resetReport() {
-		reportFrom = '';
-		reportTo = '';
+		reportDateRange = { start: undefined, end: undefined };
 		reportStatuses = [];
 		reportPayments = [];
 		reportFormat = 'csv';
 		reportEmail = '';
+	}
+
+	function handleActivitySearch(newField: string, newValue: string) {
+		if (newField !== activityField) {
+			activityField = newField;
+			activitySearchInput = '';
+			updateParams({ filter: newField, value: null, skip: '0' });
+		} else {
+			activitySearchInput = newValue;
+		}
 	}
 
 	function openDetails(r: Refund) {
@@ -325,16 +343,7 @@
 		];
 	}
 
-	// ── Dropdown options ──────────────────────────────────────────────────────
-	const extendedDateOptions = [
-		{ value: 'today', label: 'Today' },
-		{ value: 'yesterday', label: 'Yesterday' },
-		{ value: 'last7', label: 'Last 7 days' },
-		{ value: 'last30', label: 'Last 30 days' },
-		{ value: 'thisMonth', label: 'This month' },
-		{ value: 'lastMonth', label: 'Last month' },
-		{ value: 'custom', label: 'Custom range' }
-	];
+	// ── Dropdown / search options ─────────────────────────────────────────────
 	const refundStatusOptions: DropdownOption[] = [
 		{ value: 'pending', label: 'Pending' },
 		{ value: 'processing', label: 'Processing' },
@@ -347,16 +356,12 @@
 		{ value: 'Net Banking', label: 'Net Banking' },
 		{ value: 'Card', label: 'Card' }
 	];
-	const searchTypeOptions: DropdownOption[] = [
-		{ value: 'crn', label: 'CRN' },
-		{ value: 'utr', label: 'UTR' },
-		{ value: 'customerName', label: 'Payee Name' },
-		{ value: 'refundId', label: 'Refund ID' }
+	const searchFieldOptions: SearchFieldOption[] = [
+		{ value: 'crn', label: 'CRN', placeholder: 'Enter CRN...' },
+		{ value: 'utr', label: 'UTR', placeholder: 'Enter UTR...' },
+		{ value: 'customerName', label: 'Payee Name', placeholder: 'Enter Payee Name...' },
+		{ value: 'refundId', label: 'Refund ID', placeholder: 'Enter Refund ID...' }
 	];
-
-	const selectedDateLabel = $derived(
-		extendedDateOptions.find((o) => o.value === urlDateRange)?.label ?? 'Last 30 days'
-	);
 </script>
 
 <!-- ── Activity View ─────────────────────────────────────────────────────── -->
@@ -401,81 +406,15 @@
 		/>
 
 		<!-- Date Range -->
-		<div class="relative">
-			<button
-				onclick={() => (dateDropdownOpen = !dateDropdownOpen)}
-				class="flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-background px-3 text-sm text-foreground transition-colors hover:bg-accent"
-			>
-				<Calendar class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-				<span>{selectedDateLabel}</span>
-				<svg
-					class="h-3.5 w-3.5 text-muted-foreground"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg
-				>
-			</button>
-			{#if dateDropdownOpen}
-				<button
-					class="fixed inset-0 z-20"
-					onclick={() => (dateDropdownOpen = false)}
-					aria-label="Close date menu"
-				></button>
-				<div
-					class="absolute left-0 top-full z-30 mt-1 min-w-44 overflow-hidden rounded-lg border border-border/50 bg-background py-1 shadow-lg"
-				>
-					{#each extendedDateOptions as opt (opt.value)}
-						<button
-							onclick={() => {
-								updateParams({
-									dateRange: opt.value,
-									customFrom: null,
-									customTo: null,
-									skip: '0'
-								});
-								if (opt.value !== 'custom') dateDropdownOpen = false;
-							}}
-							class={cn(
-								'flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-accent',
-								urlDateRange === opt.value && 'font-medium text-primary'
-							)}
-						>
-							{opt.label}
-							{#if urlDateRange === opt.value && opt.value !== 'custom'}<Check
-									class="h-3.5 w-3.5 text-primary"
-								/>{/if}
-						</button>
-					{/each}
-					{#if urlDateRange === 'custom'}
-						<div class="border-t border-border/30 px-3 pb-3 pt-2">
-							<label for="date-from" class="block text-xs font-medium text-muted-foreground"
-								>From</label
-							>
-							<input
-								id="date-from"
-								type="date"
-								value={urlCustomFrom}
-								onchange={(e) => updateParams({ customFrom: e.currentTarget.value || null })}
-								class="mt-1 h-8 w-full rounded border border-border/60 bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
-							/>
-							<label for="date-to" class="mt-2 block text-xs font-medium text-muted-foreground"
-								>To</label
-							>
-							<input
-								id="date-to"
-								type="date"
-								value={urlCustomTo}
-								min={urlCustomFrom}
-								onchange={(e) => updateParams({ customTo: e.currentTarget.value || null })}
-								class="mt-1 h-8 w-full rounded border border-border/60 bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
-							/>
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</div>
+		<RangeCalendar
+			value={rangeCalendarValue}
+			onApply={(range) =>
+				updateParams({
+					customFrom: range.start?.toString() ?? null,
+					customTo: range.end?.toString() ?? null,
+					skip: '0'
+				})}
+		/>
 
 		<button
 			onclick={resetActivity}
@@ -486,32 +425,13 @@
 
 		<div class="flex-1"></div>
 
-		<Dropdown
-			value={urlFilter}
-			options={searchTypeOptions}
-			placeholder="CRN"
-			size="sm"
-			bordered
-			class="w-32"
-			onValueChange={(v) => {
-				updateParams({ filter: v, value: null, skip: '0' });
-				activitySearchInput = '';
-			}}
+		<SearchField
+			fields={searchFieldOptions}
+			bind:field={activityField}
+			bind:value={activitySearchInput}
+			onSearch={handleActivitySearch}
+			class="min-w-72"
 		/>
-		<label
-			class="relative flex h-9 min-w-56 cursor-text items-center rounded-full border border-border/60 bg-background focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10"
-		>
-			<SearchIcon
-				class="pointer-events-none absolute left-3.5 h-4 w-4 shrink-0 text-muted-foreground"
-			/>
-			<input
-				value={activitySearchInput}
-				oninput={(e) => (activitySearchInput = e.currentTarget.value)}
-				placeholder={searchPlaceholder}
-				type="text"
-				class="h-full w-full rounded-full bg-transparent pl-10 pr-4 text-sm outline-none placeholder:text-muted-foreground/60"
-			/>
-		</label>
 
 		<button
 			onclick={() => {
@@ -536,30 +456,7 @@
 	{/snippet}
 
 	{#snippet statusCell({ value }: { value: string })}
-		<span
-			class={cn(
-				'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-				value === 'success' &&
-					'bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-400',
-				value === 'failed' && 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400',
-				value === 'pending' &&
-					'bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
-				value === 'processing' && 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
-				value === 'rejected' && 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400'
-			)}
-		>
-			<span
-				class={cn(
-					'h-1.5 w-1.5 shrink-0 rounded-full',
-					value === 'success' && 'bg-green-500',
-					value === 'failed' && 'bg-red-500',
-					value === 'pending' && 'bg-orange-500',
-					value === 'processing' && 'bg-blue-500',
-					value === 'rejected' && 'bg-gray-400'
-				)}
-			></span>
-			{statusLabel(value)}
-		</span>
+		<Chip variant={statusVariant(value)}>{statusLabel(value)}</Chip>
 	{/snippet}
 
 	{#snippet paymentCell({ value }: { value: string })}
@@ -969,43 +866,7 @@
 								>Required</span
 							>{/if}
 					</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div class="space-y-1">
-							<label for="report-from" class="text-xs font-medium text-muted-foreground">From</label
-							>
-							<input
-								id="report-from"
-								type="date"
-								bind:value={reportFrom}
-								class={cn(
-									'h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10',
-									!reportFrom && reportTo
-										? 'border-red-400/60'
-										: 'border-border/60 focus:border-primary/50'
-								)}
-							/>
-						</div>
-						<div class="space-y-1">
-							<label for="report-to" class="text-xs font-medium text-muted-foreground">To</label>
-							<input
-								id="report-to"
-								type="date"
-								bind:value={reportTo}
-								min={reportFrom}
-								class={cn(
-									'h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10',
-									reportFrom && !reportTo
-										? 'border-red-400/60'
-										: 'border-border/60 focus:border-primary/50'
-								)}
-							/>
-						</div>
-					</div>
-					{#if reportFrom && reportTo && reportFrom > reportTo}<p
-							class="flex items-center gap-1 text-xs text-red-500"
-						>
-							<AlertCircle class="h-3 w-3" /> "To" date must be after "From" date
-						</p>{/if}
+					<Calendar bind:value={reportDateRange} placeholder="Select date range" />
 				</div>
 				<div class="space-y-3">
 					<p class="text-sm font-medium text-foreground">

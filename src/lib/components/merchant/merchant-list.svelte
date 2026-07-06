@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { cn } from '$lib/utils';
-	import { Chip, Dropdown, Table } from '$lib/components/reusable';
+	import { Chip, Dropdown, Table, Search } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import type { Snippet } from 'svelte';
@@ -51,10 +51,11 @@
 	const urlMSearch = $derived(page.url.searchParams.get('msearch') ?? '');
 	const urlMerchantId = $derived(page.url.searchParams.get('merchant') ?? merchants[0]?.id ?? '');
 	const urlVaId = $derived(page.url.searchParams.get('va') ?? '');
+	const urlVaSearch = $derived(page.url.searchParams.get('vasearch') ?? '');
 
 	// ── Local state ───────────────────────────────────────────────────────────
 	let merchantSearchInput = $state(page.url.searchParams.get('msearch') ?? '');
-	let vaSearch = $state('');
+	let vaSearchInput = $state(page.url.searchParams.get('vasearch') ?? '');
 	let copiedField = $state<string | null>(null);
 
 	// ── Derived entities ──────────────────────────────────────────────────────
@@ -82,7 +83,7 @@
 		virtualAccounts
 			.filter((va) => va.merchantId === selectedMerchant?.id)
 			.filter((va) => {
-				const q = vaSearch.toLowerCase();
+				const q = urlVaSearch.toLowerCase();
 				return (
 					!q || va.bankName.toLowerCase().includes(q) || va.accountNumber.toLowerCase().includes(q)
 				);
@@ -94,14 +95,18 @@
 		if (val !== urlMSearch) updateParams({ msearch: val || null, mskip: '0' });
 	}, 350);
 
+	const searchVAs = debounce((val: string) => {
+		if (val !== urlVaSearch) updateParams({ vasearch: val || null });
+	}, 350);
+
 	$effect(() => {
 		searchMerchants(merchantSearchInput);
 	});
 
 	// ── Handlers ──────────────────────────────────────────────────────────────
 	function selectMerchant(m: (typeof merchants)[0]) {
-		vaSearch = '';
-		updateParams({ merchant: m.id, mskip: '0' });
+		vaSearchInput = '';
+		updateParams({ merchant: m.id, mskip: '0', vasearch: null });
 	}
 
 	function openActivity(va: (typeof virtualAccounts)[0]) {
@@ -115,7 +120,7 @@
 				value: null,
 				status: null,
 				payment: null,
-				dateRange: 'last30',
+				dateRange: null,
 				customFrom: null,
 				customTo: null
 			},
@@ -125,7 +130,8 @@
 
 	function resetLanding() {
 		merchantSearchInput = '';
-		updateParams({ mstatus: null, msearch: null, mskip: '0' });
+		vaSearchInput = '';
+		updateParams({ mstatus: null, msearch: null, mskip: '0', vasearch: null });
 	}
 
 	async function copyToClipboard(text: string, field: string) {
@@ -356,16 +362,12 @@
 
 			{#if selectedMerchant}
 				<div class="shrink-0 border-b border-border/30 px-4 py-2.5">
-					<div class="relative flex items-center">
-						<SearchIcon
-							class="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground"
-						/>
-						<input
-							bind:value={vaSearch}
-							placeholder="Search by bank or account number..."
-							class="h-8 w-full rounded-lg border border-border/60 bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
-						/>
-					</div>
+					<Search
+						bind:value={vaSearchInput}
+						placeholder="Search by bank or account number..."
+						variant="bordered"
+						oninput={(e) => searchVAs((e.target as HTMLInputElement).value)}
+					/>
 				</div>
 
 				<div class="min-h-0 flex-1 overflow-auto p-4">
