@@ -133,7 +133,7 @@
 	}
 
 	function openOrg(org: OrganizationData) {
-		goto(resolve('/management/onboarding/[orgId]', { orgId: String(org.orgId) }));
+		goto(resolve('/management/onboarding/[orgId]/kyb', { orgId: String(org.orgId) }));
 	}
 </script>
 

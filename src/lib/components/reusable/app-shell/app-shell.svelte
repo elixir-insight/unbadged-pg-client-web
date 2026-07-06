@@ -91,9 +91,11 @@
 <div class="flex h-screen overflow-hidden bg-background">
 	<Sidebar {app} bind:isMobileOpen />
 
-	<main class="flex min-w-0 flex-1 flex-col overflow-y-auto bg-background md:bg-muted md:p-4">
+	<main
+		class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:bg-muted md:p-4"
+	>
 		<div
-			class="flex h-full flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
+			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
 			<header
 				class={`flex h-14 shrink-0 items-center gap-3 border-b border-border px-4${isDashboard ? ' md:hidden' : ''}`}
@@ -112,7 +114,7 @@
 				{/if}
 			</header>
 
-			<div class="app-shell-content flex-1 overflow-y-auto p-5">
+			<div class="app-shell-content min-h-0 flex-1 overflow-y-auto p-5">
 				{@render children()}
 			</div>
 		</div>

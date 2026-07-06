@@ -2,7 +2,7 @@
 	import * as v from 'valibot';
 	import { Button, Input, FileUpload } from '$lib/components/reusable';
 	import * as Select from '$lib/components/ui/select';
-	import { scale, fly, slide } from 'svelte/transition';
+	import { scale, fly } from 'svelte/transition';
 	import { backOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
 	import { buildKybSchema, flattenIssues } from '$lib/validation/onboarding';
@@ -12,11 +12,11 @@
 		CheckIcon,
 		Trash2Icon,
 		PlusIcon,
-		ChevronDown,
 		Globe,
 		Users,
 		ArrowRight
 	} from '$lib/assets/icons';
+	import Card from './Card.svelte';
 
 	export interface Director {
 		id: number;
@@ -116,47 +116,8 @@
 
 	function handleSaveAndContinue() {
 		submitAttempted = true;
-		if (!validate()) {
-			if (
-				errors.address ||
-				errors.stateVal ||
-				errors.city ||
-				errors.pinCode ||
-				errors.communicationAddress
-			) {
-				kybSections = kybSections.includes('location') ? kybSections : [...kybSections, 'location'];
-			}
-			if (
-				errors.businessPan ||
-				errors.companyGst ||
-				errors.cinNumber ||
-				errors.tanNumber ||
-				errors.registeredYear ||
-				errors.industry
-			) {
-				kybSections = kybSections.includes('registration')
-					? kybSections
-					: [...kybSections, 'registration'];
-			}
-			if (errors.companyPhone || errors.companyWebsite) {
-				kybSections = kybSections.includes('contact') ? kybSections : [...kybSections, 'contact'];
-			}
-			if (Object.keys(errors).some((k) => k.startsWith('directors.'))) {
-				kybSections = kybSections.includes('directors')
-					? kybSections
-					: [...kybSections, 'directors'];
-			}
-			return;
-		}
+		if (!validate()) return;
 		onnext();
-	}
-
-	// ── Accordion state ───────────────────────────────────────────────
-	let kybSections = $state(['location', 'registration']);
-
-	const isKybOpen = (id: string) => kybSections.includes(id);
-	function toggleKybSection(id: string) {
-		kybSections = isKybOpen(id) ? kybSections.filter((s) => s !== id) : [...kybSections, id];
 	}
 
 	$effect(() => {
@@ -285,64 +246,51 @@
 	}
 </script>
 
-<div in:fly={{ y: 10, duration: 220 }} class="space-y-2.5">
-	<!-- Header -->
-	<div
-		class="flex items-center gap-3 rounded-2xl border border-border/40 bg-background/80 px-5 py-4 shadow-sm backdrop-blur-sm"
-	>
-		<div
-			class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-		>
-			<Building2 class="size-4.5" />
-		</div>
-		<div class="min-w-0 flex-1">
-			<p class="text-base leading-none font-semibold">Know Your Business</p>
-			<p class="mt-0.5 text-xs text-muted-foreground">
-				Complete all sections to verify your business identity
-			</p>
-		</div>
-	</div>
-
-	<!-- ① Address & Location -->
-	<div
-		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
-	>
-		<button
-			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
-			onclick={() => toggleKybSection('location')}
-			aria-expanded={isKybOpen('location')}
-		>
-			<div class="flex min-w-0 items-center gap-3">
-				<div
-					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-				>
-					<Building2 class="size-4" />
+<div in:fly={{ y: 10, duration: 220 }} class="space-y-3">
+	<Card class="bg-background">
+		{#snippet header()}
+			<div class="flex items-center justify-between gap-3">
+				<div class="flex items-center gap-3">
+					<div
+						class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+					>
+						<Building2 class="size-4.5" />
+					</div>
+					<div class="min-w-0 flex-1">
+						<p class="text-base leading-none font-semibold">Know Your Business</p>
+						<p class="mt-0.5 text-xs text-muted-foreground">
+							Complete all sections to verify your business identity
+						</p>
+					</div>
 				</div>
-				<div class="min-w-0">
-					<p class="text-sm font-semibold">Address & Location</p>
-					<p class="text-xs text-muted-foreground">Registered address and region</p>
-				</div>
-			</div>
-			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-				{#if locationMissing}
+				{#if !allMandatoryFilled}
 					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+						class="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
 					>
 						Required fields missing
 					</span>
 				{/if}
-				<ChevronDown
-					class={cn(
-						'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
-						isKybOpen('location') && 'rotate-180'
-					)}
-				/>
 			</div>
-		</button>
+		{/snippet}
+	</Card>
 
-		{#if isKybOpen('location')}
-			<div transition:slide={{ duration: 220 }}>
-				<div class="space-y-4 border-t border-border/30 px-5 pt-4 pb-5">
+	<Card class="overflow-hidden bg-background">
+		<div class="-mx-6 -my-4 divide-y divide-border/30">
+			<!-- Address & Location -->
+			<section class="px-6 py-5">
+				<div class="mb-6 flex items-center gap-2.5">
+					<div
+						class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
+					>
+						<Building2 class="size-3.5" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">Address & Location</p>
+						<p class="text-xs text-muted-foreground">Registered address and region</p>
+					</div>
+				</div>
+
+				<div class="space-y-4">
 					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div class="flex flex-col gap-3">
 							<label class="text-sm font-medium" for="kyb-address"
@@ -466,50 +414,23 @@
 						</div>
 					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			</section>
 
-	<!-- ② Business Registration -->
-	<div
-		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
-	>
-		<button
-			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
-			onclick={() => toggleKybSection('registration')}
-			aria-expanded={isKybOpen('registration')}
-		>
-			<div class="flex min-w-0 items-center gap-3">
-				<div
-					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-				>
-					<FileText class="size-4" />
-				</div>
-				<div class="min-w-0">
-					<p class="text-sm font-semibold">Business Registration</p>
-					<p class="text-xs text-muted-foreground">PAN, GST, CIN, TAN and more</p>
-				</div>
-			</div>
-			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-				{#if registrationMissing}
-					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+			<!-- Business Registration -->
+			<section class="px-6 py-5">
+				<div class="mb-6 flex items-center gap-2.5">
+					<div
+						class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
 					>
-						Required fields missing
-					</span>
-				{/if}
-				<ChevronDown
-					class={cn(
-						'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
-						isKybOpen('registration') && 'rotate-180'
-					)}
-				/>
-			</div>
-		</button>
+						<FileText class="size-3.5" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">Business Registration</p>
+						<p class="text-xs text-muted-foreground">PAN, GST, CIN, TAN and more</p>
+					</div>
+				</div>
 
-		{#if isKybOpen('registration')}
-			<div transition:slide={{ duration: 220 }}>
-				<div class="space-y-4 border-t border-border/30 px-5 pt-4 pb-5">
+				<div class="space-y-4">
 					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div class="flex flex-col gap-3">
 							<label class="text-sm font-medium" for="kyb-pan"
@@ -627,50 +548,23 @@
 						</div>
 					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			</section>
 
-	<!-- ③ Contact & Branding -->
-	<div
-		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
-	>
-		<button
-			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
-			onclick={() => toggleKybSection('contact')}
-			aria-expanded={isKybOpen('contact')}
-		>
-			<div class="flex min-w-0 items-center gap-3">
-				<div
-					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-				>
-					<Globe class="size-4" />
-				</div>
-				<div class="min-w-0">
-					<p class="text-sm font-semibold">Contact & Branding</p>
-					<p class="text-xs text-muted-foreground">Phone, website and company logo</p>
-				</div>
-			</div>
-			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-				{#if contactMissing}
-					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+			<!-- Contact & Branding -->
+			<section class="px-6 py-5">
+				<div class="mb-6 flex items-center gap-2.5">
+					<div
+						class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
 					>
-						Required fields missing
-					</span>
-				{/if}
-				<ChevronDown
-					class={cn(
-						'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
-						isKybOpen('contact') && 'rotate-180'
-					)}
-				/>
-			</div>
-		</button>
+						<Globe class="size-3.5" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">Contact & Branding</p>
+						<p class="text-xs text-muted-foreground">Phone, website and company logo</p>
+					</div>
+				</div>
 
-		{#if isKybOpen('contact')}
-			<div transition:slide={{ duration: 220 }}>
-				<div class="space-y-4 border-t border-border/30 px-5 pt-4 pb-5">
+				<div class="space-y-4">
 					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div class="flex flex-col gap-3">
 							<label class="text-sm font-medium" for="kyb-phone"
@@ -722,53 +616,26 @@
 						/>
 					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			</section>
 
-	<!-- ④ Directors & Signatories -->
-	<div
-		class="overflow-hidden rounded-2xl border border-border/40 bg-background/80 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
-	>
-		<button
-			class="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
-			onclick={() => toggleKybSection('directors')}
-			aria-expanded={isKybOpen('directors')}
-		>
-			<div class="flex min-w-0 items-center gap-3">
-				<div
-					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-				>
-					<Users class="size-4" />
-				</div>
-				<div class="min-w-0">
-					<p class="text-sm font-semibold">Directors & Signatories</p>
-					<p class="text-xs text-muted-foreground">
-						{directors.length}
-						{directors.length === 1 ? 'director' : 'directors'} added
-					</p>
-				</div>
-			</div>
-			<div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-				{#if directorsMissing}
-					<span
-						class="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+			<!-- Directors & Signatories -->
+			<section class="px-6 py-5">
+				<div class="mb-6 flex items-center gap-2.5">
+					<div
+						class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
 					>
-						Required fields missing
-					</span>
-				{/if}
-				<ChevronDown
-					class={cn(
-						'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
-						isKybOpen('directors') && 'rotate-180'
-					)}
-				/>
-			</div>
-		</button>
+						<Users class="size-3.5" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">Directors & Signatories</p>
+						<p class="text-xs text-muted-foreground">
+							{directors.length}
+							{directors.length === 1 ? 'director' : 'directors'} added
+						</p>
+					</div>
+				</div>
 
-		{#if isKybOpen('directors')}
-			<div transition:slide={{ duration: 220 }}>
-				<div class="space-y-4 border-t border-border/30 px-5 pt-4 pb-5">
+				<div class="space-y-4">
 					<div class="space-y-4">
 						{#each directors as director, i (director.id)}
 							<div class="space-y-3" in:fly={{ y: 6, duration: 200 }}>
@@ -877,23 +744,22 @@
 						Add Director
 					</button>
 				</div>
-			</div>
-		{/if}
-	</div>
+			</section>
+		</div>
 
-	<!-- Actions bar -->
-	<div
-		class="flex items-center justify-end rounded-2xl border border-border/40 bg-background/80 px-5 py-3.5 shadow-sm backdrop-blur-sm"
-	>
-		<Button variant="ghost" size="sm" onclick={clearKyb}>Clear all</Button>
-		<Button
-			size="sm"
-			class="gradient-primary text-primary-foreground"
-			onclick={handleSaveAndContinue}
-			disabled={!canSave}
-		>
-			Save & continue
-			<ArrowRight class="size-4" />
-		</Button>
-	</div>
+		{#snippet footer()}
+			<div class="flex w-full items-center justify-end gap-2 border-t border-border pt-4">
+				<Button variant="ghost" size="sm" onclick={clearKyb}>Clear all</Button>
+				<Button
+					size="sm"
+					class="gradient-primary text-primary-foreground"
+					onclick={handleSaveAndContinue}
+					disabled={!canSave}
+				>
+					Save & continue
+					<ArrowRight class="size-4" />
+				</Button>
+			</div>
+		{/snippet}
+	</Card>
 </div>

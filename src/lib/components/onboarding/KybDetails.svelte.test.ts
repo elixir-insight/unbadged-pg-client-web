@@ -25,7 +25,7 @@ describe('KybDetails', () => {
 		await expect.element(screen.getByText('Directors & Signatories')).toBeVisible();
 	});
 
-	it('shows required fields missing indicators for incomplete sections', async () => {
+	it('shows a single required fields missing indicator when incomplete', async () => {
 		const screen = render(KybDetails, baseProps());
 
 		const indicators = screen.container.querySelectorAll('span');
@@ -33,7 +33,7 @@ describe('KybDetails', () => {
 			el.textContent?.includes('Required fields missing')
 		);
 
-		expect(missingLabels.length).toBeGreaterThan(0);
+		expect(missingLabels.length).toBe(1);
 	});
 
 	it('disables Save & continue until the form is complete', async () => {
@@ -42,10 +42,8 @@ describe('KybDetails', () => {
 		await expect.element(screen.getByRole('button', { name: /Save & continue/i })).toBeDisabled();
 	});
 
-	it('expands the contact section when its header is clicked', async () => {
+	it('shows contact fields by default', async () => {
 		const screen = render(KybDetails, baseProps());
-
-		await screen.getByRole('button', { name: /Contact & Branding/i }).click();
 
 		await expect.element(screen.getByLabelText(/^Company Phone/i)).toBeVisible();
 		await expect.element(screen.getByLabelText(/^Website URL/i)).toBeVisible();
@@ -54,7 +52,6 @@ describe('KybDetails', () => {
 	it('adds another director when Add Director is clicked', async () => {
 		const screen = render(KybDetails, baseProps());
 
-		await screen.getByRole('button', { name: /Directors & Signatories/i }).click();
 		await screen.getByRole('button', { name: /Add Director/i }).click();
 
 		await expect.element(screen.getByText('2. Director')).toBeVisible();
@@ -62,8 +59,6 @@ describe('KybDetails', () => {
 
 	it('shows CIN and TAN as required for private limited businesses', async () => {
 		const screen = render(KybDetails, baseProps({ businessType: 'PRIVATE_LIMITED' }));
-
-		await screen.getByRole('button', { name: /Business Registration/i }).click();
 
 		const cinLabel = screen.container.querySelector('label[for="kyb-cin"]');
 		const tanLabel = screen.container.querySelector('label[for="kyb-tan"]');

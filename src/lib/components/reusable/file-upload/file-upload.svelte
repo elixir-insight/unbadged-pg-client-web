@@ -75,7 +75,7 @@
 	{:else}
 		<label
 			class={cn(
-				'flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-2.5 transition-all duration-200',
+				'relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-2.5 transition-all duration-200',
 				isDragOver
 					? 'border-primary/60 bg-primary/6'
 					: 'border-muted-foreground/25 bg-muted/20 hover:border-primary/40 hover:bg-primary/3',
