@@ -115,7 +115,7 @@
 	}
 
 	$effect(() => {
-		if (org) {
+		if (org && orgState.orgStatusOverride === null) {
 			orgState.baseStatus = org.status;
 		}
 	});
@@ -144,7 +144,7 @@
 </script>
 
 {#if org}
-	<div class="-m-5 flex min-h-full w-full flex-col">
+	<div data-app-shell-bleed class="-m-5 flex min-h-full flex-col">
 		<div class="sticky top-0 z-10 bg-background">
 			<div class="relative overflow-hidden" style="background: var(--gradient-card)">
 				<div class="gradient-primary absolute inset-x-0 top-0 h-0.5"></div>

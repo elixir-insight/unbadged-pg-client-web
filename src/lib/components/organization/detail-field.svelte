@@ -6,18 +6,25 @@
 		label,
 		value,
 		class: className,
-		mono = false
+		mono = false,
+		spanFull = false
 	}: {
 		label: string;
 		value: string | number | null | undefined;
 		class?: string;
 		mono?: boolean;
+		spanFull?: boolean;
 	} = $props();
 </script>
 
-<div class={cn('flex flex-col gap-1.5 py-3', className)}>
-	<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-	<p class={cn('text-sm font-medium text-foreground', mono && 'font-mono tracking-wide')}>
+<div class={cn('flex items-start gap-x-4 py-0.5', spanFull && 'lg:col-span-2', className)}>
+	<dt class="w-[9.5rem] shrink-0 pt-0.5 text-xs font-medium text-muted-foreground">{label}</dt>
+	<dd
+		class={cn(
+			'min-w-0 flex-1 text-sm font-medium break-words text-foreground',
+			mono && 'font-mono tracking-wide'
+		)}
+	>
 		{displayValue(value)}
-	</p>
+	</dd>
 </div>

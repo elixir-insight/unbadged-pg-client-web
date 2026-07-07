@@ -7,7 +7,11 @@ export { default as Chip } from './chip/chip.svelte';
 export { default as Drawer } from './drawer/drawer.svelte';
 export { default as StatusBadge } from './status-badge/status-badge.svelte';
 export type { VAStatus } from './status-badge/status-badge.svelte';
-export { vaStatusConfig } from './status-badge/status-badge.svelte';
+export {
+	VA_STATUSES,
+	vaStatusConfig,
+	vaStatusChipVariant
+} from './status-badge/status-badge.svelte';
 export { default as Dropdown } from './dropdown/dropdown.svelte';
 export type { DropdownGroup, DropdownOption } from './dropdown/dropdown.svelte';
 export { default as Table } from './data-table/data-table.svelte';

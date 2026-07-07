@@ -4,6 +4,7 @@
 	import { Dropdown } from '$lib/components/reusable';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import ActivateOrgDialog from './activate-org-dialog.svelte';
+	import VaAccountCard from './va-account-card.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import {
 		XIcon,
@@ -14,16 +15,23 @@
 		Coins,
 		TableIcon,
 		ChevronDown,
-		LockIcon,
-		PencilIcon,
-		CheckCircle2,
 		Search
 	} from '$lib/assets/icons';
 	import { slide, fade, fly } from 'svelte/transition';
-	import type { VirtualAccount } from './types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { toast } from 'svelte-sonner';
 	import { availableBankPipelines } from '../../../routes/management/onboarding/create-organization/constants';
+	import { virtualAccountsStore } from '$lib/stores/virtual-accounts.svelte';
+	import {
+		firstValidationError,
+		isConfigurationValid,
+		validateConfiguration,
+		type ConfigurationValidationInput
+	} from '$lib/validation/virtual-account';
+	import { cn } from '$lib/utils';
+	import { getOrganizationOrgContext } from '../../../routes/management/organization/[orgId]/organization-org.svelte';
+	import type { ConfigService } from './types';
 
 	// ── Types ─────────────────────────────────────────────────────────────────
 
@@ -47,24 +55,20 @@
 	interface Props {
 		orgId?: string;
 		orgName?: string;
-		orgStatus?: string;
-		showCommissionSetup?: boolean;
+		serviceType: ConfigService;
 		onactivate?: () => Promise<void>;
 	}
 
-	const {
-		orgId = '',
-		orgName = 'this organization',
-		orgStatus = '',
-		showCommissionSetup = true,
-		onactivate
-	}: Props = $props();
+	const { orgId = '', orgName = 'this organization', serviceType, onactivate }: Props = $props();
+
+	const orgState = getOrganizationOrgContext();
 
 	// ── Status flags ──────────────────────────────────────────────────────────
 
-	const normalizedOrgStatus = $derived(orgStatus.toUpperCase().replace(/\s+/g, '_'));
-	const isApproved = $derived(normalizedOrgStatus === 'APPROVED');
-	const isActive = $derived(normalizedOrgStatus === 'ACTIVE');
+	const showCommissionSetup = $derived(serviceType === 'payout');
+	const isActive = $derived(Boolean(orgState.activatedServicesByOrg[orgId]?.[serviceType]));
+
+	const serviceLabel = $derived(serviceType === 'payout' ? 'Payout' : 'Payin');
 
 	const bankPipelineOptions = availableBankPipelines.map((pipeline) => ({
 		value: pipeline.value,
@@ -72,8 +76,10 @@
 	}));
 
 	let selectedBankPipeline = $state('');
+	let errors = $state<Record<string, string>>({});
+	let submitAttempted = $state(false);
 
-	const fieldIdPrefix = $derived(showCommissionSetup ? 'payout' : 'payin');
+	const fieldIdPrefix = $derived(serviceType);
 
 	// ── Transaction Configuration ─────────────────────────────────────────────
 
@@ -135,37 +141,10 @@
 
 	// ── Virtual Accounts ──────────────────────────────────────────────────────
 
-	let virtualAccounts = $state<VirtualAccount[]>([
-		{
-			id: 'VA-7821',
-			alias: 'Primary collections',
-			accountNumber: 'XXXX 4421 9912',
-			bank: 'Pinnacle Trust',
-			active: true
-		},
-		{
-			id: 'VA-7822',
-			alias: 'Subscriptions',
-			accountNumber: 'XXXX 4421 9913',
-			bank: 'Pinnacle Trust',
-			active: true
-		},
-		{
-			id: 'VA-7823',
-			alias: 'Refund pool',
-			accountNumber: 'XXXX 4421 9914',
-			bank: 'Pinnacle Trust',
-			active: false
-		}
-	]);
+	const virtualAccounts = $derived(virtualAccountsStore.getAccounts(orgId, serviceType));
 
-	function toggleVA(id: string) {
-		const va = virtualAccounts.find((v) => v.id === id);
-		if (va) va.active = !va.active;
-	}
-
-	function deleteVA(id: string) {
-		virtualAccounts = virtualAccounts.filter((v) => v.id !== id);
+	function handleEditVA(vaId: string) {
+		goto(resolve(`/management/organization/${orgId}/update-va/${vaId}?type=${fieldIdPrefix}`));
 	}
 
 	// ── Activation dialog ─────────────────────────────────────────────────────
@@ -201,23 +180,57 @@
 		vaSearchQuery !== '' || vaStatusFilter !== '' || vaBankFilter !== ''
 	);
 
-	const commissionComplete = $derived(
-		!showCommissionSetup ||
-			(commissionRows.length > 0 &&
-				commissionRows.every(
-					(r) =>
-						r.baseAmount.trim() !== '' && r.gatewayFee.trim() !== '' && r.partnerFee.trim() !== ''
-				))
-	);
+	function getConfigurationInput(): ConfigurationValidationInput {
+		return {
+			bankPipeline: selectedBankPipeline,
+			securityDeposit: txConfig.securityDeposit,
+			transactionLimit: txConfig.transactionLimit,
+			dailyDepositLimit: txConfig.dailyDepositLimit,
+			minTxAmount: txConfig.minTxAmount,
+			maxTxAmount: txConfig.maxTxAmount,
+			transactionTypes: txTypeOptions,
+			commissionRows,
+			requireCommission: showCommissionSetup
+		};
+	}
+
+	function validateConfigurationForm(): boolean {
+		errors = validateConfiguration(getConfigurationInput());
+		return Object.keys(errors).length === 0;
+	}
+
+	function onFieldInput() {
+		if (submitAttempted) validateConfigurationForm();
+	}
+
+	const configurationComplete = $derived(isConfigurationValid(getConfigurationInput()));
+
+	const commissionComplete = $derived(configurationComplete);
 
 	// ── Footer ────────────────────────────────────────────────────────────────
 
 	function handleSaveDraft() {
-		console.log('Save draft:', { selectedBankPipeline, txConfig, selectedTypes, commissionRows });
+		submitAttempted = true;
+		if (!validateConfigurationForm()) {
+			const message = firstValidationError(errors);
+			if (message) toast.error(message);
+			return;
+		}
+		toast.success('Configuration draft saved');
+	}
+
+	function handleActivateProfile() {
+		submitAttempted = true;
+		if (!validateConfigurationForm()) {
+			const message = firstValidationError(errors);
+			if (message) toast.error(message);
+			return;
+		}
+		showActivationDialog = true;
 	}
 
 	function handleCreateVA() {
-		goto(resolve(`/management/organization/${orgId}/va/create`));
+		goto(resolve(`/management/organization/${orgId}/create-va?type=${fieldIdPrefix}`));
 	}
 </script>
 
@@ -270,6 +283,9 @@
 								placeholder="Select bank pipeline…"
 								name={`${fieldIdPrefix}-bank-pipeline`}
 							/>
+							{#if submitAttempted && errors.bankPipeline}
+								<p class="text-xs text-destructive">{errors.bankPipeline}</p>
+							{/if}
 						</div>
 
 						{#each [{ id: 'tc-sd', label: 'Security Deposit (SD)', key: 'securityDeposit', ph: 'e.g. 10000' }, { id: 'tc-limit', label: 'Transaction Limit', key: 'transactionLimit', ph: 'e.g. 1000000' }, { id: 'tc-daily', label: 'Daily Deposit Limit', key: 'dailyDepositLimit', ph: 'e.g. 500000' }, { id: 'tc-min', label: 'Min Transaction Amount', key: 'minTxAmount', ph: 'e.g. 100' }, { id: 'tc-max', label: 'Max Transaction Amount', key: 'maxTxAmount', ph: 'e.g. 100000' }] as field (field.id)}
@@ -284,8 +300,17 @@
 									id={field.id}
 									inputmode="decimal"
 									bind:value={txConfig[field.key as keyof typeof txConfig]}
+									oninput={onFieldInput}
 									placeholder={field.ph}
+									class={cn(
+										submitAttempted &&
+											errors[field.key] &&
+											'border-destructive focus-visible:ring-destructive/30'
+									)}
 								/>
+								{#if submitAttempted && errors[field.key]}
+									<p class="text-xs text-destructive">{errors[field.key]}</p>
+								{/if}
 							</div>
 						{/each}
 
@@ -355,6 +380,9 @@
 								</div>
 							{/if}
 						</div>
+						{#if submitAttempted && errors.transactionTypes}
+							<p class="text-xs text-destructive">{errors.transactionTypes}</p>
+						{/if}
 					</div>
 				</div>
 			</section>
@@ -636,115 +664,32 @@
 		</div>
 	{/if}
 
-	<!-- ── 4. Virtual Account Management (hidden when Approved) ───────────── -->
-	{#if !isApproved}
-		<section
-			class="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/40
-			       transition-shadow duration-200 hover:shadow-md"
-			transition:slide={{ duration: 260, axis: 'y' }}
-		>
-			<!-- Header -->
-			<div class="relative overflow-hidden px-6 py-5">
-				<div class="gradient-soft absolute inset-0 opacity-50"></div>
-				<div
-					class="absolute inset-y-0 left-0 w-0.5 rounded-full
-				     {isActive ? 'bg-success/60' : 'bg-warning/50'}"
-				></div>
-				<div class="relative flex items-center justify-between gap-3">
-					<div class="flex items-center gap-3">
-						<div
-							class="flex size-9 shrink-0 items-center justify-center rounded-xl shadow-xs
-						     {isActive
-								? 'bg-success/10 text-success ring-1 ring-success/15'
-								: 'bg-warning/10 text-warning ring-1 ring-warning/15'}"
-						>
-							{#if isActive}
-								<CheckCircle2 class="size-4.5" />
-							{:else}
-								<LockIcon class="size-4.5" />
-							{/if}
-						</div>
-						<div>
-							<p class="text-sm font-semibold">Virtual Account Management</p>
-							<p class="mt-0.5 text-xs text-muted-foreground/65">
-								{#if isActive}
-									{virtualAccounts.length} account{virtualAccounts.length !== 1 ? 's' : ''} · Manage virtual
-									accounts for this organization
-								{:else}
-									Activate to unlock virtual account creation
-								{/if}
-							</p>
-						</div>
-					</div>
-					{#if isActive}
-						<Button
-							class="gradient-primary shrink-0 px-4 text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
-							size="sm"
-							onclick={handleCreateVA}
-						>
-							<PlusIcon class="size-3.5" />
-							+ Create VA
-						</Button>
-					{/if}
+	{#if isActive}
+		<!-- ── Virtual Accounts (shown only after service activation) ─────────── -->
+		<div class="space-y-4" in:fade={{ duration: 200 }}>
+			<div
+				class="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+				in:fade={{ duration: 150 }}
+			>
+				<div class="relative min-w-0 w-full sm:flex-1">
+					<Search
+						class="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground/40"
+					/>
+					<input
+						bind:value={vaSearchQuery}
+						placeholder="Search by alias or ID…"
+						class="h-9 w-full rounded-lg border border-input bg-background
+						       pr-3 pl-8 text-sm transition-shadow
+						       placeholder:text-muted-foreground/40 focus:ring-2 focus:ring-ring/50 focus:outline-none
+						       sm:h-8"
+					/>
 				</div>
-			</div>
-
-			{#if !isActive}
-				<!-- Locked state -->
-				<div
-					class="flex flex-col items-center gap-4 border-t border-border/40 px-6 py-12 text-center"
-					in:fade={{ duration: 200 }}
-				>
-					<div
-						class="flex size-14 items-center justify-center rounded-2xl
-					            border border-dashed border-warning/30 bg-warning/5"
-					>
-						<LockIcon class="size-6 text-warning/40" />
-					</div>
-					<div class="max-w-xs">
-						<p class="text-sm font-semibold">Virtual accounts are locked</p>
-						<p class="mt-1.5 text-xs leading-relaxed text-muted-foreground/65">
-							Activate this organization to unlock virtual account creation and management.
-						</p>
-					</div>
-					<div class="flex flex-col items-center gap-1.5">
-						<Button
-							class="gradient-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-							onclick={commissionComplete ? () => (showActivationDialog = true) : undefined}
-							disabled={!commissionComplete}
-						>
-							<ShieldCheck class="size-4" />
-							Activate Organization
-						</Button>
-						{#if !commissionComplete}
-							<p class="text-[11px] text-muted-foreground/50">
-								Complete commission setup above to activate
-							</p>
-						{/if}
-					</div>
-				</div>
-			{:else}
-				<!-- Search + filter bar -->
-				<div
-					class="flex flex-wrap items-center gap-3 border-t border-border/30 px-6 py-3"
-					in:fade={{ duration: 150 }}
-				>
-					<div class="relative min-w-0 flex-1">
-						<Search
-							class="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground/40"
-						/>
-						<input
-							bind:value={vaSearchQuery}
-							placeholder="Search by alias or ID…"
-							class="h-8 w-full min-w-40 rounded-lg border border-input bg-background
-							       pr-3 pl-8 text-sm transition-shadow
-							       placeholder:text-muted-foreground/40 focus:ring-2 focus:ring-ring/50 focus:outline-none"
-						/>
-					</div>
+				<div class="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
 					<select
 						bind:value={vaStatusFilter}
-						class="h-8 rounded-lg border border-input bg-background px-2.5 text-xs
-						       text-foreground focus:ring-2 focus:ring-ring/50 focus:outline-none"
+						class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-xs
+						       text-foreground focus:ring-2 focus:ring-ring/50 focus:outline-none
+						       sm:h-8 sm:w-auto"
 					>
 						<option value="">All statuses</option>
 						<option value="Active">Active</option>
@@ -752,188 +697,77 @@
 					</select>
 					<select
 						bind:value={vaBankFilter}
-						class="h-8 rounded-lg border border-input bg-background px-2.5 text-xs
-						       text-foreground focus:ring-2 focus:ring-ring/50 focus:outline-none"
+						class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-xs
+						       text-foreground focus:ring-2 focus:ring-ring/50 focus:outline-none
+						       sm:h-8 sm:w-auto"
 					>
 						<option value="">All banks</option>
 						{#each uniqueBanks as bank (bank)}
 							<option value={bank}>{bank}</option>
 						{/each}
 					</select>
-					{#if hasActiveFilters}
-						<button
-							type="button"
-							onclick={clearVAFilters}
-							class="text-xs font-medium text-primary transition-colors hover:underline"
-							in:fade={{ duration: 150 }}
-						>
-							Clear filters
-						</button>
-					{/if}
 				</div>
-
-				{#if filteredVAs.length === 0}
-					<!-- Empty / no-results state -->
-					<div
-						class="flex flex-col items-center gap-4 border-t border-border/30 px-6 py-12 text-center"
-						in:fade={{ duration: 180 }}
+				{#if hasActiveFilters}
+					<button
+						type="button"
+						onclick={clearVAFilters}
+						class="self-start text-xs font-medium text-primary transition-colors hover:underline sm:self-auto"
+						in:fade={{ duration: 150 }}
 					>
-						{#if hasActiveFilters}
-							<div
-								class="flex size-12 items-center justify-center rounded-2xl
-							            border border-dashed border-border bg-muted/15"
-							>
-								<Search class="size-5 text-muted-foreground/30" />
-							</div>
-							<div class="max-w-xs">
-								<p class="text-sm font-medium text-foreground/70">No accounts match your filters</p>
-								<p class="mt-1 text-xs text-muted-foreground/55">
-									Try adjusting the search term or clearing the filters.
-								</p>
-							</div>
-							<button
-								type="button"
-								onclick={clearVAFilters}
-								class="text-xs font-semibold text-primary hover:underline"
-							>
-								Clear all filters
-							</button>
-						{:else}
-							<div
-								class="flex size-12 items-center justify-center rounded-2xl
-							            border border-dashed border-border bg-muted/15"
-							>
-								<CheckCircle2 class="size-5 text-muted-foreground/25" />
-							</div>
-							<div class="max-w-xs">
-								<p class="text-sm font-medium text-foreground/70">No virtual accounts yet</p>
-								<p class="mt-1 text-xs text-muted-foreground/55">
-									Create your first virtual account to start routing payments.
-								</p>
-							</div>
-							<Button
-								size="sm"
-								class="gradient-primary px-4 text-primary-foreground shadow-sm"
-								onclick={handleCreateVA}
-							>
-								<PlusIcon class="size-3.5" />
-								Create First VA
-							</Button>
-						{/if}
-					</div>
-				{:else}
-					<!-- VA table -->
-					<div class="border-t border-border/30" in:fade={{ duration: 180 }}>
-						<Table.Root>
-							<Table.Header>
-								<Table.Row class="border-b border-border/40 bg-muted/20 hover:bg-muted/20">
-									<Table.Head
-										class="py-3 pl-6 text-[11px] font-semibold tracking-wide text-muted-foreground/55 uppercase"
-										>Alias</Table.Head
-									>
-									<Table.Head
-										class="py-3 text-[11px] font-semibold tracking-wide text-muted-foreground/55 uppercase"
-										>Account Number</Table.Head
-									>
-									<Table.Head
-										class="py-3 text-[11px] font-semibold tracking-wide text-muted-foreground/55 uppercase"
-										>Bank</Table.Head
-									>
-									<Table.Head
-										class="py-3 text-[11px] font-semibold tracking-wide text-muted-foreground/55 uppercase"
-										>Status</Table.Head
-									>
-									<Table.Head
-										class="py-3 pr-6 text-right text-[11px] font-semibold tracking-wide text-muted-foreground/55 uppercase"
-										>Actions</Table.Head
-									>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each filteredVAs as va (va.id)}
-									<Table.Row
-										class="group border-b border-border/25 transition-colors last:border-0 hover:bg-muted/15"
-									>
-										<!-- Alias + VA ID sub-line -->
-										<Table.Cell class="py-4 pl-6">
-											<div>
-												<p class="text-sm font-semibold">{va.alias}</p>
-												<p class="mt-0.5 font-mono text-[11px] text-primary/70">{va.id}</p>
-											</div>
-										</Table.Cell>
-										<!-- Account Number -->
-										<Table.Cell class="py-4">
-											<span class="font-mono text-sm font-medium tracking-wide"
-												>{va.accountNumber}</span
-											>
-										</Table.Cell>
-										<!-- Bank -->
-										<Table.Cell class="py-4">
-											<span class="text-sm text-muted-foreground">{va.bank}</span>
-										</Table.Cell>
-										<!-- Status toggle -->
-										<Table.Cell class="py-4">
-											<div class="flex items-center gap-2.5">
-												<button
-													type="button"
-													role="switch"
-													aria-checked={va.active}
-													aria-label="Toggle {va.alias}"
-													onclick={() => toggleVA(va.id)}
-													class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full
-													       border-2 border-transparent transition-colors duration-200
-													       focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-													       {va.active ? 'bg-primary' : 'bg-muted-foreground/25'}"
-												>
-													<span
-														class="pointer-events-none inline-block size-4 rounded-full bg-white
-														       shadow-sm transition-transform duration-200
-														       {va.active ? 'translate-x-4' : 'translate-x-0'}"
-													></span>
-												</button>
-												<span
-													class="text-xs font-semibold
-												     {va.active ? 'text-success' : 'text-muted-foreground/45'}"
-												>
-													{va.active ? 'Active' : 'Inactive'}
-												</span>
-											</div>
-										</Table.Cell>
-										<!-- Actions (hidden until row hover) -->
-										<Table.Cell class="py-4 pr-6">
-											<div
-												class="flex items-center justify-end gap-0.5 opacity-0
-												       transition-opacity group-hover:opacity-100"
-											>
-												<button
-													type="button"
-													aria-label="Edit {va.alias}"
-													onclick={() =>
-														goto(resolve(`/management/organization/${orgId}/va/${va.id}`))}
-													class="rounded-lg p-1.5 text-muted-foreground/50 transition-colors
-													       hover:bg-muted hover:text-foreground"
-												>
-													<PencilIcon class="size-3.5" />
-												</button>
-												<button
-													type="button"
-													aria-label="Delete {va.alias}"
-													onclick={() => deleteVA(va.id)}
-													class="rounded-lg p-1.5 text-muted-foreground/50 transition-colors
-													       hover:bg-destructive/10 hover:text-destructive"
-												>
-													<Trash2Icon class="size-3.5" />
-												</button>
-											</div>
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					</div>
+						Clear filters
+					</button>
 				{/if}
+			</div>
+
+			{#if filteredVAs.length === 0 && hasActiveFilters}
+				<div
+					class="flex flex-col items-center gap-3 py-8 text-center sm:py-12"
+					in:fade={{ duration: 180 }}
+				>
+					<div
+						class="flex size-12 items-center justify-center rounded-2xl
+						            border border-dashed border-border bg-muted/15"
+					>
+						<Search class="size-5 text-muted-foreground/30" />
+					</div>
+					<div class="max-w-xs">
+						<p class="text-sm font-medium text-foreground/70">No accounts match your filters</p>
+						<p class="mt-1 text-xs text-muted-foreground/55">
+							Try adjusting the search term or clearing the filters.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={clearVAFilters}
+						class="text-xs font-semibold text-primary hover:underline"
+					>
+						Clear all filters
+					</button>
+				</div>
+			{:else}
+				<div
+					class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+					in:fade={{ duration: 180 }}
+				>
+					<button
+						type="button"
+						class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow-sm transition-all duration-200 hover:bg-primary/5"
+						onclick={handleCreateVA}
+					>
+						<div
+							class="flex size-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow-sm transition-colors"
+						>
+							<PlusIcon class="size-5 text-primary" />
+						</div>
+						<span class="text-sm font-medium text-foreground">Create VA</span>
+					</button>
+
+					{#each filteredVAs as va, index (va.id)}
+						<VaAccountCard account={va} colorIndex={index} onedit={() => handleEditVA(va.id)} />
+					{/each}
+				</div>
 			{/if}
-		</section>
+		</div>
 	{/if}
 
 	<!-- ── Activation dialog ──────────────────────────────────────────────── -->
@@ -959,10 +793,8 @@
 				<div class="flex items-center justify-between gap-3">
 					<p class="hidden text-xs text-muted-foreground/60 sm:block">
 						{!commissionComplete
-							? 'Complete commission setup to activate.'
-							: isApproved
-								? 'Organization approved — save any configuration changes below.'
-								: 'Review all settings before activating the organization profile.'}
+							? `Complete ${serviceLabel.toLowerCase()} configuration to activate.`
+							: `Review ${serviceLabel.toLowerCase()} settings before activating this service profile.`}
 					</p>
 					<div class="flex w-full items-center justify-end gap-2.5 sm:w-auto">
 						<!-- Save Draft: always visible when not Active -->
@@ -975,12 +807,12 @@
 							<div class="flex flex-col items-end gap-0.5">
 								<Button
 									size="sm"
-									onclick={() => (showActivationDialog = true)}
-									title={!commissionComplete ? 'Complete commission setup to activate' : undefined}
+									onclick={handleActivateProfile}
+									title={!commissionComplete ? 'Complete configuration to activate' : undefined}
 									class="h-9 px-4"
 								>
 									<ShieldCheck class="size-4" />
-									Activate Profile
+									Activate {serviceLabel} Profile
 								</Button>
 							</div>
 						{/if}

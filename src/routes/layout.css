@@ -216,6 +216,12 @@
 	scrollbar-gutter: stable;
 }
 
+/* Full-bleed pages use negative margins to cancel AppShell p-5; disable the reserved
+   scrollbar gutter so the inline-end edge aligns with the scroll container. */
+.app-shell-content:has([data-app-shell-bleed]) {
+	scrollbar-gutter: auto;
+}
+
 .sidebar-active-indicator {
 	view-transition-name: sidebar-indicator;
 }

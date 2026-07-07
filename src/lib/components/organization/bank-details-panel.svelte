@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { Button, Input, toast } from '$lib/components/reusable';
-	import DetailSection from './detail-section.svelte';
+	import DetailPanel from './detail-panel.svelte';
 	import DetailField from './detail-field.svelte';
+	import DetailFieldGrid from './detail-field-grid.svelte';
+	import DetailFieldSpacer from './detail-field-spacer.svelte';
 	import type { OrganizationBankAccount } from '$lib/utils/organization-form';
 	import { maskAccountNumber } from '$lib/utils/organization-form';
-	import { CreditCard, Landmark, Pencil } from '$lib/assets/icons';
+	import { Pencil } from '$lib/assets/icons';
 
 	let {
 		accounts = $bindable()
@@ -62,39 +64,29 @@
 	}
 </script>
 
-<div class="space-y-5">
-	<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="space-y-4">
+	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div>
 			<h2 class="text-sm font-semibold text-foreground">Bank Accounts</h2>
 			<p class="text-xs text-muted-foreground">
 				{accounts.length} settlement account{accounts.length === 1 ? '' : 's'} on file
 			</p>
 		</div>
-		{#if !editing}
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => startEditing(accounts[0])}
-				disabled={accounts.length === 0}
-			>
-				<Pencil class="size-4" />
-				Edit
-			</Button>
-		{:else}
+		{#if editing}
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" onclick={cancelEditing}>Cancel</Button>
-				<Button size="sm" onclick={saveChanges}>Save changes</Button>
+				<Button size="sm" onclick={saveChanges}>Save</Button>
 			</div>
 		{/if}
 	</div>
 
-	{#if editing}
-		<DetailSection
-			title="Edit Bank Account"
-			description="Update settlement account details"
-			icon={CreditCard}
-		>
-			<div class="grid gap-4 sm:grid-cols-2">
+	{#if accounts.length === 0}
+		<div class="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+			<p class="text-sm text-muted-foreground">No bank accounts linked to this organization.</p>
+		</div>
+	{:else if editing}
+		<DetailPanel>
+			<div class="grid gap-3 sm:grid-cols-2">
 				<div class="space-y-1.5">
 					<label for="holder-name" class="text-xs font-medium text-muted-foreground"
 						>Account Holder</label
@@ -120,49 +112,48 @@
 					<Input id="branch-name" bind:value={form.branchName} />
 				</div>
 			</div>
-		</DetailSection>
-	{/if}
-
-	{#if accounts.length === 0}
-		<div class="rounded-xl border border-dashed border-border bg-muted/20 px-5 py-8 text-center">
-			<p class="text-sm text-muted-foreground">No bank accounts linked to this organization.</p>
-		</div>
+		</DetailPanel>
 	{:else}
-		<div class="space-y-3">
-			{#each accounts as account (account.id)}
-				<div class="rounded-xl border border-border bg-card p-5 shadow">
-					<div class="flex flex-wrap items-start justify-between gap-4">
-						<div class="flex min-w-0 items-start gap-3">
-							<div
-								class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow"
-							>
-								<Landmark class="size-4" />
-							</div>
-							<div class="min-w-0">
-								<p class="text-sm font-semibold text-foreground">{account.holderName}</p>
-								<p class="font-mono text-sm tracking-widest text-muted-foreground">
-									{maskAccountNumber(account.accountNumber)}
-								</p>
-								<p class="mt-1 text-xs text-muted-foreground">
-									{account.bankName}{account.branchName ? ` · ${account.branchName}` : ''}
-								</p>
-							</div>
-						</div>
-						{#if !editing}
-							<Button variant="ghost" size="sm" onclick={() => startEditing(account)}>
-								<Pencil class="size-4" />
-								Edit
-							</Button>
-						{/if}
+		<DetailPanel>
+			<DetailFieldGrid>
+				{#each accounts as account, index (account.id)}
+					{#if index > 0}
+						<DetailFieldSpacer />
+					{/if}
+					<DetailField
+						label="Account Holder{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={account.holderName}
+					/>
+					<DetailField
+						label="Account Number{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={maskAccountNumber(account.accountNumber)}
+						mono
+					/>
+					<DetailField
+						label="Bank{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={account.bankName}
+					/>
+					<DetailField
+						label="Branch{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={account.branchName}
+					/>
+					<DetailField
+						label="IFSC{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={account.ifscCode}
+						mono
+					/>
+					<DetailField
+						label="Account Type{accounts.length > 1 ? ` ${index + 1}` : ''}"
+						value={account.accountType}
+					/>
+					<div class="flex justify-end pt-1 lg:col-span-2">
+						<Button variant="outline" size="sm" onclick={() => startEditing(account)}>
+							<Pencil class="size-3.5" />
+							Edit{accounts.length > 1 ? ` account ${index + 1}` : ''}
+						</Button>
 					</div>
-					<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-						<DetailField label="Bank" value={account.bankName} />
-						<DetailField label="Branch" value={account.branchName} />
-						<DetailField label="IFSC" value={account.ifscCode} mono />
-						<DetailField label="Account Type" value={account.accountType} />
-					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</DetailFieldGrid>
+		</DetailPanel>
 	{/if}
 </div>

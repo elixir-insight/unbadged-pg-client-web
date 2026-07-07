@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { Button, Input, toast } from '$lib/components/reusable';
-	import DetailSection from './detail-section.svelte';
+	import DetailPanel from './detail-panel.svelte';
 	import DetailField from './detail-field.svelte';
+	import DetailFieldGrid from './detail-field-grid.svelte';
+	import DetailInfoBanner from './detail-info-banner.svelte';
 	import type { OrganizationIntegration } from '$lib/utils/organization-form';
-	import { Plug, Globe, Pencil } from '$lib/assets/icons';
+	import { Globe, Pencil } from '$lib/assets/icons';
 
 	let {
 		integration = $bindable()
@@ -31,28 +33,28 @@
 	}
 </script>
 
-<div class="space-y-5">
-	<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="space-y-4">
+	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div>
 			<h2 class="text-sm font-semibold text-foreground">Application Integration</h2>
 			<p class="text-xs text-muted-foreground">Webhook and callback configuration</p>
 		</div>
 		{#if !editing}
 			<Button variant="outline" size="sm" onclick={startEditing}>
-				<Pencil class="size-4" />
+				<Pencil class="size-3.5" />
 				Edit
 			</Button>
 		{:else}
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" onclick={cancelEditing}>Cancel</Button>
-				<Button size="sm" onclick={saveChanges}>Save changes</Button>
+				<Button size="sm" onclick={saveChanges}>Save</Button>
 			</div>
 		{/if}
 	</div>
 
-	<DetailSection title="Webhook & Callbacks" description="API endpoint configuration" icon={Plug}>
+	<DetailPanel>
 		{#if editing}
-			<div class="grid gap-4 sm:grid-cols-2">
+			<div class="grid gap-3 sm:grid-cols-2">
 				<div class="space-y-1.5 sm:col-span-2">
 					<label for="callback-url" class="text-xs font-medium text-muted-foreground"
 						>Callback URL</label
@@ -71,17 +73,17 @@
 				</div>
 			</div>
 		{:else}
-			<div class="grid gap-4 sm:grid-cols-2">
-				<DetailField label="Callback URL" value={integration.callbackUrl} class="sm:col-span-2" />
+			<DetailFieldGrid>
+				<DetailField label="Callback URL" value={integration.callbackUrl} />
 				<DetailField label="IP Address" value={integration.ipAddress} mono />
-			</div>
+			</DetailFieldGrid>
 		{/if}
-	</DetailSection>
 
-	<DetailSection title="Integration Notes" icon={Globe}>
-		<p class="text-sm text-muted-foreground">
-			These settings were configured during onboarding. Updates here will apply to live payment
-			callbacks for this organization.
-		</p>
-	</DetailSection>
+		<div class="mt-4">
+			<DetailInfoBanner icon={Globe}>
+				These settings were configured during onboarding. Updates here will apply to live payment
+				callbacks for this organization.
+			</DetailInfoBanner>
+		</div>
+	</DetailPanel>
 </div>

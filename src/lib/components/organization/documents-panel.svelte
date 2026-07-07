@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button, Dropdown, FileUpload, Chip, toast } from '$lib/components/reusable';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
-	import DetailSection from './detail-section.svelte';
+	import DetailPanel from './detail-panel.svelte';
 	import type { OrganizationDocumentRow } from '$lib/utils/organization-form';
 	import { displayValue } from '$lib/utils/organization-form';
 	import { FileText, Download, Pencil } from '$lib/assets/icons';
@@ -79,14 +79,14 @@
 	docs: OrganizationDocumentRow[],
 	onStatusChange: (id: string, status: OrganizationDocumentRow['status']) => void
 )}
-	<div class="divide-y divide-border rounded-lg border border-border/60">
+	<div class="space-y-3">
 		{#each docs as doc (doc.id)}
-			<div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex min-w-0 items-start gap-3">
+			<div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+				<div class="flex min-w-0 items-start gap-2.5">
 					<div
-						class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow"
+						class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
 					>
-						<FileText class="size-4" />
+						<FileText class="size-3.5" />
 					</div>
 					<div class="min-w-0">
 						<p class="text-sm font-medium text-foreground">{doc.name}</p>
@@ -116,7 +116,7 @@
 					{:else}
 						<Chip variant={statusVariantMap[doc.status] ?? 'secondary'}>{doc.status}</Chip>
 						<Button variant="outline" size="sm">
-							<Download class="size-4" />
+							<Download class="size-3.5" />
 							Download
 						</Button>
 					{/if}
@@ -126,42 +126,30 @@
 	</div>
 {/snippet}
 
-<div class="space-y-5">
-	<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="space-y-4">
+	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div>
 			<h2 class="text-sm font-semibold text-foreground">Documents</h2>
 			<p class="text-xs text-muted-foreground">Submitted compliance and identity files</p>
 		</div>
 		{#if !editing}
 			<Button variant="outline" size="sm" onclick={startEditing}>
-				<Pencil class="size-4" />
+				<Pencil class="size-3.5" />
 				Edit
 			</Button>
 		{:else}
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" onclick={cancelEditing}>Cancel</Button>
-				<Button size="sm" onclick={saveChanges}>Save changes</Button>
+				<Button size="sm" onclick={saveChanges}>Save</Button>
 			</div>
 		{/if}
 	</div>
 
-	<DetailSection
-		title="Business Documents"
-		description="{businessDocuments.length} file{businessDocuments.length === 1 ? '' : 's'}"
-		icon={FileText}
-	>
+	<DetailPanel>
 		{@render documentRows(editing ? draftBusiness : businessDocuments, setBusinessStatus)}
-	</DetailSection>
 
-	<DetailSection
-		title="Director Documents"
-		description="{directorDocuments.length} file{directorDocuments.length === 1 ? '' : 's'}"
-		icon={FileText}
-	>
-		{#if (editing ? draftDirector : directorDocuments).length === 0}
-			<p class="text-sm text-muted-foreground">No director documents on file.</p>
-		{:else}
+		{#if (editing ? draftDirector : directorDocuments).length > 0}
 			{@render documentRows(editing ? draftDirector : directorDocuments, setDirectorStatus)}
 		{/if}
-	</DetailSection>
+	</DetailPanel>
 </div>

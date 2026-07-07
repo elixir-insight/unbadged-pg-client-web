@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import type { BankingDetail, IntegrationDetail, OrgDetail, OrgDocument } from './types';
+import type { ActivatedServices, ConfigService } from '$lib/components/organization/types';
 import { SvelteDate } from 'svelte/reactivity';
 
 const ORGANIZATION_ORG_CTX = Symbol('organization-org');
@@ -109,6 +110,7 @@ export class OrganizationOrgState {
 	});
 	orgStatusOverride = $state<string | null>(null);
 	baseStatus = $state('');
+	activatedServicesByOrg = $state<Record<string, ActivatedServices>>({});
 	agreementFile = $state<File | null>(null);
 	showStatusConfirmModal = $state(false);
 	pendingStatusChange = $state<string | null>(null);
@@ -152,9 +154,23 @@ export class OrganizationOrgState {
 		if (index !== -1) this.banks[index] = bank;
 	}
 
+	isServiceActivated(orgId: string, service: ConfigService): boolean {
+		return Boolean(this.activatedServicesByOrg[orgId]?.[service]);
+	}
+
+	async confirmActivateService(orgId: string, service: ConfigService): Promise<void> {
+		await new Promise<void>((res) => setTimeout(res, 800));
+		const current = this.activatedServicesByOrg[orgId] ?? {};
+		this.activatedServicesByOrg = {
+			...this.activatedServicesByOrg,
+			[orgId]: { ...current, [service]: true }
+		};
+	}
+
 	async confirmActivate(): Promise<void> {
 		await new Promise<void>((res) => setTimeout(res, 800));
 		this.orgStatusOverride = 'ACTIVE';
+		this.baseStatus = 'ACTIVE';
 	}
 
 	requestStatusChange(status: string) {

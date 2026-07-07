@@ -33,6 +33,9 @@
 
 	async function handleConfirmActivate() {
 		await orgState.confirmActivate();
+		if (org) {
+			org.status = 'ACTIVE';
+		}
 		toast.success('Organization activated successfully');
 	}
 </script>

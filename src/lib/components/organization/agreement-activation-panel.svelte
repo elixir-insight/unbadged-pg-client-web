@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/reusable';
-	import { ShieldCheck, Upload, AlertCircle, ExternalLink } from '$lib/assets/icons';
+	import { ShieldCheck, Upload, AlertCircle } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import ActivateOrgDialog from './activate-org-dialog.svelte';
 
@@ -10,7 +10,7 @@
 		variant: Variant;
 		orgName?: string;
 		agreementUploaded?: boolean;
-		onViewDocuments?: () => void;
+		// onViewDocuments?: () => void;
 		onAgreementChange?: (file: File | null) => void;
 		onActivate?: () => Promise<void>;
 	}
@@ -19,7 +19,7 @@
 		variant,
 		orgName = 'this organization',
 		agreementUploaded = false,
-		onViewDocuments,
+		// onViewDocuments,
 		onAgreementChange,
 		onActivate
 	}: Props = $props();
@@ -101,16 +101,6 @@
 					<Upload class="size-3.5" />
 					Upload Agreement
 				</Button>
-				{#if onViewDocuments}
-					<button
-						type="button"
-						onclick={onViewDocuments}
-						class="inline-flex items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-primary sm:justify-end"
-					>
-						Learn more
-						<ExternalLink class="size-3" />
-					</button>
-				{/if}
 			</div>
 		</div>
 	</div>

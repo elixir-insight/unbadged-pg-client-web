@@ -11,8 +11,8 @@
 	const org = $derived(organizations.find((o) => o.id === orgId));
 
 	async function handleConfirmActivate() {
-		await orgState.confirmActivate();
-		toast.success('Organization activated successfully');
+		await orgState.confirmActivateService(orgId, 'payout');
+		toast.success('Payout profile activated successfully');
 	}
 </script>
 
@@ -20,7 +20,7 @@
 	<ConfigurationTab
 		orgId={org.id}
 		orgName={org.name}
-		orgStatus={orgState.effectiveStatus}
+		serviceType="payout"
 		onactivate={handleConfirmActivate}
 	/>
 {/if}

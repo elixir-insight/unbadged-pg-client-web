@@ -104,11 +104,19 @@ export interface DetailRow {
 
 // ── Virtual Account ───────────────────────────────────────────────────────────
 
+export type ConfigService = 'payin' | 'payout';
+
+export interface ActivatedServices {
+	payin?: boolean;
+	payout?: boolean;
+}
+
 export interface VirtualAccount {
 	id: string;
 	alias: string;
 	accountNumber: string;
 	bank: string;
+	bankingPipeline: string;
 	active: boolean;
 }
 
@@ -118,6 +126,7 @@ export interface CommissionTier {
 	method: string;
 	gatewayFee: string;
 	partnerFee: string;
+	readonly?: boolean;
 }
 
 export interface VAFormState {

@@ -4,4 +4,5 @@ export { default as AccountsTab } from './accounts-tab.svelte';
 export { default as DocumentsTab } from './documents-tab.svelte';
 export { default as ApplicationIntegrationTab } from './application-integration-tab.svelte';
 export { default as ConfigurationTab } from './configuration-tab.svelte';
+export { default as VaAccountCard } from './va-account-card.svelte';
 export { default as AgreementActivationPanel } from './agreement-activation-panel.svelte';
