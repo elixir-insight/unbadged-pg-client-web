@@ -113,6 +113,14 @@
 
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between gap-3">
+		<!-- <button
+			type="button"
+			onclick={() => goto(resolve('/merchant/transactions/collections'))}
+			class="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+			aria-label="Back to Collections"
+		>
+			<ArrowLeft class="size-4" />
+		</button> -->
 		<h1 class="text-lg font-semibold text-foreground">Transaction Details</h1>
 		<Button
 			onclick={() => (refundModalOpen = true)}

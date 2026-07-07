@@ -284,7 +284,7 @@
 			loading={false}
 			skeletonRows={8}
 			onRowClick={(row) =>
-				goto(resolve('/merchant/transactions/payouts/[id]', { id: row.clientOrderId }))}
+				goto(resolve('/merchant/transactions/disbursements/[id]', { id: row.clientOrderId }))}
 		/>
 	</div>
 </div>

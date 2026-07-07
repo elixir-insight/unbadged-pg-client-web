@@ -10,13 +10,13 @@
 	const PAYIN_ROUTES = [
 		'/merchant/disputes',
 		'/merchant/settlements',
-		'/merchant/transactions/payins'
+		'/merchant/transactions/collections'
 	];
 
 	const PAYOUT_ROUTES = [
 		'/merchant/funds',
 		'/merchant/beneficiaries',
-		'merchant/transactions/payouts'
+		'/merchant/transactions/disbursements'
 	];
 
 	merchantSession.initialize();
