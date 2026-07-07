@@ -456,9 +456,9 @@
 	<div class="flex items-center justify-between gap-3">
 		<!-- <button
 			type="button"
-			onclick={() => goto(resolve('/merchant/transactions/payins'))}
+			onclick={() => goto(resolve('/merchant/transactions/collections'))}
 			class="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-			aria-label="Back to Pay-ins"
+			aria-label="Back to Collections"
 		>
 			<ArrowLeft class="size-4" />
 		</button> -->
