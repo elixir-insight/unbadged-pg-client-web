@@ -3,11 +3,12 @@
 	import { Chip } from '$lib/components/ui/badge';
 	import type { BadgeVariant } from '$lib/components/ui/badge/badge.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { ArrowDown } from '$lib/assets/icons';
+	import { ArrowDown, Undo } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import Timeline, { type TimelineEntry } from './timeline.svelte';
 	import Details, { type DetailSection } from './details.svelte';
-	import Undo from '@lucide/svelte/icons/undo';
+	import RefundModal from './refund-modal.svelte';
+	import { toast } from '$lib/components/reusable';
 
 	type TransactionStatus = 'success' | 'pending' | 'failed';
 
@@ -387,6 +388,15 @@
 		return `₹${value.toFixed(2)}`;
 	}
 
+	let refundModalOpen = $state(false);
+
+	async function handleRefund(amount: string, remarks: string) {
+		await new Promise((r) => setTimeout(r, 1000));
+		toast.success(`Refund of ₹${parseFloat(amount).toFixed(2)} initiated successfully`, {
+			description: `Remarks: ${remarks}`
+		});
+	}
+
 	const detailSections = $derived<DetailSection[]>(
 		transaction
 			? [
@@ -453,7 +463,10 @@
 			<ArrowLeft class="size-4" />
 		</button> -->
 		<h1 class="text-lg font-semibold text-foreground">Transaction Details</h1>
-		<Button onclick={() => {}}>
+		<Button
+			onclick={() => (refundModalOpen = true)}
+			disabled={transaction?.transactionStatus !== 'success'}
+		>
 			<Undo class="size-4" />
 			Initiate refund
 		</Button>
@@ -549,3 +562,12 @@
 		</div>
 	{/if}
 </div>
+
+{#if transaction}
+	<RefundModal
+		bind:open={refundModalOpen}
+		refundableAmount={transaction.refundableAmount}
+		customerName={transaction.customerName}
+		onconfirm={handleRefund}
+	/>
+{/if}

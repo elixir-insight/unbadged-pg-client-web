@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onNavigate } from '$app/navigation';
 	import { tick } from 'svelte';
-	import { Toast } from '$lib/components/reusable';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { Toast } from '$lib/components/reusable';
 
 	let { children } = $props();
 	let isNavigating = $state(false);
@@ -43,6 +43,7 @@
 	<div class="app-nav-progress" aria-hidden="true"></div>
 {/if}
 
+<Toast richColors position="bottom-right" />
 {@render children()}
 
 <Toast position="bottom-right" richColors closeButton />

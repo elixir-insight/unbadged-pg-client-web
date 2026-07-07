@@ -1,11 +1,17 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { renderComponent } from '$lib/components/ui/data-table';
-	import { Table, DateRangePicker, Dropdown, Button } from '$lib/components/reusable';
+	import {
+		Table,
+		DateRangePicker,
+		Dropdown,
+		Button,
+		FilterCards,
+		SearchField
+	} from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
 	import type { DateRange } from 'bits-ui';
 	import { getLocalTimeZone } from '@internationalized/date';
-	import { cn } from '$lib/utils';
 	import StatusBadge from './status-badge.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -262,9 +268,10 @@
 	let pageNumber = $state(1);
 	const pageSize = 10;
 
-	function selectCard(card: { label: string; status: string | null }) {
-		selectedCard = card.label;
-		paymentStatus = card.status ?? undefined;
+	function selectCard(label: string) {
+		const card = summaryCards.find((c) => c.label === label);
+		selectedCard = label;
+		paymentStatus = card?.status ?? undefined;
 		pageNumber = 1;
 	}
 
@@ -328,6 +335,10 @@
 		return counts;
 	});
 
+	const filterCards = $derived(
+		summaryCards.map((c) => ({ label: c.label, count: cardCounts[c.label] ?? 0 }))
+	);
+
 	const filteredData = $derived.by(() => {
 		let result = dateFilteredData;
 		if (paymentStatus) {
@@ -374,56 +385,47 @@
 
 <div class="flex flex-col gap-6">
 	<!-- Summary cards -->
-	<div class="grid grid-cols-1 place-content-between gap-4 sm:grid-cols-2 lg:grid-cols-5">
-		{#each summaryCards as card (card.label)}
-			<button
-				type="button"
-				onclick={() => selectCard(card)}
-				class={cn(
-					'rounded-lg border p-4 text-left shadow-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-					selectedCard === card.label
-						? 'border-primary bg-primary/10 ring-1 ring-primary/20'
-						: 'border-border bg-background hover:border-primary/40 hover:bg-accent hover:shadow-sm'
-				)}
-			>
-				<h4
-					class={cn(
-						'text-sm font-medium',
-						selectedCard === card.label ? 'text-primary' : 'text-foreground'
-					)}
-				>
-					{card.label}
-				</h4>
-				<p
-					class={cn(
-						'mt-1 text-xl font-bold',
-						selectedCard === card.label ? 'text-primary' : 'text-muted-foreground'
-					)}
-				>
-					{cardCounts[card.label] ?? 0}
-				</p>
-			</button>
-		{/each}
-	</div>
+	<FilterCards
+		loading={false}
+		skeletonCount={5}
+		cards={filterCards}
+		bind:selected={selectedCard}
+		onselect={selectCard}
+		class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+	/>
 
 	<!-- Filter bar -->
 	<div class="flex flex-col gap-3">
-		<div class="flex flex-wrap items-center gap-2">
-			<DateRangePicker
-				bind:value={dateRange}
-				onApply={() => {
-					pageNumber = 1;
-				}}
-			/>
-			<div class="w-50">
-				<Dropdown
-					bind:value={paymentMethod}
-					placeholder="Payment Method"
-					disabled={false}
-					bordered={false}
-					search={false}
-					options={paymentMethodOptions}
-					onValueChange={onPaymentMethodChange}
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex flex-wrap items-center gap-2">
+				<DateRangePicker
+					bind:value={dateRange}
+					onApply={() => {
+						pageNumber = 1;
+					}}
+				/>
+				<div class="w-50">
+					<Dropdown
+						bind:value={paymentMethod}
+						placeholder="Payment Method"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={paymentMethodOptions}
+						onValueChange={onPaymentMethodChange}
+					/>
+				</div>
+			</div>
+			<div class="w-full max-w-xs">
+				<SearchField
+					fields={[
+						{ value: 'txnId', label: 'Transaction ID', placeholder: 'e.g. TXN-1001…' },
+						{ value: 'customer', label: 'Customer', placeholder: 'e.g. Arjun Mehta…' },
+						{ value: 'method', label: 'Payment Method', placeholder: 'e.g. UPI…' },
+						{ value: 'amount', label: 'Amount', placeholder: 'e.g. 4500…' }
+					]}
+					field="txnId"
+					value=""
 				/>
 			</div>
 		</div>
