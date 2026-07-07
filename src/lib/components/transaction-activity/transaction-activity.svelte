@@ -473,13 +473,6 @@
 				})}
 		/>
 
-		<button
-			onclick={resetActivity}
-			class="flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-		>
-			<RotateCcw class="h-3.5 w-3.5" /> Reset
-		</button>
-
 		<div class="flex-1"></div>
 
 		<SearchField
@@ -518,13 +511,13 @@
 					</button>
 				</Chip>
 			{/each}
-			<!-- <button
+			<button
 				type="button"
 				onclick={resetActivity}
 				class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
 			>
 				Clear All
-			</button> -->
+			</button>
 		</div>
 	{/if}
 

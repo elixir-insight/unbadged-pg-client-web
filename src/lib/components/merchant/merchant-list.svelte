@@ -8,7 +8,6 @@
 	import type { ColumnDef } from '@tanstack/table-core';
 	import {
 		Eye,
-		RotateCcw,
 		Landmark,
 		Building2,
 		Copy,
@@ -311,12 +310,6 @@
 						class="h-8 w-full rounded-lg border border-border/60 bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground/60 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
 					/>
 				</div>
-				<button
-					onclick={resetLanding}
-					class="flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-				>
-					<RotateCcw class="h-3 w-3" /> Reset
-				</button>
 			</div>
 
 			<!-- Active filter chips -->
@@ -336,13 +329,13 @@
 							</button>
 						</Chip>
 					{/each}
-					<!-- <button
+					<button
 						type="button"
 						onclick={resetLanding}
 						class="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
 					>
 						Clear All
-					</button> -->
+					</button>
 				</div>
 			{/if}
 

@@ -208,6 +208,21 @@
 	}
 }
 
+/* === Gradient utilities === */
+/* Built from existing theme tokens (never hardcoded hex) so light/dark themes stay in sync.
+   Each variant pairs a different light token with --card, keeping every stop subtle/low-saturation. */
+.bg-gradient-card-1 {
+	background-image: linear-gradient(135deg, var(--accent) 0%, var(--card) 100%);
+}
+
+.bg-gradient-card-2 {
+	background-image: linear-gradient(135deg, var(--chart-5) 0%, var(--card) 100%);
+}
+
+.bg-gradient-card-3 {
+	background-image: linear-gradient(135deg, var(--secondary) 0%, var(--card) 100%);
+}
+
 /* === View Transitions === */
 
 /* Assign stable view-transition-name values via class selectors */
