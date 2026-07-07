@@ -43,6 +43,14 @@
 			allItems.find((i) => page.url.pathname.startsWith(i.href + '/'))?.title ??
 			appLabels[app]
 	);
+	const breadcrumbRoutes = $derived(
+		allItems.flatMap((item) =>
+			(item.breadcrumbChildren ?? []).map((child) => ({
+				...child,
+				parentHref: item.href
+			}))
+		)
+	);
 
 	const navTitleMap = $derived(new Map(allItems.map((i) => [i.href, i.title])));
 
@@ -53,12 +61,24 @@
 	const breadcrumbItems = $derived.by(() => {
 		const root = rootRoutes[app];
 		const rest = page.url.pathname.startsWith(root) ? page.url.pathname.slice(root.length) : '';
+
 		const segments = rest.split('/').filter(Boolean);
 
-		return segments.map((seg, i) => {
-			const href = root + '/' + segments.slice(0, i + 1).join('/');
-			return { label: navTitleMap.get(href) ?? formatSegment(seg), href };
+		const items = segments.map((seg, index) => {
+			const href = root + '/' + segments.slice(0, index + 1).join('/');
+
+			const custom = breadcrumbRoutes.find((route) => route.matcher.test(href));
+
+			return {
+				href,
+				label: custom?.title ?? navTitleMap.get(href) ?? formatSegment(seg)
+			};
 		});
+
+		// Remove numeric ID segments when a custom breadcrumb matched
+		return items.filter(
+			(item) => !/\/\d+$/.test(item.href) || item.label !== item.href.split('/').pop()
+		);
 	});
 </script>
 
@@ -71,9 +91,11 @@
 <div class="flex h-screen overflow-hidden bg-background">
 	<Sidebar {app} bind:isMobileOpen />
 
-	<main class="flex min-w-0 flex-1 flex-col overflow-y-auto bg-background md:bg-muted md:p-4">
+	<main
+		class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:bg-muted md:p-4"
+	>
 		<div
-			class="flex h-full flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
+			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
 			<header
 				class={`flex h-14 shrink-0 items-center gap-3 border-b border-border px-4${isDashboard ? ' md:hidden' : ''}`}
@@ -92,8 +114,10 @@
 				{/if}
 			</header>
 
-			<div class="app-shell-content flex-1 overflow-y-auto p-5">
-				{@render children()}
+			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
+				<div class="min-h-full p-5">
+					{@render children()}
+				</div>
 			</div>
 		</div>
 	</main>
