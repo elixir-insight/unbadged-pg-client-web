@@ -133,3 +133,4 @@ export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
 export { default as UserManagement } from '@lucide/svelte/icons/user-key';
 export { default as ChevronsUpDown } from '@lucide/svelte/icons/chevrons-up-down';
+export { default as Mail } from '@lucide/svelte/icons/mail';
