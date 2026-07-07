@@ -18,7 +18,17 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Payments',
 		items: [
-			{ title: 'Transactions', href: '/merchant/transactions', icon: ArrowLeftRight },
+			{
+				title: 'Transactions',
+				href: '/merchant/transactions',
+				icon: ArrowLeftRight,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/transactions\/payins\/[^/]+$/,
+						title: 'Transaction Details'
+					}
+				]
+			},
 			{
 				title: 'Disputes',
 				href: '/merchant/disputes',
