@@ -34,7 +34,15 @@
 		partner: 'Partner'
 	};
 
-	const allItems = $derived(navConfig[app].flatMap((g) => g.items));
+	// Flatten items including children for title lookup
+	const allItems = $derived(
+		navConfig[app].flatMap((g) =>
+			g.items.flatMap((item) => [
+				item,
+				...(item.children?.map((c) => ({ ...c, icon: item.icon })) ?? [])
+			])
+		)
+	);
 
 	const isDashboard = $derived(page.url.pathname === rootRoutes[app]);
 

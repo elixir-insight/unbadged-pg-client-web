@@ -2,6 +2,10 @@ import type { Component } from 'svelte';
 
 export type AppId = 'merchant' | 'management' | 'partner';
 
+export type NavChildItem = {
+	title: string;
+	href: string;
+};
 export type MerchantService = 'payin' | 'payout';
 
 export type NavItem = {
@@ -9,6 +13,7 @@ export type NavItem = {
 	href: string;
 	icon: Component;
 	badge?: string;
+	children?: NavChildItem[];
 	service?: MerchantService;
 	children?: NavChild[];
 	breadcrumbChildren?: {

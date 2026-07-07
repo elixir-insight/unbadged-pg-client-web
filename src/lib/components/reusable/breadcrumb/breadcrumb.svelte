@@ -1,12 +1,11 @@
 <script lang="ts">
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
-	import { resolve } from '$app/paths';
 	import { ChevronRight } from '$lib/assets/icons';
 
 	let {
 		items,
 		class: className = 'hidden md:block'
-	}: { items: { label: string; href: string }[]; class?: string } = $props();
+	}: { items: { label: string; href?: string; onClick?: () => void }[]; class?: string } = $props();
 </script>
 
 <!--
@@ -29,9 +28,17 @@
 			</Breadcrumb.Item>
 		{:else if items.length === 2}
 			<Breadcrumb.Item>
-				<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(items[0].href as '/')}
-					>{items[0].label}</Breadcrumb.Link
-				>
+				{#if items[0].onClick}
+					<button
+						onclick={items[0].onClick}
+						class="font-semibold text-foreground transition-colors hover:text-muted-foreground"
+						>{items[0].label}</button
+					>
+				{:else}
+					<Breadcrumb.Link class="font-semibold text-foreground" href={items[0].href}
+						>{items[0].label}</Breadcrumb.Link
+					>
+				{/if}
 			</Breadcrumb.Item>
 			<Breadcrumb.Separator>
 				<ChevronRight size={50} />
@@ -46,7 +53,7 @@
 
 			<!-- Desktop only: first item -->
 			<Breadcrumb.Item class="hidden md:flex">
-				<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(items[0].href as '/')}
+				<Breadcrumb.Link class="font-semibold text-foreground" href={items[0].href}
 					>{items[0].label}</Breadcrumb.Link
 				>
 			</Breadcrumb.Item>
@@ -55,7 +62,7 @@
 			<!-- Desktop only: intermediate items between first and second-to-last -->
 			{#each items.slice(1, -2) as item (item.href)}
 				<Breadcrumb.Item class="hidden md:flex">
-					<Breadcrumb.Link class="font-semibold text-foreground" href={resolve(item.href as '/')}
+					<Breadcrumb.Link class="font-semibold text-foreground" href={item.href}
 						>{item.label}</Breadcrumb.Link
 					>
 				</Breadcrumb.Item>
@@ -70,10 +77,7 @@
 
 			<!-- Both: second-to-last (parent of current page) -->
 			<Breadcrumb.Item>
-				<Breadcrumb.Link
-					class="font-semibold text-foreground"
-					href={resolve(items[items.length - 2].href as '/')}
-				>
+				<Breadcrumb.Link class="font-semibold text-foreground" href={items[items.length - 2].href}>
 					{items[items.length - 2].label}
 				</Breadcrumb.Link>
 			</Breadcrumb.Item>
