@@ -9,7 +9,7 @@
 		availableBankPipelines,
 		affiliatesByPipeline
 	} from './constants';
-	import { firstValidationError, validateCreateOrganization } from './validation';
+	import { firstValidationError, validateCreateOrganization } from '$lib/schemas/onboarding.schema';
 
 	let activeStep = $state(0);
 	let completedSteps = $state(new Set<number>());

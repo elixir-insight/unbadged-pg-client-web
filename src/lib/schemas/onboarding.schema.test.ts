@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstValidationError, validateCreateOrganization } from './validation';
+import { firstValidationError, validateCreateOrganization } from './onboarding.schema';
 
 const validBase = {
 	selectedCategory: 'Merchant' as const,

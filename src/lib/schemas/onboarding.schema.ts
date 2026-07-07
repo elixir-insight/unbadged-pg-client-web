@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import type { ClientType } from './constants';
+import type { ClientType } from '../../routes/management/onboarding/create-organization/constants';
 
 const orgSchema = v.object({
 	orgName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization name is required')),

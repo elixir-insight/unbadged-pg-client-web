@@ -19,7 +19,7 @@ export {
 	sanitizePan
 } from './mock';
 
-export { validateKycInput } from './validation';
+export { validateKycInput } from '$lib/schemas/kyc-validation.schema';
 
 export { default as KycAadhaarResult } from './kyc-aadhaar-result.svelte';
 export { default as KycEmptyState } from './kyc-empty-state.svelte';

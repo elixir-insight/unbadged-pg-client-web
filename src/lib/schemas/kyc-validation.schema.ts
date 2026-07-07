@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import type { KycTab } from './types';
+import type { KycTab } from '../components/kyc/types';
 
 const aadhaarSchema = v.pipe(
 	v.string(),
