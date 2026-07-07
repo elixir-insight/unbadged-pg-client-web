@@ -36,6 +36,7 @@ export { default as PanelLeft } from '@lucide/svelte/icons/panel-left';
 // ── Profile / User ────────────────────────────────────────────────────────────
 export { default as User } from '@lucide/svelte/icons/user';
 export { default as UserCog } from '@lucide/svelte/icons/user-cog';
+export { default as UserPlus } from '@lucide/svelte/icons/user-plus';
 export { default as LogOut } from '@lucide/svelte/icons/log-out';
 export { default as Hash } from '@lucide/svelte/icons/hash';
 
@@ -47,13 +48,17 @@ export { default as FileClock } from '@lucide/svelte/icons/file-clock';
 export { default as FileText } from '@lucide/svelte/icons/file-text';
 export { default as Settings } from '@lucide/svelte/icons/settings';
 export { default as ShieldCheck } from '@lucide/svelte/icons/shield-check';
+export { default as Pencil } from '@lucide/svelte/icons/pencil';
+export { default as Trash2 } from '@lucide/svelte/icons/trash-2';
 export { default as Layers } from '@lucide/svelte/icons/layers';
 export { default as Table2 } from '@lucide/svelte/icons/table-2';
 export { default as BadgeCheck } from '@lucide/svelte/icons/badge-check';
 export { default as Blocks } from '@lucide/svelte/icons/blocks';
+export { default as BriefcaseBusiness } from '@lucide/svelte/icons/briefcase-business';
 
 // ── Commerce & Finance ────────────────────────────────────────────────────────
 export { default as Wallet } from '@lucide/svelte/icons/wallet';
+export { default as WalletCard } from '@lucide/svelte/icons/wallet-cards';
 export { default as Store } from '@lucide/svelte/icons/store';
 export { default as Handshake } from '@lucide/svelte/icons/handshake';
 export { default as Globe } from '@lucide/svelte/icons/globe';
@@ -64,6 +69,7 @@ export { default as TrendingUp } from '@lucide/svelte/icons/trending-up';
 export { default as CircleCheck } from '@lucide/svelte/icons/circle-check';
 export { default as RotateCcw } from '@lucide/svelte/icons/rotate-ccw';
 export { default as Users } from '@lucide/svelte/icons/users';
+export { default as Network } from '@lucide/svelte/icons/network';
 export { default as Send } from '@lucide/svelte/icons/send';
 
 //kyb
@@ -127,3 +133,4 @@ export { default as Home } from '@lucide/svelte/icons/home';
 export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
 export { default as Undo } from '@lucide/svelte/icons/undo-2';
+export { default as UserManagement } from '@lucide/svelte/icons/user-key';
