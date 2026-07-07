@@ -5,354 +5,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ArrowDown, Undo } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
-	import Timeline, { type TimelineEntry } from './timeline.svelte';
+	import { getPayinDetail } from '$lib/data/payin-detail-mock';
+	import Timeline from './timeline.svelte';
 	import Details, { type DetailSection } from './details.svelte';
 	import RefundModal from './refund-modal.svelte';
 	import { toast } from '$lib/components/reusable';
 
-	type TransactionStatus = 'success' | 'pending' | 'failed';
-
-	interface Transaction {
-		txnId: string;
-		customerName: string;
-		customerEmail: string;
-		customerPhoneNumber: string;
-		transactionAmount: string;
-		paymentMethod: string;
-		paymentMode: string;
-		paymentChannel: string;
-		transactionStatus: TransactionStatus;
-		statusDescription: string;
-		clientDescription: string;
-		date: string;
-		expiresAt: string;
-		processingFee: string;
-		gatewayFee: string;
-		gatewayGst: string;
-		commissionId: string;
-		refundableAmount: string;
-		orgId: string;
-		partnerFee: string;
-		partnerGst: string;
-		vaIdentifier: string;
-		affiliateId: string;
-		crn: string;
-		payerVpa: string;
-		payeeVpa: string;
-		orderId: string;
-		virtualAccountNumber: string;
-		bankPipelineCode: string;
-		accountNumber: string;
-		ifsc: string;
-		transactionTimeline: TimelineEntry[];
-	}
-
-	const mockTransactions: Record<string, Transaction> = {
-		'TXN-1001': {
-			txnId: 'TXN-1001',
-			customerName: 'Arjun Mehta',
-			customerEmail: 'arjun.mehta@example.com',
-			customerPhoneNumber: '+91 98765 43210',
-			transactionAmount: '₹4,500.00',
-			paymentMethod: 'UPI',
-			paymentMode: 'ONLINE',
-			paymentChannel: 'UPI_COLLECT',
-			transactionStatus: 'success',
-			statusDescription: 'Payment received successfully',
-			clientDescription: 'Order payment for INV-2024-001',
-			date: '2026-06-27',
-			expiresAt: '2026-06-28',
-			processingFee: '₹45.00',
-			gatewayFee: '₹22.50',
-			gatewayGst: '₹4.05',
-			commissionId: 'COMM-001',
-			refundableAmount: '₹4,428.45',
-			orgId: 'ORG-001',
-			partnerFee: '₹10.00',
-			partnerGst: '₹1.80',
-			vaIdentifier: 'VA-001',
-			affiliateId: 'AFF-001',
-			crn: 'CRN2026062700001',
-			payerVpa: 'arjun@okaxis',
-			payeeVpa: 'merchant@okhdfc',
-			orderId: 'ORD-2026-001',
-			virtualAccountNumber: '1234567890',
-			bankPipelineCode: 'AXIS',
-			accountNumber: 'XXXX1234',
-			ifsc: 'AXIS0001234',
-			transactionTimeline: [
-				{
-					entryTitle: 'You created the payment link',
-					entryType: 'payment_created',
-					entryDescription: 'Order created and sent to customer for payment.',
-					txnAmount: '₹4,500.00',
-					refundAmount: '',
-					transactionStatus: 'pending',
-					paymentMethod: 'UPI',
-					paymentChannel: 'UPI_COLLECT',
-					crn: 'CRN2026062700001',
-					utr: '',
-					bankRRN: '',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: '',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Friday, 27 June at 14:30',
-					isCompleted: true
-				},
-				{
-					entryTitle: 'Arjun authorised the payment',
-					entryType: 'payment_authorized',
-					entryDescription: 'Customer approved the request in their UPI app.',
-					txnAmount: '₹4,500.00',
-					refundAmount: '',
-					transactionStatus: 'authorized',
-					paymentMethod: 'UPI',
-					paymentChannel: 'UPI_COLLECT',
-					crn: 'CRN2026062700001',
-					utr: '',
-					bankRRN: '',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: '',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Friday, 27 June at 14:30',
-					isCompleted: true
-				},
-				{
-					entryTitle: "Payment's complete",
-					entryType: 'payment_completed',
-					entryDescription: 'We received ₹4,500.00 from Arjun Mehta.',
-					txnAmount: '₹4,500.00',
-					refundAmount: '',
-					transactionStatus: 'success',
-					paymentMethod: 'UPI',
-					paymentChannel: 'UPI_COLLECT',
-					crn: 'CRN2026062700001',
-					utr: 'AXISC2706270001',
-					bankRRN: '442109887651',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: 'Payment successful',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Friday, 27 June at 14:32',
-					isCompleted: true
-				}
-			]
-		},
-		'TXN-1002': {
-			txnId: 'TXN-1002',
-			customerName: 'Priya Sharma',
-			customerEmail: 'priya.sharma@example.com',
-			customerPhoneNumber: '+91 87654 32109',
-			transactionAmount: '₹12,000.00',
-			paymentMethod: 'Net Banking',
-			paymentMode: 'ONLINE',
-			paymentChannel: 'NETBANKING',
-			transactionStatus: 'pending',
-			statusDescription: 'Awaiting bank confirmation',
-			clientDescription: 'Subscription renewal payment',
-			date: '2026-06-26',
-			expiresAt: '2026-06-27',
-			processingFee: '₹120.00',
-			gatewayFee: '₹60.00',
-			gatewayGst: '₹10.80',
-			commissionId: 'COMM-002',
-			refundableAmount: '₹11,809.20',
-			orgId: 'ORG-001',
-			partnerFee: '₹25.00',
-			partnerGst: '₹4.50',
-			vaIdentifier: 'VA-002',
-			affiliateId: 'AFF-001',
-			crn: 'CRN2026062600002',
-			payerVpa: '',
-			payeeVpa: '',
-			orderId: 'ORD-2026-002',
-			virtualAccountNumber: '9876543210',
-			bankPipelineCode: 'HDFC',
-			accountNumber: 'XXXX5678',
-			ifsc: 'HDFC0001234',
-			transactionTimeline: [
-				{
-					entryTitle: 'You created the payment link',
-					entryType: 'payment_created',
-					entryDescription: 'Order created and sent to customer for payment.',
-					txnAmount: '₹12,000.00',
-					refundAmount: '',
-					transactionStatus: 'pending',
-					paymentMethod: 'Net Banking',
-					paymentChannel: 'NETBANKING',
-					crn: 'CRN2026062600002',
-					utr: '',
-					bankRRN: '',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: '',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Thursday, 26 June at 10:15',
-					isCompleted: true
-				},
-				{
-					entryTitle: 'Priya initiated payment',
-					entryType: 'payment_initiated',
-					entryDescription: 'Customer started payment via HDFC Net Banking.',
-					txnAmount: '₹12,000.00',
-					refundAmount: '',
-					transactionStatus: 'pending',
-					paymentMethod: 'Net Banking',
-					paymentChannel: 'NETBANKING',
-					crn: 'CRN2026062600002',
-					utr: '',
-					bankRRN: '',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: '',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Thursday, 26 June at 10:18',
-					isCompleted: false
-				}
-			]
-		},
-		'TXN-1003': {
-			txnId: 'TXN-1003',
-			customerName: 'Vikram Nair',
-			customerEmail: 'vikram.nair@example.com',
-			customerPhoneNumber: '+91 76543 21098',
-			transactionAmount: '₹2,750.00',
-			paymentMethod: 'Credit Card',
-			paymentMode: 'ONLINE',
-			paymentChannel: 'CARD',
-			transactionStatus: 'failed',
-			statusDescription: 'Insufficient funds',
-			clientDescription: 'Product purchase',
-			date: '2026-06-25',
-			expiresAt: '2026-06-26',
-			processingFee: '₹0.00',
-			gatewayFee: '₹0.00',
-			gatewayGst: '₹0.00',
-			commissionId: 'COMM-003',
-			refundableAmount: '₹0.00',
-			orgId: 'ORG-001',
-			partnerFee: '₹0.00',
-			partnerGst: '₹0.00',
-			vaIdentifier: 'VA-003',
-			affiliateId: '',
-			crn: 'CRN2026062500003',
-			payerVpa: '',
-			payeeVpa: '',
-			orderId: 'ORD-2026-003',
-			virtualAccountNumber: '',
-			bankPipelineCode: 'ICICI',
-			accountNumber: '',
-			ifsc: '',
-			transactionTimeline: [
-				{
-					entryTitle: 'You created the payment link',
-					entryType: 'payment_created',
-					entryDescription: 'Order created and sent to customer for payment.',
-					txnAmount: '₹2,750.00',
-					refundAmount: '',
-					transactionStatus: 'pending',
-					paymentMethod: 'Credit Card',
-					paymentChannel: 'CARD',
-					crn: 'CRN2026062500003',
-					utr: '',
-					bankRRN: '',
-					cardNumber: '',
-					cardType: '',
-					transactionMessage: '',
-					errorDescription: '',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Wednesday, 25 June at 09:00',
-					isCompleted: true
-				},
-				{
-					entryTitle: 'Vikram attempted payment',
-					entryType: 'payment_attempted',
-					entryDescription: 'Customer attempted payment with Visa credit card.',
-					txnAmount: '₹2,750.00',
-					refundAmount: '',
-					transactionStatus: 'failed',
-					paymentMethod: 'Credit Card',
-					paymentChannel: 'CARD',
-					crn: 'CRN2026062500003',
-					utr: '',
-					bankRRN: 'ICICI2062500001',
-					cardNumber: 'XXXX XXXX XXXX 4242',
-					cardType: 'VISA',
-					transactionMessage: 'Transaction declined',
-					errorDescription: 'Insufficient funds in account',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Wednesday, 25 June at 09:03',
-					isCompleted: true
-				},
-				{
-					entryTitle: 'Payment failed',
-					entryType: 'payment_failed',
-					entryDescription: "Transaction declined by Vikram's bank.",
-					txnAmount: '₹2,750.00',
-					refundAmount: '',
-					transactionStatus: 'failed',
-					paymentMethod: 'Credit Card',
-					paymentChannel: 'CARD',
-					crn: 'CRN2026062500003',
-					utr: '',
-					bankRRN: 'ICICI2062500001',
-					cardNumber: 'XXXX XXXX XXXX 4242',
-					cardType: 'VISA',
-					transactionMessage: 'Transaction declined',
-					errorDescription: 'Insufficient funds in account',
-					refundId: '',
-					refundSpeed: '',
-					refundMode: '',
-					refundType: '',
-					remark: '',
-					timestamp: 'Wednesday, 25 June at 09:03',
-					isCompleted: true
-				}
-			]
-		}
-	};
-
-	function getTransaction(id: string): Transaction | null {
-		return mockTransactions[id] ?? null;
-	}
-
 	const txnId = $derived(page.params.id ?? '');
-	const transaction = $derived(getTransaction(txnId));
+	const transaction = $derived(getPayinDetail(txnId));
 
 	let activeTab = $state<'updates' | 'details'>('updates');
 
@@ -452,16 +112,7 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<!-- Page header -->
 	<div class="flex items-center justify-between gap-3">
-		<!-- <button
-			type="button"
-			onclick={() => goto(resolve('/merchant/transactions/payins'))}
-			class="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-			aria-label="Back to Pay-ins"
-		>
-			<ArrowLeft class="size-4" />
-		</button> -->
 		<h1 class="text-lg font-semibold text-foreground">Transaction Details</h1>
 		<Button
 			onclick={() => (refundModalOpen = true)}
@@ -481,7 +132,6 @@
 		</div>
 	{:else}
 		<div class="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
-			<!-- Header -->
 			<div
 				class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:py-5"
 			>
@@ -500,9 +150,6 @@
 					<p class="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
 						{transaction.transactionAmount}
 					</p>
-					<!-- <p class="text-sm text-muted-foreground">
-						{transaction.paymentMethod} · {transaction.date}
-					</p> -->
 					<Chip variant={statusBadgeVariant}>
 						{statusLabel}
 					</Chip>
@@ -511,7 +158,6 @@
 
 			<div class="border-t border-border"></div>
 
-			<!-- Tab bar -->
 			<div class="flex items-center justify-between gap-2 px-4 sm:px-6">
 				<div class="flex">
 					<button
@@ -544,7 +190,6 @@
 
 			<div class="border-t border-border"></div>
 
-			<!-- Tab content -->
 			<div class="px-4 py-5 sm:px-6">
 				{#if activeTab === 'updates'}
 					<Timeline entries={transaction.transactionTimeline} />
@@ -552,13 +197,6 @@
 					<Details sections={detailSections} />
 				{/if}
 			</div>
-
-			<!-- <div class="border-t border-border"></div> -->
-
-			<!-- Footer actions -->
-			<!-- <div class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-4">
-			
-			</div> -->
 		</div>
 	{/if}
 </div>

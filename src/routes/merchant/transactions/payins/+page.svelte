@@ -65,9 +65,9 @@
 			txnId: 'TXN-1003',
 			date: fmtDate(now - 3 * DAY_MS),
 			customer: 'Vikram Nair',
-			method: 'Credit Card',
+			method: 'UPI',
 			amount: '₹2,750.00',
-			status: 'failed',
+			status: 'success',
 			_dateMs: now - 3 * DAY_MS
 		},
 		{
