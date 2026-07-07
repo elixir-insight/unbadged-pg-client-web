@@ -45,3 +45,5 @@
 
 <Toast richColors position="bottom-right" />
 {@render children()}
+
+<Toast position="bottom-right" richColors closeButton />
