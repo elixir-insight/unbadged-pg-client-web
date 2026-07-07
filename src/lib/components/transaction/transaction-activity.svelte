@@ -239,10 +239,12 @@
 	}
 
 	function handleActivitySearch(newField: string, newValue: string) {
-		if (newField !== activityField) {
-			activityField = newField;
-			activitySearchInput = '';
+		// Compare against urlFilter (not activityField) because bind:field propagates
+		// the new field back to activityField synchronously before onSearch fires,
+		// making newField === activityField always true for field-change events.
+		if (newField !== urlFilter) {
 			updateParams({ filter: newField, value: null, skip: '0' });
+			activitySearchInput = '';
 		} else {
 			activitySearchInput = newValue;
 		}
