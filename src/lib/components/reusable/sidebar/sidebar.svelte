@@ -42,10 +42,10 @@
 			? {
 					userName: merchantSession.session.merchantName,
 					userRole: merchantSession.hasBothServices()
-						? 'Payin & Payout'
+						? 'Collections & Disbursements'
 						: merchantSession.hasPayinAccess()
-							? 'Payin'
-							: 'Payout',
+							? 'Collections'
+							: 'Disbursements',
 					userInitials: merchantSession.session.merchantName.slice(0, 2).toUpperCase(),
 					vanNumber: merchantSession.session.organizationId
 				}
