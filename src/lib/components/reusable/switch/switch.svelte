@@ -5,13 +5,15 @@
 		checked = $bindable(false),
 		size = 'default' as 'sm' | 'default',
 		disabled = false,
-		class: className
+		class: className,
+		onCheckedChange
 	}: {
 		checked?: boolean;
 		size?: 'sm' | 'default';
 		disabled?: boolean;
 		class?: string;
+		onCheckedChange?: (checked: boolean) => void;
 	} = $props();
 </script>
 
-<UISwitch bind:checked {size} {disabled} class={className} />
+<UISwitch bind:checked {size} {disabled} class={className} {onCheckedChange} />
