@@ -49,10 +49,15 @@ export const modes = {
 export const businessTypes = ['Sole Proprietorship', 'Partnership', 'LLP', 'Private Limited'];
 
 export const availableServiceTypes = [
-	{ value: 'Pay-Ins', label: 'Pay-Ins', icon: ArrowDownToLine, desc: 'Accept incoming payments' },
+	{
+		value: 'Pay-Ins',
+		label: 'Collections',
+		icon: ArrowDownToLine,
+		desc: 'Accept incoming payments'
+	},
 	{
 		value: 'Payouts',
-		label: 'Payouts',
+		label: 'Disbursements',
 		icon: ArrowUpFromLine,
 		desc: 'Disburse outgoing payments'
 	}

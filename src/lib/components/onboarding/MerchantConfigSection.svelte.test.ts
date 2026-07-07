@@ -100,7 +100,7 @@ describe('MerchantConfigSection', () => {
 		);
 
 		await expect
-			.element(screen.getByText('Select a Pay-Ins Bank Pipeline to continue'))
+			.element(screen.getByText('Select a Collections Bank Pipeline to continue'))
 			.toBeVisible();
 	});
 

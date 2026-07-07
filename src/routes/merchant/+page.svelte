@@ -6,7 +6,7 @@
 	<div class="space-y-6">
 		<div>
 			<h2 class="text-lg font-semibold">Dashboard</h2>
-			<p class="text-sm text-muted-foreground">Payin & Payout overview</p>
+			<p class="text-sm text-muted-foreground">Collections & Disbursements overview</p>
 		</div>
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -36,7 +36,7 @@
 	<div class="space-y-6">
 		<div>
 			<h2 class="text-lg font-semibold">Dashboard</h2>
-			<p class="text-sm text-muted-foreground">Payin overview</p>
+			<p class="text-sm text-muted-foreground">Collections overview</p>
 		</div>
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -60,7 +60,7 @@
 	<div class="space-y-6">
 		<div>
 			<h2 class="text-lg font-semibold">Dashboard</h2>
-			<p class="text-sm text-muted-foreground">Payout overview</p>
+			<p class="text-sm text-muted-foreground">Disbursements overview</p>
 		</div>
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
