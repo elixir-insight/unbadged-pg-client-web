@@ -35,7 +35,7 @@
 		</div>
 	{/if}
 
-	<ol class={cn('relative flex flex-col gap-1', horizontal && 'flex-row flex-nowrap gap-2')}>
+	<ol class={cn('relative flex flex-col gap-4', horizontal && 'flex-row flex-nowrap gap-2')}>
 		{#each steps as step, index (step.id)}
 			{@const status = stepStatus(index)}
 			<li class={cn('relative', horizontal && 'shrink-0')}>
@@ -43,7 +43,7 @@
 					class={cn(
 						'relative flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors',
 						status === 'current' && 'sidebar-active-indicator bg-accent text-accent-foreground',
-						status === 'complete' && 'text-muted-foreground',
+						status === 'complete' && 'bg-accent text-accent-foreground',
 						status === 'upcoming' && 'text-muted-foreground',
 						horizontal && 'min-w-max items-center py-2'
 					)}
@@ -52,7 +52,7 @@
 						class={cn(
 							'flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium',
 							status === 'current' && 'border-primary bg-primary text-primary-foreground',
-							status === 'complete' && 'border-success bg-success-bg text-success',
+							status === 'complete' && 'border-primary bg-primary text-primary-foreground',
 							status === 'upcoming' && 'border-border bg-muted text-muted-foreground'
 						)}
 						aria-hidden="true"
@@ -65,12 +65,37 @@
 					</span>
 
 					<div class={cn('min-w-0', horizontal && 'hidden sm:block')}>
-						<p class="text-sm font-medium leading-none">{step.label}</p>
-						<p class="mt-1 text-xs text-muted-foreground">{step.sublabel}</p>
+						<p
+							class={cn(
+								'text-sm font-medium leading-none',
+								status === 'complete' && 'text-accent-foreground',
+								status === 'current' && 'text-accent-foreground'
+							)}
+						>
+							{step.label}
+						</p>
+						<p
+							class={cn(
+								'mt-1 text-xs',
+								status === 'complete' && 'text-accent-foreground/80',
+								status === 'current' && 'text-accent-foreground/80',
+								status === 'upcoming' && 'text-muted-foreground'
+							)}
+						>
+							{step.sublabel}
+						</p>
 					</div>
 
 					{#if horizontal}
-						<p class="text-sm font-medium sm:hidden">{step.label}</p>
+						<p
+							class={cn(
+								'text-sm font-medium sm:hidden',
+								status === 'complete' && 'text-accent-foreground',
+								status === 'current' && 'text-accent-foreground'
+							)}
+						>
+							{step.label}
+						</p>
 					{/if}
 				</div>
 			</li>

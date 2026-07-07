@@ -1,1 +1,1 @@
-<p class="text-sm text-muted-foreground">Coming soon.</p>
+<script lang="ts"></script>

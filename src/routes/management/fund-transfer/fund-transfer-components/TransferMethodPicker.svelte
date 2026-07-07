@@ -14,7 +14,11 @@
 	} = $props();
 </script>
 
-<div class="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Transfer method">
+<div
+	class="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[1200px]:grid-cols-4"
+	role="radiogroup"
+	aria-label="Transfer method"
+>
 	{#each methods as method (method.id)}
 		{@const Icon = getFeatureIcon(method.icon)}
 		{@const selected = value?.id === method.id}
@@ -23,7 +27,7 @@
 			role="radio"
 			aria-checked={selected}
 			class={cn(
-				'flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors',
+				'flex min-h-28 flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors sm:min-h-0 sm:p-3',
 				'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
 				selected
 					? 'border-primary bg-accent text-accent-foreground'

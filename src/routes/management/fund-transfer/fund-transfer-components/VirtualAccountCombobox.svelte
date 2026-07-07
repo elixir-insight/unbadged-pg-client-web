@@ -1,12 +1,9 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { VirtualAccount } from '../fund-transfer.svelte';
-	import { formatInr, maskAccountNumber } from '../fund-transfer.svelte';
 	import { cn } from '$lib/utils';
-	import { ArrowUpDown, Search } from '$lib/assets/icons';
-	import * as Popover from '$lib/components/ui/popover';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { SearchField } from '$lib/components/reusable';
+	import { PopoverPortal } from '$lib/components/ui/popover';
 
 	let {
 		accounts,
@@ -15,91 +12,141 @@
 	}: {
 		accounts: VirtualAccount[];
 		value?: VirtualAccount | null;
-		onSelect: (account: VirtualAccount) => void;
+		onSelect: (account: VirtualAccount | null) => void;
 	} = $props();
 
-	let open = $state(false);
-	let search = $state('');
+	const searchFields = [
+		{
+			value: 'accountNumber',
+			label: 'Account number',
+			placeholder: 'e.g. 8901234567890123…'
+		}
+	];
+
+	let searchField = $state('accountNumber');
+	let searchInput = $state('');
+	let listOpen = $state(false);
 	let liveMessage = $state('');
-	let triggerRef = $state<HTMLButtonElement | null>(null);
-	let contentWidth = $state<number | undefined>(undefined);
+	let anchorRef = $state<HTMLDivElement | null>(null);
+	let dropdownRef = $state<HTMLDivElement | null>(null);
+	let dropdownPos = $state({ top: 0, left: 0, width: 0 });
 
 	const filteredAccounts = $derived.by(() => {
-		const query = search.trim().toLowerCase();
-		if (!query) return accounts;
+		const query = searchInput.trim();
+		if (!query || (value && query === value.name)) return accounts;
 
-		return accounts.filter(
-			(account) =>
-				account.name.toLowerCase().includes(query) ||
-				account.accountNumber.includes(query) ||
-				account.type.toLowerCase().includes(query)
-		);
+		return accounts.filter((account) => account.accountNumber.includes(query));
 	});
 
+	async function syncDropdownPosition() {
+		await tick();
+		if (!anchorRef) return;
+
+		const rect = anchorRef.getBoundingClientRect();
+		dropdownPos = {
+			top: rect.bottom + 4,
+			left: rect.left,
+			width: rect.width
+		};
+	}
+
+	async function openAccountList() {
+		listOpen = true;
+		await syncDropdownPosition();
+	}
+
+	async function handleSearch(_field: string, val: string) {
+		searchInput = val;
+		listOpen = true;
+		await syncDropdownPosition();
+
+		if (!val.trim()) {
+			onSelect(null);
+		} else if (value && val !== value.name) {
+			onSelect(null);
+		}
+	}
+
+	function handleSelect(account: VirtualAccount) {
+		searchInput = account.name;
+		listOpen = false;
+		onSelect(account);
+		liveMessage = `Selected ${account.name}`;
+	}
+
 	$effect(() => {
-		if (open && triggerRef) {
-			contentWidth = triggerRef.offsetWidth;
+		if (!value) {
+			if (!listOpen) searchInput = '';
+			return;
+		}
+
+		if (!listOpen && searchInput !== value.name) {
+			searchInput = value.name;
 		}
 	});
 
-	function handleSelect(account: VirtualAccount) {
-		search = '';
-		open = false;
-		onSelect(account);
-		liveMessage = `Selected ${account.name}, balance ${formatInr(account.balance)}`;
-		queueMicrotask(() => {
-			open = false;
-		});
+	function handlePointerDown(event: PointerEvent) {
+		const target = event.target as Node;
+		if (anchorRef?.contains(target) || dropdownRef?.contains(target)) return;
+		listOpen = false;
 	}
+
+	$effect(() => {
+		if (!listOpen) return;
+
+		void syncDropdownPosition();
+
+		const onReposition = () => {
+			void syncDropdownPosition();
+		};
+
+		window.addEventListener('scroll', onReposition, true);
+		window.addEventListener('resize', onReposition);
+		document.addEventListener('pointerdown', handlePointerDown);
+
+		return () => {
+			window.removeEventListener('scroll', onReposition, true);
+			window.removeEventListener('resize', onReposition);
+			document.removeEventListener('pointerdown', handlePointerDown);
+		};
+	});
 </script>
 
-<div aria-live="polite" aria-atomic="true" class="sr-only">{liveMessage}</div>
+<div class="w-full min-w-0 space-y-2">
+	<div aria-live="polite" aria-atomic="true" class="sr-only">{liveMessage}</div>
 
-<Popover.Root bind:open>
-	<Popover.Trigger>
-		{#snippet child({ props })}
-			<Button
-				bind:ref={triggerRef}
-				variant="outline"
-				class="h-auto w-full justify-between px-3 py-2.5"
-				role="combobox"
-				aria-expanded={open}
-				{...props}
-			>
-				{#if value}
-					<span class="min-w-0 flex-1 text-left">
-						<span class="block font-medium">{value.name}</span>
-						<span class="block text-xs text-muted-foreground">
-							{maskAccountNumber(value.accountNumber)} · {formatInr(value.balance)}
-						</span>
-					</span>
-				{:else}
-					<span class="text-muted-foreground">Select virtual account…</span>
-				{/if}
-				<ArrowUpDown class="ml-2 size-4 shrink-0 opacity-50" />
-			</Button>
-		{/snippet}
-	</Popover.Trigger>
-
-	<Popover.Content
-		class="z-50 !w-auto max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 shadow-lg ring-1 ring-border"
-		style={contentWidth ? `width: ${contentWidth}px` : undefined}
-		align="start"
-		side="bottom"
-		sideOffset={6}
-		onCloseAutoFocus={(event) => event.preventDefault()}
+	<div
+		bind:this={anchorRef}
+		role="combobox"
+		aria-expanded={listOpen}
+		aria-haspopup="listbox"
+		aria-controls="virtual-account-listbox"
+		tabindex="-1"
 	>
-		<div class="flex items-center gap-2 border-b border-border px-3 py-2">
-			<Search class="size-4 shrink-0 text-muted-foreground" />
-			<Input
-				bind:value={search}
-				placeholder="Search accounts…"
-				class="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-			/>
-		</div>
+		<SearchField
+			fields={searchFields}
+			bind:field={searchField}
+			bind:value={searchInput}
+			onSearch={handleSearch}
+			onFieldTriggerClick={openAccountList}
+			class="w-full"
+		/>
+	</div>
+</div>
 
-		<ScrollArea class="max-h-80">
-			<ul class="p-1" role="listbox" aria-label="Virtual accounts">
+{#if listOpen}
+	<PopoverPortal>
+		<div
+			bind:this={dropdownRef}
+			id="virtual-account-listbox"
+			role="listbox"
+			aria-label="Virtual accounts"
+			class="fixed z-50 max-h-60 overflow-y-auto overscroll-contain rounded-md bg-popover shadow-lg"
+			style:top="{dropdownPos.top}px"
+			style:left="{dropdownPos.left}px"
+			style:width="{dropdownPos.width}px"
+		>
+			<ul class="p-1">
 				{#if filteredAccounts.length === 0}
 					<li class="py-6 text-center text-sm text-muted-foreground">No account found.</li>
 				{:else}
@@ -111,23 +158,19 @@
 								role="option"
 								aria-selected={isSelected}
 								class={cn(
-									'flex w-full flex-col rounded-md px-3 py-2.5 text-left transition-colors',
+									'flex w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors',
 									'hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none',
 									isSelected && 'bg-accent text-accent-foreground'
 								)}
 								onmousedown={(event) => event.preventDefault()}
 								onclick={() => handleSelect(account)}
 							>
-								<span class="text-sm font-medium leading-snug">{account.name}</span>
-								<span class="mt-0.5 text-xs text-muted-foreground">
-									{maskAccountNumber(account.accountNumber)} · {account.type}
-								</span>
-								<span class="mt-0.5 text-xs font-medium">{formatInr(account.balance)}</span>
+								{account.name}
 							</button>
 						</li>
 					{/each}
 				{/if}
 			</ul>
-		</ScrollArea>
-	</Popover.Content>
-</Popover.Root>
+		</div>
+	</PopoverPortal>
+{/if}

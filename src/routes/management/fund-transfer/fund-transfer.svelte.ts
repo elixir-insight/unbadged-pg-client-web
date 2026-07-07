@@ -469,7 +469,7 @@ export class TransferStore {
 
 	readonly showBackToReview = $derived(this.confirmStepStatus === 'pending' && !this.otpVerified);
 
-	selectAccount(account: VirtualAccount) {
+	selectAccount(account: VirtualAccount | null) {
 		this.selectedAccount = account;
 	}
 

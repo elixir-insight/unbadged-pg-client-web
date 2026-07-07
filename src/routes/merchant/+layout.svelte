@@ -7,9 +7,17 @@
 
 	let { children } = $props();
 
-	const PAYIN_ROUTES = ['/merchant/collections', '/merchant/disputes', '/merchant/settlements'];
+	const PAYIN_ROUTES = [
+		'/merchant/disputes',
+		'/merchant/settlements',
+		'/merchant/transactions/payins'
+	];
 
-	const PAYOUT_ROUTES = ['/merchant/funds', '/merchant/beneficiaries'];
+	const PAYOUT_ROUTES = [
+		'/merchant/funds',
+		'/merchant/beneficiaries',
+		'merchant/transactions/payouts'
+	];
 
 	merchantSession.initialize();
 

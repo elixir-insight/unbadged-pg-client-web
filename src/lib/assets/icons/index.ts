@@ -23,6 +23,7 @@ export { default as ArrowLeft } from '@lucide/svelte/icons/arrow-left';
 export { default as EyeOff } from '@lucide/svelte/icons/eye-off';
 export { default as ChevronUp } from '@lucide/svelte/icons/chevron-up';
 export { default as ChevronDown } from '@lucide/svelte/icons/chevron-down';
+export { default as ChevronsUpDown } from '@lucide/svelte/icons/chevrons-up-down';
 
 // ── Header / Shell ────────────────────────────────────────────────────────────
 export { default as Bell } from '@lucide/svelte/icons/bell';
@@ -132,4 +133,4 @@ export { default as Home } from '@lucide/svelte/icons/home';
 export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
 export { default as UserManagement } from '@lucide/svelte/icons/user-key';
-export { default as ChevronsUpDown } from '@lucide/svelte/icons/chevrons-up-down';
+export { default as Undo } from '@lucide/svelte/icons/undo-2';
