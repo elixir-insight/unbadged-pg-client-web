@@ -24,7 +24,19 @@ export const merchantNav: NavGroup[] = [
 				icon: ArrowLeftRight,
 				breadcrumbChildren: [
 					{
-						matcher: /^\/merchant\/transactions\/payins\/[^/]+$/,
+						matcher: /^\/merchant\/transactions\/collections$/,
+						title: 'Collections'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements$/,
+						title: 'Disbursements'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/collections\/[^/]+$/,
+						title: 'Transaction Details'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements\/[^/]+$/,
 						title: 'Transaction Details'
 					}
 				]

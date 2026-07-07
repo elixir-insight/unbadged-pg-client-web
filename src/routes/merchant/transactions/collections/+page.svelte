@@ -480,7 +480,8 @@
 			setPageNumber={(p) => {
 				pageNumber = p;
 			}}
-			onRowClick={(row) => goto(resolve('/merchant/transactions/payins/[id]', { id: row.txnId }))}
+			onRowClick={(row) =>
+				goto(resolve('/merchant/transactions/collections/[id]', { id: row.txnId }))}
 		/>
 	</div>
 </div>
