@@ -36,4 +36,7 @@ export type { SearchFieldOption } from './search-field/search-field.svelte';
 export { default as Calendar } from './calendar/calendar.svelte';
 export { default as StatCard } from './stat-card/stat-card.svelte';
 export type { StatCardTone } from './stat-card/stat-card.svelte';
+export { default as SearchWithDropdown } from './search-with-dropdown/SearchWithDropdown.svelte';
+export { default as StatusStatCard } from './status-stat-card/StatusStatCard.svelte';
+export type { StatusStatCardColor } from './status-stat-card/StatusStatCard.svelte';
 export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
