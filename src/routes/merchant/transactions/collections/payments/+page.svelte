@@ -14,11 +14,10 @@
 	import { getLocalTimeZone } from '@internationalized/date';
 	import { payinPaymentListMock } from '$lib/data/payin-order-mock';
 	import type { PayinPaymentListItem, PayinPaymentStatus } from '$lib/types/payin';
-	import PaymentStatusBadge from '../payment-status-badge.svelte';
+	import { CollectionsTabs, PaymentStatusBadge } from '$lib/components/transactions/collections';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { RefreshCw, X } from '$lib/assets/icons';
-	import CollectionsTabs from '../collections-tabs.svelte';
 
 	const DAY_MS = 86_400_000;
 	const mockData = payinPaymentListMock;
@@ -254,7 +253,7 @@
 	</div>
 
 	<div class="border-border overflow-hidden rounded-lg border bg-background shadow-sm">
-		<CollectionsTabs />
+		<CollectionsTabs basePath="/merchant/transactions/collections" />
 
 		<div class="border-t border-border p-4 flex gap-2 justify-between items-center">
 			<span class="text-sm text-muted-foreground">{showingText}</span>
