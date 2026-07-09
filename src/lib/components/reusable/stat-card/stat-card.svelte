@@ -1,0 +1,133 @@
+<script module lang="ts">
+	import type { Component } from 'svelte';
+	import type { BadgeVariant } from '$lib/components/ui/badge/badge.svelte';
+
+	export interface StatCardBadge {
+		label: string;
+		variant?: BadgeVariant;
+		trend?: 'up' | 'down';
+	}
+
+	export interface StatCardTrend {
+		label: string;
+		direction: 'up' | 'down';
+	}
+
+	export type StatCardIconVariant = 'muted' | 'success' | 'warning' | 'error';
+</script>
+
+<script lang="ts">
+	import { Chip } from '$lib/components/ui/badge';
+	import { TrendingUp, TrendingDown } from '$lib/assets/icons';
+	import { cn } from '$lib/utils';
+
+	interface Props {
+		label: string;
+		value: string;
+		unit?: string;
+		badge?: StatCardBadge;
+		icon?: Component;
+		iconVariant?: StatCardIconVariant;
+		subtext?: string;
+		trend?: StatCardTrend;
+		sparkline?: number[];
+		class?: string;
+	}
+
+	let {
+		label,
+		value,
+		unit,
+		badge,
+		icon: Icon,
+		iconVariant = 'muted',
+		subtext,
+		trend,
+		sparkline,
+		class: className
+	}: Props = $props();
+
+	const iconBoxClasses: Record<StatCardIconVariant, string> = {
+		muted: 'bg-muted text-muted-foreground',
+		success: 'bg-green-500/15 text-green-600 dark:bg-green-500/20 dark:text-green-400',
+		warning: 'bg-orange-500/15 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
+		error: 'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400'
+	};
+
+	const points = $derived.by(() => {
+		if (!sparkline || sparkline.length < 2) return '';
+		const min = Math.min(...sparkline);
+		const max = Math.max(...sparkline);
+		const range = max - min || 1;
+		const stepX = 100 / (sparkline.length - 1);
+		return sparkline.map((v, i) => `${i * stepX},${28 - ((v - min) / range) * 26}`).join(' ');
+	});
+</script>
+
+<div class={cn('rounded-lg border border-border bg-background p-4 shadow-xs', className)}>
+	<div class="flex items-start justify-between gap-2">
+		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+		{#if Icon}
+			<div
+				class={cn(
+					'flex size-8 shrink-0 items-center justify-center rounded-lg',
+					iconBoxClasses[iconVariant]
+				)}
+			>
+				<Icon class="size-4" />
+			</div>
+		{:else if badge}
+			<Chip variant={badge.variant ?? 'default'} class="shrink-0">
+				{#if badge.trend === 'up'}
+					<TrendingUp data-icon="inline-start" />
+				{:else if badge.trend === 'down'}
+					<TrendingDown data-icon="inline-start" />
+				{/if}
+				{badge.label}
+			</Chip>
+		{/if}
+	</div>
+
+	<p class="mt-2 text-2xl font-bold tracking-tight">
+		{value}
+		{#if unit}
+			<span class="text-sm font-normal text-muted-foreground">{unit}</span>
+		{/if}
+	</p>
+
+	{#if subtext}
+		<p class="mt-1 text-xs text-muted-foreground">{subtext}</p>
+	{/if}
+
+	{#if trend}
+		<p
+			class={cn(
+				'mt-2 flex items-center gap-1 text-xs font-medium',
+				trend.direction === 'up'
+					? 'text-green-600 dark:text-green-400'
+					: 'text-red-600 dark:text-red-400'
+			)}
+		>
+			{#if trend.direction === 'up'}
+				<TrendingUp class="size-3.5" />
+			{:else}
+				<TrendingDown class="size-3.5" />
+			{/if}
+			{trend.label}
+		</p>
+	{/if}
+
+	{#if points}
+		<svg viewBox="0 0 100 28" preserveAspectRatio="none" class="mt-2 h-8 w-full">
+			<polyline
+				{points}
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				class="text-primary"
+			/>
+		</svg>
+	{/if}
+</div>
