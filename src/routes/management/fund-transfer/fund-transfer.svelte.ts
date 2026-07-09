@@ -309,7 +309,7 @@ const VALID_OTPS = [DEMO_OTP, DEMO_FAIL_OTP] as const;
 
 export class TransferStore {
 	selectedAccount = $state<VirtualAccount | null>(null);
-	selectedMethod = $state<TransferMethod | null>(null);
+	selectedMethod = $state<TransferMethod | null>(transferMethods[0]);
 	beneficiary = $state<Beneficiary>({
 		name: '',
 		accountNumber: '',
@@ -479,7 +479,7 @@ export class TransferStore {
 
 	clearStep1() {
 		this.selectedAccount = null;
-		this.selectedMethod = null;
+		this.selectedMethod = transferMethods[0];
 		this.beneficiary = {
 			name: '',
 			accountNumber: '',

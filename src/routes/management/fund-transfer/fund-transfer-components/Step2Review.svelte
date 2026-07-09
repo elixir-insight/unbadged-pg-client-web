@@ -8,7 +8,6 @@
 	const store = getTransferStore();
 
 	const accountRows = $derived([
-		{ label: 'Account', value: store.selectedAccount?.name ?? '—' },
 		{
 			label: 'Number',
 			value: store.selectedAccount ? maskAccountNumber(store.selectedAccount.accountNumber) : '—'
@@ -20,7 +19,6 @@
 	]);
 
 	const methodRows = $derived([
-		{ label: 'Method', value: store.selectedMethod?.label ?? '—' },
 		{ label: 'Settlement', value: store.selectedMethod?.description ?? '—' },
 		{ label: 'Limit', value: store.selectedMethod?.limitLabel ?? '—' }
 	]);
@@ -36,24 +34,28 @@
 				])
 	]);
 
-	const amountRows = $derived([
-		{ label: 'Amount', value: formatInr(store.amount) },
-		{ label: 'Remarks', value: store.remarks || '—' }
+	const referenceRows = $derived([
+		{ label: 'Remarks', value: store.remarks || 'No remarks added' }
 	]);
 </script>
 
 <div class="space-y-4">
 	<div class="rounded-xl bg-primary p-4 text-primary-foreground">
-		<div class="flex flex-wrap items-center justify-between gap-3">
+		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div>
 				<p class="text-sm opacity-90">Total transfer amount</p>
 				<p class="text-3xl font-semibold">{formatInr(store.amount)}</p>
 			</div>
-			<Badge variant="secondary" class="bg-primary-foreground/15 text-primary-foreground">
+			<Badge
+				variant="secondary"
+				class="flex items-center gap-1.5 border border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground"
+			>
+				<Send class="size-3.5" />
 				{store.selectedMethod?.label ?? 'Method'}
 			</Badge>
 		</div>
-		<p class="mt-2 text-sm opacity-90">
+		<p class="mt-3 flex items-center gap-1.5 text-sm opacity-90">
+			<Wallet class="size-3.5" />
 			From {store.selectedAccount?.name ?? 'source account'}
 		</p>
 	</div>
@@ -62,7 +64,7 @@
 		<ReviewSummaryCard title="Source account" icon={Wallet} rows={accountRows} />
 		<ReviewSummaryCard title="Transfer method" icon={Send} rows={methodRows} />
 		<ReviewSummaryCard title="Beneficiary" icon={User} rows={beneficiaryRows} />
-		<ReviewSummaryCard title="Amount & reference" icon={FileText} rows={amountRows} />
+		<ReviewSummaryCard title="Reference" icon={FileText} rows={referenceRows} />
 	</div>
 
 	<div class="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">

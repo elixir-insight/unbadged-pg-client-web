@@ -1,14 +1,21 @@
 <script lang="ts">
 	import { getTransferStore } from '../fund-transfer.svelte';
-	import VirtualAccountCombobox from './VirtualAccountCombobox.svelte';
 	import TransferMethodPicker from './TransferMethodPicker.svelte';
 	import BeneficiaryForm from './BeneficiaryForm.svelte';
 	import AmountField from './AmountField.svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
+	import { Dropdown } from '$lib/components/reusable';
 	import { Wallet, Send, User } from '$lib/assets/icons';
 
 	const store = getTransferStore();
+
+	const accountOptions = $derived(
+		store.accounts.map((account) => ({
+			value: account.id,
+			label: `${account.name} · ${account.accountNumber}`
+		}))
+	);
 </script>
 
 <div class="space-y-6 md:space-y-8">
@@ -29,10 +36,13 @@
 			</div>
 		</div>
 		<div class="w-full min-w-0 md:max-w-none">
-			<VirtualAccountCombobox
-				accounts={store.accounts}
-				value={store.selectedAccount}
-				onSelect={(account) => store.selectAccount(account)}
+			<Dropdown
+				value={store.selectedAccount?.id}
+				options={accountOptions}
+				placeholder="Select an account"
+				search
+				onValueChange={(id) =>
+					store.selectAccount(store.accounts.find((account) => account.id === id) ?? null)}
 			/>
 		</div>
 	</section>
@@ -87,12 +97,11 @@
 		</Card.Content>
 	</Card.Root>
 
-	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-		<Button variant="ghost" class="w-full sm:w-auto" onclick={() => store.clearStep1()}
+	<div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-end">
+		<Button variant="outline" class="w-full sm:w-auto" onclick={() => store.clearStep1()}
 			>Clear</Button
 		>
 		<div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center md:w-auto md:justify-end">
-			<p class="text-center text-sm text-muted-foreground sm:text-left">{store.step1Hint}</p>
 			<Button
 				class="w-full sm:w-auto"
 				disabled={!store.isStep1Valid}
