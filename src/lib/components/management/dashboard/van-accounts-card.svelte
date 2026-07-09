@@ -7,7 +7,7 @@
 		cardName: string;
 		purpose: string;
 		type: string;
-		status: 'active' | 'inactive';
+		status: 'active' | 'on-hold' | 'inactive' | 'reserved';
 		txToday: number;
 		txLimit: number;
 	}
@@ -20,13 +20,9 @@
 	let { accounts, class: className }: { accounts: VanAccount[]; class?: string } = $props();
 	const totalToday = $derived(accounts.reduce((sum, account) => sum + account.txToday, 0));
 	const activeCount = $derived(accounts.filter((account) => account.status === 'active').length);
-	// Colors keyed by rank — rank 0 (front) is darkest, rank 2 (back) is lightest.
-	// Applied imperatively so the front card is always dark regardless of which account it is.
-	const RANK_BACKGROUNDS = [
-		'linear-gradient(145deg, var(--chart-2) 0%, var(--chart-3) 100%)',
-		'linear-gradient(145deg, var(--chart-3) 0%, var(--chart-4) 100%)',
-		'var(--chart-4)'
-	] as const;
+	// Colors keyed by rank — solid design-system chart tokens, no gradients.
+	// Applied imperatively so the front card is always the rank-0 color regardless of which account it is.
+	const RANK_BACKGROUNDS = ['var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)'] as const;
 
 	// ── Stack position spec per rank ──────────────────────────────────────────
 	// rank 0 = front (bottom-most, fully visible)
@@ -37,7 +33,7 @@
 		{ y: 4, scale: 0.9, opacity: 0.75, z: 1 }
 	] as const;
 
-	const CARD_H = 152;
+	const CARD_H = 180;
 	const STACK_H = CARD_H + 44;
 
 	// ── Reactive state (drives details section + dot indicators only) ─────────
@@ -211,7 +207,13 @@
 		dragX = 0;
 
 		if (Math.abs(finalX) > 60) {
-			performSwipeSwitch(finalX > 0 ? 1 : -1, finalX);
+			const dir = finalX > 0 ? 1 : -1;
+			const el = cardEls[order[0]];
+			performSwipeSwitch(
+				'x',
+				dir,
+				el ? { transform: el.style.transform, opacity: el.style.opacity } : undefined
+			);
 		} else {
 			// Snap back
 			const el = cardEls[order[0]];
@@ -227,11 +229,20 @@
 		}
 	}
 
+	function exitTransform(axis: 'x' | 'y', offset: number, rot: number, scale = 1) {
+		return axis === 'x'
+			? `translateY(40px) translateX(${offset}px) rotate(${rot}deg) scale(${scale})`
+			: `translateX(0px) translateY(${offset}px) rotate(${rot}deg) scale(${scale})`;
+	}
 	// ── SWIPE SWITCH (FLIP-based) ──────────────────────────────────────────────
 	// 1. Fly outgoing card off-screen.
 	// 2. FLIP remaining cards from old positions to new positions simultaneously.
 	// 3. Deal recycled card back to rank 2 from below.
-	async function performSwipeSwitch(dir: 1 | -1, finalDragX: number) {
+	async function performSwipeSwitch(
+		axis: 'x' | 'y',
+		dir: 1 | -1,
+		dragFrom?: { transform: string; opacity: string }
+	) {
 		isAnimating = true;
 
 		const outIdx = order[0];
@@ -255,20 +266,11 @@
 
 		// Step 1: fly outgoing card off-screen
 		const flyDist = dir * 500;
-		const flyRot = dir * 26;
-		const flyFrom = {
-			transform: `translateY(40px) translateX(${finalDragX}px) rotate(${finalDragX * 0.07}deg) scale(1)`,
-			opacity: String(Math.max(0.3, 1 - Math.abs(finalDragX) / 180))
-		};
+		const flyRot = axis === 'x' ? dir * 26 : 0;
+		const flyFrom = dragFrom ?? { transform: exitTransform(axis, 0, 0, 1), opacity: '1' };
 
 		const flyAnim = outEl?.animate(
-			[
-				flyFrom,
-				{
-					transform: `translateY(40px) translateX(${flyDist}px) rotate(${flyRot}deg) scale(1)`,
-					opacity: '0'
-				}
-			],
+			[flyFrom, { transform: exitTransform(axis, flyDist, flyRot, 1), opacity: '0' }],
 			{ duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
 		);
 
@@ -350,6 +352,28 @@
 		}
 
 		isAnimating = false;
+	}
+	let wheelLocked = false;
+
+	function onStackWheel(e: WheelEvent) {
+		if (!isEntryComplete || isAnimating || wheelLocked) return;
+		if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return; // let horizontal trackpad scroll fall through to drag logic instead
+
+		const THRESHOLD = 12;
+		if (Math.abs(e.deltaY) < THRESHOLD) return;
+
+		e.preventDefault();
+		wheelLocked = true;
+
+		if (e.deltaY < 0) {
+			// scrolled upward — front card exits up, next card becomes front
+			performSwipeSwitch('y', -1);
+		} else {
+			// scrolled downward — back card becomes front
+			selectCardByIdx(order[2]);
+		}
+
+		setTimeout(() => (wheelLocked = false), 750); // swallow the rest of this wheel gesture
 	}
 
 	// ── DOT SWITCH (FLIP-based) ────────────────────────────────────────────────
@@ -473,12 +497,23 @@
 		return num.match(/.{1,4}/g)?.join('  ') ?? num;
 	}
 
+	function maskAcct(num: string) {
+		return `****  ${num.slice(-4)}`;
+	}
+
 	function fmtINR(n: number) {
 		if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(2)}Cr`;
 		if (n >= 100_000) return `₹${(n / 100_000).toFixed(1)}L`;
 		if (n >= 1_000) return `₹${(n / 1_000).toFixed(0)}K`;
 		return `₹${n.toLocaleString('en-IN')}`;
 	}
+
+	const STATUS_META: Record<VanAccount['status'], { label: string; dot: string }> = {
+		active: { label: 'Active', dot: 'bg-emerald-400' },
+		'on-hold': { label: 'On Hold', dot: 'bg-amber-400' },
+		inactive: { label: 'Inactive', dot: 'bg-rose-400' },
+		reserved: { label: 'Reserved', dot: 'bg-sky-400' }
+	};
 </script>
 
 <div
@@ -490,11 +525,11 @@
 	<!-- ── Header ─────────────────────────────────────────────────────────── -->
 	<div class="flex items-center justify-between px-5 pt-4 pb-0">
 		<div>
-			<p class="text-sm font-semibold text-foreground">My VAN Accounts</p>
+			<p class="text-sm font-semibold text-foreground">My VAN</p>
 			<p class="text-[11px] text-muted-foreground">{accounts.length} virtual accounts active</p>
 		</div>
 		<button
-			class="flex size-7 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+			class="relative flex size-7 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-accent hover:text-accent-foreground"
 			aria-label="Add VAN account"
 		>
 			<Plus class="size-3.5" />
@@ -503,26 +538,19 @@
 
 	<!-- ── Card Stack ─────────────────────────────────────────────────────── -->
 	<div class="flex flex-1 flex-col justify-center">
-		<div class="relative mx-auto w-full max-w-sm px-5">
-			<!-- Dot indicators — sit outside the clip so they're always visible -->
-			<div
-				class="absolute right-3 z-20 flex flex-col items-center justify-center gap-1.5"
-				style="top: {RANK_POS[0].y + 12}px; height: {CARD_H}px;"
-			>
-				{#each accounts as account, idx (account.id)}
-					<button
-						onclick={() => selectCardByIdx(idx)}
-						aria-label="Select VAN {idx + 1}"
-						class={cn(
-							'rounded-full transition-all duration-300',
-							order[0] === idx
-								? 'h-4 w-1.5 bg-primary'
-								: 'h-1.5 w-1.5 bg-border hover:bg-muted-foreground'
-						)}
-					></button>
-				{/each}
-			</div>
+		<!-- Shared clip-path definition for every card face: 18px rounded rect with a
+		     concave 16px-radius notch (≈8px deep) cut into the upper-middle right edge. -->
+		<svg width="0" height="0" class="absolute" aria-hidden="true">
+			<defs>
+				<clipPath id="van-card-shape" clipPathUnits="objectBoundingBox">
+					<path
+						d="M0.052941,0 H0.947059 A0.052941,0.1 0 0 1 1,0.1 V0.2 A0.047059,0.105556 0 0 0 1,0.388889 V0.9 A0.047059,0.1 0 0 1 0.947059,1 H0.052941 A0.052941,0.1 0 0 1 0,0.9 V0.1 A0.052941,0.1 0 0 1 0.052941,0 Z"
+					/>
+				</clipPath>
+			</defs>
+		</svg>
 
+		<div class="relative mx-auto w-full max-w-95 px-5">
 			<!-- Stack wrapper — all pointer events live here -->
 			<div
 				role="region"
@@ -533,6 +561,7 @@
 				onpointermove={onStackPointerMove}
 				onpointerup={endDrag}
 				onpointercancel={endDrag}
+				onwheel={onStackWheel}
 			>
 				{#each accounts as account, idx (account.id)}
 					<div
@@ -543,7 +572,7 @@
 								cardEls[idx] = undefined;
 							};
 						}}
-						class="van-card absolute inset-x-0 top-0 h-38 cursor-grab overflow-hidden rounded-2xl px-5 py-4 select-none active:cursor-grabbing"
+						class="van-card absolute inset-x-0 top-0 flex aspect-17/9 w-full max-w-85 cursor-grab flex-col overflow-hidden px-5 py-4 select-none active:cursor-grabbing"
 						style="opacity: 0;"
 						onpointerenter={() => onCardHoverIn(idx)}
 						onpointerleave={() => onCardHoverOut(idx)}
@@ -551,64 +580,68 @@
 						tabindex="0"
 						aria-label="Select {account.bankName} - {account.purpose}"
 					>
-						<div
-							class="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full border border-white/20"
-						></div>
-						<div
-							class="pointer-events-none absolute -right-4 -top-8 h-24 w-24 rounded-full border border-white/15"
-						></div>
-						<div class="card-gloss pointer-events-none absolute inset-0"></div>
-
-						<!-- Top row: bank name + VAN badge -->
-						<div class="relative flex items-start justify-between">
-							<p class="text-sm font-bold tracking-tight text-white">{account.bankName}</p>
-							<span
-								class="rounded-2xl border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-bold tracking-widest text-white/80 uppercase"
+						<!-- Watermark — stretched to an exact 300px span (20px clearance each side)
+						     via textLength, sitting well above the number row. Clipped to the card
+						     shape by the parent's clip-path; painted before the foreground text so
+						     it never sits above or interferes with readable content. -->
+						<svg
+							class="pointer-events-none absolute inset-0 select-none"
+							viewBox="0 0 340 180"
+							aria-hidden="true"
+						>
+							<text
+								x="20"
+								y="126"
+								textLength="300"
+								lengthAdjust="spacingAndGlyphs"
+								style="font-family: inherit; font-size: 112px; font-weight: 700; fill: var(--primary-foreground); fill-opacity: 0.06;"
 							>
 								VAN
+							</text>
+						</svg>
+						<div class="card-gloss pointer-events-none absolute inset-0"></div>
+
+						<!-- Top row: bank name -->
+						<p class="relative text-[13px] font-semibold text-primary-foreground">
+							{account.bankName}
+						</p>
+
+						<!-- Bottom row: masked/full account number + status -->
+						<div class="relative mt-auto flex items-end justify-between gap-2">
+							<p
+								class="min-w-0 truncate text-[clamp(0.7rem,4.6cqw,1.0625rem)] font-semibold tracking-[1px] text-primary-foreground"
+							>
+								{order[0] === idx
+									? fmtAcct(account.accountNumber)
+									: maskAcct(account.accountNumber)}
+							</p>
+							<span
+								class="flex shrink-0 items-center gap-1.5 text-[clamp(0.625rem,3.2cqw,0.8125rem)] font-medium text-primary-foreground"
+							>
+								<span
+									class={cn('size-2 rounded-full', STATUS_META[account.status].dot)}
+									aria-hidden="true"
+								></span>
+								{STATUS_META[account.status].label}
 							</span>
 						</div>
-
-						<!-- Account number -->
-						<p class="relative mt-4 font-mono text-[15px] font-bold tracking-[0.15em] text-white">
-							{fmtAcct(account.accountNumber)}
-						</p>
-
-						<!-- Today's spend -->
-						<p class="relative mt-0.5 text-[9px] font-medium tabular-nums text-white/50">
-							{fmtINR(account.txToday)} / {fmtINR(account.txLimit)} today
-						</p>
-
-						<!-- Bottom row: card holder + status -->
-						<div class="relative mt-3 flex items-end justify-between gap-3">
-							<div class="min-w-0">
-								<p class="text-[7.5px] font-semibold tracking-widest text-white/40 uppercase">
-									Card holder
-								</p>
-								<p class="mt-0.5 truncate text-[11px] font-semibold text-white">
-									{account.cardName}
-								</p>
-							</div>
-							<div class="flex shrink-0 items-center gap-1.5">
-								<span class="relative flex size-1.5">
-									{#if account.status === 'active'}
-										<span
-											class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
-										></span>
-									{/if}
-									<span
-										class={cn(
-											'relative inline-flex size-1.5 rounded-full',
-											account.status === 'active' ? 'bg-emerald-400' : 'bg-white/40'
-										)}
-									></span>
-								</span>
-								<span class="text-[9px] font-bold text-white/80 uppercase"
-									>{account.status === 'active' ? 'Active' : 'Inactive'}</span
-								>
-							</div>
-						</div>
 					</div>
+				{/each}
+			</div>
+
+			<!-- Pagination dots — below the stack, clear of the card so it doesn't crowd it -->
+			<div class="mt-2 mb-2 flex items-center justify-center gap-1.5">
+				{#each accounts as account, idx (account.id)}
+					<button
+						onclick={() => selectCardByIdx(idx)}
+						aria-label="Select VAN {idx + 1}"
+						class={cn(
+							"relative rounded-full transition-all duration-300 before:absolute before:-inset-2.5 before:content-['']",
+							order[0] === idx
+								? 'h-1.5 w-4 bg-primary'
+								: 'h-1.5 w-1.5 bg-border hover:bg-muted-foreground'
+						)}
+					></button>
 				{/each}
 			</div>
 		</div>
@@ -631,7 +664,9 @@
 
 <style>
 	.van-card {
+		container-type: inline-size;
 		will-change: transform, opacity;
+		clip-path: url(#van-card-shape);
 	}
 
 	.card-gloss {

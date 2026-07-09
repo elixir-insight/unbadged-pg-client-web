@@ -103,7 +103,7 @@
 			>
 				<!-- Mobile: open drawer -->
 				<button
-					class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
+					class="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-accent hover:text-accent-foreground md:hidden"
 					onclick={() => (isMobileOpen = true)}
 					aria-label="Open navigation"
 				>

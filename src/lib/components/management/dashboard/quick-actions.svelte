@@ -23,7 +23,7 @@
 		{@const Icon = action.icon}
 		<a
 			href={resolve(...([action.href] as Parameters<typeof resolve>))}
-			class="group flex flex-1 items-center gap-3 rounded-lg border border-border bg-card px-3 text-left transition-colors hover:border-primary/40 hover:bg-accent"
+			class="group flex flex-1 items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 sm:py-0 text-left transition-colors hover:border-primary/40 hover:bg-accent"
 		>
 			<div
 				class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"

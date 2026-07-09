@@ -4,11 +4,9 @@
 		Download,
 		Landmark,
 		RefreshCw,
-		ShieldCheck,
 		TrendingUp,
 		UserPlus
 	} from '$lib/assets/icons';
-	import { Chip } from '$lib/components/reusable';
 	import HeroBalanceCard, { type HeroRange, type HeroRangeData } from './hero-balance-card.svelte';
 	import SecondaryStats, { type SecondaryStat } from './secondary-stats.svelte';
 	import ActionCenterCard from './action-center-card.svelte';
@@ -90,13 +88,6 @@
 			href: '/management/onboarding/create-organization'
 		},
 		{
-			id: 'review-kyc',
-			label: 'Review KYC queue',
-			description: '5 documents awaiting verification',
-			icon: ShieldCheck,
-			href: '/management/kyc'
-		},
-		{
 			id: 'settlements',
 			label: 'View settlements',
 			description: "Check today's payout schedule",
@@ -158,8 +149,6 @@
 		{ stage: 'Approved', count: 235 }
 	];
 	const totalInPipeline = onboardingStages.reduce((sum, stage) => sum + stage.count, 0);
-	const approvedCount = onboardingStages.find((stage) => stage.stage === 'Approved')?.count ?? 0;
-	const onboardingPercentComplete = Math.round((approvedCount / totalInPipeline) * 100);
 
 	const orgProfileStatus: OrgProfileStatusItem[] = [
 		{ status: 'Active', count: 66, percentage: 66, color: 'var(--chart-1)' },
@@ -172,13 +161,9 @@
 	<!-- Page header -->
 	<div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 		<div>
-			<div class="flex flex-wrap items-center gap-2">
-				<h1 class="text-xl font-bold text-foreground">Welcome back, {userName}</h1>
-				<Chip variant="success" class="gap-1">
-					<CheckCircle2 />
-					Org active · KYC verified
-				</Chip>
-			</div>
+			<h1 class="text-[clamp(1.125rem,3vw,1.25rem)] font-bold text-foreground">
+				Welcome back, {userName}
+			</h1>
 			<p class="mt-0.5 text-sm text-muted-foreground">
 				Here's how your payment platform is performing today.
 			</p>
@@ -190,21 +175,28 @@
 	</div>
 
 	<!-- Focal row: escrow balance trend / secondary KPIs / quick actions -->
-	<div class="grid min-h-0 flex-9 grid-cols-1 gap-3 xl:grid-cols-[1.8fr_1fr_1.2fr]">
-		<HeroBalanceCard value="₹28.4L" ranges={heroRanges} class="min-h-0" />
+	<div
+		class="grid min-h-0 flex-9 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1.8fr_1fr_1.2fr] xl:max-h-[min(42vh,700px)]"
+	>
+		<HeroBalanceCard
+			value="₹28.4L"
+			ranges={heroRanges}
+			class="min-h-70 md:col-span-2 md:min-h-80 xl:col-span-1 xl:min-h-0"
+		/>
 		<SecondaryStats stats={secondaryStats} class="min-h-0" />
 		<ActionCenterCard {quickActions} class="min-h-0" />
 	</div>
 
 	<!-- Operational row: VAN accounts / onboarding / org profile -->
-	<div class="grid min-h-0 flex-11 grid-cols-1 gap-3 xl:grid-cols-[1fr_1.2fr_1fr]">
-		<VanAccountsCard {accounts} class="min-h-0" />
+	<div
+		class="grid min-h-0 flex-11 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.2fr_1fr] xl:max-h-[min(51vh,850px)]"
+	>
+		<VanAccountsCard {accounts} class="min-h-0 md:order-2 xl:order-1" />
 		<OnboardingStatusChart
 			data={onboardingStages}
 			{totalInPipeline}
-			percentComplete={onboardingPercentComplete}
-			class="min-h-0"
+			class="min-h-70 md:order-1 md:col-span-2 md:min-h-0 xl:order-2 xl:col-span-1"
 		/>
-		<OrgProfileStatusChart data={orgProfileStatus} class="min-h-0" />
+		<OrgProfileStatusChart data={orgProfileStatus} class="min-h-0 md:order-3 xl:order-3" />
 	</div>
 </div>

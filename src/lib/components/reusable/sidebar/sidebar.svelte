@@ -98,7 +98,7 @@
 
 		<!-- Mobile: close drawer -->
 		<button
-			class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
+			class="relative flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
 			onclick={() => (isMobileOpen = false)}
 			aria-label="Close navigation"
 		>

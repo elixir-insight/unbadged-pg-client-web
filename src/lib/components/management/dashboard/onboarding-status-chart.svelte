@@ -15,12 +15,10 @@
 	let {
 		data,
 		totalInPipeline,
-		percentComplete,
 		class: className
 	}: {
 		data: OnboardingStage[];
 		totalInPipeline: number;
-		percentComplete?: number;
 		class?: string;
 	} = $props();
 
@@ -35,19 +33,6 @@
 		<Card.Description class="text-xs tabular-nums"
 			>{totalInPipeline.toLocaleString()} total in pipeline</Card.Description
 		>
-		{#if percentComplete !== undefined}
-			<div class="mt-1.5 flex items-center gap-2">
-				<div class="h-0.75 flex-1 overflow-hidden rounded-full bg-muted">
-					<div
-						class="h-full rounded-full bg-primary transition-[width] duration-500"
-						style="width: {percentComplete}%"
-					></div>
-				</div>
-				<span class="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground"
-					>{percentComplete}% approved</span
-				>
-			</div>
-		{/if}
 	</Card.Header>
 
 	<Card.Content class="min-h-0 flex-1">
