@@ -9,6 +9,7 @@
 	import Sidebar from '../sidebar/sidebar.svelte';
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
+	import { cn } from '$lib/utils';
 
 	let {
 		app,
@@ -114,8 +115,13 @@
 				{/if}
 			</header>
 
-			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
-				<div class="min-h-full p-5">
+			<div
+				class={cn(
+					'app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto',
+					isDashboard && 'xl:overflow-hidden'
+				)}
+			>
+				<div class={cn('min-h-full p-5', isDashboard && 'xl:flex xl:h-full xl:flex-col')}>
 					{@render children()}
 				</div>
 			</div>

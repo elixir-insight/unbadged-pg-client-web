@@ -25,7 +25,7 @@
 				</div>
 			</div>
 
-			<p class="text-xl font-bold tracking-tight text-foreground">{card.value}</p>
+			<p class="text-xl font-bold tracking-tight text-foreground tabular-nums">{card.value}</p>
 
 			<div class="flex items-center gap-1 text-xs font-medium text-muted-foreground">
 				{#if card.trendDirection === 'up'}
@@ -33,7 +33,7 @@
 				{:else}
 					<TrendingDown class="size-3.5 text-destructive" aria-hidden="true" />
 				{/if}
-				<span>{card.trend}</span>
+				<span class="tabular-nums">{card.trend}</span>
 			</div>
 		</div>
 	{/each}

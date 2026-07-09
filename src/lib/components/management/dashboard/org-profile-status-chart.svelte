@@ -37,6 +37,10 @@
 			])
 		) as Chart.ChartConfig
 	);
+
+	const leadStatus = $derived(
+		data.reduce((max, item) => (item.percentage > max.percentage ? item : max), data[0])
+	);
 </script>
 
 <Card.Root size="sm" class={cn('flex h-full flex-col', className)}>
@@ -47,15 +51,15 @@
 
 	<Card.Content class="flex min-h-0 flex-1 flex-col">
 		<div class="flex min-h-0 flex-1 flex-col items-center">
-			<div class="flex w-full flex-1 items-center justify-center">
-				<Chart.Container config={chartConfig} class="aspect-square max-h-32.5 w-full max-w-32.5">
+			<div class="relative flex w-full flex-1 items-center justify-center">
+				<Chart.Container config={chartConfig} class="aspect-square max-h-52 w-full max-w-52">
 					<PieChart
 						data={chartData}
 						key="status"
 						value="count"
 						c="color"
-						innerRadius={34}
-						padding={14}
+						innerRadius={54}
+						padding={18}
 						props={{ pie: { motion: 'tween' } }}
 					>
 						{#snippet tooltip()}
@@ -63,6 +67,12 @@
 						{/snippet}
 					</PieChart>
 				</Chart.Container>
+				<div class="pointer-events-none absolute flex flex-col items-center">
+					<span class="text-2xl font-bold tabular-nums text-foreground"
+						>{leadStatus.percentage}%</span
+					>
+					<span class="text-[10.5px] font-medium text-muted-foreground">{leadStatus.status}</span>
+				</div>
 			</div>
 
 			<ul
@@ -79,7 +89,7 @@
 							></span>
 							<span class="text-muted-foreground">{item.status}</span>
 						</div>
-						<span class="font-semibold text-foreground">{item.percentage}%</span>
+						<span class="font-semibold tabular-nums text-foreground">{item.percentage}%</span>
 					</li>
 				{/each}
 			</ul>

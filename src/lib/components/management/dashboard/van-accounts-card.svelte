@@ -18,6 +18,8 @@
 	import { cn } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	let { accounts, class: className }: { accounts: VanAccount[]; class?: string } = $props();
+	const totalToday = $derived(accounts.reduce((sum, account) => sum + account.txToday, 0));
+	const activeCount = $derived(accounts.filter((account) => account.status === 'active').length);
 	// Colors keyed by rank — rank 0 (front) is darkest, rank 2 (back) is lightest.
 	// Applied imperatively so the front card is always dark regardless of which account it is.
 	const RANK_BACKGROUNDS = [
@@ -500,111 +502,129 @@
 	</div>
 
 	<!-- ── Card Stack ─────────────────────────────────────────────────────── -->
-	<div class="relative mx-auto mb-2 w-full max-w-sm px-5">
-		<!-- Dot indicators — sit outside the clip so they're always visible -->
-		<div
-			class="absolute right-3 z-20 flex flex-col items-center justify-center gap-1.5"
-			style="top: {RANK_POS[0].y + 12}px; height: {CARD_H}px;"
-		>
-			{#each accounts as account, idx (account.id)}
-				<button
-					onclick={() => selectCardByIdx(idx)}
-					aria-label="Select VAN {idx + 1}"
-					class={cn(
-						'rounded-full transition-all duration-300',
-						order[0] === idx
-							? 'h-4 w-1.5 bg-primary'
-							: 'h-1.5 w-1.5 bg-border hover:bg-muted-foreground'
-					)}
-				></button>
-			{/each}
-		</div>
+	<div class="flex flex-1 flex-col justify-center">
+		<div class="relative mx-auto w-full max-w-sm px-5">
+			<!-- Dot indicators — sit outside the clip so they're always visible -->
+			<div
+				class="absolute right-3 z-20 flex flex-col items-center justify-center gap-1.5"
+				style="top: {RANK_POS[0].y + 12}px; height: {CARD_H}px;"
+			>
+				{#each accounts as account, idx (account.id)}
+					<button
+						onclick={() => selectCardByIdx(idx)}
+						aria-label="Select VAN {idx + 1}"
+						class={cn(
+							'rounded-full transition-all duration-300',
+							order[0] === idx
+								? 'h-4 w-1.5 bg-primary'
+								: 'h-1.5 w-1.5 bg-border hover:bg-muted-foreground'
+						)}
+					></button>
+				{/each}
+			</div>
 
-		<!-- Stack wrapper — all pointer events live here -->
-		<div
-			role="region"
-			aria-label="VAN card stack"
-			class="relative touch-none overflow-hidden"
-			style="height: {STACK_H}px;"
-			onpointerdown={onStackPointerDown}
-			onpointermove={onStackPointerMove}
-			onpointerup={endDrag}
-			onpointercancel={endDrag}
-		>
-			{#each accounts as account, idx (account.id)}
-				<div
-					data-card-idx={idx}
-					{@attach (el) => {
-						cardEls[idx] = el;
-						return () => {
-							cardEls[idx] = undefined;
-						};
-					}}
-					class="van-card absolute inset-x-0 top-0 h-38 cursor-grab overflow-hidden rounded-2xl px-5 py-4 select-none active:cursor-grabbing"
-					style="opacity: 0;"
-					onpointerenter={() => onCardHoverIn(idx)}
-					onpointerleave={() => onCardHoverOut(idx)}
-					role="button"
-					tabindex="0"
-					aria-label="Select {account.bankName} - {account.purpose}"
-				>
+			<!-- Stack wrapper — all pointer events live here -->
+			<div
+				role="region"
+				aria-label="VAN card stack"
+				class="relative touch-none overflow-hidden"
+				style="height: {STACK_H}px;"
+				onpointerdown={onStackPointerDown}
+				onpointermove={onStackPointerMove}
+				onpointerup={endDrag}
+				onpointercancel={endDrag}
+			>
+				{#each accounts as account, idx (account.id)}
 					<div
-						class="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full border border-white/20"
-					></div>
-					<div
-						class="pointer-events-none absolute -right-4 -top-8 h-24 w-24 rounded-full border border-white/15"
-					></div>
-					<div class="card-gloss pointer-events-none absolute inset-0"></div>
+						data-card-idx={idx}
+						{@attach (el) => {
+							cardEls[idx] = el;
+							return () => {
+								cardEls[idx] = undefined;
+							};
+						}}
+						class="van-card absolute inset-x-0 top-0 h-38 cursor-grab overflow-hidden rounded-2xl px-5 py-4 select-none active:cursor-grabbing"
+						style="opacity: 0;"
+						onpointerenter={() => onCardHoverIn(idx)}
+						onpointerleave={() => onCardHoverOut(idx)}
+						role="button"
+						tabindex="0"
+						aria-label="Select {account.bankName} - {account.purpose}"
+					>
+						<div
+							class="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full border border-white/20"
+						></div>
+						<div
+							class="pointer-events-none absolute -right-4 -top-8 h-24 w-24 rounded-full border border-white/15"
+						></div>
+						<div class="card-gloss pointer-events-none absolute inset-0"></div>
 
-					<!-- Top row: bank name + VAN badge -->
-					<div class="relative flex items-start justify-between">
-						<p class="text-sm font-bold tracking-tight text-white">{account.bankName}</p>
-						<span
-							class="rounded-2xl border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-bold tracking-widest text-white/80 uppercase"
-						>
-							VAN
-						</span>
-					</div>
-
-					<!-- Account number -->
-					<p class="relative mt-4 font-mono text-[15px] font-bold tracking-[0.15em] text-white">
-						{fmtAcct(account.accountNumber)}
-					</p>
-
-					<!-- Today's spend -->
-					<p class="relative mt-0.5 text-[9px] font-medium text-white/50">
-						{fmtINR(account.txToday)} / {fmtINR(account.txLimit)} today
-					</p>
-
-					<!-- Bottom row: card holder + status -->
-					<div class="relative mt-3 flex items-end justify-between gap-3">
-						<div class="min-w-0">
-							<p class="text-[7.5px] font-semibold tracking-widest text-white/40 uppercase">
-								Card holder
-							</p>
-							<p class="mt-0.5 truncate text-[11px] font-semibold text-white">{account.cardName}</p>
-						</div>
-						<div class="flex shrink-0 items-center gap-1.5">
-							<span class="relative flex size-1.5">
-								{#if account.status === 'active'}
-									<span
-										class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
-									></span>
-								{/if}
-								<span
-									class={cn(
-										'relative inline-flex size-1.5 rounded-full',
-										account.status === 'active' ? 'bg-emerald-400' : 'bg-white/40'
-									)}
-								></span>
-							</span>
-							<span class="text-[9px] font-bold text-white/80 uppercase"
-								>{account.status === 'active' ? 'Active' : 'Inactive'}</span
+						<!-- Top row: bank name + VAN badge -->
+						<div class="relative flex items-start justify-between">
+							<p class="text-sm font-bold tracking-tight text-white">{account.bankName}</p>
+							<span
+								class="rounded-2xl border border-white/20 bg-white/10 px-2 py-1 text-[9px] font-bold tracking-widest text-white/80 uppercase"
 							>
+								VAN
+							</span>
+						</div>
+
+						<!-- Account number -->
+						<p class="relative mt-4 font-mono text-[15px] font-bold tracking-[0.15em] text-white">
+							{fmtAcct(account.accountNumber)}
+						</p>
+
+						<!-- Today's spend -->
+						<p class="relative mt-0.5 text-[9px] font-medium tabular-nums text-white/50">
+							{fmtINR(account.txToday)} / {fmtINR(account.txLimit)} today
+						</p>
+
+						<!-- Bottom row: card holder + status -->
+						<div class="relative mt-3 flex items-end justify-between gap-3">
+							<div class="min-w-0">
+								<p class="text-[7.5px] font-semibold tracking-widest text-white/40 uppercase">
+									Card holder
+								</p>
+								<p class="mt-0.5 truncate text-[11px] font-semibold text-white">
+									{account.cardName}
+								</p>
+							</div>
+							<div class="flex shrink-0 items-center gap-1.5">
+								<span class="relative flex size-1.5">
+									{#if account.status === 'active'}
+										<span
+											class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+										></span>
+									{/if}
+									<span
+										class={cn(
+											'relative inline-flex size-1.5 rounded-full',
+											account.status === 'active' ? 'bg-emerald-400' : 'bg-white/40'
+										)}
+									></span>
+								</span>
+								<span class="text-[9px] font-bold text-white/80 uppercase"
+									>{account.status === 'active' ? 'Active' : 'Inactive'}</span
+								>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
+				{/each}
+			</div>
+		</div>
+	</div>
+
+	<!-- ── Footer summary ─────────────────────────────────────────────────── -->
+	<div class="grid shrink-0 grid-cols-2 divide-x divide-border border-t border-border">
+		<div class="flex flex-col gap-0.5 px-5 py-3">
+			<span class="text-[10.5px] font-medium text-muted-foreground">Moved today</span>
+			<span class="text-sm font-bold tabular-nums text-foreground">{fmtINR(totalToday)}</span>
+		</div>
+		<div class="flex flex-col gap-0.5 px-5 py-3">
+			<span class="text-[10.5px] font-medium text-muted-foreground">Active accounts</span>
+			<span class="text-sm font-bold tabular-nums text-foreground"
+				>{activeCount} of {accounts.length}</span
+			>
 		</div>
 	</div>
 </div>

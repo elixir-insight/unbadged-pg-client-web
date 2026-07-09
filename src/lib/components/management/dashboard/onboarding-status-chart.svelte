@@ -9,17 +9,18 @@
 	import * as Chart from '$lib/components/ui/chart';
 	import * as Card from '$lib/components/ui/card';
 	import { BarChart } from 'layerchart';
-	import { scaleBand } from 'd3-scale';
 	import { cubicInOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
 
 	let {
 		data,
 		totalInPipeline,
+		percentComplete,
 		class: className
 	}: {
 		data: OnboardingStage[];
 		totalInPipeline: number;
+		percentComplete?: number;
 		class?: string;
 	} = $props();
 
@@ -28,26 +29,39 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<Card.Root size="sm" class={cn('flex h-full flex-col', className)}>
+<Card.Root size="sm" class={cn('flex h-full min-h-0 flex-col', className)}>
 	<Card.Header>
 		<Card.Title class="text-sm font-semibold">Onboarding status</Card.Title>
-		<Card.Description class="text-xs"
+		<Card.Description class="text-xs tabular-nums"
 			>{totalInPipeline.toLocaleString()} total in pipeline</Card.Description
 		>
+		{#if percentComplete !== undefined}
+			<div class="mt-1.5 flex items-center gap-2">
+				<div class="h-0.75 flex-1 overflow-hidden rounded-full bg-muted">
+					<div
+						class="h-full rounded-full bg-primary transition-[width] duration-500"
+						style="width: {percentComplete}%"
+					></div>
+				</div>
+				<span class="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground"
+					>{percentComplete}% approved</span
+				>
+			</div>
+		{/if}
 	</Card.Header>
 
-	<Card.Content class="flex-1">
+	<Card.Content class="min-h-0 flex-1">
 		<Chart.Container config={chartConfig} class="h-full min-h-35 w-full">
 			<BarChart
 				{data}
 				orientation="horizontal"
-				yScale={scaleBand().padding(0.55)}
+				bandPadding={0.68}
 				y="stage"
 				series={[{ key: 'count', label: 'Organizations', color: chartConfig.count.color }]}
-				padding={{ left: 76 }}
+				padding={{ left: 76, bottom: 20 }}
 				grid={true}
 				rule={false}
-				axis="y"
+				axis={true}
 				props={{
 					bars: {
 						stroke: 'none',
