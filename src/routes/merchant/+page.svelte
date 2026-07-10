@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import { StatCard, TransactionVolumeChart } from '$lib/components/reusable';
+	import { StatCard } from '$lib/components/reusable';
 	import {
-		TriangleAlert,
-		ActivityIcon,
-		ArrowDownToLine,
-		ArrowUpFromLine,
-		Undo,
-		Download
-	} from '$lib/assets/icons';
+		TransactionVolumeChart,
+		PaymentMethodsCard,
+		QuickActionsCard,
+		SettlementsCard,
+		RecentActivityCard,
+		RefundsDisputesCard,
+		NotificationsCard,
+		type QuickAction,
+		type RecentPayment,
+		type NotificationItem,
+		type PaymentMethodShare
+	} from '$lib/components/merchant-dashboard';
+	import { ArrowDownToLine, Undo } from '$lib/assets/icons';
 
 	const firstName = $derived(merchantSession.session?.merchantName?.split(' ')[0] ?? 'there');
 
@@ -25,116 +31,150 @@
 		{ day: 'Sun', payin: 3300000, payout: 1100000 }
 	];
 
-	const quickActions = [
-		{ label: 'Create payment link', icon: ArrowDownToLine },
-		{ label: 'Initiate payout', icon: ArrowUpFromLine },
-		{ label: 'Issue refund', icon: Undo },
-		{ label: 'Download report', icon: Download }
+	const paymentMethods: PaymentMethodShare[] = [
+		{ method: 'UPI', percentage: 48, color: 'var(--color-chart-1)' },
+		{ method: 'Card', percentage: 27, color: 'var(--color-chart-2)' },
+		{ method: 'Netbanking', percentage: 15, color: 'var(--color-chart-3)' },
+		{ method: 'Wallet', percentage: 10, color: 'var(--color-chart-4)' }
+	];
+
+	const quickActions: QuickAction[] = [
+		{ label: 'Payment link', icon: ArrowDownToLine },
+		{ label: 'Refund', icon: Undo }
+	];
+
+	const latestPayments: RecentPayment[] = [
+		{ name: 'John Smith', amount: '₹12,500', status: 'success' },
+		{ name: 'Emma Wilson', amount: '₹8,200', status: 'success' },
+		{ name: 'Alex Brown', amount: '₹5,750', status: 'pending' },
+		{ name: 'Sophia Lee', amount: '₹3,400', status: 'success' },
+		{ name: 'David Miller', amount: '₹2,900', status: 'failed' }
+	];
+
+	const notifications: NotificationItem[] = [
+		{ label: 'Settlement completed', timestamp: '2m', tone: 'success' },
+		{ label: 'Refund requested', timestamp: '8m', tone: 'warning' },
+		{ label: 'Chargeback initiated', timestamp: '14m', tone: 'warning' },
+		{ label: 'Payment received', timestamp: '22m', tone: 'success' },
+		{ label: 'KYC expiring', timestamp: '40m', tone: 'warning' }
 	];
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h2 class="text-lg font-semibold">Welcome back, {firstName}</h2>
-		<p class="text-sm text-muted-foreground">Here's what's happening with your account today.</p>
-	</div>
-
+<div class="flex min-h-0 flex-1 flex-col">
 	{#if merchantSession.hasBothServices()}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			<StatCard
-				label="Available balance"
-				value="₹18,42,650"
-				badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
-				sparkline={balanceTrend}
-			/>
-			<StatCard
-				label="PayIn · today"
-				value="₹6,42,300"
-				badge={{ label: '96.8%', variant: 'success' }}
-				subtext="128 transactions · 4 failed"
-			/>
-			<StatCard
-				label="Reserved"
-				value="₹45,000"
-				icon={TriangleAlert}
-				iconVariant="muted"
-				subtext="Rolling reserve"
-			/>
-			<StatCard
-				label="Today's net volume"
-				value="₹21,25,220"
-				icon={ActivityIcon}
-				iconVariant="success"
-				// subtext="PayIn minus Payout"
-				trend={{ direction: 'up', label: '+12.4% vs yesterday' }}
-			/>
-		</div>
+		<div class="grid h-full grid-rows-[minmax(88px,auto)_1fr_1fr] gap-4">
+			<!-- Row 1 · KPI overview -->
+			<div class="grid grid-cols-12 gap-4">
+				<StatCard label="Available balance" value="₹18,42,650" class="col-span-3" />
+				<StatCard
+					label="Today's pay-ins"
+					value="₹6,42,300"
+					subtext="128 transactions"
+					class="col-span-3"
+				/>
+				<StatCard
+					label="Pending settlement"
+					value="₹38,900"
+					subtext="Settles tomorrow"
+					class="col-span-3"
+				/>
+				<StatCard
+					label="Success rate"
+					value="98.6%"
+					subtext="1,204 transactions"
+					class="col-span-3"
+				/>
+			</div>
 
-		<div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-			<TransactionVolumeChart data={transactionVolume} class="lg:col-span-3" />
-
-			<div class="rounded-lg border border-border bg-background p-4 shadow-xs">
-				<p class="text-sm font-semibold">Quick actions</p>
-				<p class="text-xs text-muted-foreground">Jump into common tasks</p>
-
-				<div class="mt-4 grid grid-cols-2 gap-3">
-					{#each quickActions as action (action.label)}
-						<button
-							type="button"
-							class="flex flex-col items-start gap-2 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted"
-						>
-							<span class="flex size-8 items-center justify-center rounded-lg bg-muted">
-								<action.icon class="size-4" />
-							</span>
-							<span class="text-xs font-medium">{action.label}</span>
-						</button>
-					{/each}
+			<!-- Row 2 · Primary analytics -->
+			<div class="grid min-h-0 grid-cols-12 gap-4">
+				<PaymentMethodsCard methods={paymentMethods} class="col-span-3" />
+				<TransactionVolumeChart data={transactionVolume} class="col-span-6" />
+				<div class="col-span-3 grid min-h-0 grid-rows-2 gap-4">
+					<QuickActionsCard actions={quickActions} />
+					<SettlementsCard
+						nextSettlementAmount="₹8,42,300"
+						nextSettlementTime="Tomorrow • 9:30 AM"
+						lastSettlementAmount="₹7,65,400"
+						lastSettlementTime="Yesterday"
+					/>
 				</div>
+			</div>
+
+			<!-- Row 3 · Operational overview -->
+			<div class="grid min-h-0 grid-cols-12 gap-4">
+				<RecentActivityCard payments={latestPayments} class="col-span-4" />
+				<RefundsDisputesCard
+					open={3}
+					pending={4}
+					resolved={5}
+					attentionText="2 require immediate attention"
+					class="col-span-4"
+				/>
+				<NotificationsCard items={notifications} class="col-span-4" />
 			</div>
 		</div>
 	{:else if merchantSession.hasPayinAccess()}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			<StatCard
-				label="Available balance"
-				value="₹18,42,650"
-				badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
-				sparkline={balanceTrend}
-			/>
-			<StatCard
-				label="PayIn · today"
-				value="₹6,42,300"
-				badge={{ label: '96.8%', variant: 'success' }}
-				subtext="128 transactions · 4 failed"
-			/>
-			<StatCard
-				label="Needs attention"
-				value="2"
-				unit="disputes"
-				badge={{ label: 'Action', variant: 'warning' }}
-				subtext="6 refunds pending · ₹42,500"
-			/>
+		<div class="space-y-6">
+			<div>
+				<h2 class="text-lg font-semibold">Welcome back, {firstName}</h2>
+				<p class="text-sm text-muted-foreground">
+					Here's what's happening with your account today.
+				</p>
+			</div>
+
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				<StatCard
+					label="Available balance"
+					value="₹18,42,650"
+					badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
+					sparkline={balanceTrend}
+				/>
+				<StatCard
+					label="PayIn · today"
+					value="₹6,42,300"
+					badge={{ label: '96.8%', variant: 'success' }}
+					subtext="128 transactions · 4 failed"
+				/>
+				<StatCard
+					label="Needs attention"
+					value="2"
+					unit="disputes"
+					badge={{ label: 'Action', variant: 'warning' }}
+					subtext="6 refunds pending · ₹42,500"
+				/>
+			</div>
 		</div>
 	{:else if merchantSession.hasPayoutAccess()}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			<StatCard
-				label="Wallet balance"
-				value="₹18,42,650"
-				badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
-				sparkline={balanceTrend}
-			/>
-			<StatCard
-				label="Payout · today"
-				value="₹3,18,900"
-				badge={{ label: '99.1%', variant: 'success' }}
-				subtext="47 transactions · 1 pending"
-			/>
-			<StatCard
-				label="Needs attention"
-				value="6"
-				unit="refunds"
-				badge={{ label: 'Action', variant: 'warning' }}
-				subtext="₹42,500 pending payout"
-			/>
+		<div class="space-y-6">
+			<div>
+				<h2 class="text-lg font-semibold">Welcome back, {firstName}</h2>
+				<p class="text-sm text-muted-foreground">
+					Here's what's happening with your account today.
+				</p>
+			</div>
+
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				<StatCard
+					label="Wallet balance"
+					value="₹18,42,650"
+					badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
+					sparkline={balanceTrend}
+				/>
+				<StatCard
+					label="Payout · today"
+					value="₹3,18,900"
+					badge={{ label: '99.1%', variant: 'success' }}
+					subtext="47 transactions · 1 pending"
+				/>
+				<StatCard
+					label="Needs attention"
+					value="6"
+					unit="refunds"
+					badge={{ label: 'Action', variant: 'warning' }}
+					subtext="₹42,500 pending payout"
+				/>
+			</div>
 		</div>
 	{:else}
 		<p class="text-sm text-muted-foreground">Loading...</p>

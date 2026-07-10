@@ -37,5 +37,3 @@ export { default as SearchField } from './search-field/search-field.svelte';
 export type { SearchFieldOption } from './search-field/search-field.svelte';
 export { default as Calendar } from './calendar/calendar.svelte';
 export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
-export { default as TransactionVolumeChart } from './transaction-volume-chart/transaction-volume-chart.svelte';
-export type { TransactionVolumePoint } from './transaction-volume-chart/transaction-volume-chart.svelte';
