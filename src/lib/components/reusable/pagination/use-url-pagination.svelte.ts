@@ -137,6 +137,20 @@ export function createUrlPagination({
 		setType(value: string) {
 			navigate({ type: value || null, skip: null }, true);
 		},
+		/**
+		 * Atomically update multiple filter fields at once (e.g. status + type
+		 * together). Calling the individual setters back-to-back races — each
+		 * reads `page.url` before the other's `goto()` resolves, so the second
+		 * call can clobber the first. Use this instead whenever more than one
+		 * field needs to change together.
+		 */
+		setFilters(updates: { search?: string; status?: string; type?: string }) {
+			const nav: Record<string, string | null> = { skip: '0' };
+			if ('search' in updates) nav.search = updates.search || null;
+			if ('status' in updates) nav.status = updates.status || null;
+			if ('type' in updates) nav.type = updates.type || null;
+			navigate(nav, true);
+		},
 		/** Clear all filters (search, status, type) and reset pagination (replaces history). */
 		clearAllFilters() {
 			navigate({ search: null, status: null, type: null, skip: null }, true);

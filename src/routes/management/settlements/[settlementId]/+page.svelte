@@ -5,6 +5,7 @@
 		Table,
 		FilterCards,
 		SearchField,
+		Dropdown,
 		Avatar,
 		createUrlPagination
 	} from '$lib/components/reusable';
@@ -12,9 +13,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ArrowLeft } from '$lib/assets/icons';
+	import { ArrowLeft, X } from '$lib/assets/icons';
 	import { debounce } from '$lib/utils/debounce.js';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { useSettlementDetail } from './use-settlement-detail.svelte';
 	import SettlementStatusBadge from '../settlement-status-badge.svelte';
 	import TransactionTypeBadge from './transaction-type-badge.svelte';
@@ -70,49 +71,94 @@
 		total: () => filteredTransactions.length
 	});
 
-	// Pending/Failed are order-level outcomes — an order only produces a
+	// "Pending"/"Failed" are order-level outcomes — an order only produces a
 	// settlement transaction once it's captured (sale) or later adjusted
-	// (refund/chargeback), so this ledger never contains a pending/failed
-	// row. Filtering by either (via pagination.status) is a real filter, and
-	// always — correctly — yields zero rows; the empty state below explains
-	// why.
+	// (refund/chargeback), so this ledger never contains one. Neither is
+	// clickable via the UI anymore (the stat cards below now filter by
+	// payment mode instead), but pagination.status/.type are still honored
+	// defensively here for an old shared link that set them.
 	const statFilter = $derived(
 		pagination.status === 'pending' || pagination.status === 'failed' ? pagination.status : null
 	);
-
-	// All 5 stat cards are clickable/selectable (same FilterCards pattern as
-	// the settlements list page's order cards): "Orders" is the neutral/all
-	// state and clears the filter, "Pending"/"Failed" drive pagination.status
-	// for real, "Successful"/"Created" are visual-only picks (no settlement-
-	// transaction equivalent) — selectedStatCard tracks those locally, and
-	// re-syncs from the URL whenever Pending/Failed changes some other way
-	// (e.g. the empty state's "Clear filter" action).
-	let selectedStatCard = $state('Orders');
-	$effect(() => {
-		if (pagination.status === 'pending') selectedStatCard = 'Pending';
-		else if (pagination.status === 'failed') selectedStatCard = 'Failed';
-		else if (selectedStatCard === 'Pending' || selectedStatCard === 'Failed') {
-			selectedStatCard = 'Orders';
-		}
-	});
-
-	function selectStatCard(label: string) {
-		if (label === 'Orders') pagination.setStatus('');
-		else if (label === 'Pending') pagination.setStatus('pending');
-		else if (label === 'Failed') pagination.setStatus('failed');
-	}
 
 	function clearStatFilter() {
 		pagination.setStatus('');
 	}
 
+	// Payment mode isn't part of the shared createUrlPagination composable
+	// (it's specific to this ledger), so it's managed directly here as its
+	// own URL param — same "read from page.url, goto() to update" pattern
+	// backToList uses above.
+	const paymentModeParam = $derived(page.url.searchParams.get('mode') ?? '');
+
+	function setPaymentMode(value: string) {
+		const url = new SvelteURL(page.url.toString());
+		if (value) url.searchParams.set('mode', value);
+		else url.searchParams.delete('mode');
+		url.searchParams.delete('skip');
+		const href =
+			`${url.pathname}?${url.searchParams.toString()}` as `${typeof url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
+	// One entry per payment mode actually present on this settlement's own
+	// ledger (not a static catalogue), each with its real transaction count —
+	// powers both the stat cards and the dropdown below, so a mode with zero
+	// transactions here never shows up in either.
+	const paymentModeCounts = $derived.by(() => {
+		const counts: { mode: string; count: number }[] = [];
+		for (const t of detail.detail?.transactions ?? []) {
+			const existing = counts.find((c) => c.mode === t.paymentMode);
+			if (existing) existing.count += 1;
+			else counts.push({ mode: t.paymentMode, count: 1 });
+		}
+		return counts;
+	});
+	const paymentModeOptions = $derived(
+		paymentModeCounts.map((c) => ({ value: c.mode, label: c.mode }))
+	);
+
+	// The stat cards filter by payment mode: "All" clears the filter and
+	// shows the full ledger count, each mode card sets paymentModeParam via
+	// setPaymentMode. selectedPaymentModeCard is a writable derived (bound to
+	// FilterCards below) so it re-syncs from the URL whenever the filter
+	// changes some other way (e.g. the dropdown, or the empty state's "Clear
+	// filter" action).
+	const transactionCount = $derived(detail.detail?.transactions.length ?? 0);
+	let selectedPaymentModeCard = $derived(paymentModeParam || 'All');
+
+	function selectPaymentModeCard(label: string) {
+		setPaymentMode(label === 'All' ? '' : label);
+	}
+
+	// Which field the search box matches against — kept in its own URL param
+	// (same "read from page.url, goto() to update" pattern as paymentMode
+	// above) so a refresh or shared link doesn't silently reinterpret an
+	// Order ID search as a Transaction ID one.
+	const searchFieldParam = $derived(page.url.searchParams.get('searchField') || 'transactionId');
+
+	function setSearchField(value: string) {
+		const url = new SvelteURL(page.url.toString());
+		if (value && value !== 'transactionId') url.searchParams.set('searchField', value);
+		else url.searchParams.delete('searchField');
+		const href =
+			`${url.pathname}?${url.searchParams.toString()}` as `${typeof url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
 	const filteredTransactions = $derived.by(() => {
-		const transactions = detail.detail?.transactions ?? [];
+		let transactions = detail.detail?.transactions ?? [];
 		if (statFilter) return [];
+		if (pagination.type) {
+			transactions = transactions.filter((t) => t.type === pagination.type);
+		}
+		if (paymentModeParam) {
+			transactions = transactions.filter((t) => t.paymentMode === paymentModeParam);
+		}
 		if (!pagination.search) return transactions;
 		const q = pagination.search.toLowerCase();
-		return transactions.filter(
-			(t) => t.transactionId.toLowerCase().includes(q) || t.orderId.toLowerCase().includes(q)
+		return transactions.filter((t) =>
+			(searchFieldParam === 'orderId' ? t.orderId : t.transactionId).toLowerCase().includes(q)
 		);
 	});
 
@@ -128,7 +174,8 @@
 	});
 	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 300);
 
-	function handleSearch(_field: string, value: string) {
+	function handleSearch(field: string, value: string) {
+		if (field !== searchFieldParam) setSearchField(field);
 		debouncedSearch(value);
 	}
 
@@ -202,8 +249,8 @@
 	{#if detail.loading}
 		<div class="flex flex-col gap-6">
 			<Skeleton class="h-24 rounded-xl" />
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-				{#each [...Array(5).keys()] as i (i)}
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+				{#each [...Array(6).keys()] as i (i)}
 					<Skeleton class="h-24 rounded-lg" />
 				{/each}
 			</div>
@@ -276,23 +323,21 @@
 			</div>
 		</div>
 
-		<!-- Merchant-scoped order stats — same clickable FilterCards pattern as
-		     the settlements list page. "Orders" clears the filter; "Pending"/
-		     "Failed" filter the transaction table below for real (pending/
-		     failed orders never produce a settlement transaction, so it always
-		     — correctly — shows none); "Successful"/"Created" are visual-only. -->
+		<!-- Payment-mode stat cards — same clickable FilterCards pattern as the
+		     settlements list page. "All" clears the filter and shows the full
+		     ledger count; each mode card filters the transaction table below by
+		     paymentMode (see setPaymentMode above). Modes are derived from this
+		     settlement's own ledger, so a mode with zero transactions here never
+		     gets a card. -->
 		<FilterCards
 			loading={false}
 			cards={[
-				{ label: 'Orders', count: s.orderStats.orders },
-				{ label: 'Successful', count: s.orderStats.successful },
-				{ label: 'Pending', count: s.orderStats.pending },
-				{ label: 'Created', count: s.orderStats.created },
-				{ label: 'Failed', count: s.orderStats.failed }
+				{ label: 'All', count: transactionCount },
+				...paymentModeCounts.map((c) => ({ label: c.mode, count: c.count }))
 			]}
-			bind:selected={selectedStatCard}
-			onselect={selectStatCard}
-			class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+			bind:selected={selectedPaymentModeCard}
+			onselect={selectPaymentModeCard}
+			class="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
 		/>
 
 		<!-- Transactions -->
@@ -301,16 +346,43 @@
 				<span class="text-sm text-muted-foreground">
 					{filteredTransactions.length} transaction{filteredTransactions.length === 1 ? '' : 's'}
 				</span>
-				<div class="w-full max-w-xs">
-					<SearchField
-						fields={[
-							{ value: 'transactionId', label: 'Transaction ID', placeholder: 'e.g. TXN-MER01-…' },
-							{ value: 'orderId', label: 'Order ID', placeholder: 'e.g. ORD-MER01-…' }
-						]}
-						field="transactionId"
-						value={searchInput}
-						onSearch={handleSearch}
-					/>
+				<div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+					<div class="flex items-center gap-1.5">
+						<div class="w-full sm:w-44">
+							<Dropdown
+								value={paymentModeParam || undefined}
+								options={paymentModeOptions}
+								placeholder="All payment modes"
+								search
+								onValueChange={(value) => setPaymentMode(value)}
+							/>
+						</div>
+						{#if paymentModeParam}
+							<button
+								type="button"
+								onclick={() => setPaymentMode('')}
+								aria-label="Clear payment mode filter"
+								class="cursor-pointer rounded-sm p-1 text-muted-foreground opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+							>
+								<X class="size-3.5" />
+							</button>
+						{/if}
+					</div>
+					<div class="w-full sm:max-w-xs">
+						<SearchField
+							fields={[
+								{
+									value: 'transactionId',
+									label: 'Transaction ID',
+									placeholder: 'e.g. TXN-MER01-…'
+								},
+								{ value: 'orderId', label: 'Order ID', placeholder: 'e.g. ORD-MER01-…' }
+							]}
+							field={searchFieldParam}
+							value={searchInput}
+							onSearch={handleSearch}
+						/>
+					</div>
 				</div>
 			</div>
 
@@ -324,12 +396,23 @@
 						actionLabel="Clear filter"
 						onAction={clearStatFilter}
 					/>
+				{:else if pagination.search}
+					{@const fieldLabel = searchFieldParam === 'orderId' ? 'Order ID' : 'Transaction ID'}
+					<StatePanel
+						title="No transactions found"
+						description={`No transactions match "${pagination.search}" in ${fieldLabel}. Try a different value or search field.`}
+					/>
+				{:else if paymentModeParam}
+					<StatePanel
+						title="No transactions found"
+						description={`No transactions match the "${paymentModeParam}" payment mode for this filter. Try a different mode or clear it.`}
+						actionLabel="Clear filter"
+						onAction={() => setPaymentMode('')}
+					/>
 				{:else}
 					<StatePanel
 						title="No transactions found"
-						description={pagination.search
-							? `No transactions match "${pagination.search}". Try a different Transaction ID or Order ID.`
-							: 'This settlement has no transactions.'}
+						description="This settlement has no transactions."
 					/>
 				{/if}
 			{:else}

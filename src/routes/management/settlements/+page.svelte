@@ -5,7 +5,7 @@
 		Table,
 		Button,
 		FilterCards,
-		SearchField,
+		Dropdown,
 		Tabs,
 		createUrlPagination
 	} from '$lib/components/reusable';
@@ -15,7 +15,6 @@
 	import { page } from '$app/state';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date';
-	import { debounce } from '$lib/utils/debounce.js';
 	import { RefreshCw, X } from '$lib/assets/icons';
 	import { useOrderStats, useSettlementsList } from './use-settlements-list.svelte';
 	import SettlementStatusBadge from './settlement-status-badge.svelte';
@@ -78,30 +77,51 @@
 
 	const pagination = createUrlPagination({ defaultLimit: 8, total: () => filteredData.length });
 
-	let searchInput = $derived(pagination.search);
-	$effect(() => {
-		searchInput = pagination.search;
-	});
-	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 300);
-
-	// ── Order-stat cards — only "Pending" and "Total Orders" have a real
-	// settlement-status equivalent, so only those two drive the table's
-	// status filter. "Successful"/"Created"/"Failed" are visual-only picks
-	// (order status isn't the same thing as settlement status). Selection
-	// still mirrors the filter when it's changed elsewhere (dropdown, chip,
-	// Clear All), so the two controls never visibly disagree.
-	let selectedOrderCard = $state<string>('Total Orders');
-	$effect(() => {
-		if (pagination.status === 'pending') {
-			selectedOrderCard = 'Pending';
-		} else if (selectedOrderCard === 'Pending') {
-			selectedOrderCard = 'Total Orders';
+	// Options are derived from the merchants present in the current list (not
+	// a static catalogue), so the dropdown never offers a merchant with zero
+	// settlements for the selected date.
+	const merchantOptions = $derived.by(() => {
+		const options: { value: string; label: string }[] = [];
+		for (const item of list.items) {
+			if (options.some((option) => option.value === item.merchantName)) continue;
+			options.push({ value: item.merchantName, label: item.merchantName });
 		}
+		return options;
 	});
+
+	// "Total Orders", "Successful", and "Pending" have a real settlement-status
+	// equivalent — a successful order is one whose settlement has gone through
+	// (status: 'completed'), so their counts come from the settlements
+	// themselves, not the order-service stat, and clicking maps onto the same
+	// status values shown in the table's Status column. "Created"/"Failed"
+	// orders never reach the settlement pipeline at all, so they keep the
+	// order-level count and always filter to zero rows (explained below).
+	const totalSettlementCount = $derived(list.items.length);
+	const completedSettlementCount = $derived(
+		list.items.filter((item) => item.status === 'completed').length
+	);
+	const pendingSettlementCount = $derived(
+		list.items.filter((item) => item.status === 'pending').length
+	);
+
+	const CARD_STATUS: Record<string, string> = {
+		'Total Orders': '',
+		Successful: 'completed',
+		Pending: 'pending',
+		Created: 'created',
+		Failed: 'failed'
+	};
+	const STATUS_CARD: Record<string, string> = {
+		completed: 'Successful',
+		pending: 'Pending',
+		created: 'Created',
+		failed: 'Failed'
+	};
+
+	let selectedOrderCard = $derived(STATUS_CARD[pagination.status] ?? 'Total Orders');
 
 	function selectOrderCard(label: string) {
-		if (label === 'Total Orders') pagination.setStatus('');
-		else if (label === 'Pending') pagination.setStatus('pending');
+		pagination.setStatus(CARD_STATUS[label] ?? '');
 	}
 
 	function removeFilter(key: 'status' | 'search') {
@@ -126,6 +146,16 @@
 			filters.push({ key: 'search', label: 'Merchant', value: pagination.search });
 		}
 		return filters;
+	});
+
+	// "created"/"failed" are order statuses with no settlement-status
+	// counterpart (those orders never reach the settlement pipeline), so
+	// filtering by one of them always yields zero rows below.
+	const orderOnlyStatusLabel = $derived.by(() => {
+		if (pagination.status !== 'created' && pagination.status !== 'failed') {
+			return null;
+		}
+		return pagination.status.charAt(0).toUpperCase() + pagination.status.slice(1);
 	});
 
 	const filteredData = $derived.by(() => {
@@ -207,9 +237,16 @@
 
 {#snippet collectionsTab()}
 	<div class="flex flex-col gap-6 pt-4">
-		<!-- Order-level summary — internal orders/transactions service.
-		     Only "Pending" and "Total Orders" map onto the settlement-status
-		     filter below; the rest are visual-only picks (see selectOrderCard). -->
+		<!-- Order-level summary, filtered down to the three cards that map onto
+		     a real settlement status: "Total Orders" (clear filter), "Successful"
+		     (a successful order is a settlement that's gone through — status:
+		     'completed'), and "Pending" (status: 'pending'). Each shows the
+		     matching settlement-side count, not the order-service one, so the
+		     card number always equals the rows clicking it reveals. "Created"/
+		     "Failed" orders never reach the settlement pipeline at all, so
+		     there's no card for them here — see orderOnlyStatusLabel below for
+		     the defensive empty state if one is still reached via a direct URL
+		     (e.g. an old bookmarked link). -->
 		{#if orderStats.error}
 			<StatePanel
 				title="Couldn't load order stats"
@@ -220,19 +257,17 @@
 		{:else}
 			<FilterCards
 				loading={orderStats.loading}
-				skeletonCount={5}
+				skeletonCount={3}
 				cards={orderStats.stats
 					? [
-							{ label: 'Total Orders', count: orderStats.stats.orders },
-							{ label: 'Successful', count: orderStats.stats.successful },
-							{ label: 'Pending', count: orderStats.stats.pending },
-							{ label: 'Created', count: orderStats.stats.created },
-							{ label: 'Failed', count: orderStats.stats.failed }
+							{ label: 'Total Orders', count: totalSettlementCount },
+							{ label: 'Successful', count: completedSettlementCount },
+							{ label: 'Pending', count: pendingSettlementCount }
 						]
 					: []}
 				bind:selected={selectedOrderCard}
 				onselect={selectOrderCard}
-				class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
+				class="grid-cols-1 sm:grid-cols-3"
 			/>
 		{/if}
 
@@ -247,13 +282,12 @@
 					/>
 				</div>
 				<div class="w-full max-w-xs">
-					<SearchField
-						fields={[
-							{ value: 'merchant', label: 'Merchant', placeholder: 'e.g. Meridian Retail…' }
-						]}
-						field="merchant"
-						value={searchInput}
-						onSearch={(_, value) => debouncedSearch(value)}
+					<Dropdown
+						value={pagination.search || undefined}
+						options={merchantOptions}
+						placeholder="Search merchant…"
+						search
+						onValueChange={(value) => pagination.setSearch(value)}
 					/>
 				</div>
 			</div>
@@ -306,10 +340,19 @@
 					onAction={list.retry}
 				/>
 			{:else if !list.loading && filteredData.length === 0}
-				<StatePanel
-					title="No settlements for {dateLabel}"
-					description="Try picking a different date, or clear the current filters."
-				/>
+				{#if orderOnlyStatusLabel}
+					<StatePanel
+						title="No settlements for {orderOnlyStatusLabel} orders"
+						description="'{orderOnlyStatusLabel}' is an order status, not a settlement status — settlements are only ever Completed or Pending, so this filter can't match a settlement row. Clear it to see settlements again."
+						actionLabel="Clear filter"
+						onAction={() => pagination.setStatus('')}
+					/>
+				{:else}
+					<StatePanel
+						title="No settlements for {dateLabel}"
+						description="Try picking a different date, or clear the current filters."
+					/>
+				{/if}
 			{:else}
 				<Table
 					data={displayRows}
