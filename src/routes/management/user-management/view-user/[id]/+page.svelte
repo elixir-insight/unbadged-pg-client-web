@@ -73,7 +73,7 @@
 	}
 
 	function statusVariant(status: UserItem['status']): BadgeVariant {
-		return status === 'Active' ? 'success' : 'warning';
+		return status === 'Active' ? 'success' : 'info';
 	}
 
 	type ContactField = {

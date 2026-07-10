@@ -14,7 +14,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { role } = data;
+	const { role } = $derived(data);
 
 	const grantedIds = $derived(new Set(role.permissions.map((p) => p.id)));
 
@@ -74,7 +74,11 @@
 			}
 		}
 		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
-		goto(resolve('/management/role-management/edit-role'));
+		goto(
+			resolve('/management/role-management/edit-role/[id]', {
+				id: String(role.roleInfo.roleId)
+			})
+		);
 	}
 </script>
 

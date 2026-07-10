@@ -5,15 +5,7 @@
 	import { onMount } from 'svelte';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
-	import {
-		IdCardIcon,
-		MailIcon,
-		Pencil,
-		PhoneIcon,
-		Shield,
-		ShieldCheck,
-		User
-	} from '$lib/assets/icons';
+	import { IdCardIcon, MailIcon, PhoneIcon, Shield, ShieldCheck, User } from '$lib/assets/icons';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import type { Component } from 'svelte';
@@ -36,19 +28,9 @@
 		}
 	});
 
-	function backToEdit() {
-		if (!userId) return;
-		goto(resolve('/management/user-management/edit-user/[id]', { id: userId }));
-	}
-
 	function handleSave() {
-		// const id = createUserFormStore.userId;
 		createUserFormStore.reset();
-		// if (id) {
-		// 	goto(resolve('/management/user-management/view-user/[id]', { id }));
-		// } else {
 		goto(resolve('/management/user-management'));
-		// }
 	}
 
 	type ContactField = {
@@ -181,10 +163,6 @@
 	</div>
 
 	<div class="flex justify-end gap-2 pt-2">
-		<Button variant="outline" size="sm" class="gap-2" onclick={backToEdit}>
-			<Pencil class="h-4 w-4" />
-			Back to edit
-		</Button>
 		<Button onclick={handleSave}>Confirm &amp; save</Button>
 	</div>
 </div>

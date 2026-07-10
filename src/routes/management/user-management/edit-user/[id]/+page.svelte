@@ -2,16 +2,21 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { toast } from 'svelte-sonner';
 	import { Button, Input } from '$lib/components/reusable';
 	import { RolesReportingPanel } from '$lib/components/user-management';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
+	import { firstValidationError } from '$lib/stores/user-management/validation';
 	import { fetchUserById, fetchUsers } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
+	import { cn } from '$lib/utils';
 
 	let managers = $state<UserItem[]>([]);
 	let loading = $state(true);
+	let submitAttempted = $state(false);
 
 	const userId = $derived(page.params.id);
+	const errors = $derived(submitAttempted ? createUserFormStore.validationErrors : {});
 
 	$effect(() => {
 		const id = userId;
@@ -54,9 +59,16 @@
 		managers = data.items.filter((manager) => manager.id !== currentUserId);
 	}
 
-	function backToView() {
+	function goToPreview() {
+		submitAttempted = true;
+		const validationError = firstValidationError(createUserFormStore.validationErrors);
+		if (validationError) {
+			toast.error('Could not preview user', { description: validationError });
+			return;
+		}
+
 		if (!userId) return;
-		goto(resolve('/management/user-management/view-user/[id]', { id: userId }));
+		goto(resolve('/management/user-management/edit-user/[id]/preview', { id: userId }));
 	}
 </script>
 
@@ -69,8 +81,6 @@
 				<h1 class="text-2xl font-bold text-foreground">Edit User</h1>
 				<p class="mt-1 text-sm text-muted-foreground">Update the user's details below</p>
 			</div>
-
-			<Button variant="outline" onclick={backToView}>Cancel</Button>
 		</div>
 
 		<div class="rounded-xl border border-border bg-card p-5 shadow">
@@ -85,9 +95,15 @@
 						id="email-id"
 						type="email"
 						placeholder="Enter Email ID"
-						class="shadow"
+						class={cn(
+							'shadow',
+							errors.email && 'border-destructive focus-visible:ring-destructive/30'
+						)}
 						bind:value={createUserFormStore.email}
 					/>
+					{#if errors.email}
+						<p class="text-xs text-destructive">{errors.email}</p>
+					{/if}
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
@@ -98,9 +114,15 @@
 						<Input
 							id="first-name"
 							placeholder="Enter First Name"
-							class="shadow"
+							class={cn(
+								'shadow',
+								errors.firstName && 'border-destructive focus-visible:ring-destructive/30'
+							)}
 							bind:value={createUserFormStore.firstName}
 						/>
+						{#if errors.firstName}
+							<p class="text-xs text-destructive">{errors.firstName}</p>
+						{/if}
 					</div>
 
 					<div class="space-y-1.5">
@@ -116,21 +138,32 @@
 
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="space-y-1.5">
-						<label for="employee-id" class="text-sm font-medium text-foreground">Employee ID</label>
+						<label for="employee-id" class="text-sm font-medium text-foreground">
+							Employee ID <span class="text-destructive">*</span>
+						</label>
 						<Input
 							id="employee-id"
 							placeholder="Enter Employee ID"
-							class="shadow"
+							class={cn(
+								'shadow',
+								errors.employeeId && 'border-destructive focus-visible:ring-destructive/30'
+							)}
 							bind:value={createUserFormStore.employeeId}
 						/>
+						{#if errors.employeeId}
+							<p class="text-xs text-destructive">{errors.employeeId}</p>
+						{/if}
 					</div>
 
 					<div class="space-y-1.5">
 						<label for="mobile-number" class="text-sm font-medium text-foreground">
-							Mobile Number
+							Mobile Number <span class="text-destructive">*</span>
 						</label>
 						<div
-							class="flex h-9 overflow-hidden rounded-md border border-input bg-background shadow-xs transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+							class={cn(
+								'flex h-9 overflow-hidden rounded-md border border-input bg-background shadow-xs transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
+								errors.mobileNumber && 'border-destructive focus-within:ring-destructive/30'
+							)}
 						>
 							<span
 								class="flex items-center border-r border-border bg-muted/40 px-3 text-sm text-muted-foreground"
@@ -146,24 +179,19 @@
 								bind:value={createUserFormStore.mobileNumber}
 							/>
 						</div>
+						{#if errors.mobileNumber}
+							<p class="text-xs text-destructive">{errors.mobileNumber}</p>
+						{/if}
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<RolesReportingPanel {managers} />
+		<RolesReportingPanel {managers} {errors} />
 
 		<div class="flex justify-end gap-2">
 			<Button variant="outline" onclick={() => createUserFormStore.restore()}>Reset</Button>
-			<Button
-				disabled={!createUserFormStore.isValid || !createUserFormStore.hasChanges}
-				onclick={() => {
-					if (!userId) return;
-					goto(resolve('/management/user-management/edit-user/[id]/preview', { id: userId }));
-				}}
-			>
-				Preview
-			</Button>
+			<Button disabled={!createUserFormStore.hasChanges} onclick={goToPreview}>Preview</Button>
 		</div>
 	</div>
 {/if}

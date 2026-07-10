@@ -122,6 +122,14 @@ export const managementNav: NavGroup[] = [
 					{
 						matcher: /^\/management\/role-management\/view-role\/[^/]+$/,
 						title: 'View Role'
+					},
+					{
+						matcher: /^\/management\/role-management\/edit-role\/[^/]+$/,
+						title: 'Edit Role'
+					},
+					{
+						matcher: /^\/management\/role-management\/edit-role\/[^/]+\/preview$/,
+						title: 'Preview'
 					}
 				]
 			}

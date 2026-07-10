@@ -4,15 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
-	import {
-		ArrowLeft,
-		IdCardIcon,
-		MailIcon,
-		PhoneIcon,
-		Shield,
-		ShieldCheck,
-		User
-	} from '$lib/assets/icons';
+	import { IdCardIcon, MailIcon, PhoneIcon, Shield, ShieldCheck, User } from '$lib/assets/icons';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import type { Component } from 'svelte';
@@ -22,10 +14,6 @@
 			goto(resolve('/management/user-management/create-user'));
 		}
 	});
-
-	function backToEdit() {
-		goto(resolve('/management/user-management/create-user'));
-	}
 
 	function handleCreate() {
 		createUserFormStore.reset();
@@ -146,9 +134,9 @@
 					{#each createUserFormStore.selectedRoles as role (role)}
 						<Chip
 							variant="outline"
-							class={cn('gap-1.5 border-border bg-background text-foreground')}
+							class={cn('gap-1.5 border-border bg-background text-sm text-foreground')}
 						>
-							<ShieldCheck class="h-3.5 w-3.5 text-primary" />
+							<ShieldCheck class="h-3.5 w-3.5" />
 							{role}
 						</Chip>
 					{/each}
@@ -160,10 +148,6 @@
 	</div>
 
 	<div class="flex justify-end gap-2 pt-2">
-		<Button variant="outline" class="gap-2" onclick={backToEdit}>
-			<ArrowLeft class="h-4 w-4" />
-			Back to edit
-		</Button>
-		<Button onclick={handleCreate}>Create</Button>
+		<Button onclick={handleCreate}>Create User</Button>
 	</div>
 </div>

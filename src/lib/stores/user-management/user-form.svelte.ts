@@ -1,4 +1,5 @@
 import type { UserItem } from './user-management';
+import { validateUserForm } from './validation';
 
 interface EditSnapshot {
 	email: string;
@@ -65,8 +66,19 @@ class CreateUserFormStore {
 		return this.mobileNumber.trim() ? `+91${this.mobileNumber.trim()}` : '';
 	}
 
+	get validationErrors() {
+		return validateUserForm({
+			email: this.email,
+			firstName: this.firstName,
+			employeeId: this.employeeId,
+			mobileNumber: this.mobileNumber,
+			selectedRoles: this.selectedRoles,
+			reportingManagerId: this.reportingManagerId
+		});
+	}
+
 	get isValid() {
-		return this.email.trim().length > 0 && this.firstName.trim().length > 0;
+		return Object.keys(this.validationErrors).length === 0;
 	}
 
 	get selectedRoleCount() {
