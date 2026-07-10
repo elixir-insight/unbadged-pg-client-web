@@ -38,26 +38,26 @@
 >
 	<p class="text-sm font-semibold">Disputes overview</p>
 
-	<div class="flex flex-1 items-center justify-center gap-4">
+	<div class="flex flex-1 items-center justify-center gap-6">
 		<div class="relative shrink-0">
-			<Chart.Container config={chartConfig} class="aspect-auto size-36">
+			<Chart.Container config={chartConfig} class="aspect-auto size-48">
 				<PieChart
 					{data}
 					key="key"
 					value="value"
 					c="key"
 					{cRange}
-					innerRadius={-20}
+					innerRadius={-26}
 					padAngle={0.02}
 				/>
 			</Chart.Container>
 			<div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-				<span class="text-xl font-bold tracking-tight">{total}</span>
-				<span class="text-[10px] text-muted-foreground">disputes</span>
+				<span class="text-2xl font-bold tracking-tight">{total}</span>
+				<span class="text-xs text-muted-foreground">disputes</span>
 			</div>
 		</div>
 
-		<div class="flex flex-col gap-1.5 text-xs">
+		<div class="flex flex-col gap-2 text-xs">
 			{#each data as item, i (item.key)}
 				<div class="flex items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full" style="background-color: {cRange[i]}"></span>

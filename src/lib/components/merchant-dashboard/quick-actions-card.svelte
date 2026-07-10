@@ -28,13 +28,17 @@
 >
 	<p class="text-sm font-semibold">Quick actions</p>
 
-	<div class="mt-2 grid flex-1 grid-cols-2 gap-2">
+	<div class="mt-3 grid flex-1 grid-cols-2 gap-3">
 		{#each actions as action (action.label)}
-			<Button variant="outline" onclick={action.onClick} class="h-20 flex-col gap-2 px-2">
-				<span class="flex size-8 items-center justify-center rounded-lg bg-muted">
-					<action.icon class="size-4" />
+			<Button
+				variant="outline"
+				onclick={action.onClick}
+				class="h-full flex-col items-center justify-center gap-2.5 px-2"
+			>
+				<span class="flex size-10 items-center justify-center rounded-lg bg-muted">
+					<action.icon class="size-5" />
 				</span>
-				<span class="text-xs font-medium">{action.label}</span>
+				<span class="text-sm font-medium">{action.label}</span>
 			</Button>
 		{/each}
 	</div>

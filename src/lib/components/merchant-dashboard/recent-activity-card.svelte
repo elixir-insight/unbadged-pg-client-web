@@ -49,7 +49,7 @@
 	)}
 >
 	<div class="flex items-center justify-between">
-		<p class="text-sm font-semibold">Latest payments</p>
+		<p class="text-sm font-semibold">Recent transactions</p>
 		<a
 			href={resolve('/merchant/transactions')}
 			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"

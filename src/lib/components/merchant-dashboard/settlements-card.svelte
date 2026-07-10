@@ -37,15 +37,19 @@
 		</a>
 	</div>
 
-	<div class="mt-4 grid flex-1 grid-cols-2 gap-1.5">
-		<div class="flex h-full min-w-0 flex-col justify-between rounded-lg border border-border p-2">
-			<p class="text-xs text-muted-foreground">Next settlement</p>
-			<p class="truncate text-lg font-bold tracking-tight">{nextSettlementAmount}</p>
+	<div class="mt-2 grid flex-1 grid-cols-2 gap-3">
+		<div class="flex h-full min-w-0 flex-col justify-between rounded-lg border border-border p-4">
+			<p class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+				Next settlement
+			</p>
+			<p class="truncate text-xl font-bold tracking-tight">{nextSettlementAmount}</p>
 			<p class="truncate text-xs text-muted-foreground">{nextSettlementTime}</p>
 		</div>
-		<div class="flex h-full min-w-0 flex-col justify-between rounded-lg border border-border p-2">
-			<p class="text-xs text-muted-foreground">Last settled</p>
-			<p class="truncate text-lg font-bold tracking-tight">{lastSettlementAmount}</p>
+		<div class="flex h-full min-w-0 flex-col justify-between rounded-lg border border-border p-4">
+			<p class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+				Last settled
+			</p>
+			<p class="truncate text-xl font-bold tracking-tight">{lastSettlementAmount}</p>
 			<p class="truncate text-xs text-muted-foreground">{lastSettlementTime}</p>
 		</div>
 	</div>

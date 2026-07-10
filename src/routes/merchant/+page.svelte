@@ -8,10 +8,8 @@
 		SettlementsCard,
 		RecentActivityCard,
 		RefundsDisputesCard,
-		NotificationsCard,
 		type QuickAction,
 		type RecentPayment,
-		type NotificationItem,
 		type PaymentMethodShare
 	} from '$lib/components/merchant-dashboard';
 	import { ArrowDownToLine, Undo } from '$lib/assets/icons';
@@ -50,14 +48,6 @@
 		{ name: 'Sophia Lee', amount: '₹3,400', status: 'success' },
 		{ name: 'David Miller', amount: '₹2,900', status: 'failed' }
 	];
-
-	const notifications: NotificationItem[] = [
-		{ label: 'Settlement completed', timestamp: '2m', tone: 'success' },
-		{ label: 'Refund requested', timestamp: '8m', tone: 'warning' },
-		{ label: 'Chargeback initiated', timestamp: '14m', tone: 'warning' },
-		{ label: 'Payment received', timestamp: '22m', tone: 'success' },
-		{ label: 'KYC expiring', timestamp: '40m', tone: 'warning' }
-	];
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -88,9 +78,8 @@
 
 			<!-- Row 2 · Primary analytics -->
 			<div class="grid min-h-0 grid-cols-12 gap-4">
-				<PaymentMethodsCard methods={paymentMethods} class="col-span-3" />
-				<TransactionVolumeChart data={transactionVolume} class="col-span-6" />
-				<div class="col-span-3 grid min-h-0 grid-rows-2 gap-4">
+				<TransactionVolumeChart data={transactionVolume} class="col-span-8" />
+				<div class="col-span-4 grid min-h-0 grid-rows-2 gap-4">
 					<QuickActionsCard actions={quickActions} />
 					<SettlementsCard
 						nextSettlementAmount="₹8,42,300"
@@ -103,7 +92,6 @@
 
 			<!-- Row 3 · Operational overview -->
 			<div class="grid min-h-0 grid-cols-12 gap-4">
-				<RecentActivityCard payments={latestPayments} class="col-span-4" />
 				<RefundsDisputesCard
 					open={3}
 					pending={4}
@@ -111,7 +99,8 @@
 					attentionText="2 require immediate attention"
 					class="col-span-4"
 				/>
-				<NotificationsCard items={notifications} class="col-span-4" />
+				<RecentActivityCard payments={latestPayments} class="col-span-4" />
+				<PaymentMethodsCard methods={paymentMethods} class="col-span-4" />
 			</div>
 		</div>
 	{:else if merchantSession.hasPayinAccess()}
