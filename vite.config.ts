@@ -14,6 +14,9 @@ export default defineConfig({
 	ssr: {
 		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte', 'runed']
 	},
+	optimizeDeps: {
+		include: ['@lucide/svelte/icons/undo']
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
