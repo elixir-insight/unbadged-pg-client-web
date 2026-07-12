@@ -12,10 +12,11 @@
 	import ActionCenterCard from './action-center-card.svelte';
 	import type { QuickAction } from './quick-actions.svelte';
 	import VanAccountsCard, { type VanAccount } from './van-accounts-card.svelte';
-	import OnboardingStatusChart, { type OnboardingStage } from './onboarding-status-chart.svelte';
-	import OrgProfileStatusChart, {
+	import PipelineStatusCard, {
+		type OnboardingStage,
 		type OrgProfileStatusItem
-	} from './org-profile-status-chart.svelte';
+	} from './pipeline-status-card.svelte';
+	import RecentActivityCard, { type ActivityItem } from './recent-activity-card.svelte';
 
 	let {
 		userName = 'Sarah'
@@ -143,10 +144,10 @@
 	];
 
 	const onboardingStages: OnboardingStage[] = [
-		{ stage: 'In review', count: 210 },
-		{ stage: 'Remarked', count: 340 },
-		{ stage: 'In progress', count: 380 },
-		{ stage: 'Approved', count: 235 }
+		{ stage: 'In review', count: 210, color: 'var(--chart-1)' },
+		{ stage: 'Remarked', count: 340, color: 'var(--chart-2)' },
+		{ stage: 'In progress', count: 380, color: 'var(--chart-3)' },
+		{ stage: 'Approved', count: 235, color: 'var(--chart-4)' }
 	];
 	const totalInPipeline = onboardingStages.reduce((sum, stage) => sum + stage.count, 0);
 
@@ -154,6 +155,51 @@
 		{ status: 'Active', count: 66, percentage: 66, color: 'var(--chart-1)' },
 		{ status: 'On hold', count: 24, percentage: 24, color: 'var(--chart-2)' },
 		{ status: 'Inactive', count: 10, percentage: 10, color: 'var(--chart-4)' }
+	];
+
+	const recentActivity: ActivityItem[] = [
+		{
+			id: 'act-1',
+			type: 'onboarding',
+			title: 'New organization submitted',
+			description: 'Northwind Retail completed KYB documentation',
+			timestamp: '2m ago'
+		},
+		{
+			id: 'act-2',
+			type: 'settlement',
+			title: 'Settlement processed',
+			description: '₹8.6L settled to ICICI Bank VAN',
+			timestamp: '18m ago'
+		},
+		{
+			id: 'act-3',
+			type: 'transaction',
+			title: 'High-value transaction flagged',
+			description: '₹4.2L collection from Pinpay Technologies',
+			timestamp: '34m ago'
+		},
+		{
+			id: 'act-4',
+			type: 'alert',
+			title: 'Reconciliation mismatch',
+			description: 'Axis Bank VAN off by ₹1,200 for Jul 12',
+			timestamp: '1h ago'
+		},
+		{
+			id: 'act-5',
+			type: 'onboarding',
+			title: 'Organization approved',
+			description: 'Bluewave Logistics moved to Approved',
+			timestamp: '2h ago'
+		},
+		{
+			id: 'act-6',
+			type: 'settlement',
+			title: 'Payout schedule updated',
+			description: 'Vendor Pay VAN switched to daily settlement',
+			timestamp: '3h ago'
+		}
 	];
 </script>
 
@@ -187,16 +233,20 @@
 		<ActionCenterCard {quickActions} class="min-h-0" />
 	</div>
 
-	<!-- Operational row: VAN accounts / onboarding / org profile -->
+	<!-- Operational row: VAN accounts / pipeline & profile status / recent activity -->
 	<div
 		class="grid min-h-0 flex-11 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.2fr_1fr] xl:max-h-[min(51vh,850px)]"
 	>
-		<VanAccountsCard {accounts} class="min-h-0 md:order-2 xl:order-1" />
-		<OnboardingStatusChart
-			data={onboardingStages}
+		<VanAccountsCard {accounts} class="min-h-0" />
+		<PipelineStatusCard
+			{onboardingStages}
 			{totalInPipeline}
-			class="min-h-70 md:order-1 md:col-span-2 md:min-h-0 xl:order-2 xl:col-span-1"
+			{orgProfileStatus}
+			class="min-h-70 md:min-h-0"
 		/>
-		<OrgProfileStatusChart data={orgProfileStatus} class="min-h-0 md:order-3 xl:order-3" />
+		<RecentActivityCard
+			activities={recentActivity}
+			class="min-h-70 md:col-span-2 xl:col-span-1 xl:min-h-0"
+		/>
 	</div>
 </div>
