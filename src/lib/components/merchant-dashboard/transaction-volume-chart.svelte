@@ -60,8 +60,8 @@
 	const chartData = $derived(range === 'today' ? todayData : range === '30d' ? monthData : data);
 
 	const chartConfig = {
-		payin: { label: 'Collections', color: 'var(--color-chart-1)' },
-		payout: { label: 'Disbursements', color: 'var(--color-chart-2)' }
+		payin: { label: 'Collections', color: 'var(--color-chart-3)' },
+		payout: { label: 'Disbursements', color: 'var(--color-chart-4)' }
 	} satisfies Chart.ChartConfig;
 
 	function formatLakhs(value: number) {
@@ -71,7 +71,7 @@
 
 <div
 	class={cn(
-		'flex h-full flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
+		'flex h-full min-h-70 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
 		className
 	)}
 >

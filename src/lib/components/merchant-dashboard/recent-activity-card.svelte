@@ -44,11 +44,11 @@
 
 <div
 	class={cn(
-		'flex h-full flex-col rounded-lg border border-border bg-background p-4 shadow-xs',
+		'flex h-full flex-col rounded-lg border border-border bg-background p-3 shadow-xs md:p-4',
 		className
 	)}
 >
-	<div class="flex items-center justify-between">
+	<div class="flex items-center justify-between mb-2">
 		<p class="text-sm font-semibold">Recent transactions</p>
 		<a
 			href={resolve('/merchant/transactions')}
@@ -61,7 +61,7 @@
 
 	<div class="flex flex-1 flex-col justify-between">
 		{#each payments as payment (payment.name)}
-			<div class="flex items-center gap-2.5 py-1">
+			<div class="flex items-center gap-2">
 				<span
 					class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold"
 				>

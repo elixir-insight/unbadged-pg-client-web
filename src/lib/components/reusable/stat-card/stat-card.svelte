@@ -27,7 +27,7 @@
 		unit?: string;
 		badge?: StatCardBadge;
 		icon?: Component;
-		iconVariant?: StatCardIconVariant;
+		// iconVariant?: StatCardIconVariant;
 		subtext?: string;
 		trend?: StatCardTrend;
 		sparkline?: number[];
@@ -40,19 +40,19 @@
 		unit,
 		badge,
 		icon: Icon,
-		iconVariant = 'muted',
+		// iconVariant = 'muted',
 		subtext,
 		trend,
 		sparkline,
 		class: className
 	}: Props = $props();
 
-	const iconBoxClasses: Record<StatCardIconVariant, string> = {
-		muted: 'bg-muted text-muted-foreground',
-		success: 'bg-green-500/15 text-green-600 dark:bg-green-500/20 dark:text-green-400',
-		warning: 'bg-orange-500/15 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
-		error: 'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400'
-	};
+	// const iconBoxClasses: Record<StatCardIconVariant, string> = {
+	// 	muted: 'bg-muted text-muted-foreground',
+	// 	success: 'bg-green-500/15 text-green-600 dark:bg-green-500/20 dark:text-green-400',
+	// 	warning: 'bg-orange-500/15 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
+	// 	error: 'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400'
+	// };
 
 	const points = $derived.by(() => {
 		if (!sparkline || sparkline.length < 2) return '';
@@ -64,10 +64,19 @@
 	});
 </script>
 
-<div class={cn('rounded-lg border border-border bg-background p-4 shadow-xs', className)}>
+<div
+	class={cn(
+		'relative isolate overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 p-3 shadow-xs backdrop-blur-sm md:p-4',
+		className
+	)}
+>
+	{#if Icon}
+		<Icon class="pointer-events-none absolute -right-4 -bottom-4 -z-10 size-24 text-chart-3/10" />
+	{/if}
+
 	<div class="flex items-start justify-between gap-2">
 		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-		{#if Icon}
+		<!-- {#if Icon}
 			<div
 				class={cn(
 					'flex size-8 shrink-0 items-center justify-center rounded-lg',
@@ -75,8 +84,8 @@
 				)}
 			>
 				<Icon class="size-4" />
-			</div>
-		{:else if badge}
+			</div> -->
+		{#if badge}
 			<Chip variant={badge.variant ?? 'default'} class="shrink-0">
 				{#if badge.trend === 'up'}
 					<TrendingUp data-icon="inline-start" />
@@ -88,7 +97,7 @@
 		{/if}
 	</div>
 
-	<p class="mt-2 text-2xl font-bold tracking-tight">
+	<p class="mt-2 text-lg font-semibold tracking-tight">
 		{value}
 		{#if unit}
 			<span class="text-sm font-normal text-muted-foreground">{unit}</span>

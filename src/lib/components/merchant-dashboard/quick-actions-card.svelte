@@ -22,7 +22,7 @@
 
 <div
 	class={cn(
-		'flex h-full flex-col rounded-lg border border-border bg-background p-4 shadow-xs',
+		'flex h-full flex-col rounded-lg border border-border bg-background p-3 shadow-xs md:p-4',
 		className
 	)}
 >

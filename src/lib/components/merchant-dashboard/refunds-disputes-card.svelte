@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { PieChart } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
+	import { ArrowRight } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 
 	interface Props {
@@ -32,13 +34,22 @@
 
 <div
 	class={cn(
-		'flex h-full flex-col rounded-lg border border-border bg-background p-4 shadow-xs',
+		'flex h-full min-h-55 flex-col rounded-lg border border-border bg-background p-3 shadow-xs md:p-4',
 		className
 	)}
 >
-	<p class="text-sm font-semibold">Disputes overview</p>
+	<div class="flex items-center justify-between">
+		<p class="text-sm font-semibold">Disputes overview</p>
+		<a
+			href={resolve('/merchant/disputes')}
+			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
+		>
+			View all
+			<ArrowRight class="size-3" />
+		</a>
+	</div>
 
-	<div class="flex flex-1 items-center justify-center gap-6">
+	<div class="flex flex-1 flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
 		<div class="relative shrink-0">
 			<Chart.Container config={chartConfig} class="aspect-auto size-48">
 				<PieChart

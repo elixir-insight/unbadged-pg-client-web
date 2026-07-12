@@ -12,7 +12,7 @@
 		type RecentPayment,
 		type PaymentMethodShare
 	} from '$lib/components/merchant-dashboard';
-	import { ArrowDownToLine, Undo } from '$lib/assets/icons';
+	import { Link, Undo, Wallet, ArrowDownToLine, Landmark, Percent } from '$lib/assets/icons';
 
 	const firstName = $derived(merchantSession.session?.merchantName?.split(' ')[0] ?? 'there');
 
@@ -37,7 +37,7 @@
 	];
 
 	const quickActions: QuickAction[] = [
-		{ label: 'Payment link', icon: ArrowDownToLine },
+		{ label: 'Payment link', icon: Link },
 		{ label: 'Refund', icon: Undo }
 	];
 
@@ -52,34 +52,44 @@
 
 <div class="flex min-h-0 flex-1 flex-col">
 	{#if merchantSession.hasBothServices()}
-		<div class="grid h-full grid-rows-[minmax(88px,auto)_1fr_1fr] gap-4">
+		<div class="grid gap-4 overflow-x-hidden lg:h-full lg:grid-rows-[minmax(88px,auto)_1fr_1fr]">
 			<!-- Row 1 · KPI overview -->
 			<div class="grid grid-cols-12 gap-4">
-				<StatCard label="Available balance" value="₹18,42,650" class="col-span-3" />
+				<StatCard
+					label="Available balance"
+					value="₹18,42,650"
+					icon={Wallet}
+					class="col-span-12 md:col-span-6 lg:col-span-3"
+				/>
 				<StatCard
 					label="Today's pay-ins"
 					value="₹6,42,300"
 					subtext="128 transactions"
-					class="col-span-3"
+					icon={ArrowDownToLine}
+					class="col-span-12 md:col-span-6 lg:col-span-3"
 				/>
 				<StatCard
 					label="Pending settlement"
 					value="₹38,900"
 					subtext="Settles tomorrow"
-					class="col-span-3"
+					icon={Landmark}
+					class="col-span-12 md:col-span-6 lg:col-span-3"
 				/>
 				<StatCard
 					label="Success rate"
 					value="98.6%"
 					subtext="1,204 transactions"
-					class="col-span-3"
+					icon={Percent}
+					class="col-span-12 md:col-span-6 lg:col-span-3"
 				/>
 			</div>
 
 			<!-- Row 2 · Primary analytics -->
-			<div class="grid min-h-0 grid-cols-12 gap-4">
-				<TransactionVolumeChart data={transactionVolume} class="col-span-8" />
-				<div class="col-span-4 grid min-h-0 grid-rows-2 gap-4">
+			<div class="grid grid-cols-12 gap-4 lg:min-h-0">
+				<TransactionVolumeChart data={transactionVolume} class="col-span-12 lg:col-span-8" />
+				<div
+					class="col-span-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:col-span-4 lg:grid-cols-1 lg:grid-rows-2 lg:min-h-0"
+				>
 					<QuickActionsCard actions={quickActions} />
 					<SettlementsCard
 						nextSettlementAmount="₹8,42,300"
@@ -91,16 +101,22 @@
 			</div>
 
 			<!-- Row 3 · Operational overview -->
-			<div class="grid min-h-0 grid-cols-12 gap-4">
+			<div class="grid grid-cols-12 gap-4 lg:min-h-0">
 				<RefundsDisputesCard
 					open={3}
 					pending={4}
 					resolved={5}
 					attentionText="2 require immediate attention"
-					class="col-span-4"
+					class="col-span-12 md:col-span-6 lg:col-span-4"
 				/>
-				<RecentActivityCard payments={latestPayments} class="col-span-4" />
-				<PaymentMethodsCard methods={paymentMethods} class="col-span-4" />
+				<RecentActivityCard
+					payments={latestPayments}
+					class="col-span-12 md:col-span-6 lg:col-span-4"
+				/>
+				<PaymentMethodsCard
+					methods={paymentMethods}
+					class="col-span-12 md:col-span-12 lg:col-span-4"
+				/>
 			</div>
 		</div>
 	{:else if merchantSession.hasPayinAccess()}
@@ -112,7 +128,7 @@
 				</p>
 			</div>
 
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 				<StatCard
 					label="Available balance"
 					value="₹18,42,650"
@@ -143,7 +159,7 @@
 				</p>
 			</div>
 
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 				<StatCard
 					label="Wallet balance"
 					value="₹18,42,650"
