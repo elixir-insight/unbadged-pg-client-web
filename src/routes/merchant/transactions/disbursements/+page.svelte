@@ -15,6 +15,8 @@
 	import { payoutMockData } from '$lib/data/payout-mock';
 	import type { PayoutRow } from '$lib/types/payout';
 	import StatusBadge from './status-badge.svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
 
 	const DAY_MS = 86_400_000;
@@ -281,6 +283,8 @@
 			}}
 			loading={false}
 			skeletonRows={8}
+			onRowClick={(row) =>
+				goto(resolve('/merchant/transactions/disbursements/[id]', { id: row.clientOrderId }))}
 		/>
 	</div>
 </div>

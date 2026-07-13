@@ -65,9 +65,9 @@
 			txnId: 'TXN-1003',
 			date: fmtDate(now - 3 * DAY_MS),
 			customer: 'Vikram Nair',
-			method: 'Credit Card',
+			method: 'UPI',
 			amount: '₹2,750.00',
-			status: 'failed',
+			status: 'success',
 			_dateMs: now - 3 * DAY_MS
 		},
 		{
@@ -482,9 +482,8 @@
 			setPageNumber={(p) => {
 				pageNumber = p;
 			}}
-			loading={false}
-			skeletonRows={8}
-			onRowClick={(row) => goto(resolve('/merchant/transactions/payins/[id]', { id: row.txnId }))}
+			onRowClick={(row) =>
+				goto(resolve('/merchant/transactions/collections/[id]', { id: row.txnId }))}
 		/>
 	</div>
 </div>

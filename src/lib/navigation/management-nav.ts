@@ -41,7 +41,17 @@ export const managementNav: NavGroup[] = [
 			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
 			{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
 			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
-			{ title: 'Settlements', href: '/management/settlements', icon: Landmark }
+			{
+				title: 'Settlements',
+				href: '/management/settlements',
+				icon: Landmark,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/settlements\/[^/]+$/,
+						title: 'Settlement Details'
+					}
+				]
+			}
 		]
 	},
 	{

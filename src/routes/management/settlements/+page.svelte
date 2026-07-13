@@ -5,7 +5,7 @@
 		Table,
 		Button,
 		FilterCards,
-		Dropdown,
+		Search,
 		Tabs,
 		createUrlPagination
 	} from '$lib/components/reusable';
@@ -16,6 +16,7 @@
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date';
 	import { RefreshCw, X } from '$lib/assets/icons';
+	import { debounce } from '$lib/utils/debounce';
 	import { useOrderStats, useSettlementsList } from './use-settlements-list.svelte';
 	import SettlementStatusBadge from './settlement-status-badge.svelte';
 	import SettlementDatePicker from './settlement-date-picker.svelte';
@@ -24,13 +25,22 @@
 
 	// ── URL-derived filters — date/status/search/tab all live in query params
 	// so a refresh or shared link reproduces the exact same view, and the
-	// detail page can hand them straight back on "Back". ──────────────────────
+	// detail page can hand them straight back on "Back". No `date` param at
+	// all means "not yet interacted with" and defaults to yesterday; the
+	// sentinel `date=none` means the user explicitly cleared it. ─────────────
 	function yesterdayIso(): string {
 		return today(getLocalTimeZone()).subtract({ days: 1 }).toString();
 	}
 
-	const dateParam = $derived(page.url.searchParams.get('date') ?? yesterdayIso());
-	const selectedDate = $derived<DateValue>(parseDate(dateParam));
+	const dateParam = $derived.by(() => {
+		const raw = page.url.searchParams.get('date');
+		if (raw === null) return yesterdayIso();
+		if (raw === 'none') return '';
+		return raw;
+	});
+	const selectedDate = $derived<DateValue | undefined>(
+		dateParam ? parseDate(dateParam) : undefined
+	);
 	const tabParam = $derived<SettlementTab>(
 		page.url.searchParams.get('tab') === 'disbursements' ? 'disbursements' : 'collections'
 	);
@@ -73,21 +83,25 @@
 		month: 'short',
 		year: 'numeric'
 	});
-	const dateLabel = $derived(dateFormatter.format(selectedDate.toDate(getLocalTimeZone())));
+	const dateLabel = $derived(
+		selectedDate ? dateFormatter.format(selectedDate.toDate(getLocalTimeZone())) : ''
+	);
 
 	const pagination = createUrlPagination({ defaultLimit: 8, total: () => filteredData.length });
 
-	// Options are derived from the merchants present in the current list (not
-	// a static catalogue), so the dropdown never offers a merchant with zero
-	// settlements for the selected date.
-	const merchantOptions = $derived.by(() => {
-		const options: { value: string; label: string }[] = [];
-		for (const item of list.items) {
-			if (options.some((option) => option.value === item.merchantName)) continue;
-			options.push({ value: item.merchantName, label: item.merchantName });
-		}
-		return options;
-	});
+	// searchInput is derived from the URL so back/forward navigation restores
+	// it, and can be overridden locally for immediate keystroke feedback while
+	// the URL update itself is debounced.
+	let searchInput = $derived(pagination.search);
+
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
+
+	function handleSearchInput(value: string) {
+		searchInput = value;
+		debouncedSearch(value);
+	}
 
 	// "Total Orders", "Successful", and "Pending" have a real settlement-status
 	// equivalent — a successful order is one whose settlement has gone through
@@ -124,20 +138,24 @@
 		pagination.setStatus(CARD_STATUS[label] ?? '');
 	}
 
-	function removeFilter(key: 'status' | 'search') {
-		if (key === 'status') pagination.setStatus('');
+	function removeFilter(key: 'date' | 'status' | 'search') {
+		if (key === 'date') updateParams({ date: 'none', skip: null });
+		else if (key === 'status') pagination.setStatus('');
 		else pagination.setSearch('');
 	}
 
 	function clearAllFilters() {
-		// A single atomic navigate — calling setStatus() then setSearch()
+		// A single atomic navigate — calling setDate/setStatus/setSearch
 		// separately would race, since each reads page.url before the other's
 		// goto() has resolved and can clobber it.
-		pagination.clearAllFilters();
+		updateParams({ date: 'none', status: null, search: null, skip: null });
 	}
 
 	const activeFilters = $derived.by(() => {
-		const filters: { key: 'status' | 'search'; label: string; value: string }[] = [];
+		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
+		if (selectedDate) {
+			filters.push({ key: 'date', label: 'Date', value: dateLabel });
+		}
 		if (pagination.status) {
 			const label = pagination.status.charAt(0).toUpperCase() + pagination.status.slice(1);
 			filters.push({ key: 'status', label: 'Status', value: label });
@@ -282,12 +300,11 @@
 					/>
 				</div>
 				<div class="w-full max-w-xs">
-					<Dropdown
-						value={pagination.search || undefined}
-						options={merchantOptions}
+					<Search
+						value={searchInput}
+						oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
 						placeholder="Search merchant…"
-						search
-						onValueChange={(value) => pagination.setSearch(value)}
+						variant="bordered"
 					/>
 				</div>
 			</div>
@@ -323,7 +340,8 @@
 		<div class="rounded-lg border border-border bg-card shadow-2xl">
 			<div class="flex items-center justify-between gap-2 p-4">
 				<span class="text-sm text-muted-foreground">
-					{#if list.loading}Loading settlements…{:else}{showingText}{/if}
+					{#if !selectedDate}Select a date to view settlements{:else if list.loading}Loading
+						settlements…{:else}{showingText}{/if}
 				</span>
 				<div class="flex items-center gap-2">
 					<Button variant="outline" onclick={list.retry}>
@@ -332,7 +350,12 @@
 				</div>
 			</div>
 
-			{#if list.error}
+			{#if !selectedDate}
+				<StatePanel
+					title="No date selected"
+					description="Choose a settlement date above to view collections."
+				/>
+			{:else if list.error}
 				<StatePanel
 					title="Couldn't load settlements"
 					description={list.error}
@@ -381,12 +404,7 @@
 	</div>
 {/snippet}
 
-<div class="space-y-6 p-6 sm:p-8 lg:p-4">
-	<div>
-		<h1 class="mt-1 text-2xl font-semibold text-foreground">Settlements</h1>
-		<p class="text-sm text-muted-foreground">Merchant settlements for {dateLabel}</p>
-	</div>
-
+<div class="space-y-6">
 	<Tabs
 		tabs={[
 			{ value: 'collections', label: 'Collections', content: collectionsTab },

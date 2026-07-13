@@ -10,6 +10,23 @@ export type NavItem = {
 	icon: Component;
 	badge?: string;
 	service?: MerchantService;
+	children?: NavChild[];
+	breadcrumbChildren?: {
+		matcher: RegExp;
+		title: string;
+	}[];
+};
+
+export type NavChild = {
+	title: string;
+	href: string;
+	icon: Component;
+	badge?: string;
+	service?: MerchantService;
+	breadcrumbChildren?: {
+		matcher: RegExp;
+		title: string;
+	}[];
 };
 
 export type NavGroup = {

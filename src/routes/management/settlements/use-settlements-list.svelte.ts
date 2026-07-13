@@ -21,10 +21,17 @@ export function useSettlementsList(date: () => string) {
 
 	async function load() {
 		const id = ++requestId;
+		const currentDate = date();
+		if (!currentDate) {
+			items = [];
+			loading = false;
+			error = null;
+			return;
+		}
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getSettlementsForDate(date()));
+			const result = await simulateFetch(() => getSettlementsForDate(currentDate));
 			if (id !== requestId) return;
 			items = result;
 		} catch {
@@ -69,10 +76,17 @@ export function useOrderStats(date: () => string) {
 
 	async function load() {
 		const id = ++requestId;
+		const currentDate = date();
+		if (!currentDate) {
+			stats = null;
+			loading = false;
+			error = null;
+			return;
+		}
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getOrderStatsForDate(date()));
+			const result = await simulateFetch(() => getOrderStatsForDate(currentDate));
 			if (id !== requestId) return;
 			stats = result;
 		} catch {
@@ -115,10 +129,17 @@ export function useMoneySummary(date: () => string) {
 
 	async function load() {
 		const id = ++requestId;
+		const currentDate = date();
+		if (!currentDate) {
+			summary = null;
+			loading = false;
+			error = null;
+			return;
+		}
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getMoneySummaryForDate(date()));
+			const result = await simulateFetch(() => getMoneySummaryForDate(currentDate));
 			if (id !== requestId) return;
 			summary = result;
 		} catch {
