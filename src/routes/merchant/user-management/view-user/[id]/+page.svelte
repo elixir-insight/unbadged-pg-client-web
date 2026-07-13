@@ -9,6 +9,7 @@
 		Hash,
 		IdCardIcon,
 		MailIcon,
+		Pencil,
 		PhoneIcon,
 		Shield,
 		ShieldCheck,
@@ -17,6 +18,7 @@
 	} from '$lib/assets/icons';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
+	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import { fetchUserById } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
@@ -54,6 +56,12 @@
 
 	function backToUsers() {
 		goto(resolve('/merchant/user-management'));
+	}
+
+	function handleEdit() {
+		if (!user) return;
+		createUserFormStore.loadForEdit(user);
+		goto(resolve('/merchant/user-management/edit-user/[id]', { id: user.id }));
 	}
 
 	function getInitials(name: string): string {
@@ -205,6 +213,10 @@
 			<Button variant="destructive" class="gap-2">
 				<Trash2 class="h-4 w-4" />
 				Delete
+			</Button>
+			<Button variant="outline" class="gap-2" onclick={handleEdit}>
+				<Pencil class="h-4 w-4" />
+				Edit
 			</Button>
 		</div>
 	</div>
