@@ -276,13 +276,11 @@
 			<FilterCards
 				loading={orderStats.loading}
 				skeletonCount={3}
-				cards={orderStats.stats
-					? [
-							{ label: 'Total Orders', count: totalSettlementCount },
-							{ label: 'Successful', count: completedSettlementCount },
-							{ label: 'Pending', count: pendingSettlementCount }
-						]
-					: []}
+				cards={[
+					{ label: 'Total Orders', count: totalSettlementCount },
+					{ label: 'Successful', count: completedSettlementCount },
+					{ label: 'Pending', count: pendingSettlementCount }
+				]}
 				bind:selected={selectedOrderCard}
 				onselect={selectOrderCard}
 				class="grid-cols-1 sm:grid-cols-3"
