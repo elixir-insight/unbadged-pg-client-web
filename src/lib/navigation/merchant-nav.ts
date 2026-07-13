@@ -64,7 +64,17 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Administration',
 		items: [
-			{ title: 'User Management', href: '/merchant/users', icon: Users },
+			{
+				title: 'User Management',
+				href: '/merchant/user-management',
+				icon: Users,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/user-management\/view-user\/[^/]+$/,
+						title: 'View User'
+					}
+				]
+			},
 			{
 				title: 'Role Management',
 				href: '/merchant/role-management',
