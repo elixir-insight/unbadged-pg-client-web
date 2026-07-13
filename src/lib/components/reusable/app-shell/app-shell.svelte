@@ -9,6 +9,7 @@
 	import Sidebar from '../sidebar/sidebar.svelte';
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
+	import { pageHeaderStore } from '$lib/stores/page-breadcrumbs.svelte';
 
 	let {
 		app,
@@ -88,7 +89,10 @@
 				</button>
 
 				{#if !isDashboard}
-					<Breadcrumb items={breadcrumbItems} class="text-sm font-semibold" />
+					<Breadcrumb
+						items={pageHeaderStore.breadcrumbs ?? breadcrumbItems}
+						class="text-sm font-semibold"
+					/>
 				{/if}
 			</header>
 

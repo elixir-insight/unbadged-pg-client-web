@@ -12,9 +12,7 @@
 	import {
 		Chip,
 		Button,
-		Breadcrumb,
 		Input,
-		Drawer,
 		Modal,
 		SearchField,
 		RangeCalendar,
@@ -25,17 +23,7 @@
 	import type { SearchFieldOption } from '$lib/components/reusable';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 
-	import {
-		RefreshCw,
-		Download,
-		AlertCircle,
-		X,
-		Eye,
-		Copy,
-		Check,
-		CheckCircle2,
-		Loader2
-	} from '$lib/assets/icons';
+	import { RefreshCw, Download, AlertCircle, X, CheckCircle2, Loader2 } from '$lib/assets/icons';
 
 	import type { Transaction } from '$lib/types/funds';
 
@@ -113,15 +101,6 @@
 		refreshing = false;
 	}
 
-	// ── Transaction drawer ────────────────────────────────────────────────
-	let drawerOpen = $state(false);
-	let selectedTxn = $state<Transaction | null>(null);
-
-	function openDrawer(txn: Transaction) {
-		selectedTxn = txn;
-		drawerOpen = true;
-	}
-
 	// ── Export modal ──────────────────────────────────────────────────────
 	let exportOpen = $state(false);
 	let exportFormat = $state<'csv' | 'excel'>('csv');
@@ -144,18 +123,6 @@
 		exportFrom = '';
 		exportTo = '';
 		exportFormat = 'csv';
-	}
-
-	// ── Copy ──────────────────────────────────────────────────────────────
-	let copiedKey = $state<string | null>(null);
-	async function copyToClipboard(value: string, key: string) {
-		try {
-			await navigator.clipboard.writeText(value);
-			copiedKey = key;
-			setTimeout(() => (copiedKey = null), 2000);
-		} catch {
-			/* silent */
-		}
 	}
 
 	// ── Formatters ────────────────────────────────────────────────────────
@@ -247,7 +214,6 @@
 		utrCell: Snippet<[{ value: string | null }]>;
 		statusCell: Snippet<[{ value: Transaction['status'] }]>;
 		dateTimeCell: Snippet<[{ value: string }]>;
-		actionCell: Snippet<[{ row: Transaction }]>;
 	}): ColumnDef<Transaction>[] {
 		return [
 			{ accessorKey: 'txnId', header: 'Txn ID', enableSorting: false },
@@ -289,12 +255,6 @@
 				header: 'Date & Time',
 				enableSorting: false,
 				cell: (c) => renderSnippet(s.dateTimeCell, { value: c.getValue() as string })
-			},
-			{
-				id: 'actions',
-				header: '',
-				enableSorting: false,
-				cell: (c) => renderSnippet(s.actionCell, { row: c.row.original })
 			}
 		];
 	}
@@ -306,14 +266,6 @@
 <div class="min-h-full space-y-6 p-6 lg:p-8">
 	<!-- ── Explorer header ───────────────────────────────────────────────── -->
 	<div class="space-y-4">
-		<Breadcrumb
-			items={[
-				{ label: 'Funds', href: '/merchant/funds' },
-				{ label: 'Inward Fund Transactions', href: '/merchant/funds' }
-			]}
-			class="block"
-		/>
-
 		<div class="flex flex-wrap items-start justify-between gap-4">
 			<div>
 				<h1 class="text-xl font-semibold tracking-tight">Inward Fund Transactions</h1>
@@ -432,28 +384,12 @@
 		</div>
 	{/snippet}
 
-	{#snippet actionCell({ row }: { row: Transaction })}
-		<button
-			type="button"
-			onclick={(e) => {
-				e.stopPropagation();
-				openDrawer(row);
-			}}
-			aria-label="View transaction {row.txnId}"
-			class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-		>
-			<Eye class="size-3.5" />
-			View
-		</button>
-	{/snippet}
-
 	<!-- ── Table card ─────────────────────────────────────────────────────── -->
 	<div class="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg">
 		<div class="overflow-x-auto">
 			<Table
 				data={transactions}
-				columns={getColumns({ currencyCell, utrCell, statusCell, dateTimeCell, actionCell })}
-				onRowClick={openDrawer}
+				columns={getColumns({ currencyCell, utrCell, statusCell, dateTimeCell })}
 				pageNumber={pagination.currentPage}
 				setPageNumber={pagination.setPage}
 				totalPages={pagination.pageCount}
@@ -461,107 +397,6 @@
 		</div>
 	</div>
 </div>
-
-<!-- ════════════════════════════════════════════════════════════════════ -->
-<!--  Transaction Detail Drawer                                           -->
-<!-- ════════════════════════════════════════════════════════════════════ -->
-<Drawer bind:open={drawerOpen} direction="right" title="Transaction Details">
-	{#if selectedTxn}
-		<div class="space-y-5 py-2">
-			<!-- Hero: Amount + Status -->
-			<div class="flex items-start justify-between rounded-2xl bg-muted/40 px-5 py-5">
-				<div>
-					<p class="text-xs text-muted-foreground">Amount</p>
-					<p class="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(selectedTxn.amount)}</p>
-				</div>
-				<Chip variant={statusVariant(selectedTxn.status)} class="mt-1">{selectedTxn.status}</Chip>
-			</div>
-
-			<!-- Transaction section -->
-			<div>
-				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-					Transaction
-				</p>
-				<dl class="divide-y divide-border/50">
-					{#each [{ label: 'Txn ID', value: selectedTxn.txnId, copy: true }, { label: 'CRN', value: selectedTxn.crn, copy: true }, { label: 'UTR', value: selectedTxn.utr ?? '—', copy: !!selectedTxn.utr }, { label: 'Date', value: formatDate(selectedTxn.dateTime), copy: false }, { label: 'Time', value: formatTime(selectedTxn.dateTime), copy: false }] as row (row.label)}
-						<div class="flex items-center justify-between gap-4 py-2.5">
-							<dt class="text-xs text-muted-foreground">{row.label}</dt>
-							<dd class="flex items-center gap-1.5">
-								<span class="text-right font-mono text-xs font-medium">{row.value}</span>
-								{#if row.copy}
-									<button
-										type="button"
-										onclick={() => copyToClipboard(row.value, row.label)}
-										aria-label="Copy {row.label}"
-										class="text-muted-foreground/40 transition-colors hover:text-muted-foreground focus-visible:outline-none"
-									>
-										{#if copiedKey === row.label}
-											<Check class="size-3 text-emerald-500" />
-										{:else}
-											<Copy class="size-3" />
-										{/if}
-									</button>
-								{/if}
-							</dd>
-						</div>
-					{/each}
-				</dl>
-			</div>
-
-			<!-- Balance section -->
-			<div>
-				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-					Balance
-				</p>
-				<dl class="divide-y divide-border/50">
-					{#each [{ label: 'Opening Balance', value: formatCurrency(selectedTxn.openingBalance) }, { label: 'Closing Balance', value: formatCurrency(selectedTxn.closingBalance) }] as row (row.label)}
-						<div class="flex items-center justify-between gap-4 py-2.5">
-							<dt class="text-xs text-muted-foreground">{row.label}</dt>
-							<dd class="text-xs font-semibold tabular-nums">{row.value}</dd>
-						</div>
-					{/each}
-				</dl>
-			</div>
-
-			<!-- Account section -->
-			<div>
-				<p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-					Account
-				</p>
-				<dl class="divide-y divide-border/50">
-					{#each [{ label: 'Bank Name', value: selectedTxn.bankName, mono: false, copy: false }, { label: 'Account Holder', value: selectedTxn.accountHolder, mono: false, copy: false }, { label: 'Account No.', value: selectedTxn.accountNumber, mono: true, copy: true }, { label: 'Source', value: selectedTxn.sourceAccount, mono: false, copy: false }, { label: 'Usage', value: selectedTxn.accountUsage, mono: false, copy: false }] as row (row.label)}
-						<div class="flex items-center justify-between gap-4 py-2.5">
-							<dt class="text-xs text-muted-foreground">{row.label}</dt>
-							<dd class="flex items-center gap-1.5">
-								<span class="text-right text-xs font-medium {row.mono ? 'font-mono' : ''}"
-									>{row.value}</span
-								>
-								{#if row.copy}
-									<button
-										type="button"
-										onclick={() => copyToClipboard(row.value, 'acct-' + row.label)}
-										aria-label="Copy {row.label}"
-										class="text-muted-foreground/40 transition-colors hover:text-muted-foreground focus-visible:outline-none"
-									>
-										{#if copiedKey === 'acct-' + row.label}
-											<Check class="size-3 text-emerald-500" />
-										{:else}
-											<Copy class="size-3" />
-										{/if}
-									</button>
-								{/if}
-							</dd>
-						</div>
-					{/each}
-				</dl>
-			</div>
-		</div>
-	{/if}
-
-	{#snippet footer()}
-		<Button variant="outline" class="w-full" onclick={() => (drawerOpen = false)}>Close</Button>
-	{/snippet}
-</Drawer>
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
 <!--  Export Report Modal                                                 -->

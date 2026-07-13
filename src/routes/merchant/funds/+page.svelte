@@ -6,6 +6,7 @@
 	import { cubicOut } from 'svelte/easing';
 
 	import { Chip, Button, Drawer } from '$lib/components/reusable';
+	import { pageHeaderStore } from '$lib/stores/page-breadcrumbs.svelte';
 
 	import {
 		RefreshCw,
@@ -32,13 +33,21 @@
 		goto(resolve('/merchant/funds?view=transactions' as '/'), { noScroll: true });
 	}
 
-	// ── Bank pills ────────────────────────────────────────────────────────
-	const BANK_PILL_LIMIT = 4;
-	let showAllBanks = $state(false);
-	const visibleBanks = $derived(
-		showAllBanks ? data.bankAccounts : data.bankAccounts.slice(0, BANK_PILL_LIMIT)
-	);
-	const hiddenBankCount = $derived(data.bankAccounts.length - BANK_PILL_LIMIT);
+	// ── App-header breadcrumbs ────────────────────────────────────────────
+	$effect(() => {
+		pageHeaderStore.breadcrumbs = showTransactions
+			? [
+					{ label: 'Funds', href: '/merchant/funds' },
+					{ label: 'Inward Fund Transactions', href: '/merchant/funds' }
+				]
+			: [
+					{ label: 'Payments', href: '/merchant' },
+					{ label: 'Funds', href: '/merchant/funds' }
+				];
+		return () => {
+			pageHeaderStore.breadcrumbs = null;
+		};
+	});
 
 	// ── Bank account drawer ───────────────────────────────────────────────
 	let accountDrawerOpen = $state(false);
@@ -134,13 +143,7 @@
 <!-- ════════════════════════════════════════════════════════════════════ -->
 <!--  Root                                                                -->
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<div class="relative min-h-full overflow-x-hidden">
-	<!-- ── Ambient background glows ──────────────────────────────────────── -->
-	<div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-		<div class="absolute -left-40 -top-40 size-[560px] rounded-full bg-primary/6 blur-3xl"></div>
-		<div class="absolute -right-20 -top-20 size-[420px] rounded-full bg-chart-2/6 blur-3xl"></div>
-	</div>
-
+<div class="min-h-full overflow-x-hidden">
 	<!-- ════════════════════════════════════════════════════════════════════ -->
 	<!--  Screen 2 — Transaction Explorer                                    -->
 	<!-- ════════════════════════════════════════════════════════════════════ -->
@@ -158,11 +161,7 @@
 		<!--  Screen 1 — Funds Dashboard                                         -->
 		<!-- ════════════════════════════════════════════════════════════════════ -->
 	{:else}
-		<div
-			in:fade={{ duration: 250 }}
-			out:fade={{ duration: 150 }}
-			class="relative z-10 space-y-10 p-6"
-		>
+		<div in:fade={{ duration: 250 }} out:fade={{ duration: 150 }} class="space-y-8 p-6">
 			<!-- ── Page header ───────────────────────────────────────────────── -->
 			<div>
 				<h1 class="text-2xl font-semibold tracking-tight">Funds</h1>
@@ -175,91 +174,76 @@
 			<!--  Balance Hero Card                                               -->
 			<!-- ════════════════════════════════════════════════════════════════ -->
 			<section aria-label="Fund Summary">
-				<div
-					class="balance-card relative overflow-hidden rounded-[20px] px-6 py-5 shadow-xl transition-all duration-300 hover:-translate-y-0.5"
-				>
-					<!-- Floating orbs inside card -->
-					<div
-						class="float-animation pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-white/6 blur-3xl"
-					></div>
-					<div
-						class="pulse-glow pointer-events-none absolute -bottom-6 left-1/2 size-32 rounded-full bg-white/5 blur-2xl"
-					></div>
-					<!-- Shimmer sweep -->
-					<div class="card-shimmer pointer-events-none absolute inset-0 rounded-[20px]"></div>
-
-					<!-- Content -->
-					<div class="relative z-10">
-						<!-- Top row: label + balance + refresh -->
-						<div class="flex flex-wrap items-center justify-between gap-4">
-							<div>
-								<p class="text-xs font-medium tracking-wide text-white/65">
-									Total Available Balance
-								</p>
-								<div class="mt-1">
-									{#if summaryLoading}
-										<div class="h-9 w-44 animate-pulse rounded-lg bg-white/20"></div>
-									{:else}
-										<p class="text-3xl font-bold tracking-tight text-white lg:text-4xl">
-											{formatCurrency(data.summary.totalBalance)}
-										</p>
-									{/if}
-								</div>
+				<div class="rounded-2xl border border-border/60 bg-card px-6 py-5 shadow-sm">
+					<!-- Top row: label + balance + refresh -->
+					<div class="flex flex-wrap items-center justify-between gap-4">
+						<div>
+							<p class="text-xs font-medium tracking-wide text-muted-foreground">
+								Total Available Balance
+							</p>
+							<div class="mt-1">
+								{#if summaryLoading}
+									<div class="h-9 w-44 animate-pulse rounded-lg bg-muted"></div>
+								{:else}
+									<p class="text-3xl font-bold tracking-tight text-foreground lg:text-4xl">
+										{formatCurrency(data.summary.totalBalance)}
+									</p>
+								{/if}
 							</div>
-							<button
-								type="button"
-								onclick={refreshSummary}
-								aria-label="Refresh balance"
-								class="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+						</div>
+						<button
+							type="button"
+							onclick={refreshSummary}
+							aria-label="Refresh balance"
+							class="flex items-center gap-2 rounded-xl border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+						>
+							<RefreshCw
+								class={['size-3.5', summaryLoading && 'animate-spin'].filter(Boolean).join(' ')}
+							/>
+							<span>Updated {formatTime(data.summary.lastUpdated)}</span>
+						</button>
+					</div>
+
+					<!-- Separator -->
+					<div class="my-4 h-px bg-border/60"></div>
+
+					<!-- Sub-balances -->
+					<div class="flex flex-wrap items-center gap-6">
+						<div class="flex items-center gap-3">
+							<div
+								class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"
 							>
-								<RefreshCw
-									class={['size-3.5', summaryLoading && 'animate-spin'].filter(Boolean).join(' ')}
-								/>
-								<span>Updated {formatTime(data.summary.lastUpdated)}</span>
-							</button>
+								<ArrowUpFromLine class="size-3.5 text-primary" />
+							</div>
+							<div>
+								<p class="text-xs font-medium text-muted-foreground">PayIn Balance</p>
+								{#if summaryLoading}
+									<div class="mt-1 h-5 w-24 animate-pulse rounded bg-muted"></div>
+								{:else}
+									<p class="text-base font-semibold text-foreground">
+										{formatCurrency(data.summary.payInBalance)}
+									</p>
+								{/if}
+							</div>
 						</div>
 
-						<!-- Separator -->
-						<div class="my-4 h-px bg-white/15"></div>
+						<div class="hidden h-8 w-px bg-border/60 sm:block"></div>
 
-						<!-- Sub-balances -->
-						<div class="flex flex-wrap items-center gap-6">
-							<div class="flex items-center gap-3">
-								<div
-									class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/15"
-								>
-									<ArrowUpFromLine class="size-3.5 text-white" />
-								</div>
-								<div>
-									<p class="text-xs font-medium text-white/60">PayIn Balance</p>
-									{#if summaryLoading}
-										<div class="mt-1 h-5 w-24 animate-pulse rounded bg-white/20"></div>
-									{:else}
-										<p class="text-base font-semibold text-white">
-											{formatCurrency(data.summary.payInBalance)}
-										</p>
-									{/if}
-								</div>
+						<div class="flex items-center gap-3">
+							<div
+								class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+							>
+								<ArrowDownToLine class="size-3.5 text-primary" />
 							</div>
-
-							<div class="hidden h-8 w-px bg-white/15 sm:block"></div>
-
-							<div class="flex items-center gap-3">
-								<div
-									class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/15"
-								>
-									<ArrowDownToLine class="size-3.5 text-white" />
-								</div>
-								<div>
-									<p class="text-xs font-medium text-white/60">Payout Balance</p>
-									{#if summaryLoading}
-										<div class="mt-1 h-5 w-24 animate-pulse rounded bg-white/20"></div>
-									{:else}
-										<p class="text-base font-semibold text-white">
-											{formatCurrency(data.summary.payoutBalance)}
-										</p>
-									{/if}
-								</div>
+							<div>
+								<p class="text-xs font-medium text-muted-foreground">Payout Balance</p>
+								{#if summaryLoading}
+									<div class="mt-1 h-5 w-24 animate-pulse rounded bg-muted"></div>
+								{:else}
+									<p class="text-base font-semibold text-foreground">
+										{formatCurrency(data.summary.payoutBalance)}
+									</p>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -280,25 +264,25 @@
 
 				{#if data.bankAccounts.length === 0}
 					<div
-						class="flex flex-col items-center gap-3 rounded-[16px] border border-dashed border-border/60 bg-muted/10 py-12 text-center"
+						class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10 py-12 text-center"
 					>
 						<Building2 class="size-8 text-muted-foreground/20" />
 						<p class="text-sm text-muted-foreground">No bank accounts linked</p>
 					</div>
 				{:else}
-					<div class="flex flex-wrap gap-3">
-						{#each visibleBanks as account, i (account.id)}
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{#each data.bankAccounts as account, i (account.id)}
 							<button
 								type="button"
 								onclick={() => openAccountDrawer(account)}
-								class="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+								class="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 							>
 								<div
 									class={`flex size-10 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold ${bankAvatarColor(i)}`}
 								>
 									{account.bankName.slice(0, 2).toUpperCase()}
 								</div>
-								<div class="text-left">
+								<div class="min-w-0 flex-1 text-left">
 									<p class="text-sm font-semibold leading-tight">
 										{account.bankName.split(' ')[0]}
 									</p>
@@ -317,16 +301,6 @@
 								/>
 							</button>
 						{/each}
-
-						{#if !showAllBanks && hiddenBankCount > 0}
-							<button
-								type="button"
-								onclick={() => (showAllBanks = true)}
-								class="flex items-center gap-2 rounded-2xl border border-dashed border-border/60 bg-muted/20 px-5 py-3.5 text-sm font-medium text-muted-foreground transition-all duration-300 hover:bg-muted/50 hover:text-foreground"
-							>
-								+{hiddenBankCount} More
-							</button>
-						{/if}
 					</div>
 				{/if}
 			</section>
@@ -345,20 +319,20 @@
 						</p>
 					</div>
 
-					<div class="flex flex-wrap gap-3">
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{#each data.virtualAccounts as va (va.id)}
 							<button
 								type="button"
 								onclick={() => openVADrawer(va)}
-								class="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+								class="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 							>
 								<div
 									class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
 								>
 									<Wallet class="size-4" />
 								</div>
-								<div class="text-left">
-									<p class="font-mono text-xs font-semibold leading-tight">
+								<div class="min-w-0 flex-1 text-left">
+									<p class="truncate font-mono text-xs font-semibold leading-tight">
 										{va.virtualAccountNumber}
 									</p>
 									<p class="mt-0.5 text-xs text-muted-foreground">{va.bankName}</p>
@@ -404,7 +378,7 @@
 						</div>
 					{:else}
 						<div class="overflow-x-auto">
-							<table class="w-full min-w-[540px] text-sm">
+							<table class="w-full min-w-135 text-sm">
 								<thead>
 									<tr class="border-b border-border/30 bg-muted/20">
 										<th
@@ -698,57 +672,3 @@
 		{/snippet}
 	</Drawer>
 </div>
-
-<style>
-	.balance-card {
-		background: linear-gradient(135deg, var(--primary) 0%, var(--chart-1) 52%, var(--chart-2) 100%);
-	}
-	.balance-card:hover {
-		box-shadow: 0 20px 48px -10px oklch(from var(--primary) l c h / 0.38);
-	}
-
-	@keyframes shimmer {
-		0% {
-			background-position: -200% 0;
-		}
-		100% {
-			background-position: 200% 0;
-		}
-	}
-	.card-shimmer {
-		background: linear-gradient(
-			90deg,
-			transparent 0%,
-			rgba(255, 255, 255, 0.06) 50%,
-			transparent 100%
-		);
-		background-size: 200% 100%;
-		animation: shimmer 3s ease-in-out infinite;
-	}
-
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(0);
-		}
-		50% {
-			transform: translateY(-12px);
-		}
-	}
-	.float-animation {
-		animation: float 5s ease-in-out infinite;
-	}
-
-	@keyframes pulse-glow {
-		0%,
-		100% {
-			opacity: 0.4;
-		}
-		50% {
-			opacity: 0.7;
-		}
-	}
-	.pulse-glow {
-		animation: pulse-glow 3.5s ease-in-out infinite;
-	}
-</style>
