@@ -3,7 +3,6 @@ import {
 	LayoutDashboard,
 	Wallet,
 	ArrowLeftRight,
-	Receipt,
 	MessageSquareWarning,
 	Landmark,
 	FileText,
@@ -19,8 +18,29 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Payments',
 		items: [
-			{ title: 'Transactions', href: '/merchant/transactions', icon: ArrowLeftRight },
-			{ title: 'Collections', href: '/merchant/collections', icon: Receipt, service: 'payin' },
+			{
+				title: 'Transactions',
+				href: '/merchant/transactions',
+				icon: ArrowLeftRight,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/transactions\/collections$/,
+						title: 'Collections'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements$/,
+						title: 'Disbursements'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/collections\/[^/]+$/,
+						title: 'Transaction Details'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements\/[^/]+$/,
+						title: 'Transaction Details'
+					}
+				]
+			},
 			{
 				title: 'Disputes',
 				href: '/merchant/disputes',
