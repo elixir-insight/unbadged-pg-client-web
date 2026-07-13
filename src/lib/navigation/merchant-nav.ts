@@ -73,6 +73,14 @@ export const merchantNav: NavGroup[] = [
 					{
 						matcher: /^\/merchant\/role-management\/view-role\/[^/]+$/,
 						title: 'View Role'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/create-role$/,
+						title: 'Create Role'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/create-role\/preview$/,
+						title: 'Preview'
 					}
 				]
 			}
