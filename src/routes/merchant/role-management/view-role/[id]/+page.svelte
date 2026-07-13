@@ -1,14 +1,17 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import { Chip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
+	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import {
 		MERCHANT_MODULE_PERMISSION_IDS,
 		MERCHANT_ROLE_MODULES
 	} from '$lib/stores/role-management/merchant-role-modules';
-	import type { PermStatus } from '$lib/stores/role-management/role-management';
-	import { Trash2, Users } from '$lib/assets/icons';
+	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
+	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
 
@@ -51,6 +54,35 @@
 	const isDefaultRole = $derived(role.roleInfo.defaultRole);
 
 	const description = $derived((page.state as { description?: string }).description ?? '');
+
+	function handleEdit() {
+		const perms: PermissionsState = {};
+		for (const mod of MERCHANT_ROLE_MODULES) {
+			perms[mod.id] = {
+				read: false,
+				writeUnrestricted: false,
+				writeRestricted: false,
+				delete: false,
+				approve: false,
+				fullAccess: false
+			};
+		}
+		for (const mod of MERCHANT_ROLE_MODULES) {
+			const permIds = MERCHANT_MODULE_PERMISSION_IDS[mod.id] ?? {};
+			for (const col of apiPermCols) {
+				const permId = permIds[col.apiName];
+				if (permId !== undefined) {
+					perms[mod.id][col.key] = grantedIds.has(permId);
+				}
+			}
+		}
+		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
+		goto(
+			resolve('/merchant/role-management/edit-role/[id]', {
+				id: String(role.roleInfo.roleId)
+			})
+		);
+	}
 </script>
 
 <div class="m-auto w-full space-y-6 md:w-[75%]">
@@ -74,6 +106,10 @@
 		</div>
 
 		<div class="flex items-center gap-2">
+			<Button variant="outline" size="sm" onclick={handleEdit} disabled={isDefaultRole}>
+				<Pencil class="h-4 w-4" />
+				Edit role
+			</Button>
 			<Button
 				variant="destructive"
 				size="sm"
