@@ -30,7 +30,7 @@
 
 	<aside class="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start">
 		<Card.Root class="shadow-sm">
-			<Card.Content class="p-4 sm:p-6">
+			<Card.Content>
 				<StepSidebar
 					steps={store.stepsConfig}
 					currentIndex={store.currentStepIndex}

@@ -20,7 +20,7 @@
 
 <div class="space-y-6 md:space-y-8">
 	<section
-		class="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] md:items-center md:gap-7.5 lg:grid-cols-[minmax(0,18rem)_minmax(0,28rem)] xl:grid-cols-[minmax(0,20rem)_minmax(0,32rem)]"
+		class="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,16rem)_minmax(0,18rem)] md:items-center md:gap-7.5 lg:grid-cols-[minmax(0,18rem)_minmax(0,20rem)] xl:grid-cols-[minmax(0,20rem)_minmax(0,22rem)]"
 	>
 		<div class="flex min-w-0 items-start gap-3">
 			<span
