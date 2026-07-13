@@ -10,7 +10,12 @@
 	onNavigate((navigation) => {
 		isNavigating = true;
 
-		if (!document.startViewTransition) {
+		const toPath = navigation.to?.url.pathname ?? '';
+		const fromPath = navigation.from?.url.pathname ?? '';
+		const sectionPath = /\/management\/organizations\/[^/]+\/(documents|integration)(?:\/|$)/;
+		const skipViewTransition = sectionPath.test(toPath) || sectionPath.test(fromPath);
+
+		if (!document.startViewTransition || skipViewTransition) {
 			navigation.complete.then(() => {
 				isNavigating = false;
 			});

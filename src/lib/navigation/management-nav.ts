@@ -1,7 +1,6 @@
 import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
-	ClipboardCheck,
 	Building2,
 	Users,
 	ShieldCheck,
@@ -22,10 +21,7 @@ export const managementNav: NavGroup[] = [
 	},
 	{
 		title: 'Organization',
-		items: [
-			{ title: 'Onboarding', href: '/management/onboarding', icon: ClipboardCheck },
-			{ title: 'Organizations', href: '/management/organizations', icon: Building2 }
-		]
+		items: [{ title: 'Organizations', href: '/management/organizations', icon: Building2 }]
 	},
 	{
 		title: 'Access Control',
