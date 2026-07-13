@@ -3,8 +3,9 @@
 	import { resolve } from '$app/paths';
 	import { createUrlPagination, Dropdown, Search } from '$lib/components/reusable';
 	import { UserCard } from '$lib/components/user-management';
-	import { X } from '$lib/assets/icons';
+	import { Plus, X } from '$lib/assets/icons';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
+	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { fetchUsers } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { debounce } from '$lib/utils/debounce';
@@ -166,6 +167,22 @@
 	{/if}
 
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		<button
+			class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
+			onclick={() => {
+				userFormStore.reset();
+				createUserFormStore.reset();
+				goto(resolve('/merchant/user-management/create-user'));
+			}}
+		>
+			<div
+				class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow transition-colors"
+			>
+				<Plus class="h-5 w-5 text-primary transition-colors" />
+			</div>
+			<span class="text-sm font-medium text-foreground transition-colors">Add user</span>
+		</button>
+
 		{#each users as user (user.id)}
 			<UserCard {user} selected={selectedId === user.id} onclick={() => selectUser(user)} />
 		{/each}
