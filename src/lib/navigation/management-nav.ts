@@ -12,10 +12,7 @@ import {
 	Landmark,
 	FileText,
 	Fingerprint,
-	CircleCheck,
-	Receipt,
-	RotateCcw,
-	Handshake
+	CircleCheck
 } from '$lib/assets/icons';
 
 export const managementNav: NavGroup[] = [
@@ -26,74 +23,8 @@ export const managementNav: NavGroup[] = [
 	{
 		title: 'Organization',
 		items: [
-			{
-				title: 'Onboarding',
-				href: '/management/onboarding',
-				icon: ClipboardCheck,
-				breadcrumbChildren: [
-					{
-						matcher: /^\/management\/onboarding\/[^/]+$/,
-						title: 'Onboarding Details'
-					}
-				]
-			},
-			{
-				title: 'Organizations',
-				href: '/management/organization',
-				icon: Building2,
-				breadcrumbChildren: [
-					{
-						matcher: /^\/management\/organization\/[^/]+$/,
-						title: 'Organization Details'
-					}
-				]
-			},
-			{
-				title: 'Virtual Account Management',
-				href: '/management/account-management',
-				icon: Wallet
-			}
-		]
-	},
-	{
-		title: 'Financial Operations',
-		items: [
-			{
-				title: 'Collections',
-				href: '/management/transactions',
-				icon: Receipt,
-				children: [
-					{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
-					{ title: 'Refunds', href: '/management/refunds', icon: RotateCcw },
-					{ title: 'Settlements', href: '/management/settlements', icon: Landmark }
-				]
-			},
-			{
-				title: 'Disbursements',
-				href: '/management/fund-transfer',
-				icon: Send,
-				children: [
-					{
-						title: 'Transaction Insights',
-						href: '/management/transaction-insights',
-						icon: TrendingUp
-					},
-					{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
-					{
-						title: 'Partner Settlements',
-						href: '/management/partner-settlements',
-						icon: Handshake
-					}
-				]
-			}
-		]
-	},
-	{
-		title: 'Monitoring',
-		items: [
-			{ title: 'Reports', href: '/management/reports', icon: FileText },
-			{ title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
-			{ title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
+			{ title: 'Onboarding', href: '/management/onboarding', icon: ClipboardCheck },
+			{ title: 'Organizations', href: '/management/organizations', icon: Building2 }
 		]
 	},
 	{
@@ -133,6 +64,34 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			}
+		]
+	},
+	{
+		title: 'Financial Operations',
+		items: [
+			{ title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
+			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
+			{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
+			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
+			{
+				title: 'Settlements',
+				href: '/management/settlements',
+				icon: Landmark,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/settlements\/[^/]+$/,
+						title: 'Settlement Details'
+					}
+				]
+			}
+		]
+	},
+	{
+		title: 'Monitoring',
+		items: [
+			{ title: 'Reports', href: '/management/reports', icon: FileText },
+			{ title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
+			{ title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
 		]
 	}
 ];
