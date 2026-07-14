@@ -1,28 +1,35 @@
 import * as v from 'valibot';
+import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import { RefreshResponseSchema, SignInResponseSchema } from './schema';
 
 export const authClient = {
-	signIn: (fetchFn: typeof fetch, userEmail: string, password: string, force = false) =>
+	signIn: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		userEmail: string,
+		password: string,
+		force = false
+	) =>
 		apiFetch('/api/v1/user/sign-in', {
 			fetch: fetchFn,
+			logger,
 			method: 'POST',
 			skipAuth: true,
 			body: { userEmail, password, force },
 			schema: SignInResponseSchema
 		}),
 
-	/**
-	 * Swagger: POST /api/v1/user/refresh-token — three headers, no body.
-	 */
 	refresh: (
 		fetchFn: typeof fetch,
+		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/api/v1/user/refresh-token', {
+		apiFetch('/user/refresh-token', {
 			fetch: fetchFn,
+			logger,
 			method: 'POST',
 			skipAuth: true,
 			extraHeaders: {
@@ -35,12 +42,14 @@ export const authClient = {
 
 	signOut: (
 		fetchFn: typeof fetch,
+		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/api/v1/user/sign-out', {
+		apiFetch('/user/sign-out', {
 			fetch: fetchFn,
+			logger,
 			method: 'POST',
 			skipAuth: true,
 			extraHeaders: {

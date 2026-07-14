@@ -1,4 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
+import type { Logger } from 'pino';
 import { authClient } from './client';
 import { decodeJwt } from './jwt';
 import { storeSession } from './session';
@@ -16,7 +17,8 @@ const inFlightRefreshes = new Map<string, Promise<SessionTokens | null>>();
 
 export async function getValidSession(
 	cookies: Cookies,
-	fetchFn: typeof fetch
+	fetchFn: typeof fetch,
+	logger: Logger
 ): Promise<SessionTokens> {
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = cookies.get('gatewayToken');
@@ -33,12 +35,20 @@ export async function getValidSession(
 		return { accessToken, gatewayToken, idToken, refreshToken };
 	}
 
+	logger.info('access token expired — attempting refresh');
+
 	// Single-flight: concurrent requests hitting expiry at the same moment
 	// share ONE refresh call instead of racing separate ones.
 	let refreshPromise = inFlightRefreshes.get(refreshToken);
 	if (!refreshPromise) {
 		refreshPromise = (async () => {
-			const result = await authClient.refresh(fetchFn, accessToken, gatewayToken, refreshToken);
+			const result = await authClient.refresh(
+				fetchFn,
+				logger,
+				accessToken,
+				gatewayToken,
+				refreshToken
+			);
 			if (!result.ok) return null;
 			return result.data.data[0] ?? null;
 		})().finally(() => inFlightRefreshes.delete(refreshToken));
@@ -51,5 +61,6 @@ export async function getValidSession(
 	}
 
 	storeSession(cookies, newTokens);
+	logger.info('session refreshed successfully');
 	return newTokens;
 }

@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
@@ -7,6 +8,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	opts: {
 		fetch: typeof globalThis.fetch;
 		schema: TSchema;
+		logger: Logger;
 		idToken?: string;
 		skipAuth?: boolean;
 		method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -20,8 +22,12 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	}
 
 	const url = buildUrl(path, opts.query);
+	const method = opts.method ?? 'GET';
+	const callId = crypto.randomUUID().slice(0, 8);
+	const log = opts.logger.child({ callId, method, path });
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 15_000);
+	const start = Date.now();
 
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',
@@ -29,34 +35,52 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	};
 	if (!opts.skipAuth) headers.Authorization = `Bearer ${opts.idToken}`;
 
+	log.debug({ headers }, 'outbound request');
+
 	try {
 		const res = await opts.fetch(url, {
-			method: opts.method ?? 'GET',
+			method,
 			headers,
 			body: opts.body ? JSON.stringify(opts.body) : undefined,
 			signal: controller.signal
 		});
 		const json: unknown = await res.json().catch(() => null);
-		console.log(json, 'data');
+		const durationMs = Date.now() - start;
 
-		if (!res.ok) {
-			const errorBody =
-				json && typeof json === 'object'
-					? (json as { exceptionCode?: string; message?: string })
-					: null;
+		const errorBody =
+			json && typeof json === 'object'
+				? (json as { exceptionCode?: string; message?: string; statusCode?: number })
+				: null;
+
+		// Upstream sometimes returns business errors with 2xx (e.g. sign-in session exists → 202).
+		if (!res.ok || errorBody?.exceptionCode) {
+			const status = errorBody?.statusCode ?? res.status;
+			log.warn(
+				{
+					status,
+					httpStatus: res.status,
+					exceptionCode: errorBody?.exceptionCode,
+					durationMs
+				},
+				'request failed'
+			);
 			return {
 				ok: false,
 				error: {
 					kind: 'http',
-					status: res.status,
+					status,
 					code: errorBody?.exceptionCode,
-					message: errorBody?.message ?? `Request failed (${res.status})`
+					message: errorBody?.message ?? `Request failed (${status})`
 				} satisfies ApiError
 			};
 		}
 
 		const parsed = v.safeParse(opts.schema, json);
 		if (!parsed.success) {
+			log.warn(
+				{ status: res.status, durationMs, issues: parsed.issues },
+				'response validation failed'
+			);
 			return {
 				ok: false,
 				error: {
@@ -66,14 +90,22 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 				}
 			};
 		}
+
+		log.debug({ status: res.status, durationMs }, 'request succeeded');
 		return { ok: true, data: parsed.output };
 	} catch (e) {
 		const isAbort = e instanceof DOMException && e.name === 'AbortError';
+		const message = isAbort
+			? 'Request timed out'
+			: e instanceof Error
+				? e.message
+				: 'Network error';
+		log.error({ err: e, durationMs: Date.now() - start }, `network error — ${message}`);
 		return {
 			ok: false,
 			error: {
 				kind: 'network',
-				message: isAbort ? 'Request timed out' : e instanceof Error ? e.message : 'Network error'
+				message
 			}
 		};
 	} finally {

@@ -2,9 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	// import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
-	import { Checkbox, Input } from '$lib/components/reusable';
+	import { Checkbox, Input, Modal } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
@@ -15,15 +14,43 @@
 	let showPassword = $state(false);
 	let submitting = $state(false);
 	let errorMessage = $state<string | null>(null);
-
-	// const sessionExpired = $derived(page.url.searchParams.get('reason') === 'session-expired');
+	let forceConfirmOpen = $state(false);
 
 	onMount(() => {
 		theme.init();
 	});
 
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
+	function parseRedirectTo(body: unknown): '/merchant' | '/partner' | '/management' {
+		if (
+			body &&
+			typeof body === 'object' &&
+			'redirectTo' in body &&
+			(body.redirectTo === '/merchant' ||
+				body.redirectTo === '/partner' ||
+				body.redirectTo === '/management')
+		) {
+			return body.redirectTo;
+		}
+		return '/merchant';
+	}
+
+	function parseErrorBody(body: unknown): {
+		message: string;
+		requiresForce: boolean;
+	} {
+		const message =
+			body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+				? body.message
+				: 'Invalid email or password.';
+		const requiresForce =
+			body !== null &&
+			typeof body === 'object' &&
+			'requiresForce' in body &&
+			body.requiresForce === true;
+		return { message, requiresForce };
+	}
+
+	async function signIn(force: boolean) {
 		if (submitting) return;
 
 		errorMessage = null;
@@ -33,24 +60,37 @@
 			const res = await fetch(resolve('/api/auth/sign-in'), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ userEmail: email, password })
+				body: JSON.stringify({ userEmail: email, password, force })
 			});
 
+			const body = await res.json().catch(() => null);
+
 			if (!res.ok) {
-				const body = await res.json().catch(() => null);
-				errorMessage =
-					(body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
-						? body.message
-						: null) ?? 'Invalid email or password.';
+				const { message, requiresForce } = parseErrorBody(body);
+				if (requiresForce) {
+					forceConfirmOpen = true;
+					return;
+				}
+				errorMessage = message;
 				return;
 			}
 
-			await goto(resolve('/merchant'));
+			await goto(resolve(parseRedirectTo(body)));
 		} catch {
 			errorMessage = 'Unable to sign in. Please try again.';
 		} finally {
 			submitting = false;
 		}
+	}
+
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
+		await signIn(false);
+	}
+
+	async function handleForceConfirm() {
+		forceConfirmOpen = false;
+		await signIn(true);
 	}
 </script>
 
@@ -81,12 +121,6 @@
 						<h1 class="text-3xl font-semibold tracking-tight text-gray-700">Sign in</h1>
 						<p class="text-base text-gray-700">Enter your login details to access your dashboard</p>
 					</div>
-
-					<!-- {#if sessionExpired}
-						<p class="text-sm text-destructive" role="status">
-							Your session expired. Please sign in again.
-						</p>
-					{/if} -->
 
 					{#if errorMessage}
 						<p class="text-sm text-destructive" role="alert">{errorMessage}</p>
@@ -167,3 +201,20 @@
 		</footer>
 	</div>
 </div>
+
+<Modal
+	bind:open={forceConfirmOpen}
+	title="Session already active"
+	description="Another session for this account is already signed in. Continue here? This will sign out the other session."
+>
+	{#snippet footer()}
+		<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+			<Button variant="outline" class="w-full sm:w-auto" onclick={() => (forceConfirmOpen = false)}>
+				Cancel
+			</Button>
+			<Button class="w-full sm:w-auto" onclick={handleForceConfirm} disabled={submitting}>
+				{submitting ? 'Signing in…' : 'Continue'}
+			</Button>
+		</div>
+	{/snippet}
+</Modal>
