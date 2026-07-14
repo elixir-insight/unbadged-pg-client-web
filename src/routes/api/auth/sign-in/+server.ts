@@ -4,6 +4,9 @@ import * as v from 'valibot';
 import { authClient } from '$lib/server/domains/auth/client';
 import { SignInBodySchema } from '$lib/server/domains/auth/schema';
 import { storeSession } from '$lib/server/domains/auth/session';
+import { decodeJwt } from '$lib/server/domains/auth/jwt';
+import { resolvePortalHome } from '$lib/stores/auth/portal';
+import type { GatewayTokenPayload } from '$lib/stores/auth/types';
 
 export const POST: RequestHandler = async ({
 	request,
@@ -35,27 +38,53 @@ export const POST: RequestHandler = async ({
 
 	if (!result.ok) {
 		const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
+		const upstreamStatus = result.error.kind === 'http' ? result.error.status : undefined;
+		const message =
+			result.error.kind === 'http' ? result.error.message : 'Invalid email or password.';
+
+		const requiresForce =
+			exceptionCode === 'FAILED_TO_SIGN_IN' &&
+			(message === 'User Session Already Exists' || upstreamStatus === 202);
+
+		if (requiresForce) {
+			log.warn(
+				{
+					ip,
+					userEmail: parsed.output.userEmail,
+					exceptionCode,
+					errorKind: result.error.kind,
+					upstreamStatus
+				},
+				'sign-in requires force — session already exists'
+			);
+			return json(
+				{
+					exceptionCode,
+					message,
+					statusCode: 202,
+					requiresForce: true
+				},
+				{ status: 409 }
+			);
+		}
+
+		const status =
+			result.error.kind === 'http' && result.error.status >= 400 && result.error.status < 500
+				? result.error.status
+				: 401;
+
 		log.warn(
 			{
 				ip,
 				userEmail: parsed.output.userEmail,
 				exceptionCode,
 				errorKind: result.error.kind,
-				backendMessage: result.error.kind === 'http' ? result.error.message : undefined
+				status
 			},
 			'sign-in failed'
 		);
 
-		// Backend: { exceptionCode: "FAILED_TO_SIGN_IN", message: "User Not Found", statusCode: 400 }
-		if (result.error.kind === 'http' && exceptionCode === 'FAILED_TO_SIGN_IN') {
-			error(result.error.status || 400, result.error.message || 'Unable to sign in.');
-		}
-
-		if (result.error.kind === 'network') {
-			error(502, 'Unable to reach authentication service. Please try again.');
-		}
-
-		error(401, 'Invalid email or password.');
+		return json({ exceptionCode, message, statusCode: status }, { status });
 	}
 
 	const tokens = result.data.data[0];
@@ -67,7 +96,18 @@ export const POST: RequestHandler = async ({
 		error(502, 'Sign-in succeeded but no tokens were returned.');
 	}
 
-	log.info({ ip, userEmail: parsed.output.userEmail }, 'sign-in succeeded');
+	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+	const redirectTo = resolvePortalHome(gatewayPayload['cognito:groups'] ?? []);
+
+	log.info(
+		{
+			ip,
+			userEmail: parsed.output.userEmail,
+			redirectTo,
+			groups: gatewayPayload['cognito:groups']
+		},
+		'sign-in succeeded'
+	);
 	storeSession(cookies, tokens);
-	return json({ message: 'Signed in successfully' });
+	return json({ message: 'Signed in successfully', redirectTo });
 };
