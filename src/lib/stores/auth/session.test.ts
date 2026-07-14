@@ -14,8 +14,8 @@ function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayToke
 		userName: 'Acme Merchant',
 		userEmail: 'acme@example.com',
 		userType: 'merchant',
-		'cognito:groups': ['Payin'],
-		iss: 'ElixirPay',
+		'cognito:groups': ['MERCHANT'],
+		iss: 'Elixir Pay',
 		token_use: 'gateway',
 		exp: 1_700_000_000,
 		iat: 1_699_000_000,
@@ -24,24 +24,9 @@ function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayToke
 }
 
 describe('parseMerchantSession', () => {
-	it('derives payin-only permissions', () => {
-		const session = parseMerchantSession(tokenWithGroups(['Payin']));
-		expect(session.permissions).toEqual({ payin: true, payout: false });
-	});
-
-	it('derives payout-only permissions', () => {
-		const session = parseMerchantSession(tokenWithGroups(['Payout']));
-		expect(session.permissions).toEqual({ payin: false, payout: true });
-	});
-
-	it('derives both permissions', () => {
-		const session = parseMerchantSession(tokenWithGroups(['Payin', 'Payout']));
+	it('does not derive payin/payout from groups (temporary both true)', () => {
+		const session = parseMerchantSession(tokenWithGroups(['MERCHANT']));
 		expect(session.permissions).toEqual({ payin: true, payout: true });
-	});
-
-	it('derives no permissions when groups are empty', () => {
-		const session = parseMerchantSession(tokenWithGroups([]));
-		expect(session.permissions).toEqual({ payin: false, payout: false });
 	});
 
 	it('maps identity fields from the token', () => {
@@ -52,8 +37,8 @@ describe('parseMerchantSession', () => {
 		expect(session.email).toBe(mockCognitoToken.email);
 	});
 
-	it('passes the groups array through', () => {
-		const groups = ['Payin', 'Payout'];
+	it('passes the portal groups array through', () => {
+		const groups = ['MERCHANT', 'PARTNER'];
 		const session = parseMerchantSession(tokenWithGroups(groups));
 		expect(session.groups).toEqual(groups);
 	});
@@ -68,11 +53,11 @@ describe('parseMerchantSessionFromGateway', () => {
 		expect(session.email).toBe('acme@example.com');
 	});
 
-	it('derives permissions from cognito groups', () => {
+	it('keeps portal groups and uses temporary service permissions', () => {
 		const session = parseMerchantSessionFromGateway(
-			gatewayToken({ 'cognito:groups': ['Payin', 'Payout'] })
+			gatewayToken({ 'cognito:groups': ['MERCHANT', 'MANAGEMENT'] })
 		);
 		expect(session.permissions).toEqual({ payin: true, payout: true });
-		expect(session.groups).toEqual(['Payin', 'Payout']);
+		expect(session.groups).toEqual(['MERCHANT', 'MANAGEMENT']);
 	});
 });

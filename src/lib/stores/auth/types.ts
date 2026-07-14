@@ -1,5 +1,10 @@
 export type MerchantService = 'payin' | 'payout';
 
+/** Portal apps driven by gateway `cognito:groups`. Payin/payout are separate. */
+export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
+
+export type PortalHomePath = '/merchant' | '/partner' | '/management';
+
 export interface CognitoIdToken {
 	sub: string;
 	'cognito:groups': string[];
@@ -29,10 +34,11 @@ export interface GatewayTokenPayload {
 	userEmail: string;
 	userType: string;
 	'cognito:groups': string[];
-	iss: 'ElixirPay';
+	iss: string;
 	token_use: 'gateway';
 	exp: number;
 	iat: number;
+	sub?: string;
 }
 
 export interface MerchantSession {
@@ -40,6 +46,7 @@ export interface MerchantSession {
 	organizationId: string;
 	merchantName: string;
 	email: string;
+	/** Filled by a separate services API later; temporarily both true for MERCHANT UX. */
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
 }

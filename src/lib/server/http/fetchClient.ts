@@ -47,14 +47,18 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		const json: unknown = await res.json().catch(() => null);
 		const durationMs = Date.now() - start;
 
-		if (!res.ok) {
-			const errorBody =
-				json && typeof json === 'object'
-					? (json as { exceptionCode?: string; message?: string })
-					: null;
+		const errorBody =
+			json && typeof json === 'object'
+				? (json as { exceptionCode?: string; message?: string; statusCode?: number })
+				: null;
+
+		// Upstream sometimes returns business errors with 2xx (e.g. sign-in session exists → 202).
+		if (!res.ok || errorBody?.exceptionCode) {
+			const status = errorBody?.statusCode ?? res.status;
 			log.warn(
 				{
-					status: res.status,
+					status,
+					httpStatus: res.status,
 					exceptionCode: errorBody?.exceptionCode,
 					durationMs
 				},
@@ -64,9 +68,9 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 				ok: false,
 				error: {
 					kind: 'http',
-					status: res.status,
+					status,
 					code: errorBody?.exceptionCode,
-					message: errorBody?.message ?? `Request failed (${res.status})`
+					message: errorBody?.message ?? `Request failed (${status})`
 				} satisfies ApiError
 			};
 		}

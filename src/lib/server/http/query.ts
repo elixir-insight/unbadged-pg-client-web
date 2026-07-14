@@ -1,10 +1,10 @@
-import { BACKEND_API_URL } from './env';
+import { API_BASE_URL } from './env';
 
 export function buildUrl(
 	path: string,
 	query?: Record<string, string | number | boolean | string[] | undefined>
 ): string {
-	const url = new URL(path, BACKEND_API_URL);
+	const url = new URL(path, API_BASE_URL);
 	if (query) {
 		for (const [key, value] of Object.entries(query)) {
 			if (value === undefined || value === null || value === '') continue;

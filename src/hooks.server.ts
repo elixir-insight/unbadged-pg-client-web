@@ -5,6 +5,7 @@ import { getValidSession, SessionError } from '$lib/server/domains/auth/getValid
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
+import { canAccessPortalPath, resolvePortalHome } from '$lib/stores/auth/portal';
 import type { GatewayTokenPayload } from '$lib/stores/auth/types';
 
 // Keep auth pages + API routes public so missing/expired cookies never block
@@ -54,6 +55,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
+	}
+
+	const session = event.locals.merchantSession;
+	if (session && !canAccessPortalPath(event.url.pathname, session.groups)) {
+		const home = resolvePortalHome(session.groups);
+		event.locals.logger.info(
+			{ path: event.url.pathname, home, groups: session.groups },
+			'portal access denied — redirecting to home'
+		);
+		redirect(303, home);
 	}
 
 	const response = await resolve(event);
