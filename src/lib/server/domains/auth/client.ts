@@ -1,7 +1,14 @@
 import * as v from 'valibot';
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
-import { RefreshResponseSchema, SignInResponseSchema } from './schema';
+import {
+	RefreshResponseSchema,
+	SignInResponseSchema,
+	ForgotPasswordRequestSchema,
+	ForgotPasswordResponseSchema,
+	ConfirmPasswordRequestSchema,
+	ConfirmPasswordResponseSchema
+} from './schema';
 
 export const authClient = {
 	signIn: (
@@ -58,5 +65,35 @@ export const authClient = {
 				'X-Refresh-Token': refreshToken
 			},
 			schema: v.optional(v.object({ message: v.string() }))
+		}),
+
+	forgotPassword: (fetchFn: typeof fetch, logger: Logger, userEmail: string) =>
+		apiFetch('/user/password/forgot', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body: { userEmail } satisfies v.InferOutput<typeof ForgotPasswordRequestSchema>,
+			schema: ForgotPasswordResponseSchema
+		}),
+
+	confirmPassword: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		userEmail: string,
+		confirmationCode: string,
+		newPassword: string
+	) =>
+		apiFetch('/user/password/confirm', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body: {
+				userEmail,
+				confirmationCode,
+				newPassword
+			} satisfies v.InferOutput<typeof ConfirmPasswordRequestSchema>,
+			schema: ConfirmPasswordResponseSchema
 		})
 };

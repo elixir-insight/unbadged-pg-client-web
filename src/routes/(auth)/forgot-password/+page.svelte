@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Input, Button } from '$lib/components/reusable';
+	import { Input, Button, toast } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
 	import AuthCardPanel from '$lib/components/auth/auth-card-panel.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import type { PageProps } from './$types';
+
+	let { form }: PageProps = $props();
 
 	let email = $state('');
+	let submitting = $state(false);
 
-	const canSubmit = $derived(email.trim().length > 0);
+	const canSubmit = $derived(email.trim().length > 0 && !submitting);
 
 	onMount(() => {
 		theme.init();
@@ -35,26 +39,44 @@
 
 					<form
 						class="flex flex-col gap-6"
-						onsubmit={(e) => {
-							e.preventDefault();
-							if (!canSubmit) return;
-							goto(resolve('/reset-password'));
+						method="POST"
+						use:enhance={() => {
+							submitting = true;
+							return async ({ result, update }) => {
+								submitting = false;
+								if (result.type === 'redirect') {
+									const redirectUrl = new URL(result.location, window.location.origin);
+									const message = redirectUrl.searchParams.get('message');
+									toast.success(message ?? 'Reset instructions sent', { position: 'top-right' });
+								}
+								await update();
+								if (form?.userEmail !== undefined) email = form.userEmail;
+							};
 						}}
 					>
+						{#if form?.error}
+							<p class="text-sm text-destructive">{form.error}</p>
+						{/if}
+
 						<div class="flex flex-col gap-3">
-							<label class="text-lg font-normal text-gray-700" for="email">Email</label>
+							<label class="text-lg font-normal text-gray-700" for="userEmail">Email</label>
 							<Input
-								id="email"
-								type="email"
+								id="userEmail"
+								name="userEmail"
+								// type="email"
 								placeholder="Enter email"
 								bind:value={email}
 								autocomplete="email"
+								aria-invalid={form?.emailError ? 'true' : undefined}
 								class="h-11 text-base!"
 							/>
+							{#if form?.emailError}
+								<p class="text-sm text-destructive">{form.emailError}</p>
+							{/if}
 						</div>
 
 						<Button type="submit" class="h-11 w-full text-base" disabled={!canSubmit}>
-							Reset password
+							{submitting ? 'Sending…' : 'Reset password'}
 						</Button>
 					</form>
 				</div>
