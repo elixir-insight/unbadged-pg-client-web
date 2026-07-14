@@ -141,6 +141,8 @@
 	function prev() {
 		if (activeStep > 0) {
 			activeStep -= 1;
+			errors = {};
+			submitAttempted = false;
 		}
 	}
 </script>

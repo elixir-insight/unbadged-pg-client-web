@@ -32,8 +32,6 @@
 	import { organizations, type Organization, type OrganizationStatus } from '$lib/data/mockData';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { debounce } from '$lib/utils/debounce';
-	import OrgManageQuickAction from './org-manage-quick-action.svelte';
-
 	const statusVariantMap: Record<OrganizationStatus, BadgeVariant> = {
 		IN_PROGRESS: 'alert',
 		APPROVED: 'success',
@@ -124,14 +122,6 @@
 				const variant = statusVariantMap[status] ?? 'secondary';
 				const children = createRawSnippet(() => ({ render: () => formatLabel(status) }));
 				return renderComponent(Chip, { variant, children });
-			}
-		},
-		{
-			id: 'quickAction',
-			header: '',
-			cell: ({ row }) => {
-				if (row.original.status !== 'ACTIVE') return '';
-				return renderComponent(OrgManageQuickAction, { orgId: row.original.id });
 			}
 		}
 	];
@@ -230,8 +220,7 @@
 	}
 
 	function clearFilters() {
-		pagination.clearAllFilters();
-		setUrlState({ category: null }, true);
+		setUrlState({ search: null, status: null, type: null, category: null, skip: null }, true);
 	}
 
 	function openOrgDrawer(org: Organization) {
@@ -279,24 +268,22 @@
 	{#if hasActiveFilters}
 		<div class="section-appear flex flex-wrap items-center gap-2" style="animation-delay: 50ms">
 			{#each activeFilters as filter (filter.key)}
-				<span
-					class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-white/10 dark:text-gray-400"
-				>
-					{filter.label}
+				<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+					<span class="text-muted-foreground">{filter.label}</span>
 					<button
 						type="button"
 						onclick={() => removeFilter(filter.key)}
-						class="text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
 						aria-label="Remove {filter.label} filter"
+						class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
 					>
 						<X class="size-3" />
 					</button>
-				</span>
+				</Chip>
 			{/each}
 			<button
 				type="button"
 				onclick={clearFilters}
-				class="text-xs text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+				class="text-xs font-medium text-primary hover:underline focus-visible:outline-none"
 			>
 				Clear all filters
 			</button>
@@ -308,7 +295,7 @@
 		style="animation-delay: 80ms"
 	>
 		<div class="flex items-center justify-between gap-2 p-4">
-			<p class="text-xs text-gray-500">{pagination.showingText}</p>
+			<p class="text-xs text-muted-foreground">{pagination.showingText}</p>
 			<Button
 				class="flex gap-2"
 				onclick={() => goto(resolve('/management/organizations/create-organization'))}
@@ -340,14 +327,14 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`/management/organizations/${selectedOrg.id}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
 						Continue Editing
 					</Button>
 					<Button
-						href={resolve('/management/organizations/[orgId]/preview', { orgId: selectedOrg.id })}
+						href={`/management/organizations/${selectedOrg.id}/preview`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -356,14 +343,14 @@
 					</Button>
 				{:else if selectedOrg.status === 'ACTIVE'}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/manage` as '/')}
+						href={`/management/organizations/${selectedOrg.id}/manage`}
 						class="flex-1 gap-1.5"
 					>
 						<Pencil class="size-3.5" />
 						Manage
 					</Button>
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}` as '/')}
+						href={`/management/organizations/${selectedOrg.id}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -372,7 +359,7 @@
 					</Button>
 				{:else}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}` as '/')}
+						href={`/management/organizations/${selectedOrg.id}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>

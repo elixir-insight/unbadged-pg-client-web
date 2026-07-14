@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { Button, Chip, Dropdown, Input, Modal } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { Check, Landmark, Pencil, Plus, Trash2 } from '$lib/assets/icons';
@@ -39,8 +40,8 @@
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
 
-	let bankAccounts = $state(cloneOrganization(data.organization.bankAccounts));
-	let lastOrgId = $state(data.organization.id);
+	let bankAccounts = $state(untrack(() => cloneOrganization(organization.bankAccounts)));
+	let lastOrgId = $state(untrack(() => organization.id));
 	let expandedRowId = $state<string | null>(null);
 	let deleteAccountId = $state<string | null>(null);
 	let bankDraft = $state<OrganizationBankAccount>(emptyBankDraft());

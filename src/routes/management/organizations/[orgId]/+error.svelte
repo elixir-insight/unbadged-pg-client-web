@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/reusable';
 	import { ArrowRight, Building2 } from '$lib/assets/icons';
 
@@ -17,7 +16,7 @@
 			? 'The requested organization could not be located in the mock dataset.'
 			: (page.error?.message ?? 'An unexpected error occurred.')}
 	</p>
-	<Button class="mt-4" href={resolve('/management/organizations')}>
+	<Button class="mt-4" href="/management/organizations">
 		<ArrowRight class="size-4" />
 		Back to organizations
 	</Button>
