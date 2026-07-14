@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import { AreaChart } from 'layerchart';
+	import { LineChart, Spline, Points } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { cn } from '$lib/utils';
@@ -21,7 +21,7 @@
 	let { data, title = 'Transaction volume', class: className }: Props = $props();
 
 	type Range = 'today' | '7d' | '30d';
-	let range = $state<Range>('7d');
+	let range = $state<Range>('today');
 
 	const rangeOptions: { value: Range; label: string }[] = [
 		{ value: 'today', label: 'Today' },
@@ -60,8 +60,7 @@
 	const chartData = $derived(range === 'today' ? todayData : range === '30d' ? monthData : data);
 
 	const chartConfig = {
-		payin: { label: 'Collections', color: 'var(--color-chart-3)' },
-		payout: { label: 'Disbursements', color: 'var(--color-chart-4)' }
+		payin: { label: 'Collections', color: 'var(--color-chart-3)' }
 	} satisfies Chart.ChartConfig;
 
 	function formatLakhs(value: number) {
@@ -71,7 +70,7 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-70 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
 		className
 	)}
 >
@@ -96,25 +95,26 @@
 		</div>
 	</div>
 
-	<Chart.Container config={chartConfig} class="mt-1 aspect-auto w-full min-h-0 flex-1">
-		<AreaChart
+	<Chart.Container config={chartConfig} class="mt-1 aspect-auto min-h-40 w-full min-w-0 flex-1">
+		<LineChart
 			data={chartData}
 			x="day"
-			seriesLayout="overlap"
-			legend
-			series={[
-				{ key: 'payin', label: chartConfig.payin.label, color: chartConfig.payin.color },
-				{ key: 'payout', label: chartConfig.payout.label, color: chartConfig.payout.color }
-			]}
+			yBaseline={null}
+			series={[{ key: 'payin', label: chartConfig.payin.label, color: chartConfig.payin.color }]}
 			props={{
-				area: { curve: curveNatural, 'fill-opacity': 0.15, line: { class: 'stroke-2' } },
 				yAxis: { format: formatLakhs },
 				xAxis: { format: (d: string) => d }
 			}}
 		>
+			{#snippet marks({ context })}
+				{#each context.series.visibleSeries as s (s.key)}
+					<Spline seriesKey={s.key} curve={curveNatural} class="stroke-2" />
+					<Points seriesKey={s.key} r={4} />
+				{/each}
+			{/snippet}
 			{#snippet tooltip()}
 				<Chart.Tooltip />
 			{/snippet}
-		</AreaChart>
+		</LineChart>
 	</Chart.Container>
 </div>

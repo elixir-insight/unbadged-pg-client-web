@@ -1,6 +1,8 @@
 <script module lang="ts">
 	export interface RecentPayment {
 		name: string;
+		method: string;
+		time: string;
 		amount: string;
 		status: 'success' | 'pending' | 'failed';
 	}
@@ -44,11 +46,11 @@
 
 <div
 	class={cn(
-		'flex h-full flex-col rounded-lg border border-border bg-background p-3 shadow-xs md:p-4',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background px-3 py-2 shadow-xs',
 		className
 	)}
 >
-	<div class="flex items-center justify-between mb-2">
+	<div class="mb-1.5 flex shrink-0 items-center justify-between">
 		<p class="text-sm font-semibold">Recent transactions</p>
 		<a
 			href={resolve('/merchant/transactions')}
@@ -59,19 +61,31 @@
 		</a>
 	</div>
 
-	<div class="flex flex-1 flex-col justify-between">
-		{#each payments as payment (payment.name)}
-			<div class="flex items-center gap-2">
+	<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+		{#each payments.slice(0, 4) as payment, i (payment.name)}
+			<div
+				class={cn(
+					'flex shrink-0 items-center gap-3 py-1.5',
+					i < Math.min(payments.length, 4) - 1 && 'border-b border-border'
+				)}
+			>
 				<span
-					class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold"
+					class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
 				>
 					{initials(payment.name)}
 				</span>
-				<span class="min-w-0 flex-1 truncate text-sm font-medium">{payment.name}</span>
-				<span class="shrink-0 text-sm font-semibold">{payment.amount}</span>
-				<Chip variant={statusVariant[payment.status]} class="shrink-0">
-					{statusLabel[payment.status]}
-				</Chip>
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-sm leading-tight font-semibold">{payment.name}</p>
+					<p class="truncate text-xs leading-tight text-muted-foreground">
+						{payment.method} · {payment.time}
+					</p>
+				</div>
+				<div class="flex shrink-0 flex-col items-end gap-0.5">
+					<span class="text-sm font-semibold tabular-nums">{payment.amount}</span>
+					<Chip variant={statusVariant[payment.status]}>
+						{statusLabel[payment.status]}
+					</Chip>
+				</div>
 			</div>
 		{/each}
 	</div>

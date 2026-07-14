@@ -34,11 +34,11 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-55 flex-col rounded-lg border border-border bg-background p-3 shadow-xs md:p-4',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
 		className
 	)}
 >
-	<div class="flex items-center justify-between">
+	<div class="flex shrink-0 items-center justify-between">
 		<p class="text-sm font-semibold">Disputes overview</p>
 		<a
 			href={resolve('/merchant/disputes')}
@@ -49,18 +49,14 @@
 		</a>
 	</div>
 
-	<div class="flex flex-1 flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
-		<div class="relative shrink-0">
-			<Chart.Container config={chartConfig} class="aspect-auto size-48">
-				<PieChart
-					{data}
-					key="key"
-					value="value"
-					c="key"
-					{cRange}
-					innerRadius={-26}
-					padAngle={0.02}
-				/>
+	<div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 md:flex-row md:gap-6">
+		<div class="relative aspect-square h-full min-h-28 max-h-40 w-auto min-w-28">
+			<Chart.Container config={chartConfig} class="aspect-auto size-full">
+				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-20} padAngle={0.02}>
+					{#snippet tooltip()}
+						<Chart.Tooltip hideLabel nameKey="key" />
+					{/snippet}
+				</PieChart>
 			</Chart.Container>
 			<div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
 				<span class="text-2xl font-bold tracking-tight">{total}</span>
@@ -79,7 +75,7 @@
 		</div>
 	</div>
 
-	<p class="text-center text-xs font-medium text-orange-600 dark:text-orange-400">
+	<p class="shrink-0 text-center text-xs font-medium text-orange-600 dark:text-orange-400">
 		{attentionText}
 	</p>
 </div>

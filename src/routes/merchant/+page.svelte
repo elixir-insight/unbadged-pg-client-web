@@ -3,16 +3,13 @@
 	import { StatCard } from '$lib/components/reusable';
 	import {
 		TransactionVolumeChart,
-		PaymentMethodsCard,
-		QuickActionsCard,
+		RefundInsightsCard,
 		SettlementsCard,
 		RecentActivityCard,
 		RefundsDisputesCard,
-		type QuickAction,
-		type RecentPayment,
-		type PaymentMethodShare
+		type RecentPayment
 	} from '$lib/components/merchant-dashboard';
-	import { Link, Undo, Wallet, ArrowDownToLine, Landmark, Percent } from '$lib/assets/icons';
+	import { Undo, ArrowDownToLine, Landmark, MessageSquareWarning } from '$lib/assets/icons';
 
 	const firstName = $derived(merchantSession.session?.merchantName?.split(' ')[0] ?? 'there');
 
@@ -29,94 +26,115 @@
 		{ day: 'Sun', payin: 3300000, payout: 1100000 }
 	];
 
-	const paymentMethods: PaymentMethodShare[] = [
-		{ method: 'UPI', percentage: 48, color: 'var(--color-chart-1)' },
-		{ method: 'Card', percentage: 27, color: 'var(--color-chart-2)' },
-		{ method: 'Netbanking', percentage: 15, color: 'var(--color-chart-3)' },
-		{ method: 'Wallet', percentage: 10, color: 'var(--color-chart-4)' }
-	];
-
-	const quickActions: QuickAction[] = [
-		{ label: 'Payment link', icon: Link },
-		{ label: 'Refund', icon: Undo }
-	];
+	const refundStats = { completed: 18, initiated: 5, failed: 2 };
 
 	const latestPayments: RecentPayment[] = [
-		{ name: 'John Smith', amount: '₹12,500', status: 'success' },
-		{ name: 'Emma Wilson', amount: '₹8,200', status: 'success' },
-		{ name: 'Alex Brown', amount: '₹5,750', status: 'pending' },
-		{ name: 'Sophia Lee', amount: '₹3,400', status: 'success' },
-		{ name: 'David Miller', amount: '₹2,900', status: 'failed' }
+		{
+			name: 'John Smith',
+			method: 'UPI',
+			time: 'Today, 11:42 AM',
+			amount: '₹12,500',
+			status: 'success'
+		},
+		{
+			name: 'Emma Wilson',
+			method: 'Card',
+			time: 'Today, 10:05 AM',
+			amount: '₹8,200',
+			status: 'success'
+		},
+		{
+			name: 'Alex Brown',
+			method: 'Bank transfer',
+			time: 'Today, 9:20 AM',
+			amount: '₹5,750',
+			status: 'pending'
+		},
+		{ name: 'Sophia Lee', method: 'UPI', time: 'Yesterday', amount: '₹3,400', status: 'success' },
+		{ name: 'David Miller', method: 'Card', time: 'Yesterday', amount: '₹2,900', status: 'failed' }
 	];
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col">
+<div class="flex flex-col lg:min-h-0 lg:flex-1">
 	{#if merchantSession.hasBothServices()}
-		<div class="grid gap-4 overflow-x-hidden lg:h-full lg:grid-rows-[minmax(88px,auto)_1fr_1fr]">
-			<!-- Row 1 · KPI overview -->
-			<div class="grid grid-cols-12 gap-4">
-				<StatCard
-					label="Available balance"
-					value="₹18,42,650"
-					icon={Wallet}
-					class="col-span-12 md:col-span-6 lg:col-span-3"
-				/>
-				<StatCard
-					label="Today's pay-ins"
-					value="₹6,42,300"
-					subtext="128 transactions"
-					icon={ArrowDownToLine}
-					class="col-span-12 md:col-span-6 lg:col-span-3"
-				/>
-				<StatCard
-					label="Pending settlement"
-					value="₹38,900"
-					subtext="Settles tomorrow"
-					icon={Landmark}
-					class="col-span-12 md:col-span-6 lg:col-span-3"
-				/>
-				<StatCard
-					label="Success rate"
-					value="98.6%"
-					subtext="1,204 transactions"
-					icon={Percent}
-					class="col-span-12 md:col-span-6 lg:col-span-3"
-				/>
+		<div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+			<div class="shrink-0">
+				<h2 class="text-base leading-tight font-semibold">Welcome back, {firstName}</h2>
+				<p class="text-xs leading-tight text-muted-foreground">
+					Here's what's happening with your account today.
+				</p>
 			</div>
 
-			<!-- Row 2 · Primary analytics -->
-			<div class="grid grid-cols-12 gap-4 lg:min-h-0">
-				<TransactionVolumeChart data={transactionVolume} class="col-span-12 lg:col-span-8" />
-				<div
-					class="col-span-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:col-span-4 lg:grid-cols-1 lg:grid-rows-2 lg:min-h-0"
-				>
-					<QuickActionsCard actions={quickActions} />
-					<SettlementsCard
-						nextSettlementAmount="₹8,42,300"
-						nextSettlementTime="Tomorrow • 9:30 AM"
-						lastSettlementAmount="₹7,65,400"
-						lastSettlementTime="Yesterday"
+			<div
+				class="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-rows-[90px_minmax(220px,1.3fr)_minmax(170px,1fr)]"
+			>
+				<!-- Row 1 · KPI overview -->
+				<div class="grid grid-cols-12 gap-3">
+					<StatCard
+						label="Today's collection"
+						value="₹6,42,300"
+						subtext="128 transactions"
+						icon={ArrowDownToLine}
+						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+					/>
+					<StatCard
+						label="Refunds"
+						value="25"
+						subtext="5 initiated · 2 failed"
+						icon={Undo}
+						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+					/>
+					<StatCard
+						label="Disputes"
+						value="12"
+						subtext="2 require immediate attention"
+						icon={MessageSquareWarning}
+						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+					/>
+					<StatCard
+						label="Pending Settlements"
+						value="₹38,900"
+						subtext="Settles tomorrow"
+						icon={Landmark}
+						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
 					/>
 				</div>
-			</div>
 
-			<!-- Row 3 · Operational overview -->
-			<div class="grid grid-cols-12 gap-4 lg:min-h-0">
-				<RefundsDisputesCard
-					open={3}
-					pending={4}
-					resolved={5}
-					attentionText="2 require immediate attention"
-					class="col-span-12 md:col-span-6 lg:col-span-4"
-				/>
-				<RecentActivityCard
-					payments={latestPayments}
-					class="col-span-12 md:col-span-6 lg:col-span-4"
-				/>
-				<PaymentMethodsCard
-					methods={paymentMethods}
-					class="col-span-12 md:col-span-12 lg:col-span-4"
-				/>
+				<!-- Row 2 · Primary analytics · Transaction volume matches Disputes + Settlement combined width -->
+				<div class="grid min-h-0 grid-cols-12 gap-3">
+					<TransactionVolumeChart
+						data={transactionVolume}
+						class="col-span-12 min-h-0 h-full lg:col-span-8"
+					/>
+					<RecentActivityCard
+						payments={latestPayments}
+						class="col-span-12 min-h-0 h-full lg:col-span-4"
+					/>
+				</div>
+
+				<!-- Row 3 · Operational overview -->
+				<div class="grid min-h-0 grid-cols-12 gap-3">
+					<RefundsDisputesCard
+						open={3}
+						pending={4}
+						resolved={5}
+						attentionText="2 require immediate attention"
+						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
+					/>
+					<SettlementsCard
+						availableFunds="₹18,42,650"
+						availableFundsChangeLabel="+4.2%"
+						lastSettlementAmount="₹7,65,400"
+						statusSummary={{ completed: 12, processing: 3, failed: 1 }}
+						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
+					/>
+					<RefundInsightsCard
+						completed={refundStats.completed}
+						initiated={refundStats.initiated}
+						failed={refundStats.failed}
+						class="col-span-12 min-h-0 h-full md:col-span-12 lg:col-span-4"
+					/>
+				</div>
 			</div>
 		</div>
 	{:else if merchantSession.hasPayinAccess()}

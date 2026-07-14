@@ -21,6 +21,8 @@ export { default as Pagination } from './pagination/pagination.svelte';
 export { createUrlPagination } from './pagination/use-url-pagination.svelte.js';
 export type { UrlPaginationOptions } from './pagination/use-url-pagination.svelte.js';
 export { default as ProfileCard } from './profile-card/profile-card.svelte';
+export { default as RadialSpiralChart } from './radial-spiral-chart/radial-spiral-chart.svelte';
+export type { RadialSpiralSegment } from './radial-spiral-chart/radial-spiral-chart.svelte';
 export { default as Radio } from './radio/radio.svelte';
 export type { RadioOption } from './radio/radio.svelte';
 export { default as RangeCalendar } from './range-calendar/range-calendar.svelte';
