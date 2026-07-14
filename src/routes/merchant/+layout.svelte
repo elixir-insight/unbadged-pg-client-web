@@ -19,8 +19,6 @@
 		'/merchant/transactions/disbursements'
 	];
 
-	merchantSession.initialize();
-
 	$effect(() => {
 		const path = page.url.pathname;
 		if (merchantSession.loading) return;

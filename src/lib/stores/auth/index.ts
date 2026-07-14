@@ -1,3 +1,8 @@
 export { merchantSession, createSessionStore } from './session.svelte';
-export { parseMerchantSession } from './session';
-export type { CognitoIdToken, MerchantSession, MerchantService } from './types';
+export { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
+export type {
+	CognitoIdToken,
+	GatewayTokenPayload,
+	MerchantSession,
+	MerchantService
+} from './types';

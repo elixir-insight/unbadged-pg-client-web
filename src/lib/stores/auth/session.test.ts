@@ -1,10 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { parseMerchantSession } from './session';
+import { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
 import { mockCognitoToken } from './mock-token';
-import type { CognitoIdToken } from './types';
+import type { CognitoIdToken, GatewayTokenPayload } from './types';
 
 function tokenWithGroups(groups: string[]): CognitoIdToken {
 	return { ...mockCognitoToken, 'cognito:groups': groups };
+}
+
+function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayTokenPayload {
+	return {
+		orgId: 42,
+		userId: 7,
+		userName: 'Acme Merchant',
+		userEmail: 'acme@example.com',
+		userType: 'merchant',
+		'cognito:groups': ['Payin'],
+		iss: 'ElixirPay',
+		token_use: 'gateway',
+		exp: 1_700_000_000,
+		iat: 1_699_000_000,
+		...overrides
+	};
 }
 
 describe('parseMerchantSession', () => {
@@ -40,5 +56,23 @@ describe('parseMerchantSession', () => {
 		const groups = ['Payin', 'Payout'];
 		const session = parseMerchantSession(tokenWithGroups(groups));
 		expect(session.groups).toEqual(groups);
+	});
+});
+
+describe('parseMerchantSessionFromGateway', () => {
+	it('maps identity fields and stringifies numeric ids', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken());
+		expect(session.userId).toBe('7');
+		expect(session.organizationId).toBe('42');
+		expect(session.merchantName).toBe('Acme Merchant');
+		expect(session.email).toBe('acme@example.com');
+	});
+
+	it('derives permissions from cognito groups', () => {
+		const session = parseMerchantSessionFromGateway(
+			gatewayToken({ 'cognito:groups': ['Payin', 'Payout'] })
+		);
+		expect(session.permissions).toEqual({ payin: true, payout: true });
+		expect(session.groups).toEqual(['Payin', 'Payout']);
 	});
 });

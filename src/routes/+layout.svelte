@@ -4,8 +4,14 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toast } from '$lib/components/reusable';
-	let { children } = $props();
+	import { merchantSession } from '$lib/stores/auth';
+
+	let { data, children } = $props();
 	let isNavigating = $state(false);
+
+	$effect(() => {
+		merchantSession.hydrate(data.session);
+	});
 
 	onNavigate((navigation) => {
 		isNavigating = true;

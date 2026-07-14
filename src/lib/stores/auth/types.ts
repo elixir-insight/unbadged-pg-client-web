@@ -22,6 +22,19 @@ export interface CognitoIdToken {
 	event_id: string;
 }
 
+export interface GatewayTokenPayload {
+	orgId: number;
+	userId: number;
+	userName: string;
+	userEmail: string;
+	userType: string;
+	'cognito:groups': string[];
+	iss: 'ElixirPay';
+	token_use: 'gateway';
+	exp: number;
+	iat: number;
+}
+
 export interface MerchantSession {
 	userId: string;
 	organizationId: string;

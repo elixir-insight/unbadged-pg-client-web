@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	// import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox, Input } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
@@ -11,10 +13,45 @@
 	let password = $state('');
 	let rememberMe = $state(false);
 	let showPassword = $state(false);
+	let submitting = $state(false);
+	let errorMessage = $state<string | null>(null);
+
+	// const sessionExpired = $derived(page.url.searchParams.get('reason') === 'session-expired');
 
 	onMount(() => {
 		theme.init();
 	});
+
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
+		if (submitting) return;
+
+		errorMessage = null;
+		submitting = true;
+
+		try {
+			const res = await fetch(resolve('/api/auth/sign-in'), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userEmail: email, password })
+			});
+
+			if (!res.ok) {
+				const body = await res.json().catch(() => null);
+				errorMessage =
+					(body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+						? body.message
+						: null) ?? 'Invalid email or password.';
+				return;
+			}
+
+			await goto(resolve('/merchant'));
+		} catch {
+			errorMessage = 'Unable to sign in. Please try again.';
+		} finally {
+			submitting = false;
+		}
+	}
 </script>
 
 <div class="flex h-screen w-full gap-3 overflow-hidden p-4">
@@ -34,7 +71,7 @@
 	<!-- Right Panel -->
 	<div class="relative flex w-[50%] flex-1 flex-col bg-background">
 		<main class="flex flex-1 items-center justify-center px-10">
-			<div class="w-full max-w-md flex flex-col gap-17">
+			<div class="flex w-full max-w-md flex-col gap-17">
 				<div class="">
 					<CompanyLogoLight width="200" class="h-auto" />
 				</div>
@@ -45,7 +82,17 @@
 						<p class="text-base text-gray-700">Enter your login details to access your dashboard</p>
 					</div>
 
-					<form class="flex flex-col gap-6" onsubmit={(e) => e.preventDefault()}>
+					<!-- {#if sessionExpired}
+						<p class="text-sm text-destructive" role="status">
+							Your session expired. Please sign in again.
+						</p>
+					{/if} -->
+
+					{#if errorMessage}
+						<p class="text-sm text-destructive" role="alert">{errorMessage}</p>
+					{/if}
+
+					<form class="flex flex-col gap-6" onsubmit={handleSubmit}>
 						<div class="flex flex-col gap-3">
 							<label class="text-lg font-normal text-gray-700" for="email">Email</label>
 							<Input
@@ -53,6 +100,8 @@
 								type="email"
 								placeholder="Enter the email"
 								bind:value={email}
+								autocomplete="email"
+								disabled={submitting}
 								class="h-11 text-base!"
 							/>
 						</div>
@@ -65,6 +114,8 @@
 									type={showPassword ? 'text' : 'password'}
 									placeholder="Enter the password"
 									bind:value={password}
+									autocomplete="current-password"
+									disabled={submitting}
 									class="h-11 pr-11 text-base!"
 								/>
 								<button
@@ -97,7 +148,9 @@
 							</a>
 						</div>
 
-						<Button type="submit" class="h-11 w-full text-base">Login</Button>
+						<Button type="submit" class="h-11 w-full text-base" disabled={submitting}>
+							{submitting ? 'Signing in…' : 'Login'}
+						</Button>
 					</form>
 				</div>
 			</div>
