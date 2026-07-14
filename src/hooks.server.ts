@@ -1,7 +1,11 @@
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
-import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import {
+	getValidSession,
+	SessionError,
+	SessionInactiveError
+} from '$lib/server/domains/auth/getValidSession';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
@@ -13,6 +17,7 @@ import type { GatewayTokenPayload } from '$lib/stores/auth/types';
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth'];
 
 function isPublicPath(pathname: string) {
+	if (pathname === '/') return true;
 	return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
@@ -49,9 +54,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.gatewayToken = null;
 
 		if (e instanceof SessionError) {
-			event.locals.logger.info({ reason: e.message }, 'session invalid — redirecting to login');
+			const reason = e instanceof SessionInactiveError ? 'session-inactive' : 'session-expired';
+			event.locals.logger.info(
+				{
+					reason: e.message,
+					...(e instanceof SessionInactiveError ? { exceptionCode: e.exceptionCode } : {})
+				},
+				'session invalid — redirecting to login'
+			);
 			clearAuthCookies(event.cookies);
-			redirect(303, '/login?reason=session-expired');
+			redirect(303, `/login?reason=${reason}`);
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
