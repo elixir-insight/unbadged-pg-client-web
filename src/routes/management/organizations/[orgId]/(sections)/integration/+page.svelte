@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { Button, Input } from '$lib/components/reusable';
 	import type { OrganizationIntegration } from '$lib/data/mockData';
 	import { cloneOrganization, getAdjacentFlowSteps, previewPath } from '../../helpers';
@@ -11,14 +12,16 @@
 	const orgId = $derived(organization.id);
 
 	let editableIntegration = $state<OrganizationIntegration>(
-		cloneOrganization(
-			data.organization.integration ?? {
-				callbackUrl: '',
-				whitelistedIp: ''
-			}
+		untrack(() =>
+			cloneOrganization(
+				organization.integration ?? {
+					callbackUrl: '',
+					whitelistedIp: ''
+				}
+			)
 		)
 	);
-	let lastOrgId = $state(data.organization.id);
+	let lastOrgId = $state(untrack(() => organization.id));
 	let draftSaved = $state(false);
 	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 

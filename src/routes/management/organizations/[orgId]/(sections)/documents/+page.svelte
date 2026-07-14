@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { Button, Chip, Dropdown } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { buttonVariants } from '$lib/components/ui/button';
@@ -34,13 +35,13 @@
 	const orgId = $derived(organization.id);
 	const isPrivateLimited = $derived(organization.kyb.businessType === 'Private Limited');
 
-	let documents = $state(cloneOrganization(data.organization.documents));
-	let directors = $state(cloneOrganization(data.organization.directors));
-	let lastOrgId = $state(data.organization.id);
+	let documents = $state(untrack(() => cloneOrganization(organization.documents)));
+	let directors = $state(untrack(() => cloneOrganization(organization.directors)));
+	let lastOrgId = $state(untrack(() => organization.id));
 	let documentError = $state('');
 	let documentErrorId = $state('');
 	let choiceSelections = $state<Record<string, DocumentType>>(
-		initialChoiceSelections(data.organization.documents)
+		untrack(() => initialChoiceSelections(organization.documents))
 	);
 	let draftSaved = $state(false);
 	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);

@@ -47,7 +47,5 @@
 	<div class="app-nav-progress" aria-hidden="true"></div>
 {/if}
 
-<Toast richColors position="bottom-right" />
+<Toast richColors position="top-right" />
 {@render children()}
-
-<Toast position="bottom-right" richColors closeButton />

@@ -2,6 +2,7 @@
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { SvelteURL } from 'svelte/reactivity';
 	import { Button, Input } from '$lib/components/reusable';
 	import { Pencil, Plus, Trash2 } from '$lib/assets/icons';
@@ -39,9 +40,9 @@
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
 
-	let editableKyb = $state(cloneOrganization(data.organization.kyb));
-	let editableDirectors = $state(cloneOrganization(data.organization.directors));
-	let lastOrgId = $state(data.organization.id);
+	let editableKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
+	let editableDirectors = $state(untrack(() => cloneOrganization(organization.directors)));
+	let lastOrgId = $state(untrack(() => organization.id));
 	let expandedDirectorId = $state<string | null>(null);
 	let draftSaved = $state(false);
 	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);
