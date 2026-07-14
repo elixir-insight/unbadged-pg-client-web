@@ -14,7 +14,7 @@ import type { GatewayTokenPayload } from '$lib/stores/auth/types';
 
 // Keep auth pages + API routes public so missing/expired cookies never block
 // sign-in/sign-out or forgot/reset password flows.
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth'];
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth', '/logout'];
 
 function isPublicPath(pathname: string) {
 	if (pathname === '/') return true;
@@ -54,16 +54,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.gatewayToken = null;
 
 		if (e instanceof SessionError) {
-			const reason = e instanceof SessionInactiveError ? 'session-inactive' : 'session-expired';
+			const isInactive = e instanceof SessionInactiveError;
+			const hadSession = e.message !== 'No session found';
 			event.locals.logger.info(
 				{
 					reason: e.message,
-					...(e instanceof SessionInactiveError ? { exceptionCode: e.exceptionCode } : {})
+					...(isInactive ? { exceptionCode: e.exceptionCode } : {})
 				},
 				'session invalid — redirecting to login'
 			);
 			clearAuthCookies(event.cookies);
-			redirect(303, `/login?reason=${reason}`);
+			// Only surface a notice when a real session ended — not when the user
+			// simply isn't signed in yet.
+			if (isInactive) {
+				redirect(303, '/login?reason=session-inactive');
+			}
+			if (hadSession) {
+				redirect(303, '/login?reason=session-expired');
+			}
+			redirect(303, '/login');
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
