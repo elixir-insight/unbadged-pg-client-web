@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
@@ -15,15 +16,30 @@ function isPublicPath(pathname: string) {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const requestId = crypto.randomUUID();
+	event.locals.requestId = requestId;
+	event.locals.logger = logger.child({
+		requestId,
+		method: event.request.method,
+		path: event.url.pathname
+	});
+
+	const start = Date.now();
+
 	if (isPublicPath(event.url.pathname)) {
 		event.locals.merchantSession = null;
 		event.locals.gatewayToken = null;
-		return resolve(event);
+		const response = await resolve(event);
+		event.locals.logger.info(
+			{ status: response.status, durationMs: Date.now() - start },
+			'request completed (public path)'
+		);
+		response.headers.set('X-Request-Id', requestId);
+		return response;
 	}
 
 	try {
-		const tokens = await getValidSession(event.cookies, event.fetch);
-
+		const tokens = await getValidSession(event.cookies, event.fetch, event.locals.logger);
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
 		event.locals.merchantSession = parseMerchantSessionFromGateway(gatewayPayload);
 		event.locals.gatewayToken = tokens.gatewayToken;
@@ -32,11 +48,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.gatewayToken = null;
 
 		if (e instanceof SessionError) {
+			event.locals.logger.info({ reason: e.message }, 'session invalid — redirecting to login');
 			clearAuthCookies(event.cookies);
 			redirect(303, '/login?reason=session-expired');
 		}
+		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
 	}
 
-	return resolve(event);
+	const response = await resolve(event);
+	event.locals.logger.info(
+		{ status: response.status, durationMs: Date.now() - start },
+		'request completed'
+	);
+	response.headers.set('X-Request-Id', requestId);
+	return response;
 };
