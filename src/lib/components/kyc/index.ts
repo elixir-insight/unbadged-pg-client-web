@@ -30,6 +30,4 @@ export { default as KycResultRow } from './kyc-result-row.svelte';
 export { default as KycStatusBadge } from './kyc-status-badge.svelte';
 export { default as KycTabBar } from './kyc-tab-bar.svelte';
 export { default as KycVerificationForm } from './kyc-verification-form.svelte';
-export { default as KycVerificationHistory } from './kyc-verification-history.svelte';
 export { default as KycVerificationRecord } from './kyc-verification-record.svelte';
-export { default as KycVerificationSeal } from './kyc-verification-seal.svelte';

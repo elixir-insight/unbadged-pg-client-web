@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import KycVerificationSeal from './kyc-verification-seal.svelte';
 
 	let {
 		refId,
@@ -11,10 +10,7 @@
 	} = $props();
 </script>
 
-<div
-	class="relative flex flex-col overflow-visible rounded-xl border border-border bg-card p-6 pr-16"
->
-	<KycVerificationSeal />
+<div class="relative flex flex-col rounded-xl border border-border bg-card p-6">
 	<div class="mb-3 flex items-start justify-between gap-4">
 		<p class="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
 			Verification record

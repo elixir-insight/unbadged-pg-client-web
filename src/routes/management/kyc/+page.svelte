@@ -7,7 +7,6 @@
 		KycPanResult,
 		KycTabBar,
 		KycVerificationForm,
-		KycVerificationHistory,
 		createVerificationRefId,
 		maskAadhaar,
 		mockAadhaarResult,
@@ -130,9 +129,5 @@
 		{:else}
 			<KycPanResult result={result as PanResult} refId={currentRefId} />
 		{/if}
-	{/if}
-
-	{#if history.length > 0}
-		<KycVerificationHistory {history} />
 	{/if}
 </div>
