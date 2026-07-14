@@ -80,4 +80,13 @@ describe('createSessionStore', () => {
 		expect(store.session).toBeNull();
 		expect(store.hasPayinAccess()).toBe(false);
 	});
+
+	it('clear() wipes a hydrated session', () => {
+		const store = createSessionStore();
+		store.hydrate(sessionWithPermissions({ payin: true, payout: true }, ['MERCHANT']));
+		store.clear();
+		expect(store.session).toBeNull();
+		expect(store.loading).toBe(false);
+		expect(store.hasBothServices()).toBe(false);
+	});
 });

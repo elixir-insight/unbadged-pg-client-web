@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import type { SubmitFunction } from '@sveltejs/kit';
@@ -17,17 +17,7 @@
 	let showPassword = $state(false);
 	let submitting = $state(false);
 	let forceConfirmOpen = $state(false);
-
-	const sessionNotice = $derived.by(() => {
-		const reason = page.url.searchParams.get('reason');
-		if (reason === 'session-inactive') {
-			return 'Your session is no longer active. Please sign in again.';
-		}
-		if (reason === 'session-expired') {
-			return 'Your session expired. Please sign in again.';
-		}
-		return null;
-	});
+	let sessionNotice = $state<string | null>(null);
 
 	$effect(() => {
 		if (form?.userEmail) email = form.userEmail;
@@ -37,6 +27,18 @@
 
 	onMount(() => {
 		theme.init();
+
+		const reason = new URL(window.location.href).searchParams.get('reason');
+		if (reason === 'session-inactive') {
+			sessionNotice = 'Your session is no longer active. Please sign in again.';
+		} else if (reason === 'session-expired') {
+			sessionNotice = 'Your session expired. Please sign in again.';
+		}
+
+		// Drop ?reason= so refresh / revisiting login doesn't keep the banner.
+		if (reason) {
+			void goto(resolve('/login'), { replaceState: true, noScroll: true, keepFocus: true });
+		}
 	});
 
 	const onEnhance: SubmitFunction = () => {
@@ -54,9 +56,9 @@
 	};
 </script>
 
-<div class="flex h-screen w-full gap-3 overflow-hidden p-4">
-	<!-- Left Panel -->
-	<div class="relative h-full w-[50%] overflow-hidden rounded-2xl shadow">
+<div class="flex h-dvh w-full overflow-hidden p-0 lg:gap-3 lg:p-4">
+	<!-- Left Panel — desktop / large tablet only -->
+	<div class="relative hidden h-full w-1/2 overflow-hidden rounded-2xl shadow lg:block">
 		<video
 			src="/video/LoginVid.mp4"
 			class="absolute inset-0 h-full w-full object-cover"
@@ -69,17 +71,21 @@
 	</div>
 
 	<!-- Right Panel -->
-	<div class="relative flex w-[50%] flex-1 flex-col bg-background">
-		<main class="flex flex-1 items-center justify-center px-10">
-			<div class="flex w-full max-w-md flex-col gap-17">
-				<div class="">
-					<CompanyLogoLight width="200" class="h-auto" />
+	<div class="relative flex min-h-0 w-full flex-1 flex-col bg-background lg:w-1/2">
+		<main
+			class="flex min-h-0 flex-1 items-start justify-center overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 lg:items-center lg:px-10 lg:py-0"
+		>
+			<div class="flex w-full max-w-md flex-col gap-10 sm:gap-14 lg:gap-17">
+				<div>
+					<CompanyLogoLight width="160" class="h-auto w-40 sm:w-[200px]" />
 				</div>
 
-				<div class="flex flex-col gap-10">
+				<div class="flex flex-col gap-8 sm:gap-10">
 					<div class="flex flex-col gap-2">
-						<h1 class="text-3xl font-semibold tracking-tight text-gray-700">Sign in</h1>
-						<p class="text-base text-gray-700">Enter your login details to access your dashboard</p>
+						<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">Sign in</h1>
+						<p class="text-sm text-gray-700 sm:text-base">
+							Enter your login details to access your dashboard
+						</p>
 					</div>
 
 					{#if sessionNotice}
@@ -90,11 +96,13 @@
 						<p class="text-sm text-destructive" role="alert">{form.message}</p>
 					{/if}
 
-					<form method="POST" class="flex flex-col gap-6" use:enhance={onEnhance}>
+					<form method="POST" class="flex flex-col gap-5 sm:gap-6" use:enhance={onEnhance}>
 						<input type="hidden" name="force" value="false" />
 
-						<div class="flex flex-col gap-3">
-							<label class="text-lg font-normal text-gray-700" for="email">Email</label>
+						<div class="flex flex-col gap-2 sm:gap-3">
+							<label class="text-base font-normal text-gray-700 sm:text-lg" for="email">
+								Email
+							</label>
 							<Input
 								id="email"
 								name="userEmail"
@@ -108,8 +116,10 @@
 							/>
 						</div>
 
-						<div class="flex flex-col gap-3">
-							<label class="text-lg font-normal text-gray-700" for="password">Password</label>
+						<div class="flex flex-col gap-2 sm:gap-3">
+							<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
+								Password
+							</label>
 							<div class="relative">
 								<Input
 									id="password"
@@ -154,11 +164,13 @@
 			</div>
 		</main>
 
-		<footer class="px-10 pb-15 text-center text-sm text-muted-foreground">
+		<footer
+			class="shrink-0 px-5 py-6 text-center text-xs text-muted-foreground sm:px-8 sm:text-sm lg:px-10 lg:pt-0 lg:pb-15"
+		>
 			<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
 				Terms and Conditions
 			</a>
-			<span class="mx-3 text-border" aria-hidden="true">|</span>
+			<span class="mx-2 text-border sm:mx-3" aria-hidden="true">|</span>
 			<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
 				Privacy Policy
 			</a>

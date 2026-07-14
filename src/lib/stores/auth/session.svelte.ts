@@ -27,6 +27,12 @@ export function createSessionStore() {
 			loading = false;
 		},
 
+		/** Clear client session after sign-out (cookies are cleared server-side). */
+		clear() {
+			session = null;
+			loading = false;
+		},
+
 		hasPayinAccess: () => session?.permissions.payin ?? false,
 		hasPayoutAccess: () => session?.permissions.payout ?? false,
 		hasBothServices: () => (session?.permissions.payin && session?.permissions.payout) ?? false,
