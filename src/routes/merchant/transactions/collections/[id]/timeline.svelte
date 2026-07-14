@@ -1,32 +1,20 @@
 <script lang="ts">
+	import { Chip, Tooltip } from '$lib/components/reusable';
+	import type { PayinTimelineEntry } from '$lib/types/payin';
 	import { cn } from '$lib/utils';
+	import { formatAbsoluteTime, formatRelativeTime } from '$lib/utils/format-time';
 
-	export interface TimelineEntry {
-		entryTitle: string;
-		entryType: string;
-		entryDescription: string;
-		txnAmount: string;
-		refundAmount: string;
-		transactionStatus: string;
-		paymentMethod: string;
-		paymentChannel: string;
-		crn: string;
-		utr: string;
-		bankRRN: string;
-		cardNumber: string;
-		cardType: string;
-		transactionMessage: string;
-		errorDescription: string;
-		refundId: string;
-		refundSpeed: string;
-		refundMode: string;
-		refundType: string;
-		remark: string;
-		timestamp: string;
-		isCompleted: boolean;
-	}
+	let { entries }: { entries: PayinTimelineEntry[] } = $props();
 
-	let { entries }: { entries: TimelineEntry[] } = $props();
+	let now = $state(Date.now());
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			now = Date.now();
+		}, 60_000);
+
+		return () => clearInterval(interval);
+	});
 </script>
 
 <ol class="relative">
@@ -72,8 +60,21 @@
 			</div>
 
 			<div class={cn('min-w-0 flex-1 pb-6', isLast && 'pb-0')}>
-				<p class="mb-0.5 text-xs text-muted-foreground">{entry.timestamp}</p>
-				<p class="text-sm font-semibold text-foreground">{entry.entryTitle}</p>
+				<div class="mb-0.5">
+					<Tooltip content={formatAbsoluteTime(entry.timestampMs)}>
+						<span class="text-xs text-muted-foreground">
+							{formatRelativeTime(entry.timestampMs, now)}
+						</span>
+					</Tooltip>
+				</div>
+				<div class="flex flex-wrap items-center gap-2">
+					<p class="text-sm font-semibold text-foreground">{entry.entryTitle}</p>
+					{#if entry.attemptNumber}
+						<Chip variant="outline" class="h-auto rounded-full px-2 py-0.5 text-xs">
+							Attempt {entry.attemptNumber}
+						</Chip>
+					{/if}
+				</div>
 				<p class="mt-0.5 text-sm text-muted-foreground">{entry.entryDescription}</p>
 
 				{#if entry.utr || entry.bankRRN}
