@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Button, Chip } from '$lib/components/reusable';
+	import { Button, Chip, Tooltip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import {
 		ArrowLeft,
@@ -28,6 +28,13 @@
 	let loading = $state(false);
 
 	const userId = $derived(page.params.id);
+
+	const hasAssignedReports = $derived((user?.assignedUsersCount ?? 0) > 0);
+	const deleteDisabledReason = $derived(
+		hasAssignedReports
+			? 'This user has people reporting to them. Reassign those users before deleting.'
+			: null
+	);
 
 	$effect(() => {
 		const id = userId;
@@ -210,10 +217,19 @@
 		</div>
 
 		<div class="flex justify-end gap-2 pt-2">
-			<Button variant="destructive" class="gap-2">
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" class="gap-2" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" class="gap-2" onclick={() => {}}>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</Button>
+			{/if}
 			<Button variant="outline" class="gap-2" onclick={handleEdit}>
 				<Pencil class="h-4 w-4" />
 				Edit

@@ -32,7 +32,15 @@ export interface ApiUserDetailItem {
 	};
 	enabled: boolean;
 	createdBy?: number;
-	assignedUsers?: unknown[];
+	/** Users who report to this user — blocks delete when non-empty. */
+	assignedUsers?: Array<{
+		id?: number;
+		userId?: number;
+		name?: string;
+		userName?: string;
+		userEmail?: string;
+		employeeId?: string;
+	}>;
 }
 
 export interface ApiPagination {
