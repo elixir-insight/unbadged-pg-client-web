@@ -61,4 +61,29 @@ describe('createSessionStore', () => {
 		expect(store.hasPayinAccess()).toBe(true);
 		expect(store.hasPayoutAccess()).toBe(false);
 	});
+
+	it('hydrates a server-parsed session', () => {
+		const store = createSessionStore();
+		const serverSession = {
+			userId: 'user-1',
+			organizationId: 'org-1',
+			merchantName: 'Acme',
+			email: 'acme@example.com',
+			permissions: { payin: true, payout: false },
+			groups: ['Payin']
+		};
+		store.hydrate(serverSession);
+		expect(store.loading).toBe(false);
+		expect(store.session).toEqual(serverSession);
+		expect(store.hasPayinAccess()).toBe(true);
+		expect(store.hasPayoutAccess()).toBe(false);
+	});
+
+	it('hydrates a null session (signed out)', () => {
+		const store = createSessionStore();
+		store.hydrate(null);
+		expect(store.loading).toBe(false);
+		expect(store.session).toBeNull();
+		expect(store.hasPayinAccess()).toBe(false);
+	});
 });
