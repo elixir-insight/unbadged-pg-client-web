@@ -34,15 +34,27 @@ export const POST: RequestHandler = async ({
 	);
 
 	if (!result.ok) {
+		const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
 		log.warn(
 			{
 				ip,
 				userEmail: parsed.output.userEmail,
-				exceptionCode: result.error.kind === 'http' ? result.error.code : undefined,
-				errorKind: result.error.kind
+				exceptionCode,
+				errorKind: result.error.kind,
+				backendMessage: result.error.kind === 'http' ? result.error.message : undefined
 			},
 			'sign-in failed'
 		);
+
+		// Backend: { exceptionCode: "FAILED_TO_SIGN_IN", message: "User Not Found", statusCode: 400 }
+		if (result.error.kind === 'http' && exceptionCode === 'FAILED_TO_SIGN_IN') {
+			error(result.error.status || 400, result.error.message || 'Unable to sign in.');
+		}
+
+		if (result.error.kind === 'network') {
+			error(502, 'Unable to reach authentication service. Please try again.');
+		}
+
 		error(401, 'Invalid email or password.');
 	}
 
