@@ -39,6 +39,6 @@ export const SignInBodySchema = v.object({
 		v.minLength(1, 'Email is required'),
 		v.email('Enter a valid email')
 	),
-	password: v.pipe(v.string(), v.minLength(1, 'Password is required')),
+	password: v.pipe(v.string(), v.trim(), v.minLength(1, 'Password is required')),
 	force: v.optional(v.boolean(), false)
 });
