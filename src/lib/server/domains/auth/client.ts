@@ -34,7 +34,7 @@ export const authClient = {
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/user/refresh-token', {
+		apiFetch('/api/v1/user/refresh-token', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -54,7 +54,7 @@ export const authClient = {
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/user/sign-out', {
+		apiFetch('/api/v1/user/sign-out', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -68,7 +68,7 @@ export const authClient = {
 		}),
 
 	forgotPassword: (fetchFn: typeof fetch, logger: Logger, userEmail: string) =>
-		apiFetch('/user/password/forgot', {
+		apiFetch('/api/v1/user/password/forgot', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -84,7 +84,7 @@ export const authClient = {
 		confirmationCode: string,
 		newPassword: string
 	) =>
-		apiFetch('/user/password/confirm', {
+		apiFetch('/api/v1/user/password/confirm', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',

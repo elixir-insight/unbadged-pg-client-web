@@ -10,6 +10,7 @@
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
 	import { NewPasswordFormSchema } from '$lib/validation/password';
 	import type { PageProps } from './$types';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let { data, form }: PageProps = $props();
 
@@ -128,6 +129,23 @@
 	onMount(() => {
 		theme.init();
 	});
+
+	const handleEnhance: SubmitFunction = () => {
+		submitting = true;
+		return async ({ result, update }) => {
+			submitting = false;
+			if (result.type === 'redirect') {
+				const redirectUrl = new URL(result.location, window.location.origin);
+				const message = redirectUrl.searchParams.get('message');
+				console.log(message);
+				toast.success(message ?? 'Reset instructions sent', {
+					description: 'Your password has been reset. Please sign in.',
+					position: 'top-right'
+				});
+			}
+			await update();
+		};
+	};
 </script>
 
 <div class="flex h-screen w-full gap-3 overflow-hidden p-4">
@@ -236,22 +254,7 @@
 						<form
 							class="flex w-full flex-col items-center gap-10"
 							method="POST"
-							use:enhance={() => {
-								submitting = true;
-								return async ({ result, update }) => {
-									submitting = false;
-									if (result.type === 'redirect') {
-										const redirectUrl = new URL(result.location, window.location.origin);
-										const message = redirectUrl.searchParams.get('message');
-										console.log(message);
-										toast.success(message ?? 'Reset instructions sent', {
-											description: 'Your password has been reset. Please sign in.',
-											position: 'top-right'
-										});
-									}
-									await update();
-								};
-							}}
+							use:enhance={handleEnhance}
 						>
 							<input type="hidden" name="userEmail" value={userEmail} />
 							<input type="hidden" name="newPassword" value={password} />

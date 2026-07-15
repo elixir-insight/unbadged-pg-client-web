@@ -13,6 +13,19 @@ type SessionTokens = {
 
 export class SessionError extends Error {}
 
+/** Refresh rejected — session revoked / inactive; user must sign in again. */
+export class SessionInactiveError extends SessionError {
+	constructor(
+		message = 'Session is no longer active',
+		readonly exceptionCode = 'AUTH_UNAUTHORIZED_A16'
+	) {
+		super(message);
+		this.name = 'SessionInactiveError';
+	}
+}
+
+const SESSION_INACTIVE_CODE = 'AUTH_UNAUTHORIZED_A16';
+
 const inFlightRefreshes = new Map<string, Promise<SessionTokens | null>>();
 
 export async function getValidSession(
@@ -49,7 +62,39 @@ export async function getValidSession(
 				gatewayToken,
 				refreshToken
 			);
-			if (!result.ok) return null;
+			if (!result.ok) {
+				const isSessionInactive =
+					result.error.kind === 'http' &&
+					(result.error.code === SESSION_INACTIVE_CODE ||
+						result.error.message === 'Session is no longer active');
+
+				if (isSessionInactive) {
+					logger.warn(
+						{
+							exceptionCode: result.error.kind === 'http' ? result.error.code : undefined,
+							status: result.error.kind === 'http' ? result.error.status : undefined,
+							message: result.error.message
+						},
+						'refresh rejected — session inactive, requiring re-login'
+					);
+					throw new SessionInactiveError(
+						result.error.message || 'Session is no longer active',
+						result.error.kind === 'http'
+							? (result.error.code ?? SESSION_INACTIVE_CODE)
+							: SESSION_INACTIVE_CODE
+					);
+				}
+				logger.warn(
+					{
+						errorKind: result.error.kind,
+						...(result.error.kind === 'http'
+							? { status: result.error.status, code: result.error.code }
+							: {})
+					},
+					'refresh failed'
+				);
+				return null;
+			}
 			return result.data.data[0] ?? null;
 		})().finally(() => inFlightRefreshes.delete(refreshToken));
 		inFlightRefreshes.set(refreshToken, refreshPromise);

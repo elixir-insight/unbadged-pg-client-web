@@ -8,6 +8,7 @@ export {
 } from './portal';
 export type {
 	CognitoIdToken,
+	AccessTokenPayload,
 	GatewayTokenPayload,
 	MerchantSession,
 	MerchantService,

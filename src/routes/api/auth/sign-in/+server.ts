@@ -1,12 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import * as v from 'valibot';
-import { authClient } from '$lib/server/domains/auth/client';
 import { SignInBodySchema } from '$lib/server/domains/auth/schema';
-import { storeSession } from '$lib/server/domains/auth/session';
-import { decodeJwt } from '$lib/server/domains/auth/jwt';
-import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { GatewayTokenPayload } from '$lib/stores/auth/types';
+import { performSignIn } from '$lib/server/domains/auth/sign-in';
 
 export const POST: RequestHandler = async ({
 	request,
@@ -26,41 +22,22 @@ export const POST: RequestHandler = async ({
 		error(400, parsed.issues[0]?.message ?? 'Invalid email or password format');
 	}
 
-	log.info({ ip, userEmail: parsed.output.userEmail }, 'sign-in attempt');
-
-	const result = await authClient.signIn(
+	const result = await performSignIn({
 		fetch,
-		log,
-		parsed.output.userEmail,
-		parsed.output.password,
-		parsed.output.force
-	);
+		cookies,
+		logger: log,
+		ip,
+		userEmail: parsed.output.userEmail,
+		password: parsed.output.password,
+		force: parsed.output.force
+	});
 
 	if (!result.ok) {
-		const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
-		const upstreamStatus = result.error.kind === 'http' ? result.error.status : undefined;
-		const message =
-			result.error.kind === 'http' ? result.error.message : 'Invalid email or password.';
-
-		const requiresForce =
-			exceptionCode === 'FAILED_TO_SIGN_IN' &&
-			(message === 'User Session Already Exists' || upstreamStatus === 202);
-
-		if (requiresForce) {
-			log.warn(
-				{
-					ip,
-					userEmail: parsed.output.userEmail,
-					exceptionCode,
-					errorKind: result.error.kind,
-					upstreamStatus
-				},
-				'sign-in requires force — session already exists'
-			);
+		if (result.requiresForce) {
 			return json(
 				{
-					exceptionCode,
-					message,
+					exceptionCode: result.exceptionCode,
+					message: result.message,
 					statusCode: 202,
 					requiresForce: true
 				},
@@ -68,46 +45,15 @@ export const POST: RequestHandler = async ({
 			);
 		}
 
-		const status =
-			result.error.kind === 'http' && result.error.status >= 400 && result.error.status < 500
-				? result.error.status
-				: 401;
-
-		log.warn(
+		return json(
 			{
-				ip,
-				userEmail: parsed.output.userEmail,
-				exceptionCode,
-				errorKind: result.error.kind,
-				status
+				exceptionCode: result.exceptionCode,
+				message: result.message,
+				statusCode: result.status
 			},
-			'sign-in failed'
+			{ status: result.status }
 		);
-
-		return json({ exceptionCode, message, statusCode: status }, { status });
 	}
 
-	const tokens = result.data.data[0];
-	if (!tokens) {
-		log.error(
-			{ ip, userEmail: parsed.output.userEmail },
-			'sign-in succeeded but no tokens returned'
-		);
-		error(502, 'Sign-in succeeded but no tokens were returned.');
-	}
-
-	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
-	const redirectTo = resolvePortalHome(gatewayPayload['cognito:groups'] ?? []);
-
-	log.info(
-		{
-			ip,
-			userEmail: parsed.output.userEmail,
-			redirectTo,
-			groups: gatewayPayload['cognito:groups']
-		},
-		'sign-in succeeded'
-	);
-	storeSession(cookies, tokens);
-	return json({ message: 'Signed in successfully', redirectTo });
+	return json({ message: 'Signed in successfully', redirectTo: result.redirectTo });
 };

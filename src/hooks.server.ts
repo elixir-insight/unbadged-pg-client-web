@@ -1,18 +1,23 @@
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
-import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import {
+	getValidSession,
+	SessionError,
+	SessionInactiveError
+} from '$lib/server/domains/auth/getValidSession';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
 import { canAccessPortalPath, resolvePortalHome } from '$lib/stores/auth/portal';
-import type { GatewayTokenPayload } from '$lib/stores/auth/types';
+import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/types';
 
 // Keep auth pages + API routes public so missing/expired cookies never block
 // sign-in/sign-out or forgot/reset password flows.
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth'];
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth', '/logout'];
 
 function isPublicPath(pathname: string) {
+	if (pathname === '/') return true;
 	return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
@@ -42,16 +47,36 @@ export const handle: Handle = async ({ event, resolve }) => {
 	try {
 		const tokens = await getValidSession(event.cookies, event.fetch, event.locals.logger);
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
-		event.locals.merchantSession = parseMerchantSessionFromGateway(gatewayPayload);
+		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+		event.locals.merchantSession = parseMerchantSessionFromGateway(
+			gatewayPayload,
+			accessPayload['cognito:groups'] ?? []
+		);
 		event.locals.gatewayToken = tokens.gatewayToken;
 	} catch (e) {
 		event.locals.merchantSession = null;
 		event.locals.gatewayToken = null;
 
 		if (e instanceof SessionError) {
-			event.locals.logger.info({ reason: e.message }, 'session invalid — redirecting to login');
+			const isInactive = e instanceof SessionInactiveError;
+			const hadSession = e.message !== 'No session found';
+			event.locals.logger.info(
+				{
+					reason: e.message,
+					...(isInactive ? { exceptionCode: e.exceptionCode } : {})
+				},
+				'session invalid — redirecting to login'
+			);
 			clearAuthCookies(event.cookies);
-			redirect(303, '/login?reason=session-expired');
+			// Only surface a notice when a real session ended — not when the user
+			// simply isn't signed in yet.
+			if (isInactive) {
+				redirect(303, '/login?reason=session-inactive');
+			}
+			if (hadSession) {
+				redirect(303, '/login?reason=session-expired');
+			}
+			redirect(303, '/login');
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;

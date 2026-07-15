@@ -7,6 +7,7 @@
 	import AuthCardPanel from '$lib/components/auth/auth-card-panel.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import type { PageProps } from './$types';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
 	let { form }: PageProps = $props();
 
@@ -18,6 +19,19 @@
 	onMount(() => {
 		theme.init();
 	});
+	const handleEnhance: SubmitFunction = () => {
+		submitting = true;
+		return async ({ result, update }) => {
+			submitting = false;
+			if (result.type === 'redirect') {
+				const redirectUrl = new URL(result.location, window.location.origin);
+				const message = redirectUrl.searchParams.get('message');
+				toast.success(message ?? 'Reset instructions sent', { position: 'top-right' });
+			}
+			await update();
+			if (form?.userEmail !== undefined) email = form.userEmail;
+		};
+	};
 </script>
 
 <div class="flex h-screen w-full gap-3 overflow-hidden p-4">
@@ -37,23 +51,7 @@
 						<p class="text-base text-gray-700">No worries, we will send you reset instructions.</p>
 					</div>
 
-					<form
-						class="flex flex-col gap-6"
-						method="POST"
-						use:enhance={() => {
-							submitting = true;
-							return async ({ result, update }) => {
-								submitting = false;
-								if (result.type === 'redirect') {
-									const redirectUrl = new URL(result.location, window.location.origin);
-									const message = redirectUrl.searchParams.get('message');
-									toast.success(message ?? 'Reset instructions sent', { position: 'top-right' });
-								}
-								await update();
-								if (form?.userEmail !== undefined) email = form.userEmail;
-							};
-						}}
-					>
+					<form class="flex flex-col gap-6" method="POST" use:enhance={handleEnhance}>
 						{#if form?.error}
 							<p class="text-sm text-destructive">{form.error}</p>
 						{/if}
