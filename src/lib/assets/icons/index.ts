@@ -13,6 +13,7 @@ export { default as Plus } from '@lucide/svelte/icons/plus';
 export { default as Eye } from '@lucide/svelte/icons/eye';
 export { default as MessageSquareWarning } from '@lucide/svelte/icons/message-square-warning';
 export { default as CheckCircle2 } from '@lucide/svelte/icons/check-circle-2';
+export { default as Clock } from '@lucide/svelte/icons/clock';
 export { default as Loader2 } from '@lucide/svelte/icons/loader-2';
 export { default as TrendingDown } from '@lucide/svelte/icons/trending-down';
 export { default as CreditCard } from '@lucide/svelte/icons/credit-card';

@@ -9,6 +9,7 @@
 	import Details, { type DetailSection } from './details.svelte';
 	import RefundModal from './refund-modal.svelte';
 	import { toast } from '$lib/components/reusable';
+	import { settlements as mockSettlements } from '$lib/data/settlement-mock';
 
 	type TransactionStatus = 'success' | 'pending' | 'failed';
 
@@ -346,6 +347,127 @@
 			]
 		}
 	};
+
+	// ── Settlement orders (ORD-*) linked in from the settlements flow — same
+	// mock source as $lib/data/settlement-mock, so clicking an order row there
+	// resolves to a real transaction here instead of "not found".
+	const settlementOrderPaymentMethods = [
+		{ method: 'UPI', channel: 'UPI_COLLECT' },
+		{ method: 'Credit Card', channel: 'CARD' },
+		{ method: 'Net Banking', channel: 'NETBANKING' }
+	];
+
+	const settlementOrderCustomers = [
+		{ name: 'Arjun Mehta', email: 'arjun.mehta@example.com', phone: '+91 98765 43210' },
+		{ name: 'Priya Sharma', email: 'priya.sharma@example.com', phone: '+91 87654 32109' },
+		{ name: 'Vikram Nair', email: 'vikram.nair@example.com', phone: '+91 76543 21098' }
+	];
+
+	function formatInr(amount: number): string {
+		return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+	}
+
+	let settlementOrderIndex = 0;
+	for (const settlement of mockSettlements) {
+		for (const order of settlement.orders) {
+			const methodInfo =
+				settlementOrderPaymentMethods[settlementOrderIndex % settlementOrderPaymentMethods.length];
+			const customer =
+				settlementOrderCustomers[settlementOrderIndex % settlementOrderCustomers.length];
+			settlementOrderIndex++;
+
+			const isUpi = methodInfo.channel === 'UPI_COLLECT';
+			const dateStr =
+				settlement.settledOn ?? settlement.expectedOn ?? new Date().toISOString().slice(0, 10);
+			const crn = `CRN${order.id.replace(/\D/g, '')}`;
+			const bankRrn = `RRN${order.id.replace(/\D/g, '').slice(-12).padStart(12, '0')}`;
+			const bankCode = settlement.settledTo.bankName.split(' ')[0].toUpperCase();
+
+			mockTransactions[order.id] = {
+				txnId: order.id,
+				customerName: customer.name,
+				customerEmail: customer.email,
+				customerPhoneNumber: customer.phone,
+				transactionAmount: formatInr(order.amount),
+				paymentMethod: methodInfo.method,
+				paymentMode: 'ONLINE',
+				paymentChannel: methodInfo.channel,
+				transactionStatus: 'success',
+				statusDescription: 'Payment received successfully',
+				clientDescription: order.description,
+				date: dateStr,
+				expiresAt: dateStr,
+				processingFee: formatInr(order.feeBreakdown.processingFee),
+				gatewayFee: '₹0.00',
+				gatewayGst: formatInr(order.feeBreakdown.gst),
+				commissionId: `COMM-${order.id}`,
+				refundableAmount: formatInr(order.netAmount),
+				orgId: 'ORG-001',
+				partnerFee: '₹0.00',
+				partnerGst: '₹0.00',
+				vaIdentifier: `VA-${order.id}`,
+				affiliateId: 'AFF-001',
+				crn,
+				payerVpa: isUpi ? customer.email.replace('@example.com', '@okaxis') : '',
+				payeeVpa: isUpi ? 'merchant@okhdfc' : '',
+				orderId: order.id,
+				virtualAccountNumber: order.id.replace(/\D/g, '').slice(-10),
+				bankPipelineCode: bankCode,
+				accountNumber: `XXXX${settlement.settledTo.accountLast4}`,
+				ifsc: `${bankCode}0001234`,
+				transactionTimeline: [
+					{
+						entryTitle: 'You created the payment link',
+						entryType: 'payment_created',
+						entryDescription: 'Order created and sent to customer for payment.',
+						txnAmount: formatInr(order.amount),
+						refundAmount: '',
+						transactionStatus: 'pending',
+						paymentMethod: methodInfo.method,
+						paymentChannel: methodInfo.channel,
+						crn,
+						utr: '',
+						bankRRN: '',
+						cardNumber: '',
+						cardType: '',
+						transactionMessage: '',
+						errorDescription: '',
+						refundId: '',
+						refundSpeed: '',
+						refundMode: '',
+						refundType: '',
+						remark: '',
+						timestamp: dateStr,
+						isCompleted: true
+					},
+					{
+						entryTitle: "Payment's complete",
+						entryType: 'payment_completed',
+						entryDescription: `We received ${formatInr(order.amount)} from ${customer.name}.`,
+						txnAmount: formatInr(order.amount),
+						refundAmount: '',
+						transactionStatus: 'success',
+						paymentMethod: methodInfo.method,
+						paymentChannel: methodInfo.channel,
+						crn,
+						utr: settlement.utr ?? '',
+						bankRRN: bankRrn,
+						cardNumber: '',
+						cardType: '',
+						transactionMessage: 'Payment successful',
+						errorDescription: '',
+						refundId: '',
+						refundSpeed: '',
+						refundMode: '',
+						refundType: '',
+						remark: '',
+						timestamp: dateStr,
+						isCompleted: true
+					}
+				]
+			};
+		}
+	}
 
 	function getTransaction(id: string): Transaction | null {
 		return mockTransactions[id] ?? null;

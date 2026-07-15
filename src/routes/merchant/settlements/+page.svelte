@@ -9,38 +9,35 @@
 		Dropdown,
 		FilterCards,
 		SearchField,
+		StatCard,
+		Tabs,
+		EmptyState,
 		createUrlPagination
 	} from '$lib/components/reusable';
+	import type { StatCardTone } from '$lib/components/reusable';
+	import UtrCell from '$lib/components/settlements/utr-cell.svelte';
+	import OndemandPanel from './ondemand-panel.svelte';
 	import type { DateRange } from 'bits-ui';
 	import { getLocalTimeZone } from '@internationalized/date';
 	import { debounce } from '$lib/utils/debounce.js';
-	import { Download, RefreshCw, X } from '$lib/assets/icons';
+	import { RefreshCw, X } from '$lib/assets/icons';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { SvelteURL } from 'svelte/reactivity';
 	import StatusBadge from './status-badge.svelte';
+	import type { Settlement, SettlementStatus } from '$lib/types/settlement';
+	import type { PageData } from './$types';
 
-	// ── Types + mock data — one-line swap for a real API call later, e.g.:
-	// const settlements = await api.get<Settlement[]>('/merchant/settlements');
-	type SettlementStatus = 'success' | 'reject' | 'in_review';
-
-	type Settlement = {
-		id: string;
-		utr: string | null;
-		amount: number;
-		fees: number;
-		netAmount: number;
-		status: SettlementStatus;
-		settledOn: string | null;
-		transactionCount: number;
-	};
+	let { data }: { data: PageData } = $props();
 
 	interface SettlementRow extends Settlement, Record<string, unknown> {
 		_dateMs: number;
 	}
 
-	const DAY_MS = 86_400_000;
-
 	// Settlement IDs encode their cycle date (STL-YYYYMMDD-####), so we can
 	// derive a filterable timestamp even for rows without a settledOn date yet
-	// (in_review/reject rows).
+	// (processing/failed rows).
 	function parseIdDate(id: string): number {
 		const match = id.match(/^STL-(\d{4})(\d{2})(\d{2})-/);
 		if (!match) return Date.now();
@@ -48,210 +45,9 @@
 		return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
 	}
 
-	const settlements: Settlement[] = [
-		{
-			id: 'STL-20260701-0001',
-			utr: 'UTR2607010001',
-			amount: 184500,
-			fees: 3690,
-			netAmount: 180810,
-			status: 'success',
-			settledOn: '2026-07-01',
-			transactionCount: 42
-		},
-		{
-			id: 'STL-20260701-0002',
-			utr: 'UTR2607010002',
-			amount: 92300,
-			fees: 1846,
-			netAmount: 90454,
-			status: 'success',
-			settledOn: '2026-07-01',
-			transactionCount: 18
-		},
-		{
-			id: 'STL-20260630-0014',
-			utr: 'UTR2606300014',
-			amount: 256000,
-			fees: 5120,
-			netAmount: 250880,
-			status: 'success',
-			settledOn: '2026-06-30',
-			transactionCount: 61
-		},
-		{
-			id: 'STL-20260630-0013',
-			utr: null,
-			amount: 47500,
-			fees: 950,
-			netAmount: 46550,
-			status: 'reject',
-			settledOn: null,
-			transactionCount: 9
-		},
-		{
-			id: 'STL-20260630-0012',
-			utr: 'UTR2606300012',
-			amount: 133200,
-			fees: 2664,
-			netAmount: 130536,
-			status: 'success',
-			settledOn: '2026-06-30',
-			transactionCount: 27
-		},
-		{
-			id: 'STL-20260629-0027',
-			utr: null,
-			amount: 68900,
-			fees: 1378,
-			netAmount: 67522,
-			status: 'in_review',
-			settledOn: null,
-			transactionCount: 14
-		},
-		{
-			id: 'STL-20260629-0026',
-			utr: 'UTR2606290026',
-			amount: 312400,
-			fees: 6248,
-			netAmount: 306152,
-			status: 'success',
-			settledOn: '2026-06-29',
-			transactionCount: 73
-		},
-		{
-			id: 'STL-20260629-0025',
-			utr: null,
-			amount: 15600,
-			fees: 312,
-			netAmount: 15288,
-			status: 'reject',
-			settledOn: null,
-			transactionCount: 3
-		},
-		{
-			id: 'STL-20260628-0041',
-			utr: 'UTR2606280041',
-			amount: 89000,
-			fees: 1780,
-			netAmount: 87220,
-			status: 'success',
-			settledOn: '2026-06-28',
-			transactionCount: 21
-		},
-		{
-			id: 'STL-20260628-0040',
-			utr: null,
-			amount: 41200,
-			fees: 824,
-			netAmount: 40376,
-			status: 'in_review',
-			settledOn: null,
-			transactionCount: 8
-		},
-		{
-			id: 'STL-20260627-0009',
-			utr: 'UTR2606270009',
-			amount: 176800,
-			fees: 3536,
-			netAmount: 173264,
-			status: 'success',
-			settledOn: '2026-06-27',
-			transactionCount: 39
-		},
-		{
-			id: 'STL-20260627-0008',
-			utr: 'UTR2606270008',
-			amount: 58300,
-			fees: 1166,
-			netAmount: 57134,
-			status: 'success',
-			settledOn: '2026-06-27',
-			transactionCount: 12
-		},
-		{
-			id: 'STL-20260626-0019',
-			utr: null,
-			amount: 22400,
-			fees: 448,
-			netAmount: 21952,
-			status: 'reject',
-			settledOn: null,
-			transactionCount: 5
-		},
-		{
-			id: 'STL-20260626-0018',
-			utr: 'UTR2606260018',
-			amount: 143700,
-			fees: 2874,
-			netAmount: 140826,
-			status: 'success',
-			settledOn: '2026-06-26',
-			transactionCount: 33
-		},
-		{
-			id: 'STL-20260625-0031',
-			utr: null,
-			amount: 51900,
-			fees: 1038,
-			netAmount: 50862,
-			status: 'in_review',
-			settledOn: null,
-			transactionCount: 11
-		},
-		{
-			id: 'STL-20260625-0030',
-			utr: 'UTR2606250030',
-			amount: 267500,
-			fees: 5350,
-			netAmount: 262150,
-			status: 'success',
-			settledOn: '2026-06-25',
-			transactionCount: 58
-		},
-		{
-			id: 'STL-20260624-0007',
-			utr: 'UTR2606240007',
-			amount: 98600,
-			fees: 1972,
-			netAmount: 96628,
-			status: 'success',
-			settledOn: '2026-06-24',
-			transactionCount: 24
-		},
-		{
-			id: 'STL-20260624-0006',
-			utr: null,
-			amount: 33800,
-			fees: 676,
-			netAmount: 33124,
-			status: 'reject',
-			settledOn: null,
-			transactionCount: 7
-		},
-		{
-			id: 'STL-20260623-0015',
-			utr: 'UTR2606230015',
-			amount: 219300,
-			fees: 4386,
-			netAmount: 214914,
-			status: 'success',
-			settledOn: '2026-06-23',
-			transactionCount: 47
-		},
-		{
-			id: 'STL-20260622-0003',
-			utr: null,
-			amount: 27600,
-			fees: 552,
-			netAmount: 27048,
-			status: 'in_review',
-			settledOn: null,
-			transactionCount: 6
-		}
-	];
-
-	const mockData: SettlementRow[] = settlements.map((s) => ({ ...s, _dateMs: parseIdDate(s.id) }));
+	const mockData: SettlementRow[] = $derived(
+		data.settlements.map((s) => ({ ...s, _dateMs: parseIdDate(s.id) }))
+	);
 
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
@@ -268,19 +64,38 @@
 		return value ? dateFormatter.format(new Date(value)) : null;
 	}
 
+	// ── Tab state — driven by ?tab= so it's shareable/bookmarkable. Mirrors the
+	// Dropdown convention already used below: bind:value for snappy local
+	// switching + onValueChange to push the URL update. tabValue stays a plain
+	// $derived (writable — Svelte lets a local assignment override it until
+	// page.url changes again) so back/forward navigation re-syncs it for free.
+	let tabValue = $derived<'scheduled' | 'ondemand'>(
+		page.url.searchParams.get('tab') === 'ondemand' ? 'ondemand' : 'scheduled'
+	);
+
+	function setTab(value: string) {
+		tabValue = value === 'ondemand' ? 'ondemand' : 'scheduled';
+		const url = new SvelteURL(page.url.toString());
+		if (value === 'ondemand') url.searchParams.set('tab', 'ondemand');
+		else url.searchParams.delete('tab');
+		const href =
+			`${url.pathname}?${url.searchParams.toString()}` as `${typeof url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: false, noScroll: true, keepFocus: true });
+	}
+
 	// ── Summary cards — quick status filters, counts derived from the (date
 	// filtered) settlement list, same convention as the transactions pages ────
 	const summaryCards: { label: string; status: SettlementStatus | null }[] = [
 		{ label: 'All Settlements', status: null },
-		{ label: 'Successful', status: 'success' },
-		{ label: 'In Review', status: 'in_review' },
-		{ label: 'Rejected', status: 'reject' }
+		{ label: 'Settled', status: 'settled' },
+		{ label: 'Processing', status: 'processing' },
+		{ label: 'Failed', status: 'failed' }
 	];
 
 	const statusOptions = [
-		{ value: 'success', label: 'Success' },
-		{ value: 'in_review', label: 'In Review' },
-		{ value: 'reject', label: 'Reject' }
+		{ value: 'settled', label: 'Settled' },
+		{ value: 'processing', label: 'Processing' },
+		{ value: 'failed', label: 'Failed' }
 	];
 
 	const searchFields = [
@@ -292,6 +107,8 @@
 	let settlementStatus = $state<string | undefined>(undefined);
 	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
 	let searchField = $state<string>('id');
+
+	const DAY_MS = 86_400_000;
 
 	// URL-driven pagination — click handling (Prev/Next/page jump) goes through
 	// this composable instead of local state, same convention as demo/users.
@@ -307,7 +124,7 @@
 
 	const debouncedSearch = debounce((value: string) => {
 		pagination.setSearch(value);
-	}, 300);
+	}, 200);
 
 	function handleSearch(field: string, value: string) {
 		searchField = field;
@@ -381,6 +198,37 @@
 		summaryCards.map((c) => ({ label: c.label, count: cardCounts[c.label] ?? 0 }))
 	);
 
+	// Amount totals per status bucket — same buckets as cardCounts, summed by
+	// gross amount instead of counted, for the stat cards that show ₹ values.
+	const cardAmounts = $derived.by(() => {
+		const amounts: Record<string, number> = {};
+		for (const card of summaryCards) {
+			const rows =
+				card.status === null
+					? dateFilteredData
+					: dateFilteredData.filter((r) => r.status === card.status);
+			amounts[card.label] = rows.reduce((sum, r) => sum + r.grossAmount, 0);
+		}
+		return amounts;
+	});
+
+	const lastSettlement = $derived.by(() => {
+		if (mockData.length === 0) return null;
+		return [...mockData].sort((a, b) => b._dateMs - a._dateMs)[0];
+	});
+
+	const lastSettlementBadge: { text: string; variant: StatCardTone } = $derived(
+		!lastSettlement
+			? { text: '—', variant: 'brand' }
+			: lastSettlement.status === 'settled'
+				? { text: 'Settled', variant: 'success' }
+				: lastSettlement.status === 'processing'
+					? { text: 'Processing', variant: 'warning' }
+					: { text: 'Failed', variant: 'danger' }
+	);
+
+	// Filters + search combine with AND logic, applied client-side against the
+	// already-loaded page of data — no re-fetch on every keystroke.
 	const filteredData = $derived.by(() => {
 		let result = dateFilteredData;
 		if (settlementStatus) {
@@ -429,8 +277,9 @@
 	// column defs stay simple (accessorKey + header, no per-column snippets),
 	// same convention as the payins/payouts transaction tables.
 	interface SettlementDisplayRow extends Record<string, unknown> {
+		_id: string;
 		id: string;
-		utr: string;
+		utr: string | null;
 		amount: string;
 		fees: string;
 		netAmount: string;
@@ -440,47 +289,41 @@
 
 	const displayRows = $derived<SettlementDisplayRow[]>(
 		pagedData.map((r) => ({
+			_id: r.id,
 			id: r.id,
-			utr: r.utr ?? '—',
-			amount: currency.format(r.amount),
+			utr: r.utr,
+			amount: currency.format(r.grossAmount),
 			fees: currency.format(r.fees),
 			netAmount: currency.format(r.netAmount),
-			settledOn: formatDate(r.settledOn) ?? '—',
+			settledOn: formatDate(r.settledOn) ?? formatDate(r.expectedOn) ?? '—',
 			status: r.status
 		}))
 	);
 
 	const columns: ColumnDef<SettlementDisplayRow>[] = [
 		{ accessorKey: 'id', header: 'Settlement ID' },
-		{ accessorKey: 'utr', header: 'UTR / Ref' },
-		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
+		{
+			accessorKey: 'utr',
+			header: 'UTR',
+			cell: (info) => renderComponent(UtrCell, { utr: info.getValue<string | null>() })
+		},
+		{ accessorKey: 'amount', header: 'Amount Settled', enableSorting: true },
 		{ accessorKey: 'fees', header: 'Fees & Tax' },
 		{ accessorKey: 'netAmount', header: 'Net Amount' },
-		{ accessorKey: 'settledOn', header: 'Settled On' },
+		{ accessorKey: 'settledOn', header: 'Settled / Expected On' },
 		{
 			accessorKey: 'status',
 			header: 'Status',
 			cell: (info) => renderComponent(StatusBadge, { status: info.getValue<SettlementStatus>() })
 		}
 	];
+
+	function goToSettlement(row: SettlementDisplayRow) {
+		goto(resolve('/merchant/settlements/[settlementId]', { settlementId: row._id }));
+	}
 </script>
 
-<div class="space-y-6 p-6 sm:p-8 lg:p-4">
-	<!-- Header -->
-	<div>
-		<h1 class="mt-1 text-2xl font-semibold text-foreground">Settlements</h1>
-	</div>
-
-	<!-- Summary cards -->
-	<FilterCards
-		loading={false}
-		skeletonCount={4}
-		cards={filterCards}
-		bind:selected={selectedCard}
-		onselect={selectCard}
-		class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-	/>
-
+{#snippet scheduledContent()}
 	<!-- Filter bar -->
 	<div class="flex flex-col gap-3">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -542,27 +385,90 @@
 	</div>
 
 	<!-- Table -->
-	<div class="rounded-lg border border-border bg-card shadow-2xl">
+	<div class="mt-6 rounded-lg border border-border bg-card shadow-2xl">
 		<div class="flex items-center justify-between gap-2 p-4">
 			<span class="text-sm text-muted-foreground">{showingText}</span>
 			<div class="flex items-center gap-2">
 				<Button variant="outline">
 					<RefreshCw />
 				</Button>
-				<Button variant="outline">
-					<Download />
-					Export
-				</Button>
 			</div>
 		</div>
 
-		<Table
-			data={displayRows}
-			{columns}
-			pageNumber={pagination.currentPage}
-			totalPages={pagination.pageCount}
-			setPageNumber={pagination.setPage}
-			variant="borderless"
-		/>
+		{#if filteredData.length === 0}
+			<EmptyState
+				title="No settlements match your filters"
+				description="Try a different date range, status, or search term."
+				actionLabel={activeFilters.length > 0 ? 'Clear filters' : undefined}
+				onaction={clearAllFilters}
+			/>
+		{:else}
+			<Table
+				data={displayRows}
+				{columns}
+				pageNumber={pagination.currentPage}
+				totalPages={pagination.pageCount}
+				setPageNumber={pagination.setPage}
+				onRowClick={goToSettlement}
+				variant="borderless"
+			/>
+		{/if}
 	</div>
+{/snippet}
+
+{#snippet ondemandContent()}
+	<div class="mt-6">
+		<OndemandPanel />
+	</div>
+{/snippet}
+
+<div class="space-y-6 p-6 sm:p-8 lg:p-4">
+	<!-- Header -->
+
+	<!-- Summary + stat cards -->
+	{#if data.accountSettlementConfig.instantSettlementEligible}
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<StatCard
+				label="Total Settlements"
+				value={currency.format(cardAmounts['All Settlements'] ?? 0)}
+				badgeText="All time"
+				badgeVariant="brand"
+				subText="{cardCounts['All Settlements'] ?? 0} settlements · across all statuses"
+			/>
+			<StatCard
+				label="Awaiting Settlements"
+				value={currency.format(cardAmounts['Processing'] ?? 0)}
+				badgeText="Processing"
+				badgeVariant="warning"
+				subText="{cardCounts['Processing'] ?? 0} settlements currently being processed"
+			/>
+			<StatCard
+				label="Last Settlement Amount"
+				value={lastSettlement ? currency.format(lastSettlement.netAmount) : '—'}
+				badgeText={lastSettlementBadge.text}
+				badgeVariant={lastSettlementBadge.variant}
+				subText={lastSettlement ? `Settlement ${lastSettlement.id}` : 'No settlements yet'}
+			/>
+		</div>
+	{:else}
+		<FilterCards
+			loading={false}
+			skeletonCount={4}
+			cards={filterCards}
+			bind:selected={selectedCard}
+			onselect={selectCard}
+			class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+		/>
+	{/if}
+
+	<!-- Tabs -->
+	<Tabs
+		tabs={[
+			{ value: 'scheduled', label: 'Settlements', content: scheduledContent },
+			{ value: 'ondemand', label: 'Ondemand settlements', content: ondemandContent }
+		]}
+		bind:value={tabValue}
+		onValueChange={setTab}
+		class="gap-6"
+	/>
 </div>
