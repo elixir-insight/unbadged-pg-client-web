@@ -68,17 +68,21 @@
 			const href = root + '/' + segments.slice(0, index + 1).join('/');
 
 			const custom = breadcrumbRoutes.find((route) => route.matcher.test(href));
+			const navTitle = navTitleMap.get(href);
 
 			return {
 				href,
-				label: custom?.title ?? navTitleMap.get(href) ?? formatSegment(seg)
+				label: custom?.title ?? navTitle ?? formatSegment(seg),
+				// Tab segments like orders/payments are path scaffolding, not crumbs
+				include: Boolean(custom || navTitle)
 			};
 		});
 
-		// Remove numeric ID segments when a custom breadcrumb matched
-		return items.filter(
-			(item) => !/\/\d+$/.test(item.href) || item.label !== item.href.split('/').pop()
-		);
+		const meaningful = items
+			.filter((item) => item.include)
+			.map(({ href, label }) => ({ href, label }));
+
+		return meaningful.length > 0 ? meaningful : items.map(({ href, label }) => ({ href, label }));
 	});
 </script>
 

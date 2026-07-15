@@ -45,11 +45,7 @@ export const managementNav: NavGroup[] = [
 				icon: ArrowLeftRight,
 				breadcrumbChildren: [
 					{
-						matcher: /^\/management\/transactions\/collections\/orders$/,
-						title: 'Collections'
-					},
-					{
-						matcher: /^\/management\/transactions\/collections\/payments$/,
+						matcher: /^\/management\/transactions\/collections$/,
 						title: 'Collections'
 					},
 					{
