@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { Download, Landmark, RefreshCw, UserPlus } from '$lib/assets/icons';
-	import ActionCenterCard from './action-center-card.svelte';
-	import type { QuickAction } from './quick-actions.svelte';
-	import PipelineStatusCard, {
-		type OnboardingStage,
-		type OrgProfileStatusItem
-	} from './pipeline-status-card.svelte';
+	import { AlertTriangle, Building2, Clock, RefreshCw, UserPlus } from '$lib/assets/icons';
 	import CollectionsTab from './collections-tab.svelte';
 	import DisbursementsTab from './disbursements-tab.svelte';
+	import MetricTile, { type MetricTileData } from './metric-tile.svelte';
+	import StatusDistributionCard, { type StatusDatum } from './status-distribution-card.svelte';
+	import TrendAreaCard, { type TrendPoint } from './trend-area-card.svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
 
 	let {
@@ -18,52 +15,85 @@
 
 	let activeTab = $state<'overview' | 'collections' | 'disbursements'>('overview');
 
-	const quickActions: QuickAction[] = [
+	const kpis: MetricTileData[] = [
 		{
-			id: 'new-org',
-			label: 'New organization',
-			description: 'Start onboarding a merchant',
+			label: 'Total Organizations',
+			value: '1,930',
+			subtitle: 'vs last month',
+			trend: '+12.4%',
+			trendDirection: 'up',
+			icon: Building2,
+			tone: 'violet'
+		},
+		{
+			label: 'Pending Review',
+			value: '210',
+			subtitle: 'awaiting compliance check',
+			trend: '-4.1%',
+			trendDirection: 'down',
+			icon: Clock,
+			tone: 'amber'
+		},
+		{
+			label: 'Action Required',
+			value: '340',
+			subtitle: 'flagged for follow-up',
+			trend: '+6.2%',
+			trendDirection: 'up',
+			icon: AlertTriangle,
+			tone: 'rose'
+		},
+		{
+			label: 'New This Month',
+			value: '128',
+			subtitle: 'newly onboarded orgs',
+			trend: '+18.6%',
+			trendDirection: 'up',
 			icon: UserPlus,
-			href: '/management/onboarding/create-organization'
-		},
-		{
-			id: 'settlements',
-			label: 'View settlements',
-			description: "Check today's payout schedule",
-			icon: Landmark,
-			href: '/management/settlements'
-		},
-		{
-			id: 'export',
-			label: 'Export report',
-			description: 'Download MTD performance summary',
-			icon: Download,
-			href: '/management/reports'
+			tone: 'emerald'
 		}
 	];
 
-	const onboardingStages: OnboardingStage[] = [
-		{ stage: 'In review', count: 210, color: 'var(--chart-1)' },
-		{ stage: 'Remarked', count: 340, color: 'var(--chart-2)' },
-		{ stage: 'In progress', count: 380, color: 'var(--chart-3)' },
-		{ stage: 'Approved', count: 235, color: 'var(--chart-4)' }
+	const preApprovalStatus: StatusDatum[] = [
+		{ label: 'In progress', amount: 380, percentage: 41, color: 'var(--chart-3)' },
+		{ label: 'In review', amount: 210, percentage: 23, color: 'var(--chart-1)' },
+		{ label: 'Remarked', amount: 340, percentage: 37, color: 'var(--chart-2)' }
 	];
-	const totalInPipeline = onboardingStages.reduce((sum, stage) => sum + stage.count, 0);
 
-	const orgProfileStatus: OrgProfileStatusItem[] = [
-		{ status: 'Active', count: 66, percentage: 66, color: 'var(--chart-1)' },
-		{ status: 'On hold', count: 24, percentage: 24, color: 'var(--chart-2)' },
-		{ status: 'Inactive', count: 10, percentage: 10, color: 'var(--chart-4)' }
+	const postApprovalStatus: StatusDatum[] = [
+		{ label: 'Approved', amount: 235, percentage: 24, color: 'var(--chart-1)' },
+		{ label: 'Active', amount: 640, percentage: 64, color: 'var(--chart-2)' },
+		{ label: 'On hold', amount: 90, percentage: 9, color: 'var(--chart-3)' },
+		{ label: 'Frozen', amount: 35, percentage: 4, color: 'var(--chart-4)' }
 	];
+
+	/** Deterministic 30-day trend: gentle upward drift plus two overlaid sine waves for a natural, non-linear curve. */
+	function generateTrend(base: number, growth: number, amplitude: number): TrendPoint[] {
+		const dayMs = 24 * 60 * 60 * 1000;
+		const todayMs = Date.now();
+		return Array.from({ length: 30 }, (_, i) => {
+			const date = new Date(todayMs - (29 - i) * dayMs);
+			const wave = Math.sin(i / 3.5) * amplitude + Math.sin(i / 7) * (amplitude / 2);
+			return {
+				label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+				value: Math.max(0, Math.round(base + growth * i + wave))
+			};
+		});
+	}
+
+	const registrationTrend = generateTrend(18, 0.9, 4);
+	const activationTrend = generateTrend(12, 0.7, 3);
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
 	<Tabs.Root bind:value={activeTab} class="flex h-full min-h-0 flex-col">
 		<!-- Sticky header: greeting, subtitle, tabs -->
-		<div class="flex shrink-0 flex-col gap-4 pb-4">
+		<div class="flex shrink-0 flex-col gap-4">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div>
-					<h1 class="text-[clamp(1.125rem,3vw,1.25rem)] font-bold text-foreground">
+				<div class="min-w-0">
+					<h1
+						class="text-[clamp(1.125rem,3vw,1.25rem)] font-bold whitespace-nowrap text-foreground"
+					>
 						Good Morning, {userName} 👋
 					</h1>
 					<p class="mt-0.5 text-sm text-muted-foreground">
@@ -87,15 +117,51 @@
 		<!-- px/-mx cancel out (preserves alignment with the header above) while still giving card
 		     box-shadows room to render before overflow-y-auto's clip edge cuts them off -->
 		<div class="min-h-0 flex-1 overflow-y-auto -mx-3 px-3 pt-2 pb-4">
-			<Tabs.Content value="overview" class="flex min-h-0 flex-col gap-6">
-				<div class="grid min-h-0 grid-cols-1 gap-6 md:grid-cols-2 xl:max-h-[min(48vh,720px)]">
-					<PipelineStatusCard
-						{onboardingStages}
-						{totalInPipeline}
-						{orgProfileStatus}
-						class="min-h-80 md:min-h-0"
+			<Tabs.Content value="overview" class="flex h-full min-h-0 flex-col gap-3 lg:gap-4">
+				<!-- Row 1: KPI cards -->
+				<div class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+					{#each kpis as kpi (kpi.label)}
+						<MetricTile {...kpi} variant="stat" />
+					{/each}
+				</div>
+
+				<!-- Row 2: Organization status distribution -->
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:flex-1 xl:min-h-0 lg:gap-4">
+					<StatusDistributionCard
+						title="Organization Status — Pre Approval"
+						data={preApprovalStatus}
+						totalLabel="Pre-Approval"
+						showAmount={false}
+						class="min-h-72 xl:min-h-0"
 					/>
-					<ActionCenterCard {quickActions} class="min-h-70 md:min-h-0" />
+					<StatusDistributionCard
+						title="Organization Status — Post Approval"
+						data={postApprovalStatus}
+						// totalLabel="Post-Approval"
+						showAmount={false}
+						chartType="radial"
+						class="min-h-72 xl:min-h-0"
+					/>
+				</div>
+
+				<!-- Row 3: Trend analytics -->
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:flex-1 xl:min-h-0 lg:gap-4">
+					<TrendAreaCard
+						title="Organization Registration Trend"
+						description="Last 30 days"
+						data={registrationTrend}
+						valueLabel="Registrations"
+						color="var(--chart-1)"
+						class="min-h-64 xl:min-h-0"
+					/>
+					<TrendAreaCard
+						title="Organization Activation Trend"
+						description="Last 30 days"
+						data={activationTrend}
+						valueLabel="Activations"
+						color="var(--chart-3)"
+						class="min-h-64 xl:min-h-0"
+					/>
 				</div>
 			</Tabs.Content>
 

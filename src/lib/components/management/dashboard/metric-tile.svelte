@@ -39,22 +39,11 @@
 		emerald: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
 		rose: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400'
 	};
-
-	const TONE_ACCENT_CLASSES: Record<NonNullable<MetricTileData['tone']>, string> = {
-		violet: 'border-l-violet-500',
-		amber: 'border-l-amber-500',
-		emerald: 'border-l-emerald-500',
-		rose: 'border-l-rose-500'
-	};
 </script>
 
 {#if variant === 'stat'}
 	<div
-		class={cn(
-			'flex flex-col justify-between gap-2 rounded-xl bg-card p-3 shadow-sm border-l-2',
-			TONE_ACCENT_CLASSES[tone ?? 'violet'],
-			className
-		)}
+		class={cn('flex flex-col justify-between gap-2 rounded-xl bg-card p-3 shadow-sm', className)}
 	>
 		<div class="flex items-start justify-between gap-2">
 			<div class="flex items-center gap-1">
@@ -66,10 +55,7 @@
 				{/if}
 			</div>
 			<div
-				class={cn(
-					'flex size-8 shrink-0 items-center justify-center rounded-lg',
-					TONE_CLASSES[tone ?? 'violet']
-				)}
+				class={cn('flex items-center justify-center rounded-lg', TONE_CLASSES[tone ?? 'violet'])}
 				aria-hidden="true"
 			>
 				<Icon class="size-4" />
