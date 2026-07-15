@@ -5,20 +5,26 @@
 
 	let {
 		quickActions,
+		title = 'Quick actions',
+		description = 'Common tasks for your team',
+		layout = 'list',
 		class: className
 	}: {
 		quickActions: QuickAction[];
+		title?: string;
+		description?: string;
+		layout?: 'list' | 'grid';
 		class?: string;
 	} = $props();
 </script>
 
 <Card.Root size="sm" class={cn('flex h-full min-h-0 flex-col', className)}>
 	<Card.Header>
-		<Card.Title class="text-sm font-semibold">Quick actions</Card.Title>
-		<Card.Description class="text-xs">Common tasks for your team</Card.Description>
+		<Card.Title class="text-sm font-semibold">{title}</Card.Title>
+		<Card.Description class="text-xs">{description}</Card.Description>
 	</Card.Header>
 
 	<Card.Content class="min-h-0 flex-1">
-		<QuickActions actions={quickActions} />
+		<QuickActions actions={quickActions} {layout} />
 	</Card.Content>
 </Card.Root>

@@ -121,7 +121,9 @@
 					isDashboard && 'xl:overflow-hidden'
 				)}
 			>
-				<div class={cn('min-h-full p-5', isDashboard && 'xl:flex xl:h-full xl:flex-col')}>
+				<div
+					class={cn('min-h-full', isDashboard ? 'p-5 xl:flex xl:h-full xl:flex-col xl:p-6' : 'p-5')}
+				>
 					{@render children()}
 				</div>
 			</div>
