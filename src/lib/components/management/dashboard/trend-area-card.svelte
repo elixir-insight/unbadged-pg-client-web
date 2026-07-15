@@ -8,12 +8,9 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
 	import * as Chart from '$lib/components/ui/chart';
-	import { LineChart, Area, Points, LinearGradient } from 'layerchart';
+	import { LineChart, Area, Points } from 'layerchart';
 	import { curveMonotoneX } from 'd3-shape';
 	import { cn } from '$lib/utils';
-
-	const uid = $props.id();
-	const gradientUid = uid.replace(/:/g, '');
 
 	let {
 		title,
@@ -62,21 +59,13 @@
 			>
 				{#snippet marks({ context })}
 					{#each context.series.visibleSeries as s (s.key)}
-						<LinearGradient
-							id={`trend-area-gradient-${gradientUid}-${s.key}`}
-							vertical
-							stops={[`color-mix(in oklch, ${color} 45%, transparent)`, 'transparent']}
-						>
-							{#snippet children({ gradient })}
-								<Area
-									seriesKey={s.key}
-									curve={curveMonotoneX}
-									motion="tween"
-									fill={gradient}
-									line={{ stroke: color, strokeWidth: 2, curve: curveMonotoneX }}
-								/>
-							{/snippet}
-						</LinearGradient>
+						<Area
+							seriesKey={s.key}
+							curve={curveMonotoneX}
+							motion="tween"
+							fill={`color-mix(in oklch, ${color} 20%, transparent)`}
+							line={{ stroke: color, strokeWidth: 2, curve: curveMonotoneX }}
+						/>
 						<Points seriesKey={s.key} r={3.5} fill={color} stroke="var(--card)" strokeWidth={2} />
 					{/each}
 				{/snippet}
