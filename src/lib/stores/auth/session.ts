@@ -24,19 +24,19 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 }
 
 /**
- * Live path — same MerchantSession output shape, different input,
- * so nothing downstream (hydrate(), hasPayinAccess(), etc.) needs to change.
- *
- * `cognito:groups` = portal access only. Payin/payout come from a separate API later.
+ * Live path — identity from gateway token, portal groups from access token.
+ * Payin/payout come from a separate API later.
  */
-export function parseMerchantSessionFromGateway(token: GatewayTokenPayload): MerchantSession {
-	const groups = token['cognito:groups'] ?? [];
+export function parseMerchantSessionFromGateway(
+	token: GatewayTokenPayload,
+	accessGroups: string[]
+): MerchantSession {
 	return {
 		userId: String(token.userId),
 		organizationId: String(token.orgId),
 		merchantName: token.userName,
 		email: token.userEmail,
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },
-		groups
+		groups: accessGroups
 	};
 }

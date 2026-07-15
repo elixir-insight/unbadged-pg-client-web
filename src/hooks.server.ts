@@ -10,7 +10,7 @@ import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
 import { canAccessPortalPath, resolvePortalHome } from '$lib/stores/auth/portal';
-import type { GatewayTokenPayload } from '$lib/stores/auth/types';
+import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/types';
 
 // Keep auth pages + API routes public so missing/expired cookies never block
 // sign-in/sign-out or forgot/reset password flows.
@@ -47,7 +47,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	try {
 		const tokens = await getValidSession(event.cookies, event.fetch, event.locals.logger);
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
-		event.locals.merchantSession = parseMerchantSessionFromGateway(gatewayPayload);
+		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+		event.locals.merchantSession = parseMerchantSessionFromGateway(
+			gatewayPayload,
+			accessPayload['cognito:groups'] ?? []
+		);
 		event.locals.gatewayToken = tokens.gatewayToken;
 	} catch (e) {
 		event.locals.merchantSession = null;

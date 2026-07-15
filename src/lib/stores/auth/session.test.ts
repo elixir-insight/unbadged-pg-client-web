@@ -9,16 +9,16 @@ function tokenWithGroups(groups: string[]): CognitoIdToken {
 
 function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayTokenPayload {
 	return {
-		orgId: 42,
-		userId: 7,
-		userName: 'Acme Merchant',
-		userEmail: 'acme@example.com',
-		userType: 'merchant',
-		'cognito:groups': ['MERCHANT'],
+		orgId: 10002,
+		userId: 100002,
+		userName: 'Elixir Pay',
+		userEmail: 'admin@elixirpay.com',
+		userType: 'ROOT',
 		iss: 'Elixir Pay',
 		token_use: 'gateway',
-		exp: 1_700_000_000,
-		iat: 1_699_000_000,
+		exp: 1_784_059_619,
+		iat: 1_784_056_019,
+		sub: '100002',
 		...overrides
 	};
 }
@@ -46,18 +46,16 @@ describe('parseMerchantSession', () => {
 
 describe('parseMerchantSessionFromGateway', () => {
 	it('maps identity fields and stringifies numeric ids', () => {
-		const session = parseMerchantSessionFromGateway(gatewayToken());
-		expect(session.userId).toBe('7');
-		expect(session.organizationId).toBe('42');
-		expect(session.merchantName).toBe('Acme Merchant');
-		expect(session.email).toBe('acme@example.com');
+		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
+		expect(session.userId).toBe('100002');
+		expect(session.organizationId).toBe('10002');
+		expect(session.merchantName).toBe('Elixir Pay');
+		expect(session.email).toBe('admin@elixirpay.com');
 	});
 
-	it('keeps portal groups and uses temporary service permissions', () => {
-		const session = parseMerchantSessionFromGateway(
-			gatewayToken({ 'cognito:groups': ['MERCHANT', 'MANAGEMENT'] })
-		);
+	it('uses portal groups from the access token only', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
 		expect(session.permissions).toEqual({ payin: true, payout: true });
-		expect(session.groups).toEqual(['MERCHANT', 'MANAGEMENT']);
+		expect(session.groups).toEqual(['MANAGEMENT']);
 	});
 });

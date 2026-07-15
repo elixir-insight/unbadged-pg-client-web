@@ -1,20 +1,36 @@
 import * as v from 'valibot';
 
-export const SignInResponseSchema = v.object({
+export const AuthTokensSchema = v.object({
+	accessToken: v.string(),
+	gatewayToken: v.string(),
+	idToken: v.string(),
+	refreshToken: v.string()
+});
+
+const SignInTokensResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(AuthTokensSchema)
+});
+
+const SignInSessionExistsResponseSchema = v.object({
 	message: v.string(),
 	statusCode: v.number(),
 	data: v.array(
 		v.object({
-			accessToken: v.string(),
-			gatewayToken: v.string(),
-			idToken: v.string(),
-			refreshToken: v.string()
+			sessionAlreadyExists: v.literal(true)
 		})
 	)
 });
 
-/** Identical shape to sign-in — aliased so the two can't silently drift apart. */
-export const RefreshResponseSchema = SignInResponseSchema;
+/** Tokens on success, or session-conflict payload on 202. */
+export const SignInResponseSchema = v.union([
+	SignInTokensResponseSchema,
+	SignInSessionExistsResponseSchema
+]);
+
+/** Refresh only returns tokens — not the session-conflict union. */
+export const RefreshResponseSchema = SignInTokensResponseSchema;
 
 export const SignInBodySchema = v.object({
 	userEmail: v.pipe(
