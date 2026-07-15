@@ -25,21 +25,38 @@
 			breakdown.rate !== undefined
 				? { label: 'Processing rate', value: `${breakdown.rate}%` }
 				: null,
-			{ label: 'Processing fee', value: currency.format(breakdown.processingFee) },
-			{ label: 'GST', value: currency.format(breakdown.gst) },
-			{ label: 'Total fee', value: currency.format(breakdown.totalFee), bold: true }
+			{
+				label: 'Processing fee',
+				value: `−${currency.format(breakdown.processingFee)}`,
+				negative: true
+			},
+			{ label: 'GST', value: `−${currency.format(breakdown.gst)}`, negative: true },
+			{
+				label: 'Total fee',
+				value: `−${currency.format(breakdown.totalFee)}`,
+				negative: true,
+				bold: true
+			}
 		].filter((r) => r !== null)
 	);
 </script>
 
-<div class={cn('grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4', className)}>
-	{#each rows as row (row.label)}
-		<div class="flex flex-col gap-0.5">
-			<span class="text-xs text-muted-foreground">{row.label}</span>
+<div class={cn('flex flex-col gap-2.5 rounded-lg border border-border bg-card p-4', className)}>
+	{#each rows as row, i (row.label)}
+		{#if row.bold && i > 0}
+			<div class="my-1 border-t border-border"></div>
+		{/if}
+		<div class="flex items-center justify-between gap-4">
+			<span
+				class={cn('text-sm text-muted-foreground', row.bold && 'font-semibold text-foreground')}
+			>
+				{row.label}
+			</span>
 			<span
 				class={cn(
-					'font-mono text-sm',
-					row.bold ? 'font-semibold text-foreground' : 'text-foreground'
+					'font-mono',
+					row.bold ? 'text-base font-bold' : 'text-sm',
+					row.negative ? 'text-destructive' : 'text-foreground'
 				)}
 			>
 				{row.value}

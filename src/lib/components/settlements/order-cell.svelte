@@ -12,7 +12,7 @@
 
 <button
 	type="button"
-	onclick={() => goto(resolve('/merchant/transactions/payins/[id]', { id }))}
+	onclick={() => goto(resolve('/merchant/transactions/collections/[id]', { id }))}
 	class="block text-left focus-visible:outline-none"
 >
 	<span class="block text-sm font-medium text-foreground hover:underline">{id}</span>

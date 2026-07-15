@@ -1,7 +1,6 @@
 import type {
 	AccountSettlementConfig,
 	FeeBreakdown,
-	OnDemandSettlement,
 	Settlement,
 	SettlementOrder
 } from '$lib/types/settlement';
@@ -202,48 +201,3 @@ export const settlements: Settlement[] = settlementSeeds.map(buildSettlement);
 export function getSettlement(id: string): Settlement | undefined {
 	return settlements.find((s) => s.id === id);
 }
-
-// ── On-demand settlements — a distinct dataset (instant payouts a merchant
-// pulls on request), not a filtered view of the scheduled-settlements table.
-export const onDemandSettlements: OnDemandSettlement[] = [
-	{
-		id: 'OD-20260714-0003',
-		requestedOn: isoDaysAgo(0),
-		settledOn: isoDaysAgo(0),
-		status: 'settled',
-		amount: 42000,
-		fee: 210,
-		netAmount: 41790,
-		utr: 'UTROD2607140003'
-	},
-	{
-		id: 'OD-20260713-0002',
-		requestedOn: isoDaysAgo(1),
-		settledOn: null,
-		status: 'processing',
-		amount: 18500,
-		fee: 92.5,
-		netAmount: 18407.5,
-		utr: null
-	},
-	{
-		id: 'OD-20260710-0001',
-		requestedOn: isoDaysAgo(4),
-		settledOn: isoDaysAgo(4),
-		status: 'settled',
-		amount: 96400,
-		fee: 482,
-		netAmount: 95918,
-		utr: 'UTROD2607100001'
-	},
-	{
-		id: 'OD-20260705-0004',
-		requestedOn: isoDaysAgo(9),
-		settledOn: null,
-		status: 'failed',
-		amount: 5200,
-		fee: 0,
-		netAmount: 0,
-		utr: null
-	}
-];

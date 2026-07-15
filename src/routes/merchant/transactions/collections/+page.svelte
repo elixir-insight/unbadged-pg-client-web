@@ -16,6 +16,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
+	import { settlements as mockSettlements } from '$lib/data/settlement-mock';
 
 	type PayinStatus = 'success' | 'pending' | 'failed';
 
@@ -27,6 +28,8 @@
 		amount: string;
 		status: PayinStatus;
 		_dateMs: number;
+		/** Settlement this transaction was paid out in — null while still unsettled. */
+		settlementId: string | null;
 	}
 
 	const DAY_MS = 86_400_000;
@@ -50,6 +53,7 @@
 			method: 'UPI',
 			amount: '₹4,500.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 1 * DAY_MS
 		},
 		{
@@ -59,15 +63,17 @@
 			method: 'Net Banking',
 			amount: '₹12,000.00',
 			status: 'pending',
+			settlementId: null,
 			_dateMs: now - 2 * DAY_MS
 		},
 		{
 			txnId: 'TXN-1003',
 			date: fmtDate(now - 3 * DAY_MS),
 			customer: 'Vikram Nair',
-			method: 'Credit Card',
+			method: 'UPI',
 			amount: '₹2,750.00',
-			status: 'failed',
+			status: 'success',
+			settlementId: null,
 			_dateMs: now - 3 * DAY_MS
 		},
 		{
@@ -77,6 +83,7 @@
 			method: 'UPI',
 			amount: '₹8,200.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 5 * DAY_MS
 		},
 		{
@@ -86,6 +93,7 @@
 			method: 'Debit Card',
 			amount: '₹1,500.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 6 * DAY_MS
 		},
 		{
@@ -95,6 +103,7 @@
 			method: 'UPI',
 			amount: '₹6,800.00',
 			status: 'pending',
+			settlementId: null,
 			_dateMs: now - 9 * DAY_MS
 		},
 		{
@@ -104,6 +113,7 @@
 			method: 'Net Banking',
 			amount: '₹25,000.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 12 * DAY_MS
 		},
 		{
@@ -113,6 +123,7 @@
 			method: 'Credit Card',
 			amount: '₹3,200.00',
 			status: 'failed',
+			settlementId: null,
 			_dateMs: now - 14 * DAY_MS
 		},
 		{
@@ -122,6 +133,7 @@
 			method: 'UPI',
 			amount: '₹9,500.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 18 * DAY_MS
 		},
 		{
@@ -131,6 +143,7 @@
 			method: 'Wallet',
 			amount: '₹750.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 22 * DAY_MS
 		},
 		{
@@ -140,6 +153,7 @@
 			method: 'UPI',
 			amount: '₹15,000.00',
 			status: 'pending',
+			settlementId: null,
 			_dateMs: now - 25 * DAY_MS
 		},
 		{
@@ -149,6 +163,7 @@
 			method: 'Net Banking',
 			amount: '₹42,000.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 28 * DAY_MS
 		},
 		{
@@ -158,6 +173,7 @@
 			method: 'Credit Card',
 			amount: '₹5,600.00',
 			status: 'failed',
+			settlementId: null,
 			_dateMs: now - 35 * DAY_MS
 		},
 		{
@@ -167,6 +183,7 @@
 			method: 'UPI',
 			amount: '₹11,200.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 45 * DAY_MS
 		},
 		{
@@ -176,6 +193,7 @@
 			method: 'Debit Card',
 			amount: '₹2,300.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 52 * DAY_MS
 		},
 		{
@@ -185,6 +203,7 @@
 			method: 'Wallet',
 			amount: '₹450.00',
 			status: 'pending',
+			settlementId: null,
 			_dateMs: now - 60 * DAY_MS
 		},
 		{
@@ -194,6 +213,7 @@
 			method: 'Net Banking',
 			amount: '₹18,900.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 72 * DAY_MS
 		},
 		{
@@ -203,6 +223,7 @@
 			method: 'Credit Card',
 			amount: '₹7,100.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 85 * DAY_MS
 		},
 		{
@@ -212,6 +233,7 @@
 			method: 'UPI',
 			amount: '₹3,400.00',
 			status: 'failed',
+			settlementId: null,
 			_dateMs: now - 95 * DAY_MS
 		},
 		{
@@ -221,9 +243,45 @@
 			method: 'Net Banking',
 			amount: '₹22,500.00',
 			status: 'success',
+			settlementId: null,
 			_dateMs: now - 110 * DAY_MS
 		}
 	];
+
+	// ── Settlement-linked rows — one per settlement order, tagged with the real
+	// settlementId so this list and the settlement details screen share data.
+	const settlementOrderMethods = ['UPI', 'Credit Card', 'Net Banking'];
+	const settlementOrderCustomers = ['Arjun Mehta', 'Priya Sharma', 'Vikram Nair'];
+
+	let settlementRowIndex = 0;
+	for (const settlement of mockSettlements) {
+		for (const order of settlement.orders) {
+			const method = settlementOrderMethods[settlementRowIndex % settlementOrderMethods.length];
+			const customer =
+				settlementOrderCustomers[settlementRowIndex % settlementOrderCustomers.length];
+			settlementRowIndex++;
+
+			const dateMs = settlement.settledOn
+				? new Date(settlement.settledOn).getTime()
+				: settlement.expectedOn
+					? new Date(settlement.expectedOn).getTime()
+					: now;
+
+			mockData.push({
+				txnId: order.id,
+				date: fmtDate(dateMs),
+				customer,
+				method,
+				amount: `₹${order.amount.toLocaleString('en-IN', {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				})}`,
+				status: 'success',
+				settlementId: settlement.id,
+				_dateMs: dateMs
+			});
+		}
+	}
 
 	const summaryCards: { label: string; status: string | null }[] = [
 		{ label: 'Transactions', status: null },
@@ -261,6 +319,11 @@
 			accessorKey: 'status',
 			header: 'Status',
 			cell: (info) => renderComponent(StatusBadge, { status: info.getValue<PayinStatus>() })
+		},
+		{
+			accessorKey: 'settlementId',
+			header: 'Settlement ID',
+			cell: (info) => info.getValue<string | null>() ?? '—'
 		}
 	];
 
@@ -482,9 +545,8 @@
 			setPageNumber={(p) => {
 				pageNumber = p;
 			}}
-			loading={false}
-			skeletonRows={8}
-			onRowClick={(row) => goto(resolve('/merchant/transactions/payins/[id]', { id: row.txnId }))}
+			onRowClick={(row) =>
+				goto(resolve('/merchant/transactions/collections/[id]', { id: row.txnId }))}
 		/>
 	</div>
 </div>
