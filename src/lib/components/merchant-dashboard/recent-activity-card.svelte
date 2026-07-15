@@ -46,11 +46,11 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background px-3 py-2 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background px-2.5 py-2 shadow-xs',
 		className
 	)}
 >
-	<div class="mb-1.5 flex shrink-0 items-center justify-between">
+	<div class="mb-1 flex shrink-0 items-center justify-between">
 		<p class="text-sm font-semibold">Recent transactions</p>
 		<a
 			href={resolve('/merchant/transactions')}
@@ -62,15 +62,15 @@
 	</div>
 
 	<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
-		{#each payments.slice(0, 4) as payment, i (payment.name)}
+		{#each payments.slice(0, 6) as payment, i (payment.name)}
 			<div
 				class={cn(
-					'flex shrink-0 items-center gap-3 py-1.5',
-					i < Math.min(payments.length, 4) - 1 && 'border-b border-border'
+					'flex shrink-0 items-center gap-2.5 py-1',
+					i < Math.min(payments.length, 6) - 1 && 'border-b border-border/60'
 				)}
 			>
 				<span
-					class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+					class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
 				>
 					{initials(payment.name)}
 				</span>

@@ -5,7 +5,6 @@ export type { VirtualAccountSummary } from './funds-summary-card.svelte';
 export { default as RefundInsightsCard } from './refund-insights-card.svelte';
 export type { RefundStatusCounts } from './refund-insights-card.svelte';
 export { default as SettlementsCard } from './settlements-card.svelte';
-export type { SettlementStatusSummary } from './settlements-card.svelte';
 export { default as RecentActivityCard } from './recent-activity-card.svelte';
 export type { RecentPayment } from './recent-activity-card.svelte';
 export { default as RefundsDisputesCard } from './refunds-disputes-card.svelte';

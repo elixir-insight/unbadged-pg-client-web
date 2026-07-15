@@ -7,9 +7,6 @@
 </script>
 
 <script lang="ts">
-	import { resolve } from '$app/paths';
-	import { RadialSpiralChart, type RadialSpiralSegment } from '$lib/components/reusable';
-	import { ArrowRight } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 
 	interface Props extends RefundStatusCounts {
@@ -19,30 +16,48 @@
 	let { completed, initiated, failed, class: className }: Props = $props();
 
 	const segments = $derived([
-		{ label: 'Completed', value: completed, color: 'var(--color-chart-1)' },
-		{ label: 'Initiated', value: initiated, color: 'var(--color-chart-2)' },
-		{ label: 'Failed', value: failed, color: 'var(--color-chart-3)' }
-	] satisfies RadialSpiralSegment[]);
+		{ label: 'Completed', value: completed, color: 'bg-green-500' },
+		{ label: 'Initiated', value: initiated, color: 'bg-orange-500' },
+		{ label: 'Failed', value: failed, color: 'bg-red-500' }
+	]);
+
+	const total = $derived(completed + initiated + failed || 1);
 </script>
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
+		'flex h-full min-h-0 flex-col gap-2.5 rounded-lg border border-border bg-background p-2.5 shadow-xs',
 		className
 	)}
 >
-	<div class="flex shrink-0 items-center justify-between">
+	<div class="flex shrink-0 items-baseline justify-between">
 		<p class="text-sm font-semibold">Refund insights</p>
-		<a
-			href={resolve('/merchant/transactions')}
-			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-		>
-			View all
-			<ArrowRight class="size-3" />
-		</a>
+		<p class="text-xs text-muted-foreground">{total} refunds</p>
 	</div>
 
-	<div class="flex min-h-0 flex-1 items-center justify-center">
-		<RadialSpiralChart {segments} unitLabel="refunds" class="w-full md:h-full md:max-h-44" />
+	<div class="flex h-2.5 w-full shrink-0 overflow-hidden rounded-full bg-muted">
+		{#each segments as segment (segment.label)}
+			<div
+				class={cn('h-full', segment.color)}
+				style="width: {(segment.value / total) * 100}%"
+			></div>
+		{/each}
+	</div>
+
+	<div class="flex min-h-0 flex-1 flex-col justify-evenly">
+		{#each segments as segment (segment.label)}
+			<div class="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
+				<div class="flex items-center gap-2">
+					<span class={cn('size-2.5 shrink-0 rounded-full', segment.color)}></span>
+					<span class="text-muted-foreground">{segment.label}</span>
+				</div>
+				<div class="flex items-baseline gap-1.5">
+					<span class="font-semibold">{segment.value}</span>
+					<span class="text-xs text-muted-foreground"
+						>({Math.round((segment.value / total) * 100)}%)</span
+					>
+				</div>
+			</div>
+		{/each}
 	</div>
 </div>

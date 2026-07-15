@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import { StatCard } from '$lib/components/reusable';
+	import { StatCard, Avatar } from '$lib/components/reusable';
 	import {
 		TransactionVolumeChart,
 		RefundInsightsCard,
@@ -9,9 +9,9 @@
 		RefundsDisputesCard,
 		type RecentPayment
 	} from '$lib/components/merchant-dashboard';
-	import { Undo, ArrowDownToLine, Landmark, MessageSquareWarning } from '$lib/assets/icons';
+	import { Undo, ArrowDownToLine, Landmark, Wallet } from '$lib/assets/icons';
 
-	const firstName = $derived(merchantSession.session?.merchantName?.split(' ')[0] ?? 'there');
+	const merchantName = $derived(merchantSession.session?.merchantName ?? 'there');
 
 	// Mock data — swap for real metrics once the dashboard API is wired up.
 	const balanceTrend = [12, 14, 13, 15, 14, 16, 15, 17, 16, 18.4];
@@ -51,52 +51,55 @@
 			status: 'pending'
 		},
 		{ name: 'Sophia Lee', method: 'UPI', time: 'Yesterday', amount: '₹3,400', status: 'success' },
-		{ name: 'David Miller', method: 'Card', time: 'Yesterday', amount: '₹2,900', status: 'failed' }
+		{ name: 'David Miller', method: 'Card', time: 'Yesterday', amount: '₹2,900', status: 'failed' },
+		{ name: 'Priya Nair', method: 'UPI', time: 'Yesterday', amount: '₹9,150', status: 'success' }
 	];
 </script>
 
 <div class="flex flex-col lg:min-h-0 lg:flex-1">
 	{#if merchantSession.hasBothServices()}
 		<div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
-			<div class="shrink-0">
-				<h2 class="text-base leading-tight font-semibold">Welcome back, {firstName}</h2>
-				<p class="text-xs leading-tight text-muted-foreground">
-					Here's what's happening with your account today.
-				</p>
+			<div class="flex shrink-0 items-center justify-between">
+				<h2 class="text-base leading-tight font-semibold">Dashboard</h2>
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{merchantName}</span>
+					<Avatar name={merchantName} size="sm" />
+				</div>
 			</div>
 
 			<div
 				class="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-rows-[90px_minmax(220px,1.3fr)_minmax(170px,1fr)]"
 			>
 				<!-- Row 1 · KPI overview -->
-				<div class="grid grid-cols-12 gap-3">
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 					<StatCard
 						label="Today's collection"
 						value="₹6,42,300"
 						subtext="128 transactions"
 						icon={ArrowDownToLine}
-						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+						class="h-full"
 					/>
 					<StatCard
-						label="Refunds"
-						value="25"
-						subtext="5 initiated · 2 failed"
-						icon={Undo}
-						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
-					/>
-					<StatCard
-						label="Disputes"
-						value="12"
-						subtext="2 require immediate attention"
-						icon={MessageSquareWarning}
-						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+						label="Available funds"
+						value="₹18,42,650"
+						badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
+						subtext="Last settled ₹7,65,400"
+						icon={Wallet}
+						class="h-full"
 					/>
 					<StatCard
 						label="Pending Settlements"
 						value="₹38,900"
 						subtext="Settles tomorrow"
 						icon={Landmark}
-						class="col-span-12 h-full md:col-span-6 lg:col-span-3"
+						class="h-full"
+					/>
+					<StatCard
+						label="Refunds"
+						value="25"
+						subtext="5 initiated · 2 failed"
+						icon={Undo}
+						class="h-full"
 					/>
 				</div>
 
@@ -114,24 +117,26 @@
 
 				<!-- Row 3 · Operational overview -->
 				<div class="grid min-h-0 grid-cols-12 gap-3">
-					<RefundsDisputesCard
-						open={3}
-						pending={4}
-						resolved={5}
-						attentionText="2 require immediate attention"
-						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
-					/>
 					<SettlementsCard
 						availableFunds="₹18,42,650"
 						availableFundsChangeLabel="+4.2%"
+						todaySettlement="₹6,42,300"
+						pendingSettlement="₹38,900"
 						lastSettlementAmount="₹7,65,400"
-						statusSummary={{ completed: 12, processing: 3, failed: 1 }}
+						nextSettlement="Tomorrow, 10:00 AM"
 						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
 					/>
 					<RefundInsightsCard
 						completed={refundStats.completed}
 						initiated={refundStats.initiated}
 						failed={refundStats.failed}
+						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
+					/>
+					<RefundsDisputesCard
+						open={3}
+						pending={4}
+						resolved={5}
+						avgResolutionTime="1.8 days"
 						class="col-span-12 min-h-0 h-full md:col-span-12 lg:col-span-4"
 					/>
 				</div>
@@ -139,11 +144,12 @@
 		</div>
 	{:else if merchantSession.hasPayinAccess()}
 		<div class="space-y-6">
-			<div>
-				<h2 class="text-lg font-semibold">Welcome back, {firstName}</h2>
-				<p class="text-sm text-muted-foreground">
-					Here's what's happening with your account today.
-				</p>
+			<div class="flex items-center justify-between">
+				<h2 class="text-lg font-semibold">Dashboard</h2>
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{merchantName}</span>
+					<Avatar name={merchantName} size="sm" />
+				</div>
 			</div>
 
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -170,11 +176,12 @@
 		</div>
 	{:else if merchantSession.hasPayoutAccess()}
 		<div class="space-y-6">
-			<div>
-				<h2 class="text-lg font-semibold">Welcome back, {firstName}</h2>
-				<p class="text-sm text-muted-foreground">
-					Here's what's happening with your account today.
-				</p>
+			<div class="flex items-center justify-between">
+				<h2 class="text-lg font-semibold">Dashboard</h2>
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{merchantName}</span>
+					<Avatar name={merchantName} size="sm" />
+				</div>
 			</div>
 
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

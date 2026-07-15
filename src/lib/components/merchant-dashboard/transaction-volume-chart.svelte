@@ -70,7 +70,7 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-2.5 shadow-xs',
 		className
 	)}
 >

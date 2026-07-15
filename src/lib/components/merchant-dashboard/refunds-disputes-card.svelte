@@ -1,19 +1,17 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { PieChart } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
-	import { ArrowRight } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 
 	interface Props {
 		open: number;
 		pending: number;
 		resolved: number;
-		attentionText: string;
+		avgResolutionTime: string;
 		class?: string;
 	}
 
-	let { open, pending, resolved, attentionText, class: className }: Props = $props();
+	let { open, pending, resolved, avgResolutionTime, class: className }: Props = $props();
 
 	const chartConfig = {
 		open: { label: 'Open', color: 'var(--color-chart-1)' },
@@ -34,37 +32,28 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-3 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-2.5 shadow-xs',
 		className
 	)}
 >
-	<div class="flex shrink-0 items-center justify-between">
-		<p class="text-sm font-semibold">Disputes overview</p>
-		<a
-			href={resolve('/merchant/disputes')}
-			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-		>
-			View all
-			<ArrowRight class="size-3" />
-		</a>
-	</div>
+	<p class="shrink-0 text-sm font-semibold">Dispute overview</p>
 
-	<div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 md:flex-row md:gap-6">
-		<div class="relative aspect-square h-full min-h-28 max-h-40 w-auto min-w-28">
+	<div class="flex min-h-0 flex-1 items-center justify-center gap-4">
+		<div class="relative aspect-square h-full min-h-24 max-h-36 w-auto min-w-24">
 			<Chart.Container config={chartConfig} class="aspect-auto size-full">
-				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-20} padAngle={0.02}>
+				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-18} padAngle={0.02}>
 					{#snippet tooltip()}
 						<Chart.Tooltip hideLabel nameKey="key" />
 					{/snippet}
 				</PieChart>
 			</Chart.Container>
 			<div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-				<span class="text-2xl font-bold tracking-tight">{total}</span>
-				<span class="text-xs text-muted-foreground">disputes</span>
+				<span class="text-xl font-bold tracking-tight">{total}</span>
+				<span class="text-xs text-muted-foreground">total</span>
 			</div>
 		</div>
 
-		<div class="flex flex-col gap-2 text-xs">
+		<div class="flex flex-col gap-1.5 text-xs">
 			{#each data as item, i (item.key)}
 				<div class="flex items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full" style="background-color: {cRange[i]}"></span>
@@ -75,7 +64,10 @@
 		</div>
 	</div>
 
-	<p class="shrink-0 text-center text-xs font-medium text-orange-600 dark:text-orange-400">
-		{attentionText}
-	</p>
+	<div
+		class="mt-1.5 flex shrink-0 items-center justify-between border-t border-border/60 pt-1.5 text-xs"
+	>
+		<span class="text-muted-foreground">Avg. resolution time</span>
+		<span class="font-semibold">{avgResolutionTime}</span>
+	</div>
 </div>
