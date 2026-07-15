@@ -7,6 +7,17 @@ import {
 	affiliatesByPipeline
 } from '../../../routes/management/organizations/create-organization/constants';
 
+const bankPipelinesByService = {
+	'Pay-Ins': availableBankPipelines.map((pipeline) => ({
+		value: pipeline.value,
+		label: pipeline.value
+	})),
+	Payouts: availableBankPipelines.map((pipeline) => ({
+		value: pipeline.value,
+		label: pipeline.value
+	}))
+};
+
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {
 		selectedServiceTypes: [] as string[],
@@ -14,7 +25,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
 		affiliateId: '',
 		errors: {} as Record<string, string>,
 		availableServiceTypes,
-		availableBankPipelines,
+		bankPipelinesByService,
 		affiliatesByPipeline,
 		onToggleService: vi.fn(),
 		onPipelineChange: vi.fn(),

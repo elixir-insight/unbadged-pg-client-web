@@ -27,7 +27,7 @@ export const authClient = {
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/user/refresh-token', {
+		apiFetch('api/v1/user/refresh-token', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -47,7 +47,7 @@ export const authClient = {
 		gatewayToken: string,
 		refreshToken: string
 	) =>
-		apiFetch('/user/sign-out', {
+		apiFetch('api/v1/user/sign-out', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',

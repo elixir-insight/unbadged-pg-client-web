@@ -315,6 +315,22 @@
 	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Isolate toasts from the page view-transition layer.
+   Without a name, toasts are captured in the root snapshot and paint under `page`. */
+[data-sonner-toaster] {
+	view-transition-name: app-toaster;
+}
+
+::view-transition-group(app-toaster) {
+	z-index: 1;
+	animation: none;
+}
+
+::view-transition-old(app-toaster),
+::view-transition-new(app-toaster) {
+	animation: none;
+}
+
 /* Navigation loading bar — shimmer that only appears after 200ms to avoid flicker on fast navigations */
 .app-nav-progress {
 	position: fixed;

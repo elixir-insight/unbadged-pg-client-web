@@ -9,7 +9,8 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		fetch: typeof globalThis.fetch;
 		schema: TSchema;
 		logger: Logger;
-		idToken?: string;
+		accessToken?: string;
+		gatewayToken?: string;
 		skipAuth?: boolean;
 		method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
 		body?: unknown;
@@ -17,9 +18,13 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		extraHeaders?: Record<string, string>;
 	}
 ): Promise<Result<v.InferOutput<TSchema>>> {
-	if (!opts.skipAuth && !opts.idToken) {
-		throw new Error(`apiFetch(${path}): idToken required unless skipAuth is set`);
+	if (!opts.skipAuth && (!opts.accessToken || !opts.gatewayToken)) {
+		throw new Error(
+			`apiFetch(${path}): accessToken and gatewayToken required unless skipAuth is set`
+		);
 	}
+
+	const { accessToken, gatewayToken } = opts;
 
 	const url = buildUrl(path, opts.query);
 	const method = opts.method ?? 'GET';
@@ -33,7 +38,10 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		'Content-Type': 'application/json',
 		...opts.extraHeaders
 	};
-	if (!opts.skipAuth) headers.Authorization = `Bearer ${opts.idToken}`;
+	if (!opts.skipAuth && accessToken && gatewayToken) {
+		headers.Authorization = `Bearer ${accessToken}`;
+		headers['X-Gateway-Token'] = gatewayToken;
+	}
 
 	log.debug({ headers }, 'outbound request');
 

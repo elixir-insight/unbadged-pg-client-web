@@ -4,7 +4,7 @@ import { authClient } from './client';
 import { decodeJwt } from './jwt';
 import { storeSession } from './session';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { PortalHomePath, GatewayTokenPayload } from '$lib/stores/auth/types';
+import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
 
 export type SignInSuccess = {
 	ok: true;
@@ -20,6 +20,12 @@ export type SignInFailure = {
 };
 
 export type SignInResult = SignInSuccess | SignInFailure;
+
+function isSessionAlreadyExists(
+	item: { sessionAlreadyExists: true } | { accessToken: string }
+): item is { sessionAlreadyExists: true } {
+	return 'sessionAlreadyExists' in item && item.sessionAlreadyExists === true;
+}
 
 export async function performSignIn(opts: {
 	fetch: typeof fetch;
@@ -42,8 +48,7 @@ export async function performSignIn(opts: {
 		const message =
 			result.error.kind === 'http' ? result.error.message : 'Invalid email or password.';
 
-		// Force-login modal only for this exact upstream payload:
-		// { exceptionCode: "FAILED_TO_SIGN_IN", message: "User Session Already Exists", statusCode: 202 }
+		// Legacy shape with exceptionCode (if upstream ever sends it).
 		const requiresForce =
 			exceptionCode === 'FAILED_TO_SIGN_IN' &&
 			message === 'User Session Already Exists' &&
@@ -90,8 +95,8 @@ export async function performSignIn(opts: {
 		return { ok: false, status, message, exceptionCode };
 	}
 
-	const tokens = result.data.data[0];
-	if (!tokens) {
+	const item = result.data.data[0];
+	if (!item) {
 		log.error({ ip, userEmail }, 'sign-in succeeded but no tokens returned');
 		return {
 			ok: false,
@@ -100,13 +105,22 @@ export async function performSignIn(opts: {
 		};
 	}
 
-	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
-	const redirectTo = resolvePortalHome(gatewayPayload['cognito:groups'] ?? []);
+	// { data: [{ sessionAlreadyExists: true }], message: "...", statusCode: 202 }
+	if (isSessionAlreadyExists(item)) {
+		log.warn({ ip, userEmail }, 'sign-in requires force — session already exists');
+		return {
+			ok: false,
+			status: 409,
+			message: result.data.message,
+			requiresForce: true
+		};
+	}
 
-	log.info(
-		{ ip, userEmail, redirectTo, groups: gatewayPayload['cognito:groups'] },
-		'sign-in succeeded'
-	);
-	storeSession(cookies, tokens);
+	const accessPayload = decodeJwt<AccessTokenPayload>(item.accessToken);
+	const groups = accessPayload['cognito:groups'] ?? [];
+	const redirectTo = resolvePortalHome(groups);
+
+	log.info({ ip, userEmail, redirectTo, groups }, 'sign-in succeeded');
+	storeSession(cookies, item);
 	return { ok: true, redirectTo };
 }

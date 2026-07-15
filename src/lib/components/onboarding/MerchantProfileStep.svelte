@@ -14,9 +14,9 @@
 		desc: string;
 	}
 
-	interface BankPipeline {
+	interface BankPipelineOption {
 		value: string;
-		logo: string;
+		label: string;
 	}
 
 	interface Affiliate {
@@ -36,13 +36,14 @@
 		errors: Record<string, string>;
 		businessTypes: string[];
 		availableServiceTypes: ServiceType[];
-		availableBankPipelines: BankPipeline[];
+		bankPipelinesByService: Record<string, BankPipelineOption[]>;
 		affiliatesByPipeline: Record<string, Affiliate[]>;
 		onFieldInput: () => void;
 		onToggleService: (value: string, checked: boolean) => void;
 		onPipelineChange: (serviceType: string) => void;
 		onPrev: () => void;
 		onNext: () => void;
+		submitting?: boolean;
 	}
 
 	let {
@@ -57,13 +58,14 @@
 		errors,
 		businessTypes,
 		availableServiceTypes,
-		availableBankPipelines,
+		bankPipelinesByService,
 		affiliatesByPipeline,
 		onFieldInput,
 		onToggleService,
 		onPipelineChange,
 		onPrev,
-		onNext
+		onNext,
+		submitting = false
 	}: Props = $props();
 </script>
 
@@ -160,7 +162,7 @@
 					bind:affiliateId
 					{errors}
 					{availableServiceTypes}
-					{availableBankPipelines}
+					{bankPipelinesByService}
 					{affiliatesByPipeline}
 					{onToggleService}
 					{onPipelineChange}
@@ -169,9 +171,9 @@
 		</div>
 
 		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<Button variant="outline" size="lg" onclick={onPrev}>Back</Button>
-			<Button size="lg" onclick={onNext}>
-				Create {selectedCategory ?? 'Organization'}
+			<Button variant="outline" size="lg" onclick={onPrev} disabled={submitting}>Back</Button>
+			<Button size="lg" onclick={onNext} disabled={submitting}>
+				{submitting ? 'Creating…' : `Create ${selectedCategory ?? 'Organization'}`}
 			</Button>
 		</div>
 	</div>

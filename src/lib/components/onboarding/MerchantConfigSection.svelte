@@ -11,9 +11,9 @@
 		desc: string;
 	}
 
-	interface BankPipeline {
+	interface BankPipelineOption {
 		value: string;
-		logo: string;
+		label: string;
 	}
 
 	interface Affiliate {
@@ -27,7 +27,8 @@
 		affiliateId: string;
 		errors: Record<string, string>;
 		availableServiceTypes: ServiceType[];
-		availableBankPipelines: BankPipeline[];
+		/** Pipeline options keyed by service type value (e.g. Pay-Ins / Payouts). Value is bankPipelineCode. */
+		bankPipelinesByService: Record<string, BankPipelineOption[]>;
 		affiliatesByPipeline: Record<string, Affiliate[]>;
 		onToggleService: (value: string, checked: boolean) => void;
 		onPipelineChange: (serviceType: string) => void;
@@ -39,7 +40,7 @@
 		affiliateId = $bindable(),
 		errors,
 		availableServiceTypes,
-		availableBankPipelines,
+		bankPipelinesByService,
 		affiliatesByPipeline,
 		onToggleService,
 		onPipelineChange
@@ -128,10 +129,7 @@
 							<Dropdown
 								value={servicePipelines[svc.value] ?? ''}
 								onValueChange={(v) => setPipeline(svc.value, v)}
-								options={availableBankPipelines.map((b) => ({
-									value: b.value,
-									label: b.value
-								}))}
+								options={bankPipelinesByService[svc.value] ?? []}
 								placeholder="Select Bank Pipeline"
 								class={cn('w-full', errors[`bankPipeline_${svc.value}`] && 'border-destructive')}
 							/>

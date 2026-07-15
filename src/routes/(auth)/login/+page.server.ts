@@ -12,7 +12,7 @@ import {
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { GatewayTokenPayload } from '$lib/stores/auth/types';
+import type { AccessTokenPayload } from '$lib/stores/auth/types';
 
 /**
  * If the user still has a valid session (cookies not cleared / not logged out),
@@ -25,12 +25,10 @@ async function redirectIfAlreadySignedIn(
 ): Promise<void> {
 	try {
 		const tokens = await getValidSession(cookies, fetchFn, logger);
-		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
-		const home = resolvePortalHome(gatewayPayload['cognito:groups'] ?? []);
-		logger.info(
-			{ home, groups: gatewayPayload['cognito:groups'] },
-			'signed-in user hit login — redirecting to portal home'
-		);
+		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+		const groups = accessPayload['cognito:groups'] ?? [];
+		const home = resolvePortalHome(groups);
+		logger.info({ home, groups }, 'signed-in user hit login — redirecting to portal home');
 		redirect(303, home);
 	} catch (e) {
 		if (e instanceof SessionInactiveError) {
@@ -57,7 +55,6 @@ export const actions = {
 		const log = locals.logger;
 		const ip = getClientAddress();
 		const formData = await request.formData();
-
 		const raw = {
 			userEmail: String(formData.get('userEmail') ?? ''),
 			password: String(formData.get('password') ?? ''),
