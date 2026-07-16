@@ -11,7 +11,7 @@
 	import { BarChart, Bars, Spline, Points } from 'layerchart';
 	import { curveMonotoneX } from 'd3-shape';
 	import { cn } from '$lib/utils';
-	import Dropdown, { type DropdownOption } from '$lib/components/reusable/dropdown/dropdown.svelte';
+	import type { TooltipPayload } from '$lib/components/ui/chart';
 
 	let {
 		title,
@@ -20,8 +20,7 @@
 		valueLabel = 'Collection Volume',
 		formatValue = (v: number) => `${v}`,
 		color = 'var(--chart-2)',
-		period = $bindable<string | undefined>(undefined),
-		periodOptions,
+		// period = $bindable<string | undefined>(undefined),
 		class: className
 	}: {
 		title: string;
@@ -30,8 +29,8 @@
 		valueLabel?: string;
 		formatValue?: (value: number) => string;
 		color?: string;
-		period?: string;
-		periodOptions?: DropdownOption[];
+		// period?: string;
+		// periodOptions?: DropdownOption[];
 		class?: string;
 	} = $props();
 
@@ -81,11 +80,11 @@
 			</div>
 		</div>
 		<Card.Description class="text-xs">{description}</Card.Description>
-		{#if periodOptions}
+		<!-- {#if periodOptions}
 			<Card.Action>
 				<Dropdown bind:value={period} options={periodOptions} size="sm" class="h-8 w-24" />
 			</Card.Action>
-		{/if}
+		{/if} -->
 	</Card.Header>
 
 	<Card.Content class="flex min-h-0 flex-1 flex-col gap-4">
@@ -108,7 +107,7 @@
 				grid={{ x: false, y: true }}
 				rule={false}
 				axis={true}
-				padding={{ left: 44, bottom: 36, top: 12, right: 8 }}
+				padding={{ left: 44, bottom: 24, right: 8 }}
 			>
 				{#snippet marks({ context })}
 					{#each context.series.visibleSeries as s (s.key)}
@@ -123,7 +122,15 @@
 
 				{#snippet tooltip()}
 					<Chart.Tooltip>
-						{#snippet formatter({ value: itemValue, name, item })}
+						{#snippet formatter({
+							value: itemValue,
+							name,
+							item
+						}: {
+							value: unknown;
+							name: string;
+							item: TooltipPayload;
+						})}
 							<div class="flex w-full flex-1 items-center justify-between gap-3">
 								<span class="flex items-center gap-1.5 text-muted-foreground">
 									<span

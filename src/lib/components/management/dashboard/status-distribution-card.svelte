@@ -158,12 +158,12 @@
 							style:background-color={item.color}
 							aria-hidden="true"
 						></span>
-						<span class="min-w-0 truncate text-muted-foreground">{item.label}</span>
-						<span class="shrink-0 pl-3 font-semibold tabular-nums text-foreground"
+						<span class="min-w-0 truncate text-sm text-muted-foreground">{item.label}</span>
+						<span class="shrink-0 pl-3 font-semibold text-sm tabular-nums text-foreground"
 							>{item.percentage}%</span
 						>
 						{#if showAmount}
-							<span class="shrink-0 text-muted-foreground tabular-nums"
+							<span class="shrink-0 text-muted-foreground text-sm tabular-nums"
 								>({formatValue(item.amount)})</span
 							>
 						{/if}

@@ -115,10 +115,11 @@
 		</div>
 
 		<!-- Scrollable content -->
+
 		<!-- px/-mx cancel out (preserves alignment with the header above) while still giving card
 		     box-shadows room to render before overflow-y-auto's clip edge cuts them off -->
 		<div class="min-h-0 flex-1 overflow-y-auto -mx-3 px-3 pt-1 pb-3">
-			<Tabs.Content value="overview" class="flex h-full min-h-0 flex-col gap-3">
+			<Tabs.Content value="overview" class="flex h-full min-h-0 flex-col gap-4">
 				<!-- Row 1: KPI cards. auto-fit + minmax lets the column count flow with available
 				     width at any zoom level instead of jumping at fixed sm/lg breakpoints; row height
 				     is intrinsic (no forced height) so all four tiles stretch to match the tallest. -->

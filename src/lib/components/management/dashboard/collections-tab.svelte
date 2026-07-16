@@ -49,12 +49,6 @@
 		}
 	];
 
-	let period = $state('daily');
-	const periodOptions = [
-		{ value: 'daily', label: 'Daily' },
-		{ value: 'weekly', label: 'Weekly' }
-	];
-
 	const volumeTrend: VolumePoint[] = [
 		{ label: 'Jul 08', value: 4200000 },
 		{ label: 'Jul 09', value: 3800000 },
@@ -173,7 +167,7 @@
 	}
 </script>
 
-<div class="flex h-full min-h-0 flex-col gap-3">
+<div class="flex h-full min-h-0 flex-col gap-4">
 	<!-- Row 1: KPI cards -->
 	<div class="grid shrink-0 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
 		{#each kpis as kpi (kpi.label)}
@@ -190,8 +184,6 @@
 			valueLabel="Collection Volume"
 			formatValue={formatVolume}
 			color="var(--chart-1)"
-			bind:period
-			{periodOptions}
 			class="min-h-72 lg:min-h-0"
 		/>
 		<Card.Root

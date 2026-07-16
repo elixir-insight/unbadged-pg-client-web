@@ -11,6 +11,7 @@
 	import { LineChart, Area, Spline, Points } from 'layerchart';
 	import { curveMonotoneX } from 'd3-shape';
 	import { cn } from '$lib/utils';
+	import type { TooltipPayload } from '$lib/components/ui/chart';
 
 	let {
 		title,
@@ -48,10 +49,10 @@
 	size="sm"
 	class={cn('flex h-full min-h-0 flex-col data-[size=sm]:gap-3 data-[size=sm]:py-3', className)}
 >
-	<Card.Header>
-		<Card.Title class="text-sm font-semibold">{title}</Card.Title>
-		<Card.Description class="text-xs">{description}</Card.Description>
-	</Card.Header>
+	<div class="flex justify-between gap-2 flex-col sm:flex-row items-center py-2 px-4">
+		<h1 class="text-sm font-semibold">{title}</h1>
+		<span class="text-xs">{description}</span>
+	</div>
 
 	<Card.Content class="min-h-0 flex-1 overflow-hidden">
 		<Chart.Container config={chartConfig} class="h-full w-full">
@@ -95,7 +96,15 @@
 
 				{#snippet tooltip()}
 					<Chart.Tooltip indicator="dashed">
-						{#snippet formatter({ value: itemValue, name, item })}
+						{#snippet formatter({
+							value: itemValue,
+							name,
+							item
+						}: {
+							value: unknown;
+							name: string;
+							item: TooltipPayload;
+						})}
 							<div class="flex w-full flex-1 items-center justify-between gap-3">
 								<span class="flex items-center gap-1.5 text-muted-foreground">
 									<span
