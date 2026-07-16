@@ -25,7 +25,9 @@
 			if (result.type === 'redirect') {
 				const redirectUrl = new URL(result.location, window.location.origin);
 				const message = redirectUrl.searchParams.get('message');
-				toast.success(message ?? 'Reset instructions sent', { position: 'top-right' });
+				toast.success(message ?? 'Password reset code sent successfully', {
+					position: 'top-right'
+				});
 			}
 			await update();
 			if (form?.userEmail !== undefined) email = form.userEmail;

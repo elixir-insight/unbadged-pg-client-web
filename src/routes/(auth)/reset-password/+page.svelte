@@ -23,6 +23,7 @@
 	let otpDigits = $state(['', '', '', '', '', '']);
 	let otpRefs = $state<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
 	let submitting = $state(false);
+	let resending = $state(false);
 	let attemptedContinue = $state(false);
 
 	const confirmationCode = $derived(otpDigits.join(''));
@@ -118,20 +119,37 @@
 		resendSeconds = 30;
 	}
 
-	function resendOtp() {
-		if (resendSeconds > 0) return;
-		otpDigits = ['', '', '', '', '', ''];
-		resendSeconds = 30;
-		moveFocus(0);
-	}
-
 	onMount(() => {
 		theme.init();
 	});
 
-	const handleEnhance: SubmitFunction = () => {
-		submitting = true;
+	const handleEnhance: SubmitFunction = ({ action }) => {
+		const isResend = action.search.includes('/resend');
+
+		if (isResend) {
+			resending = true;
+		} else {
+			submitting = true;
+		}
+
 		return async ({ result, update }) => {
+			if (isResend) {
+				resending = false;
+				if (result.type === 'failure') {
+					const message =
+						(result.data as { error?: string } | undefined)?.error ?? 'Failed to resend the code.';
+					toast.error(message, { position: 'top-right', closeButton: false });
+					return;
+				}
+				if (result.type === 'success') {
+					otpDigits = ['', '', '', '', '', ''];
+					resendSeconds = 30;
+					moveFocus(0);
+					toast.success('A new code has been sent to your email.', { position: 'top-right' });
+				}
+				return;
+			}
+
 			submitting = false;
 			if (result.type === 'redirect') {
 				const redirectUrl = new URL(result.location, window.location.origin);
@@ -250,6 +268,7 @@
 					<form
 						class="flex w-full flex-col items-center gap-10"
 						method="POST"
+						action="?/confirm"
 						use:enhance={handleEnhance}
 					>
 						<input type="hidden" name="userEmail" value={userEmail} />
@@ -281,10 +300,10 @@
 
 						<div class="flex flex-col items-center gap-6">
 							<button
-								type="button"
+								type="submit"
+								formaction="?/resend"
 								class="text-base text-gray-700 underline underline-offset-4 disabled:opacity-50"
-								disabled={resendSeconds > 0}
-								onclick={resendOtp}
+								disabled={resendSeconds > 0 || resending}
 							>
 								{#if resendSeconds > 0}
 									Resend the code in {resendSeconds}s

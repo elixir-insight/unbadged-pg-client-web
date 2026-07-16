@@ -19,7 +19,7 @@ function formDataEvent(fields: Record<string, string>) {
 			}
 		},
 		locals: { logger: { child: vi.fn().mockReturnThis() } }
-	} as unknown as Parameters<typeof actions.default>[0];
+	} as unknown as Parameters<typeof actions.confirm>[0];
 }
 
 const validFields = {
@@ -37,7 +37,7 @@ describe('/reset-password action', () => {
 	it('rejects mismatched passwords before hitting the network', async () => {
 		const event = formDataEvent({ ...validFields, confirmPassword: 'Different@123' });
 
-		const result = await actions.default(event);
+		const result = await actions.confirm(event);
 
 		expect(authClient.confirmPassword).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ status: 400 });
@@ -46,7 +46,7 @@ describe('/reset-password action', () => {
 	it('rejects a malformed email before hitting the network', async () => {
 		const event = formDataEvent({ ...validFields, userEmail: 'not-an-email' });
 
-		const result = await actions.default(event);
+		const result = await actions.confirm(event);
 
 		expect(authClient.confirmPassword).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ status: 400 });
@@ -55,7 +55,7 @@ describe('/reset-password action', () => {
 	it('rejects a confirmation code that is not 6 digits', async () => {
 		const event = formDataEvent({ ...validFields, confirmationCode: '123' });
 
-		const result = await actions.default(event);
+		const result = await actions.confirm(event);
 
 		expect(authClient.confirmPassword).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ status: 400 });
@@ -68,7 +68,7 @@ describe('/reset-password action', () => {
 			confirmPassword: 'Ab1@'
 		});
 
-		const result = await actions.default(event);
+		const result = await actions.confirm(event);
 
 		expect(authClient.confirmPassword).not.toHaveBeenCalled();
 		expect(result).toMatchObject({ status: 400 });
@@ -83,7 +83,7 @@ describe('/reset-password action', () => {
 		const event = formDataEvent(validFields);
 
 		try {
-			await actions.default(event);
+			await actions.confirm(event);
 			expect.unreachable('action should have redirected on success');
 		} catch (error) {
 			expect(isRedirect(error)).toBe(true);
@@ -109,7 +109,7 @@ describe('/reset-password action', () => {
 
 		const event = formDataEvent(validFields);
 
-		const result = await actions.default(event);
+		const result = await actions.confirm(event);
 
 		expect(result).toMatchObject({ status: 400 });
 	});
