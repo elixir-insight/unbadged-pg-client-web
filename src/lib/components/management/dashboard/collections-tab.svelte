@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { AlertTriangle, Landmark, RotateCcw, Table2, Wallet } from '$lib/assets/icons';
+	import { AlertTriangle, Download, Landmark, RotateCcw, Table2, Wallet } from '$lib/assets/icons';
 	import MetricTile, { type MetricTileData } from './metric-tile.svelte';
 	import VolumeTrendCard, { type VolumePoint } from './volume-trend-card.svelte';
 	import StatusDistributionCard, { type StatusDatum } from './status-distribution-card.svelte';
 	import BankPipelineTable, { type BankPipelineRow } from './bank-pipeline-table.svelte';
 	import QuickActions, { type QuickAction } from './quick-actions.svelte';
+	import * as Card from '$lib/components/ui/card';
 
 	const kpis: MetricTileData[] = [
 		{
@@ -137,21 +138,27 @@
 	const quickLinks: QuickAction[] = [
 		{
 			id: 'transactions',
-			label: 'View transactions',
+			label: 'Transactions',
 			description: 'Browse every collection transaction and filter by bank or status',
 			icon: Table2,
 			href: '/management/transactions',
-			tone: 'violet',
-			iconSize: 'lg'
+			tone: 'violet'
+		},
+		{
+			id: 'download-report',
+			label: 'Download report',
+			description: 'Export the collections summary for this period',
+			icon: Download,
+			href: '/management/reports',
+			tone: 'amber'
 		},
 		{
 			id: 'settlements',
-			label: 'View settlements',
+			label: 'Settlements',
 			description: 'Track settlement batches and reconcile against bank payouts',
 			icon: Landmark,
 			href: '/management/settlements',
-			tone: 'emerald',
-			iconSize: 'lg'
+			tone: 'emerald'
 		}
 	];
 
@@ -166,16 +173,16 @@
 	}
 </script>
 
-<div class="flex min-h-0 flex-col gap-6">
+<div class="flex h-full min-h-0 flex-col gap-3">
 	<!-- Row 1: KPI cards -->
-	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+	<div class="grid shrink-0 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
 		{#each kpis as kpi (kpi.label)}
-			<MetricTile {...kpi} variant="glass" />
+			<MetricTile {...kpi} variant="stat" />
 		{/each}
 	</div>
 
-	<!-- Row 2: Volume trend + status distribution -->
-	<div class="grid min-h-0 grid-cols-1 gap-6 xl:h-88 xl:grid-cols-[64fr_36fr]">
+	<!-- Row 2: Volume trend + quick access -->
+	<div class="grid min-h-72 flex-1 grid-cols-1 gap-3 lg:grid-cols-[65fr_35fr]">
 		<VolumeTrendCard
 			title="Volume Trend"
 			description="Daily collection volume"
@@ -185,28 +192,35 @@
 			color="var(--chart-1)"
 			bind:period
 			{periodOptions}
-			class="min-h-70 xl:min-h-0 "
+			class="min-h-72 lg:min-h-0"
+		/>
+		<Card.Root
+			size="sm"
+			class="flex h-full min-h-0 flex-col data-[size=sm]:gap-3 data-[size=sm]:py-3"
+		>
+			<Card.Header>
+				<Card.Title class="text-sm font-semibold">Quick Access</Card.Title>
+			</Card.Header>
+			<Card.Content class="min-h-0 flex-1">
+				<QuickActions actions={quickLinks} layout="list" />
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- Row 3: Bank pipeline + status distribution -->
+	<div class="grid min-h-64 flex-1 grid-cols-1 gap-3 lg:grid-cols-[65fr_35fr]">
+		<BankPipelineTable
+			title="Bank pipeline breakdown"
+			rows={bankPipeline}
+			formatValue={(amount) => `₹${amount.toLocaleString('en-IN')}`}
+			class="min-h-64 lg:min-h-0"
 		/>
 		<StatusDistributionCard
 			title="Status Distribution"
-			description="Collections by outcome — last 7 days"
 			data={statusDistribution}
 			formatValue={formatFullINR}
-			class="min-h-70 xl:min-h-0"
+			showAmount={false}
+			class="min-h-80 lg:min-h-0"
 		/>
 	</div>
-
-	<!-- Row 3: Quick links -->
-	<div class="flex flex-col gap-3">
-		<h2 class="text-sm font-semibold text-foreground">Quick Links</h2>
-		<QuickActions actions={quickLinks} layout="grid" />
-	</div>
-
-	<!-- Below the fold: bank pipeline breakdown -->
-	<BankPipelineTable
-		title="Bank pipeline breakdown"
-		rows={bankPipeline}
-		formatValue={(amount) => `₹${amount.toLocaleString('en-IN')}`}
-		class="min-h-96"
-	/>
 </div>

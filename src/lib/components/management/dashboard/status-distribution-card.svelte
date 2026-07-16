@@ -86,7 +86,7 @@
 			<div
 				class={cn(
 					'relative flex shrink-0 items-center justify-center',
-					chartType === 'radial' ? 'size-52 @md:size-64' : 'size-36 @md:size-44'
+					chartType === 'radial' ? 'size-52 @md:size-64' : 'size-44 @md:size-52'
 				)}
 			>
 				<Chart.Container config={chartConfig} class="h-full w-full">

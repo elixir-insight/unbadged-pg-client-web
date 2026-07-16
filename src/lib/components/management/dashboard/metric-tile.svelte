@@ -43,7 +43,10 @@
 
 {#if variant === 'stat'}
 	<div
-		class={cn('flex flex-col justify-between gap-2 rounded-xl bg-card p-3 shadow-sm', className)}
+		class={cn(
+			'flex flex-col justify-between gap-1 overflow-hidden rounded-xl bg-card p-4 shadow-sm',
+			className
+		)}
 	>
 		<div class="flex items-start justify-between gap-2">
 			<div class="flex items-center gap-1">
@@ -63,8 +66,8 @@
 		</div>
 
 		<div>
-			<p class="text-3xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
-			<div class="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+			<p class="text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+			<div class="mt-0.5 flex flex-wrap items-center gap-1 text-[11px]">
 				{#if highlight}
 					<span class="font-semibold text-primary">{highlight}</span>
 				{:else if trend}

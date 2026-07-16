@@ -118,11 +118,11 @@
 			<div
 				class={cn(
 					'app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto',
-					isDashboard && 'xl:overflow-hidden'
+					isDashboard && 'md:overflow-hidden'
 				)}
 			>
 				<div
-					class={cn('min-h-full', isDashboard ? 'p-5 xl:flex xl:h-full xl:flex-col xl:p-6' : 'p-5')}
+					class={cn('min-h-full', isDashboard ? 'p-5 md:flex md:h-full md:flex-col md:p-6' : 'p-5')}
 				>
 					{@render children()}
 				</div>

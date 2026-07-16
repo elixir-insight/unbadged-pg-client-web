@@ -59,9 +59,27 @@
 	} satisfies Chart.ChartConfig);
 </script>
 
+{#snippet legend()}
+	<span class="flex items-center gap-1.5">
+		<span class="size-2 shrink-0 rounded-sm" style:background-color={color} aria-hidden="true"
+		></span>
+		{valueLabel}
+	</span>
+	<span class="flex items-center gap-1.5">
+		<span class="h-0.5 w-3 shrink-0 rounded-full" style:background-color={color} aria-hidden="true"
+		></span>
+		Trend
+	</span>
+{/snippet}
+
 <Card.Root class={cn('flex h-full min-h-0 flex-col ', className)}>
 	<Card.Header>
-		<Card.Title class="text-sm font-semibold">{title}</Card.Title>
+		<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+			<Card.Title class="text-sm font-semibold">{title}</Card.Title>
+			<div class="hidden items-center gap-4 text-[11px] text-muted-foreground lg:flex">
+				{@render legend()}
+			</div>
+		</div>
 		<Card.Description class="text-xs">{description}</Card.Description>
 		{#if periodOptions}
 			<Card.Action>
@@ -71,20 +89,8 @@
 	</Card.Header>
 
 	<Card.Content class="flex min-h-0 flex-1 flex-col gap-4">
-		<div class="flex items-center gap-4 text-[11px] text-muted-foreground">
-			<span class="flex items-center gap-1.5">
-				<span class="size-2 shrink-0 rounded-sm" style:background-color={color} aria-hidden="true"
-				></span>
-				{valueLabel}
-			</span>
-			<span class="flex items-center gap-1.5">
-				<span
-					class="h-0.5 w-3 shrink-0 rounded-full"
-					style:background-color={color}
-					aria-hidden="true"
-				></span>
-				Trend
-			</span>
+		<div class="flex items-center gap-4 text-[11px] text-muted-foreground lg:hidden">
+			{@render legend()}
 		</div>
 
 		<Chart.Container config={chartConfig} class="h-full w-full">
@@ -127,7 +133,7 @@
 									></span>
 									{name}
 								</span>
-								<span class="font-mono font-medium tabular-nums text-foreground">
+								<span class="font-medium tabular-nums text-foreground">
 									{formatValue(itemValue as number)}
 								</span>
 							</div>
