@@ -50,7 +50,7 @@
 			)
 	);
 
-	const agreementDone = $derived(agreementConfirmed && activationDocumentReady(organization));
+	const agreementDone = $derived(agreementConfirmed && activationDocumentReady());
 
 	const selectedMethodLabels = $derived(
 		payoutDraft.allowedTransactionTypes.map((method) => method.transactionType).join(', ')
@@ -165,7 +165,7 @@
 							.
 						</label>
 					</div>
-					{#if agreementConfirmed && !activationDocumentReady(organization)}
+					{#if agreementConfirmed && !activationDocumentReady()}
 						<p class="mt-3 text-sm text-muted-foreground" role="status">
 							Upload the Business Agreement document in Documents before activation can complete.
 						</p>

@@ -9,7 +9,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const canActivate = $derived(activationDocumentReady(organization));
+	const canActivate = $derived(activationDocumentReady());
 
 	function activatePartner() {
 		organization.status = 'ACTIVE';

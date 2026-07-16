@@ -19,14 +19,39 @@ export function legalComplete(org: Organization): boolean {
 	const { kyb } = org;
 	const cinRequired = kyb.businessType === 'Private Limited';
 	return Boolean(
-		kyb.legalCompanyName && kyb.businessType && kyb.gstin && (!cinRequired || kyb.cin)
+		kyb.legalCompanyName &&
+		kyb.businessType &&
+		kyb.gstin &&
+		kyb.businessPan &&
+		kyb.businessPhone &&
+		kyb.industry &&
+		kyb.organizationWebsite &&
+		kyb.registeredYear &&
+		(!cinRequired || kyb.cin)
+	);
+}
+
+function isAddressFilled(address: {
+	line1: string;
+	line2: string;
+	city: string;
+	state: string;
+	pincode: string;
+	country: string;
+}): boolean {
+	return Boolean(
+		address.line1 &&
+		address.line2 &&
+		address.city &&
+		address.state &&
+		address.pincode &&
+		address.country
 	);
 }
 
 export function addressComplete(org: Organization): boolean {
-	const address = org.kyb.registeredAddress;
-	return Boolean(
-		address.line1 && address.line2 && address.city && address.state && address.pincode
+	return (
+		isAddressFilled(org.kyb.registeredAddress) && isAddressFilled(org.kyb.communicationAddress)
 	);
 }
 
@@ -45,7 +70,7 @@ export function kybComplete(org: Organization): boolean {
 }
 
 export function bankDetailsComplete(org: Organization): boolean {
-	return org.bankAccounts.some((account) => account.status === 'Active');
+	return org.bankAccounts.some((account) => account.status === 'ACTIVE');
 }
 
 export function documentsComplete(org: Organization): boolean {
@@ -78,19 +103,12 @@ export function integrationComplete(org: Organization): boolean {
 }
 
 export function allSectionsComplete(org: Organization): boolean {
-	return (
-		kybComplete(org) &&
-		bankDetailsComplete(org) &&
-		documentsComplete(org) &&
-		(org.category === 'MERCHANT' ? integrationComplete(org) : true)
-	);
+	return kybComplete(org) && bankDetailsComplete(org) && documentsComplete(org);
 }
 
-export function activationDocumentReady(org: Organization): boolean {
-	const businessAgreement = org.documents.find(
-		(document) => document.documentType === 'Business agreement'
-	);
-	return businessAgreement ? isReady(businessAgreement.status) : false;
+export function activationDocumentReady(): boolean {
+	// Business agreement document no longer required for activation.
+	return true;
 }
 
 export function merchantActivationValid(org: Organization, agreementConfirmed: boolean): boolean {
@@ -130,7 +148,7 @@ export function merchantActivationValid(org: Organization, agreementConfirmed: b
 			(rule) => rule.baseAmount && rule.method && rule.gatewayFee && rule.partnerFee
 		);
 
-	const agreementOk = agreementConfirmed && activationDocumentReady(org);
+	const agreementOk = agreementConfirmed && activationDocumentReady();
 
 	return limitsOk && methodsOk && withinDailyCap && commissionOk && agreementOk;
 }

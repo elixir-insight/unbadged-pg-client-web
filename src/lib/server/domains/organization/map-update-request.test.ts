@@ -1,0 +1,79 @@
+import { describe, expect, it } from 'vitest';
+import * as v from 'valibot';
+import {
+	buildUpdateOrganizationKybRequest,
+	UpdateOrganizationFormBodySchema
+} from './map-update-request';
+
+const validFormBody = {
+	businessType: 'Partnership',
+	gstin: '29ABCDE1234F1Z5',
+	businessPan: 'ABCDE1234F',
+	businessPhone: '9876543210',
+	industry: 'Technology',
+	organizationWebsite: 'https://www.example.com',
+	registeredYear: 2018,
+	cin: '',
+	tan: 'BLRR12345A',
+	registeredAddress: {
+		line1: '10 Business Park Road',
+		line2: 'Suite 100',
+		city: 'Bengaluru',
+		state: 'Karnataka',
+		pincode: '560001',
+		country: 'India'
+	},
+	communicationAddress: {
+		line1: '20 Market Street',
+		line2: 'Floor 2',
+		city: 'Bengaluru',
+		state: 'Karnataka',
+		pincode: '560002',
+		country: 'India'
+	}
+};
+
+describe('buildUpdateOrganizationKybRequest', () => {
+	it('maps UI fields to upstream KYB update payload', () => {
+		const parsed = v.parse(UpdateOrganizationFormBodySchema, validFormBody);
+		const upstream = buildUpdateOrganizationKybRequest(parsed);
+
+		expect(upstream.addressDetails).toEqual({
+			address: '10 Business Park Road, Suite 100',
+			city: 'Bengaluru',
+			country: 'India',
+			pinCode: '560001',
+			state: 'Karnataka'
+		});
+		expect(upstream.kyb).toEqual({
+			businessPan: 'ABCDE1234F',
+			businessPhone: '+919876543210',
+			cin: '',
+			communicationAddress: '20 Market Street, Floor 2, Bengaluru, Karnataka, 560002, India',
+			gstNumber: '29ABCDE1234F1Z5',
+			industry: 'Technology',
+			organizationWebsite: 'https://www.example.com',
+			registeredYear: 2018,
+			tan: 'BLRR12345A'
+		});
+	});
+
+	it('uppercases GSTIN and PAN on parse', () => {
+		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
+			...validFormBody,
+			gstin: '29abcde1234f1z5',
+			businessPan: 'abcde1234f'
+		});
+		expect(parsed.gstin).toBe('29ABCDE1234F1Z5');
+		expect(parsed.businessPan).toBe('ABCDE1234F');
+	});
+
+	it('requires CIN when business type is Private Limited', () => {
+		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
+			...validFormBody,
+			businessType: 'Private Limited',
+			cin: ''
+		});
+		expect(() => buildUpdateOrganizationKybRequest(parsed)).toThrow();
+	});
+});

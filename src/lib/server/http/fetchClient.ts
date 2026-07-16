@@ -3,6 +3,8 @@ import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
+type ApiFetchBody = FormData | Record<string, unknown> | null;
+
 export async function apiFetch<TSchema extends v.GenericSchema>(
 	path: string,
 	opts: {
@@ -13,7 +15,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		gatewayToken?: string;
 		skipAuth?: boolean;
 		method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-		body?: unknown;
+		body?: ApiFetchBody;
 		query?: Record<string, string | number | undefined>;
 		extraHeaders?: Record<string, string>;
 	}
@@ -34,10 +36,13 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 	const start = Date.now();
 
+	const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
 	const headers: Record<string, string> = {
-		'Content-Type': 'application/json',
 		...opts.extraHeaders
 	};
+	if (!isFormData) {
+		headers['Content-Type'] = 'application/json';
+	}
 	if (!opts.skipAuth && accessToken && gatewayToken) {
 		headers.Authorization = `Bearer ${accessToken}`;
 		headers['X-Gateway-Token'] = gatewayToken;
@@ -46,10 +51,16 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	log.debug({ headers }, 'outbound request');
 
 	try {
+		const body: BodyInit | undefined = isFormData
+			? (opts.body as FormData)
+			: opts.body
+				? JSON.stringify(opts.body)
+				: undefined;
+
 		const res = await opts.fetch(url, {
 			method,
 			headers,
-			body: opts.body ? JSON.stringify(opts.body) : undefined,
+			body,
 			signal: controller.signal
 		});
 		const json: unknown = await res.json().catch(() => null);

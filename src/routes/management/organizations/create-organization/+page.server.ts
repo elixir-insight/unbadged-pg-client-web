@@ -37,6 +37,6 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	return {
 		payinPipelines: toPipelineDropdownOptions(payinResult.ok ? payinResult.data : null),
 		payoutPipelines: toPipelineDropdownOptions(payoutResult.ok ? payoutResult.data : null),
-		pipelinesError: failures.length > 0 ? failures.join('; ') : null
+		pipelinesError: failures.length > 0 ? [...new Set(failures)].join('; ') : null
 	};
 };

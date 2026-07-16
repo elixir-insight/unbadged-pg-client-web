@@ -13,7 +13,7 @@
 		previewPath
 	} from '../../helpers';
 
-	type PreviewSection = 'kyb' | 'bank' | 'documents' | 'integration';
+	type PreviewSection = 'kyb' | 'bank' | 'documents';
 
 	let { data } = $props();
 
@@ -21,22 +21,15 @@
 	const orgId = $derived(organization.id);
 	const canApprove = $derived(allSectionsComplete(organization));
 
-	const previewSections = $derived.by(() => {
-		const sections: { key: PreviewSection; label: string }[] = [
-			{ key: 'kyb', label: 'KYB' },
-			{ key: 'bank', label: 'Bank details' },
-			{ key: 'documents', label: 'Documents' }
-		];
-		if (organization.category === 'MERCHANT') {
-			sections.push({ key: 'integration', label: 'Integration' });
-		}
-		return sections;
-	});
+	const previewSections: { key: PreviewSection; label: string }[] = [
+		{ key: 'kyb', label: 'KYB' },
+		{ key: 'bank', label: 'Bank details' },
+		{ key: 'documents', label: 'Documents' }
+	];
 
 	const activeSection = $derived.by((): PreviewSection => {
 		const section = page.url.searchParams.get('section') ?? 'kyb';
 		if (section === 'bank' || section === 'documents') return section;
-		if (section === 'integration' && organization.category === 'MERCHANT') return 'integration';
 		return 'kyb';
 	});
 
@@ -88,9 +81,17 @@
 			<div class="grid gap-4 md:grid-cols-2">
 				{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
 				{@render readOnlyField('Business Type', organization.kyb.businessType)}
+				{@render readOnlyField('GSTIN', organization.kyb.gstin)}
+				{@render readOnlyField('Business PAN', organization.kyb.businessPan)}
+				{@render readOnlyField('Business phone', organization.kyb.businessPhone)}
+				{@render readOnlyField('Industry', organization.kyb.industry)}
+				{@render readOnlyField('Organization website', organization.kyb.organizationWebsite)}
+				{@render readOnlyField(
+					'Registered year',
+					organization.kyb.registeredYear == null ? '' : String(organization.kyb.registeredYear)
+				)}
 				{@render readOnlyField('CIN', organization.kyb.cin)}
 				{@render readOnlyField('TAN', organization.kyb.tan)}
-				{@render readOnlyField('GSTIN', organization.kyb.gstin)}
 				{@render readOnlyField('KYB Verification Status', organization.kyb.verificationStatus)}
 			</div>
 			<div class="space-y-1">
@@ -99,6 +100,14 @@
 				</p>
 				<p class="text-sm whitespace-pre-line">
 					{formatRegisteredAddress(organization.kyb.registeredAddress)}
+				</p>
+			</div>
+			<div class="space-y-1">
+				<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+					Communication Address
+				</p>
+				<p class="text-sm whitespace-pre-line">
+					{formatRegisteredAddress(organization.kyb.communicationAddress)}
 				</p>
 			</div>
 			<div class="space-y-3">
@@ -157,22 +166,12 @@
 				</div>
 			{/each}
 		</div>
-	{:else if activeSection === 'integration'}
-		{#if organization.integration}
-			<div class="grid gap-4 md:grid-cols-2">
-				{@render readOnlyField('Callback URL', organization.integration.callbackUrl)}
-				{@render readOnlyField('IP Address', organization.integration.whitelistedIp)}
-			</div>
-		{:else}
-			<p class="text-sm text-muted-foreground">Integration details have not been configured.</p>
-		{/if}
 	{/if}
 
 	<div class="border-t border-border/60 pt-4">
 		{#if !canApprove}
 			<p class="mb-4 text-sm text-muted-foreground">
-				Approve stays disabled until KYB, bank details, required documents, and merchant integration
-				(if applicable) are complete.
+				Approve stays disabled until KYB, bank details, and required documents are complete.
 			</p>
 		{/if}
 		<div class="flex flex-wrap items-center justify-between gap-3">

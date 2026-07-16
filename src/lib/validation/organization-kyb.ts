@@ -1,0 +1,230 @@
+import * as v from 'valibot';
+
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const CIN_PATTERN = /^[UL]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/;
+const TAN_PATTERN = /^[A-Z]{4}\d{5}[A-Z]$/;
+const PINCODE_PATTERN = /^[1-9][0-9]{5}$/;
+const PLACE_NAME_PATTERN = /^[A-Za-z .'-]+$/;
+const INDUSTRY_PATTERN = /^[A-Za-z0-9 .,&/-]+$/;
+const WEBSITE_PATTERN =
+	/^(https?:\/\/)?([A-Za-z0-9-]+\.)+[A-Za-z]{2,}(\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=-]*)?$/i;
+
+const currentYear = new Date().getFullYear();
+
+function normalizeId(value: string): string {
+	return value.trim().toUpperCase();
+}
+
+export const requiredTextSchema = (label: string) =>
+	v.pipe(v.string(), v.trim(), v.minLength(1, `${label} is required`));
+
+export const gstinSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'GSTIN is required'),
+	v.transform(normalizeId),
+	v.check((val) => GSTIN_PATTERN.test(val), 'Enter a valid 15-character GSTIN')
+);
+
+export const businessPanSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'Business PAN is required'),
+	v.transform(normalizeId),
+	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid 10-character PAN')
+);
+
+export const businessPhoneSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'Business phone is required'),
+	v.check(
+		(val) => /^[6-9]\d{9}$/.test(val.replace(/\D/g, '')),
+		'Enter a valid 10-digit Indian mobile number'
+	)
+);
+
+export const industrySchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'Industry is required'),
+	v.check((val) => INDUSTRY_PATTERN.test(val), 'Enter a valid industry')
+);
+
+export const organizationWebsiteSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'Organization website is required'),
+	v.check((val) => WEBSITE_PATTERN.test(val), 'Enter a valid website URL')
+);
+
+export const registeredYearSchema = v.pipe(
+	v.union([v.number(), v.string(), v.null_(), v.literal('')]),
+	v.transform((val) => {
+		if (val === null || val === '') return NaN;
+		return typeof val === 'number' ? val : Number(val);
+	}),
+	v.check(
+		(val) => Number.isInteger(val) && val >= 1800 && val <= currentYear,
+		`Enter a valid year between 1800 and ${currentYear}`
+	)
+);
+
+export const optionalCinSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.transform(normalizeId),
+	v.check((val) => val === '' || CIN_PATTERN.test(val), 'Enter a valid CIN')
+);
+
+export const requiredCinSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'CIN is required for Private Limited companies'),
+	v.transform(normalizeId),
+	v.check((val) => CIN_PATTERN.test(val), 'Enter a valid CIN')
+);
+
+export const optionalTanSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.transform(normalizeId),
+	v.check((val) => val === '' || TAN_PATTERN.test(val), 'Enter a valid TAN')
+);
+
+export const placeNameSchema = (label: string) =>
+	v.pipe(
+		v.string(),
+		v.trim(),
+		v.minLength(1, `${label} is required`),
+		v.check((val) => PLACE_NAME_PATTERN.test(val), `Enter a valid ${label.toLowerCase()}`)
+	);
+
+export const pincodeSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'Pincode is required'),
+	v.check((val) => PINCODE_PATTERN.test(val), 'Enter a valid 6-digit Indian pincode')
+);
+
+export const addressSchema = v.object({
+	line1: requiredTextSchema('Address line 1'),
+	line2: requiredTextSchema('Address line 2'),
+	city: placeNameSchema('City'),
+	state: placeNameSchema('State'),
+	pincode: pincodeSchema,
+	country: placeNameSchema('Country')
+});
+
+const legalBaseSchema = v.object({
+	gstin: gstinSchema,
+	businessPan: businessPanSchema,
+	businessPhone: businessPhoneSchema,
+	industry: industrySchema,
+	organizationWebsite: organizationWebsiteSchema,
+	registeredYear: registeredYearSchema,
+	cin: optionalCinSchema,
+	tan: optionalTanSchema
+});
+
+export interface LegalStepInput {
+	gstin: string;
+	businessPan: string;
+	businessPhone: string;
+	industry: string;
+	organizationWebsite: string;
+	registeredYear: number | null | '';
+	cin: string;
+	tan: string;
+	businessType: string;
+}
+
+export interface AddressStepInput {
+	registeredAddress: {
+		line1: string;
+		line2: string;
+		city: string;
+		state: string;
+		pincode: string;
+		country: string;
+	};
+	communicationAddress: {
+		line1: string;
+		line2: string;
+		city: string;
+		state: string;
+		pincode: string;
+		country: string;
+	};
+}
+
+function collectIssues(issues: v.BaseIssue<unknown>[]): Record<string, string> {
+	const errors: Record<string, string> = {};
+	for (const issue of issues) {
+		const path = issue.path?.map((part) => String(part.key)).join('.') ?? '';
+		if (path && !errors[path]) {
+			errors[path] = issue.message;
+		}
+	}
+	return errors;
+}
+
+export function validateLegalStep(input: LegalStepInput): Record<string, string> {
+	const schema =
+		input.businessType === 'Private Limited'
+			? v.object({ ...legalBaseSchema.entries, cin: requiredCinSchema })
+			: legalBaseSchema;
+
+	const result = v.safeParse(schema, {
+		gstin: input.gstin,
+		businessPan: input.businessPan,
+		businessPhone: input.businessPhone,
+		industry: input.industry,
+		organizationWebsite: input.organizationWebsite,
+		registeredYear: input.registeredYear,
+		cin: input.cin,
+		tan: input.tan
+	});
+
+	return result.success ? {} : collectIssues(result.issues);
+}
+
+export function validateAddressStep(input: AddressStepInput): Record<string, string> {
+	const schema = v.object({
+		registeredAddress: addressSchema,
+		communicationAddress: addressSchema
+	});
+	const result = v.safeParse(schema, input);
+	return result.success ? {} : collectIssues(result.issues);
+}
+
+export function firstValidationError(errors: Record<string, string>): string | null {
+	const values = Object.values(errors);
+	return values.length === 0 ? null : values[0];
+}
+
+/** Street lines only for upstream addressDetails.address */
+export function joinStreetAddress(line1: string, line2: string): string {
+	return [line1, line2]
+		.map((part) => part.trim())
+		.filter(Boolean)
+		.join(', ');
+}
+
+/** Full readable string for upstream kyb.communicationAddress */
+export function flattenCommunicationAddress(
+	address: AddressStepInput['communicationAddress']
+): string {
+	return [
+		address.line1,
+		address.line2,
+		address.city,
+		address.state,
+		address.pincode,
+		address.country
+	]
+		.map((part) => part.trim())
+		.filter(Boolean)
+		.join(', ');
+}

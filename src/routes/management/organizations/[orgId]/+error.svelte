@@ -13,7 +13,7 @@
 	</h1>
 	<p class="mt-2 text-sm text-muted-foreground">
 		{isNotFound
-			? 'The requested organization could not be located in the mock dataset.'
+			? 'This organization was not found in the API (or local demo dataset).'
 			: (page.error?.message ?? 'An unexpected error occurred.')}
 	</p>
 	<Button class="mt-4" href="/management/organizations">

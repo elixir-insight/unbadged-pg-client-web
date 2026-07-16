@@ -110,6 +110,9 @@
 		const businessType =
 			businessTypeEnumMap[orgBusinessType] ?? ('PRIVATE_LIMITED' as OrganizationBusinessType);
 
+		const existing = organizations.find((candidate) => candidate.id === organizationId);
+		if (existing) return;
+
 		const result = createOrganization({
 			id: organizationId,
 			name: orgName,

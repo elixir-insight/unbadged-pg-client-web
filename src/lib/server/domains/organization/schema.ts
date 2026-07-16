@@ -52,5 +52,77 @@ export const CreateOrganizationResponseSchema = v.object({
 	)
 });
 
+export const UpdateOrganizationAddressDetailsSchema = v.object({
+	address: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	city: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	country: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	pinCode: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	state: v.pipe(v.string(), v.trim(), v.minLength(1))
+});
+
+export const UpdateOrganizationKybDetailsSchema = v.object({
+	businessPan: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	businessPhone: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	cin: v.string(),
+	communicationAddress: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	gstNumber: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	industry: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	organizationWebsite: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	registeredYear: v.pipe(v.number(), v.integer(), v.minValue(1800)),
+	tan: v.string()
+});
+
+export const UpdateOrganizationKybRequestSchema = v.object({
+	addressDetails: UpdateOrganizationAddressDetailsSchema,
+	kyb: UpdateOrganizationKybDetailsSchema
+});
+
+export const UpdateOrganizationResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.union([v.array(v.unknown()), v.null()]))
+});
+
+export const AddOrganizationBankRequestSchema = v.object({
+	accountNumber: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	accountType: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	bankName: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	branchName: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	holderName: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	ifscCode: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	status: v.pipe(v.string(), v.trim(), v.minLength(1))
+});
+
+/** Success shape varies; pagination is ignored when present. */
+export const AddOrganizationBankResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
+});
+
+export const UploadOrganizationDocumentsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
+});
+
+/**
+ * GET organization envelope — payload shape varies; map in map-get-response.ts.
+ * Pagination is ignored when present.
+ */
+export const GetOrganizationResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
+});
+
 export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationRequestSchema>;
 export type CreateOrganizationResponse = v.InferOutput<typeof CreateOrganizationResponseSchema>;
+export type UpdateOrganizationKybRequest = v.InferOutput<typeof UpdateOrganizationKybRequestSchema>;
+export type UpdateOrganizationResponse = v.InferOutput<typeof UpdateOrganizationResponseSchema>;
+export type AddOrganizationBankRequest = v.InferOutput<typeof AddOrganizationBankRequestSchema>;
+export type AddOrganizationBankResponse = v.InferOutput<typeof AddOrganizationBankResponseSchema>;
+export type UploadOrganizationDocumentsResponse = v.InferOutput<
+	typeof UploadOrganizationDocumentsResponseSchema
+>;
+export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;

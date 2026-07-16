@@ -22,14 +22,17 @@
 		todayIso
 	} from '../../helpers';
 	import { cn } from '$lib/utils';
+	import { toast } from 'svelte-sonner';
+	import { isFileTooLarge, MAX_UPLOAD_FILE_SIZE_LABEL } from '$lib/validation/file-upload';
+	import { formDataFieldName } from './map-upload-field';
+
+	let { data } = $props();
 
 	type UploadableDocument = Pick<
 		OrganizationDocument,
 		'id' | 'fileName' | 'uploadedDate' | 'status'
 	> &
 		Partial<Pick<OrganizationDocument, 'documentType' | 'optional' | 'activationGate'>>;
-
-	let { data } = $props();
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
@@ -43,8 +46,6 @@
 	let choiceSelections = $state<Record<string, DocumentType>>(
 		untrack(() => initialChoiceSelections(organization.documents))
 	);
-	let draftSaved = $state(false);
-	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
 	$effect(() => {
 		if (organization.id !== lastOrgId) {
@@ -54,17 +55,10 @@
 			lastOrgId = organization.id;
 			documentError = '';
 			documentErrorId = '';
-			clearSavedConfirmation();
 		}
 	});
 
-	$effect(() => {
-		return () => {
-			if (savedClearTimer) clearTimeout(savedClearTimer);
-		};
-	});
-
-	const adjacent = $derived(getAdjacentFlowSteps(organization.category, 'documents'));
+	const adjacent = $derived(getAdjacentFlowSteps('documents'));
 
 	const fixedDocs = $derived(
 		fixedRequiredDocuments.map((type) => ensureOrgDocument(type, documents))
@@ -74,22 +68,19 @@
 			? privateLimitedExtraDocuments.map((type) => ensureOrgDocument(type, documents))
 			: []
 	);
+	const organizationLogoDoc = $derived(ensureOrgDocument('Organization logo', documents));
 	const otherDocs = $derived(
-		documents.filter((document) => document.activationGate || document.optional)
+		documents.filter(
+			(document) =>
+				(document.activationGate || document.optional) &&
+				document.documentType !== 'Organization logo'
+		)
 	);
 
 	beforeNavigate(({ to }) => {
 		if (!to || to.route.id === '/management/organizations') return;
 		persist();
 	});
-
-	function clearSavedConfirmation() {
-		draftSaved = false;
-		if (savedClearTimer) {
-			clearTimeout(savedClearTimer);
-			savedClearTimer = null;
-		}
-	}
 
 	function initialChoiceSelections(docs: OrganizationDocument[]): Record<string, DocumentType> {
 		const selections: Record<string, DocumentType> = {};
@@ -116,6 +107,34 @@
 		};
 	}
 
+	async function uploadFileToServer(fieldName: string, file: File) {
+		const formData = new FormData();
+		formData.append(fieldName, file, file.name);
+
+		const endpoint = resolve('/api/management/onboard/organization/[orgId]/documents', {
+			orgId
+		});
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			body: formData
+		});
+
+		const payload: unknown = await response.json().catch(() => null);
+		const message =
+			payload &&
+			typeof payload === 'object' &&
+			'message' in payload &&
+			typeof payload.message === 'string'
+				? payload.message
+				: `Request failed (${response.status})`;
+
+		if (!response.ok) {
+			throw new Error(message);
+		}
+
+		return message;
+	}
+
 	function statusPillVariant(status: DocumentStatus): BadgeVariant {
 		if (status === 'Uploaded' || status === 'Approved') return 'success';
 		if (status === 'Rejected') return 'error';
@@ -129,17 +148,8 @@
 	function persist() {
 		organization.documents = cloneOrganization(documents);
 		organization.directors = cloneOrganization(directors);
-		organization.kyb.directors = organization.directors;
-	}
-
-	function saveAsDraft() {
-		persist();
-		draftSaved = true;
-		if (savedClearTimer) clearTimeout(savedClearTimer);
-		savedClearTimer = setTimeout(() => {
-			draftSaved = false;
-			savedClearTimer = null;
-		}, 3000);
+		// Keep kyb directors in sync with organization.directors
+		if (organization.kyb) organization.kyb.directors = organization.directors;
 	}
 
 	function navigateAfterSave(href: string) {
@@ -164,21 +174,35 @@
 		documents = documents.map((entry, entryIndex) => (entryIndex === index ? document : entry));
 	}
 
-	function applyOrgUpload(document: OrganizationDocument, file: File) {
-		clearSavedConfirmation();
+	async function runUpload(documentId: string, upload: () => Promise<void>) {
 		documentError = '';
 		documentErrorId = '';
-		upsertOrgDocument({
-			...document,
-			fileName: file.name,
-			uploadedDate: todayIso(),
-			status: 'Uploaded'
+
+		try {
+			await upload();
+			persist();
+			toast.success('Document uploaded successfully');
+		} catch (error) {
+			documentError = error instanceof Error ? error.message : 'Upload failed';
+			documentErrorId = documentId;
+			toast.error('Upload failed', { description: documentError });
+		}
+	}
+
+	async function applyOrgUpload(document: OrganizationDocument, file: File) {
+		const fieldName = formDataFieldName(document.documentType ?? 'document');
+		await runUpload(document.id, async () => {
+			await uploadFileToServer(fieldName, file);
+			upsertOrgDocument({
+				...document,
+				fileName: file.name,
+				uploadedDate: todayIso(),
+				status: 'Uploaded'
+			});
 		});
-		persist();
 	}
 
 	function selectChoiceOption(groupKey: string, option: DocumentType) {
-		clearSavedConfirmation();
 		const group = documentChoiceGroups.find((entry) => entry.key === groupKey);
 		if (!group) return;
 
@@ -213,28 +237,31 @@
 		return ensureOrgDocument(type, documents);
 	}
 
-	function applyDirectorUpload(
+	async function applyDirectorUpload(
 		directorId: string,
 		field: 'aadharDocument' | 'panDocument',
 		file: File
 	) {
-		clearSavedConfirmation();
-		documentError = '';
-		documentErrorId = '';
-		directors = directors.map((entry) =>
-			entry.id === directorId
-				? {
-						...entry,
-						[field]: {
-							...entry[field],
-							fileName: file.name,
-							uploadedDate: todayIso(),
-							status: 'Uploaded' as const
+		const documentType = field === 'aadharDocument' ? 'Aadhar Card' : 'PAN Card';
+		const fieldName = formDataFieldName(documentType, directorId);
+		const documentId = directors.find((entry) => entry.id === directorId)?.[field].id ?? '';
+
+		await runUpload(documentId, async () => {
+			await uploadFileToServer(fieldName, file);
+			directors = directors.map((entry) =>
+				entry.id === directorId
+					? {
+							...entry,
+							[field]: {
+								...entry[field],
+								fileName: file.name,
+								uploadedDate: todayIso(),
+								status: 'Uploaded' as const
+							}
 						}
-					}
-				: entry
-		);
-		persist();
+					: entry
+			);
+		});
 	}
 
 	function choiceGroupOptions(groupKey: string): DropdownOption[] {
@@ -248,6 +275,13 @@
 		if (!file) {
 			documentError = 'Select a file before uploading.';
 			documentErrorId = documentId;
+			return;
+		}
+		if (isFileTooLarge(file)) {
+			documentError = `File exceeds the maximum size of ${MAX_UPLOAD_FILE_SIZE_LABEL}.`;
+			documentErrorId = documentId;
+			toast.error('Upload failed', { description: documentError });
+			input.value = '';
 			return;
 		}
 		onFile(file);
@@ -330,6 +364,14 @@
 		</p>
 	</div>
 
+	{#if organizationLogoDoc}
+		<section class="space-y-1">
+			{@render documentRow(organizationLogoDoc, 'Organization logo', false, (file) =>
+				applyOrgUpload(organizationLogoDoc, file)
+			)}
+		</section>
+	{/if}
+
 	<section class="space-y-1">
 		<h3 class="pb-1 text-sm font-semibold">Required documents</h3>
 		{#each fixedDocs as document (document.id)}
@@ -376,7 +418,6 @@
 
 	{#if otherDocs.length > 0}
 		<section class="space-y-1">
-			<h3 class="pb-1 text-sm font-semibold">Activation & optional</h3>
 			{#each otherDocs as document (document.id)}
 				{@render documentRow(document, document.documentType, !document.optional, (file) =>
 					applyOrgUpload(document, file)
@@ -388,10 +429,6 @@
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
 		<div class="flex flex-wrap items-center gap-3">
-			{#if draftSaved}
-				<span class="text-sm text-muted-foreground">Saved</span>
-			{/if}
-			<Button variant="outline" onclick={saveAsDraft}>Save as draft</Button>
 			<Button onclick={goNext}>
 				{adjacent.next?.key === 'review' || !adjacent.next ? 'Review & approve' : 'Next step'}
 			</Button>

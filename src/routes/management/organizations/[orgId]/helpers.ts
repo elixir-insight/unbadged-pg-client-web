@@ -1,17 +1,9 @@
 import { createRawSnippet } from 'svelte';
 import type { BadgeVariant } from '$lib/components/ui/badge';
-import type { OrganizationCategory } from '$lib/data/mockData';
 
 const ACRONYMS = new Set(['LLP', 'KYB', 'CIN', 'TAN', 'GSTIN', 'IFSC', 'URL', 'IP']);
 
-export type FlowStepKey =
-	| 'legal'
-	| 'address'
-	| 'directors'
-	| 'bank'
-	| 'documents'
-	| 'integration'
-	| 'review';
+export type FlowStepKey = 'legal' | 'address' | 'directors' | 'bank' | 'documents' | 'review';
 
 export interface FlowStep {
 	key: FlowStepKey;
@@ -26,7 +18,7 @@ function kybHref(orgId: string, step?: 'address' | 'directors'): string {
 	return step ? `${base}?step=${step}` : base;
 }
 
-export function getFlowSteps(category: OrganizationCategory): FlowStep[] {
+export function getFlowSteps(): FlowStep[] {
 	const steps: FlowStep[] = [
 		{ key: 'legal', label: 'Legal', href: (orgId) => kybHref(orgId) },
 		{ key: 'address', label: 'Address', href: (orgId) => kybHref(orgId, 'address') },
@@ -42,14 +34,6 @@ export function getFlowSteps(category: OrganizationCategory): FlowStep[] {
 			href: (orgId) => `/management/organizations/${orgId}/documents`
 		}
 	];
-
-	if (category === 'MERCHANT') {
-		steps.push({
-			key: 'integration',
-			label: 'Integration',
-			href: (orgId) => `/management/organizations/${orgId}/integration`
-		});
-	}
 
 	steps.push({
 		key: 'review',
@@ -67,17 +51,16 @@ export function getCurrentFlowStepKey(
 	if (pathname.includes('/preview')) return 'review';
 	if (pathname.includes('/bank')) return 'bank';
 	if (pathname.includes('/documents')) return 'documents';
-	if (pathname.includes('/integration')) return 'integration';
 
 	const step = searchParams.get('step') ?? 'legal';
 	return KYB_STEP_KEYS.has(step) ? (step as FlowStepKey) : 'legal';
 }
 
-export function getAdjacentFlowSteps(
-	category: OrganizationCategory,
-	currentKey: FlowStepKey
-): { prev: FlowStep | null; next: FlowStep | null } {
-	const steps = getFlowSteps(category);
+export function getAdjacentFlowSteps(currentKey: FlowStepKey): {
+	prev: FlowStep | null;
+	next: FlowStep | null;
+} {
+	const steps = getFlowSteps();
 	const index = steps.findIndex((step) => step.key === currentKey);
 	if (index < 0) {
 		return { prev: null, next: null };
@@ -143,13 +126,43 @@ export function formatRegisteredAddress(address: {
 	city: string;
 	state: string;
 	pincode: string;
+	country?: string;
 }): string {
 	const lines = [
 		address.line1,
 		address.line2,
-		[address.city, address.state, address.pincode].filter(Boolean).join(', ')
+		[address.city, address.state, address.pincode].filter(Boolean).join(', '),
+		address.country
 	].filter(Boolean);
 	return lines.join('\n');
+}
+
+export function addressesEqual(
+	a: {
+		line1: string;
+		line2: string;
+		city: string;
+		state: string;
+		pincode: string;
+		country?: string;
+	},
+	b: {
+		line1: string;
+		line2: string;
+		city: string;
+		state: string;
+		pincode: string;
+		country?: string;
+	}
+): boolean {
+	return (
+		a.line1 === b.line1 &&
+		a.line2 === b.line2 &&
+		a.city === b.city &&
+		a.state === b.state &&
+		a.pincode === b.pincode &&
+		(a.country ?? '') === (b.country ?? '')
+	);
 }
 
 export function buildTabStatusChip(completed: boolean) {

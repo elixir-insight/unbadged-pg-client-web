@@ -20,7 +20,7 @@
 
 	const orgId = $derived(organization.id);
 
-	const flowSteps = $derived(getFlowSteps(organization.category));
+	const flowSteps = $derived(getFlowSteps());
 
 	const currentStepKey = $derived(getCurrentFlowStepKey(page.url.pathname, page.url.searchParams));
 </script>

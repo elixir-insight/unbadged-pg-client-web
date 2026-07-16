@@ -69,6 +69,17 @@ describe('organization completeness', () => {
 		expect(addressComplete(incompleteAddress)).toBe(false);
 		expect(directorsComplete(incompleteAddress)).toBe(true);
 		expect(kybComplete(incompleteAddress)).toBe(false);
+
+		const incompleteCommunication = {
+			...org,
+			kyb: {
+				...org.kyb,
+				communicationAddress: { ...org.kyb.communicationAddress, city: '' }
+			}
+		};
+
+		expect(addressComplete(incompleteCommunication)).toBe(false);
+		expect(kybComplete(incompleteCommunication)).toBe(false);
 	});
 
 	it('accepts any business certificate option for sole proprietorship approval docs', () => {
@@ -204,7 +215,7 @@ describe('organization completeness', () => {
 		expect(withPayins.payinConfiguration).toEqual({ configured: false });
 	});
 
-	it('requires payout limits, methods, commission, agreement checkbox, and document for activation', () => {
+	it('requires payout limits, methods, commission, and agreement checkbox for activation', () => {
 		const org = createOrganization({
 			id: 'ORG-TEST-COMMISSION',
 			name: 'Commission Test',
@@ -296,23 +307,5 @@ describe('organization completeness', () => {
 			}
 		};
 		expect(merchantActivationValid(methodMaxExceedsParent, true)).toBe(false);
-
-		const withoutDocument = createOrganization({
-			id: 'ORG-TEST-NO-DOC',
-			name: 'No Agreement Doc',
-			businessType: 'LLP',
-			category: 'MERCHANT',
-			status: 'APPROVED',
-			kybStatus: 'VERIFIED',
-			createdAt: '2026-01-01',
-			assignedAdmin: 'Test Admin',
-			businessAgreementReady: false
-		});
-		expect(
-			merchantActivationValid(
-				{ ...withoutDocument, payoutConfiguration: configured.payoutConfiguration },
-				true
-			)
-		).toBe(false);
 	});
 });

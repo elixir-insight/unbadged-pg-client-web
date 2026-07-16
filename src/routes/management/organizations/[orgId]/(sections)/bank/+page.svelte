@@ -1,11 +1,19 @@
 <script lang="ts">
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { Button, Chip, Dropdown, Input, Modal } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { Check, Landmark, Pencil, Plus, Trash2 } from '$lib/assets/icons';
-	import type { BankAccountStatus, OrganizationBankAccount } from '$lib/data/mockData';
+	import type { AccountType, BankAccountStatus, OrganizationBankAccount } from '$lib/data/mockData';
+	import { cn } from '$lib/utils';
+	import {
+		ACCOUNT_STATUS_VALUES,
+		ACCOUNT_TYPE_VALUES,
+		firstValidationError,
+		validateBankAccount
+	} from '$lib/validation/organization-bank';
 	import {
 		cloneOrganization,
 		createChipSnippet,
@@ -17,10 +25,31 @@
 
 	const NEW_ROW_ID = 'new';
 
-	const bankStatusOptions: DropdownOption[] = [
-		{ value: 'Active', label: 'Active' },
-		{ value: 'Inactive', label: 'Inactive' }
-	];
+	const accountTypeLabels: Record<AccountType, string> = {
+		SAVINGS: 'Savings',
+		CURRENT: 'Current',
+		NODAL: 'Nodal',
+		ESCROW: 'Escrow',
+		FOREIGN_CURRENCY: 'Foreign currency'
+	};
+
+	const accountStatusLabels: Record<BankAccountStatus, string> = {
+		ACTIVE: 'Active',
+		ON_HOLD: 'On hold',
+		INACTIVE: 'Inactive',
+		BLOCKED: 'Blocked',
+		CLOSED: 'Closed'
+	};
+
+	const bankAccountTypeOptions: DropdownOption[] = ACCOUNT_TYPE_VALUES.map((value) => ({
+		value,
+		label: accountTypeLabels[value]
+	}));
+
+	const bankStatusOptions: DropdownOption[] = ACCOUNT_STATUS_VALUES.map((value) => ({
+		value,
+		label: accountStatusLabels[value]
+	}));
 
 	function emptyBankDraft(): OrganizationBankAccount {
 		return {
@@ -30,8 +59,8 @@
 			ifscCode: '',
 			bankName: 'HDFC Bank',
 			branch: '',
-			accountType: 'Current',
-			status: 'Active'
+			accountType: 'CURRENT',
+			status: 'ACTIVE'
 		};
 	}
 
@@ -45,8 +74,8 @@
 	let expandedRowId = $state<string | null>(null);
 	let deleteAccountId = $state<string | null>(null);
 	let bankDraft = $state<OrganizationBankAccount>(emptyBankDraft());
-	let draftSaved = $state(false);
-	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+	let fieldErrors = $state<Record<string, string>>({});
+	let saving = $state(false);
 
 	$effect(() => {
 		if (organization.id !== lastOrgId) {
@@ -55,46 +84,25 @@
 			expandedRowId = null;
 			deleteAccountId = null;
 			bankDraft = emptyBankDraft();
-			clearSavedConfirmation();
+			fieldErrors = {};
 		}
 	});
 
-	$effect(() => {
-		return () => {
-			if (savedClearTimer) clearTimeout(savedClearTimer);
-		};
-	});
-
-	const adjacent = $derived(getAdjacentFlowSteps(organization.category, 'bank'));
+	const adjacent = $derived(getAdjacentFlowSteps('bank'));
 	const accountPendingDelete = $derived(
 		bankAccounts.find((account) => account.id === deleteAccountId) ?? null
 	);
+	const isAddingNew = $derived(expandedRowId === NEW_ROW_ID);
 
-	beforeNavigate(({ to }) => {
-		if (!to || to.route.id === '/management/organizations') return;
-		persistBanks();
-	});
-
-	function clearSavedConfirmation() {
-		draftSaved = false;
-		if (savedClearTimer) {
-			clearTimeout(savedClearTimer);
-			savedClearTimer = null;
-		}
+	function clearFieldError(key: string) {
+		if (!fieldErrors[key]) return;
+		const next = { ...fieldErrors };
+		delete next[key];
+		fieldErrors = next;
 	}
 
 	function persistBanks() {
 		organization.bankAccounts = cloneOrganization(bankAccounts);
-	}
-
-	function saveAsDraft() {
-		persistBanks();
-		draftSaved = true;
-		if (savedClearTimer) clearTimeout(savedClearTimer);
-		savedClearTimer = setTimeout(() => {
-			draftSaved = false;
-			savedClearTimer = null;
-		}, 3000);
 	}
 
 	function navigateAfterSave(href: string) {
@@ -103,6 +111,20 @@
 	}
 
 	function goNext() {
+		if (expandedRowId !== null) {
+			toast.error('Finish editing the bank account', {
+				description: 'Save or cancel the open bank form before continuing.'
+			});
+			return;
+		}
+
+		if (!bankAccounts.some((account) => account.status === 'ACTIVE')) {
+			toast.error('Add an active bank account', {
+				description: 'At least one ACTIVE account is required before continuing.'
+			});
+			return;
+		}
+
 		if (adjacent.next) {
 			navigateAfterSave(adjacent.next.href(orgId));
 			return;
@@ -111,13 +133,13 @@
 	}
 
 	function prepareBankAdd() {
-		clearSavedConfirmation();
+		fieldErrors = {};
 		bankDraft = emptyBankDraft();
 		expandedRowId = NEW_ROW_ID;
 	}
 
 	function prepareBankEdit(account: OrganizationBankAccount) {
-		clearSavedConfirmation();
+		fieldErrors = {};
 		bankDraft = cloneOrganization(account);
 		expandedRowId = account.id;
 	}
@@ -125,33 +147,187 @@
 	function cancelBankForm() {
 		expandedRowId = null;
 		bankDraft = emptyBankDraft();
+		fieldErrors = {};
 	}
 
-	function saveBankDraft() {
-		clearSavedConfirmation();
-		const accountId = bankDraft.id || `bank-${Date.now()}`;
-		const normalized = {
-			...bankDraft,
-			id: accountId,
-			accountType: 'Current' as const,
-			bankName: bankDraft.bankName || deriveBankNameFromIfsc(bankDraft.ifscCode)
-		};
+	async function addBankViaApi() {
+		const response = await fetch(
+			resolve('/api/management/onboard/organization/[orgId]/bank', { orgId }),
+			{
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					accountHolderName: bankDraft.accountHolderName,
+					accountNumber: bankDraft.accountNumber,
+					ifscCode: bankDraft.ifscCode,
+					bankName: bankDraft.bankName || deriveBankNameFromIfsc(bankDraft.ifscCode),
+					branch: bankDraft.branch,
+					accountType: bankDraft.accountType,
+					status: bankDraft.status
+				})
+			}
+		);
 
-		const existingIndex = bankAccounts.findIndex((account) => account.id === accountId);
-		if (existingIndex >= 0) {
-			bankAccounts[existingIndex] = normalized;
-			bankAccounts = [...bankAccounts];
-		} else {
-			bankAccounts = [...bankAccounts, normalized];
+		const payload: unknown = await response.json().catch(() => null);
+		const message =
+			payload &&
+			typeof payload === 'object' &&
+			'message' in payload &&
+			typeof payload.message === 'string'
+				? payload.message
+				: `Request failed (${response.status})`;
+
+		if (!response.ok) {
+			throw new Error(message);
 		}
 
-		persistBanks();
-		expandedRowId = null;
-		bankDraft = emptyBankDraft();
+		const accountId =
+			payload &&
+			typeof payload === 'object' &&
+			'accountId' in payload &&
+			typeof payload.accountId === 'string' &&
+			payload.accountId.trim()
+				? payload.accountId.trim()
+				: payload &&
+					  typeof payload === 'object' &&
+					  'accountId' in payload &&
+					  typeof payload.accountId === 'number' &&
+					  Number.isFinite(payload.accountId)
+					? String(payload.accountId)
+					: null;
+
+		return { message, accountId };
+	}
+
+	async function updateBankViaApi(accountId: string) {
+		const response = await fetch(
+			resolve('/api/management/onboard/organization/[orgId]/bank/[accountId]', {
+				orgId,
+				accountId
+			}),
+			{
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					accountHolderName: bankDraft.accountHolderName,
+					accountNumber: bankDraft.accountNumber,
+					ifscCode: bankDraft.ifscCode,
+					bankName: bankDraft.bankName || deriveBankNameFromIfsc(bankDraft.ifscCode),
+					branch: bankDraft.branch,
+					accountType: bankDraft.accountType,
+					status: bankDraft.status
+				})
+			}
+		);
+
+		const payload: unknown = await response.json().catch(() => null);
+		const message =
+			payload &&
+			typeof payload === 'object' &&
+			'message' in payload &&
+			typeof payload.message === 'string'
+				? payload.message
+				: `Request failed (${response.status})`;
+
+		if (!response.ok) {
+			throw new Error(message);
+		}
+
+		return message;
+	}
+
+	async function saveBankDraft() {
+		if (saving) return;
+
+		fieldErrors = validateBankAccount({
+			accountHolderName: bankDraft.accountHolderName,
+			accountNumber: bankDraft.accountNumber,
+			ifscCode: bankDraft.ifscCode,
+			bankName: bankDraft.bankName || deriveBankNameFromIfsc(bankDraft.ifscCode),
+			branch: bankDraft.branch,
+			accountType: bankDraft.accountType,
+			status: bankDraft.status
+		});
+
+		const validationError = firstValidationError(fieldErrors);
+		if (validationError) {
+			toast.error('Please fix the highlighted fields', { description: validationError });
+			return;
+		}
+
+		const normalizedIfsc = bankDraft.ifscCode.trim().toUpperCase();
+		const bankName = bankDraft.bankName || deriveBankNameFromIfsc(normalizedIfsc);
+
+		if (isAddingNew) {
+			saving = true;
+			try {
+				const { message, accountId } = await addBankViaApi();
+				const localId = accountId ?? `bank-${Date.now()}`;
+				bankAccounts = [
+					...bankAccounts,
+					{
+						...bankDraft,
+						id: localId,
+						ifscCode: normalizedIfsc,
+						bankName
+					}
+				];
+				persistBanks();
+				expandedRowId = null;
+				bankDraft = emptyBankDraft();
+				fieldErrors = {};
+				toast.success('Bank account added', { description: message });
+			} catch (error) {
+				toast.error('Failed to add bank account', {
+					description:
+						error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+				});
+			} finally {
+				saving = false;
+			}
+			return;
+		}
+
+		const accountId = bankDraft.id;
+		if (!accountId) {
+			toast.error('Missing bank account id', {
+				description: 'This account cannot be updated because it has no API account id.'
+			});
+			return;
+		}
+
+		saving = true;
+		try {
+			const message = await updateBankViaApi(accountId);
+			const normalized = {
+				...bankDraft,
+				id: accountId,
+				ifscCode: normalizedIfsc,
+				bankName
+			};
+
+			const existingIndex = bankAccounts.findIndex((account) => account.id === accountId);
+			if (existingIndex >= 0) {
+				bankAccounts[existingIndex] = normalized;
+				bankAccounts = [...bankAccounts];
+			}
+
+			persistBanks();
+			expandedRowId = null;
+			bankDraft = emptyBankDraft();
+			fieldErrors = {};
+			toast.success('Bank account updated', { description: message });
+		} catch (error) {
+			toast.error('Failed to update bank account', {
+				description:
+					error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+			});
+		} finally {
+			saving = false;
+		}
 	}
 
 	function deleteSelectedBank() {
-		clearSavedConfirmation();
 		if (!deleteAccountId) return;
 		bankAccounts = bankAccounts.filter((account) => account.id !== deleteAccountId);
 		persistBanks();
@@ -167,20 +343,26 @@
 	label: string,
 	value: string,
 	onChange: (value: string) => void,
-	placeholder = '',
-	type: 'text' | 'email' | 'tel' | 'url' = 'text'
+	errorKey: string,
+	placeholder = ''
 )}
+	{@const error = fieldErrors[errorKey]}
 	<label class="space-y-2">
 		<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
 		<Input
-			{type}
+			type="text"
 			{value}
+			aria-invalid={error ? 'true' : undefined}
+			class={cn(error && 'border-destructive focus-visible:ring-destructive/30')}
 			oninput={(event) => {
-				clearSavedConfirmation();
+				clearFieldError(errorKey);
 				onChange((event.currentTarget as HTMLInputElement).value);
 			}}
 			{placeholder}
 		/>
+		{#if error}
+			<p class="text-xs text-destructive">{error}</p>
+		{/if}
 	</label>
 {/snippet}
 
@@ -188,39 +370,80 @@
 	<div class="space-y-4">
 		<p class="text-sm font-semibold">{title}</p>
 		<div class="grid gap-4 md:grid-cols-2">
-			{@render textField('Account Holder Name', bankDraft.accountHolderName, (value) => {
-				bankDraft.accountHolderName = value;
-			})}
-			{@render textField('Account Number', bankDraft.accountNumber, (value) => {
-				bankDraft.accountNumber = value;
-			})}
-			{@render textField('IFSC Code', bankDraft.ifscCode, (value) => {
-				bankDraft.ifscCode = value;
-				bankDraft.bankName = deriveBankNameFromIfsc(value);
-			})}
-			{@render textField('Branch', bankDraft.branch, (value) => {
-				bankDraft.branch = value;
-			})}
+			{@render textField(
+				'Account Holder Name',
+				bankDraft.accountHolderName,
+				(value) => {
+					bankDraft.accountHolderName = value;
+				},
+				'accountHolderName'
+			)}
+			{@render textField(
+				'Account Number',
+				bankDraft.accountNumber,
+				(value) => {
+					bankDraft.accountNumber = value;
+				},
+				'accountNumber'
+			)}
+			{@render textField(
+				'IFSC Code',
+				bankDraft.ifscCode,
+				(value) => {
+					bankDraft.ifscCode = value;
+					bankDraft.bankName = deriveBankNameFromIfsc(value);
+				},
+				'ifscCode'
+			)}
+			{@render textField(
+				'Branch',
+				bankDraft.branch,
+				(value) => {
+					bankDraft.branch = value;
+				},
+				'branch'
+			)}
+			<label class="space-y-2">
+				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+					>Account type</span
+				>
+				<Dropdown
+					class={cn('w-full', fieldErrors.accountType && 'border-destructive')}
+					value={bankDraft.accountType}
+					options={bankAccountTypeOptions}
+					placeholder="Select account type"
+					onValueChange={(value) => {
+						clearFieldError('accountType');
+						bankDraft.accountType = value as AccountType;
+					}}
+				/>
+				{#if fieldErrors.accountType}
+					<p class="text-xs text-destructive">{fieldErrors.accountType}</p>
+				{/if}
+			</label>
 			<label class="space-y-2">
 				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</span
 				>
 				<Dropdown
-					class="w-full"
+					class={cn('w-full', fieldErrors.status && 'border-destructive')}
 					value={bankDraft.status}
 					options={bankStatusOptions}
 					placeholder="Select status"
 					onValueChange={(value) => {
-						clearSavedConfirmation();
+						clearFieldError('status');
 						bankDraft.status = value as BankAccountStatus;
 					}}
 				/>
+				{#if fieldErrors.status}
+					<p class="text-xs text-destructive">{fieldErrors.status}</p>
+				{/if}
 			</label>
 		</div>
 		<div class="flex flex-wrap gap-2">
-			<Button variant="ghost" onclick={cancelBankForm}>Cancel</Button>
-			<Button onclick={saveBankDraft}>
+			<Button variant="ghost" onclick={cancelBankForm} disabled={saving}>Cancel</Button>
+			<Button onclick={saveBankDraft} disabled={saving}>
 				<Check class="size-4" />
-				Save account
+				{saving ? 'Saving…' : 'Save account'}
 			</Button>
 		</div>
 	</div>
@@ -264,15 +487,15 @@
 								<div class="flex flex-wrap items-center gap-2">
 									<p class="text-sm font-semibold">{account.accountHolderName}</p>
 									<Chip
-										variant={account.status === 'Active' ? 'success' : 'secondary'}
-										children={createChipSnippet(account.status)}
+										variant={account.status === 'ACTIVE' ? 'success' : 'secondary'}
+										children={createChipSnippet(accountStatusLabels[account.status])}
 									/>
 								</div>
 								<p class="text-sm text-muted-foreground">
 									{maskAccountNumber(account.accountNumber)} | {account.bankName} | {account.branch}
 								</p>
 								<p class="text-xs text-muted-foreground">
-									IFSC {account.ifscCode} | {account.accountType}
+									IFSC {account.ifscCode} | {accountTypeLabels[account.accountType]}
 								</p>
 							</div>
 							<div class="flex flex-wrap gap-2">
@@ -312,22 +535,16 @@
 
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
-		<div class="flex flex-wrap items-center gap-3">
-			{#if draftSaved}
-				<span class="text-sm text-muted-foreground">Saved</span>
-			{/if}
-			<Button variant="outline" onclick={saveAsDraft}>Save as draft</Button>
-			<Button onclick={goNext}>
-				{adjacent.next?.key === 'review' || !adjacent.next ? 'Review & approve' : 'Next step'}
-			</Button>
-		</div>
+		<Button onclick={goNext} disabled={saving}>
+			{adjacent.next?.key === 'review' || !adjacent.next ? 'Review & approve' : 'Next step'}
+		</Button>
 	</div>
 </div>
 
 <Modal
 	open={deleteAccountId !== null}
 	title="Delete bank account"
-	description="This mock confirmation removes the selected bank account from the current local page state."
+	description="This removes the selected bank account from the current local page state."
 >
 	<p class="text-sm text-muted-foreground">
 		Delete {accountPendingDelete?.accountHolderName ?? 'this bank account'}?
