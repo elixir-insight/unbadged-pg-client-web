@@ -19,46 +19,11 @@
 	let submitting = $state(false);
 	let forceConfirmOpen = $state(false);
 	let sessionNotice = $state<string | null>(null);
-	let videoEl = $state<HTMLVideoElement | null>(null);
-	let videoReady = $state(false);
-	let videoFailed = $state(false);
 
 	$effect(() => {
 		if (form?.userEmail) email = form.userEmail.trim();
 		// Only open when the action explicitly flagged the session-already-exists case.
 		forceConfirmOpen = form?.requiresForce === true;
-	});
-
-	$effect(() => {
-		const el = videoEl;
-		if (!el || videoFailed) return;
-
-		const reveal = () => {
-			videoReady = true;
-		};
-
-		const fail = () => {
-			videoFailed = true;
-		};
-
-		const startPlayback = () => {
-			void el.play().then(reveal).catch(fail);
-		};
-
-		// Reveal on first decoded frame — canplay waits for a large buffer and feels ~10s slow.
-		el.addEventListener('loadeddata', startPlayback);
-		el.addEventListener('playing', reveal);
-		el.addEventListener('error', fail);
-
-		if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-			startPlayback();
-		}
-
-		return () => {
-			el.removeEventListener('loadeddata', startPlayback);
-			el.removeEventListener('playing', reveal);
-			el.removeEventListener('error', fail);
-		};
 	});
 
 	onMount(() => {
@@ -100,155 +65,126 @@
 	};
 </script>
 
-<div class="flex h-dvh w-full overflow-hidden p-0 lg:gap-3 lg:p-4">
-	<!-- Left Panel — desktop / large tablet only -->
-	<div class="relative hidden h-full w-1/2 overflow-hidden rounded-2xl shadow lg:block">
-		{#if !videoFailed}
-			<video
-				bind:this={videoEl}
-				src="/video/LoginVid.mp4"
-				class="absolute inset-0 h-full w-full object-cover"
-				preload="auto"
-				autoplay
-				muted
-				loop
-				playsinline
-				aria-hidden="true"
-			></video>
-		{/if}
-		<img
-			src="/images/LoginImage.jpg"
-			alt=""
-			class="absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out {videoReady
-				? 'pointer-events-none opacity-0'
-				: 'opacity-100'}"
-			aria-hidden="true"
-		/>
-	</div>
-
-	<!-- Right Panel -->
-	<div class="relative flex min-h-0 w-full flex-1 flex-col bg-background lg:w-1/2">
-		<main class="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 sm:px-8 lg:px-10">
-			<!--
+<!-- Right Panel -->
+<div class="relative flex min-h-0 w-full flex-1 flex-col bg-background lg:w-1/2">
+	<main class="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 sm:px-8 lg:px-10">
+		<!--
 				my-auto + shrink-0 centers the form when space allows without flex-shrinking
 				children (which turned the Login button into a thin blue bar).
 			-->
-			<div class="mx-auto my-auto w-full max-w-md shrink-0 py-8 sm:py-10">
-				<div class="flex w-full flex-col gap-10 sm:gap-14">
-					<div>
-						<CompanyLogoLight width="160" class="h-auto w-40 sm:w-50" />
+		<div class="mx-auto my-auto w-full max-w-md shrink-0 py-8 sm:py-10">
+			<div class="flex w-full flex-col gap-10 sm:gap-14">
+				<div>
+					<CompanyLogoLight width="160" class="h-auto w-40 sm:w-50" />
+				</div>
+
+				<div class="flex flex-col gap-8 sm:gap-10">
+					<div class="flex flex-col gap-2">
+						<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">Sign in</h1>
+						<p class="text-sm text-gray-700 sm:text-base">
+							Enter your login details to access your dashboard
+						</p>
 					</div>
 
-					<div class="flex flex-col gap-8 sm:gap-10">
-						<div class="flex flex-col gap-2">
-							<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">
-								Sign in
-							</h1>
-							<p class="text-sm text-gray-700 sm:text-base">
-								Enter your login details to access your dashboard
-							</p>
+					{#if sessionNotice}
+						<p class="text-sm text-destructive" role="status">{sessionNotice}</p>
+					{/if}
+
+					{#if form?.message && !form.requiresForce}
+						<p class="text-sm text-destructive" role="alert">{form.message}</p>
+					{/if}
+
+					<form method="POST" class="flex flex-col gap-5 sm:gap-6" use:enhance={onEnhance}>
+						<input type="hidden" name="force" value="false" />
+
+						<div class="flex flex-col gap-2 sm:gap-3">
+							<label class="text-base font-normal text-gray-700 sm:text-lg" for="email">
+								Email
+							</label>
+							<Input
+								id="email"
+								name="userEmail"
+								type="email"
+								placeholder="Enter the email"
+								bind:value={email}
+								autocomplete="email"
+								required
+								disabled={submitting}
+								class="h-11 text-base!"
+								onblur={() => (email = email.trim())}
+							/>
 						</div>
 
-						{#if sessionNotice}
-							<p class="text-sm text-destructive" role="status">{sessionNotice}</p>
-						{/if}
-
-						{#if form?.message && !form.requiresForce}
-							<p class="text-sm text-destructive" role="alert">{form.message}</p>
-						{/if}
-
-						<form method="POST" class="flex flex-col gap-5 sm:gap-6" use:enhance={onEnhance}>
-							<input type="hidden" name="force" value="false" />
-
-							<div class="flex flex-col gap-2 sm:gap-3">
-								<label class="text-base font-normal text-gray-700 sm:text-lg" for="email">
-									Email
-								</label>
+						<div class="flex flex-col gap-2 sm:gap-3">
+							<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
+								Password
+							</label>
+							<div class="relative">
 								<Input
-									id="email"
-									name="userEmail"
-									type="email"
-									placeholder="Enter the email"
-									bind:value={email}
-									autocomplete="email"
+									id="password"
+									name="password"
+									type={showPassword ? 'text' : 'password'}
+									placeholder="Enter the password"
+									bind:value={password}
+									autocomplete="current-password"
 									required
 									disabled={submitting}
-									class="h-11 text-base!"
-									onblur={() => (email = email.trim())}
+									class="h-11 pr-11 text-base!"
+									onblur={() => (password = password.trim())}
 								/>
-							</div>
-
-							<div class="flex flex-col gap-2 sm:gap-3">
-								<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
-									Password
-								</label>
-								<div class="relative">
-									<Input
-										id="password"
-										name="password"
-										type={showPassword ? 'text' : 'password'}
-										placeholder="Enter the password"
-										bind:value={password}
-										autocomplete="current-password"
-										required
-										disabled={submitting}
-										class="h-11 pr-11 text-base!"
-										onblur={() => (password = password.trim())}
-									/>
-									<button
-										type="button"
-										onclick={() => (showPassword = !showPassword)}
-										class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-										aria-label={showPassword ? 'Hide password' : 'Show password'}
-									>
-										{#if showPassword}
-											<EyeOff class="h-4 w-4" />
-										{:else}
-											<Eye class="h-4 w-4" />
-										{/if}
-									</button>
-								</div>
-							</div>
-
-							<div class="flex justify-end">
-								<a
-									href={resolve('/forgot-password')}
-									class="text-sm font-medium text-primary hover:underline"
+								<button
+									type="button"
+									onclick={() => (showPassword = !showPassword)}
+									class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+									aria-label={showPassword ? 'Hide password' : 'Show password'}
 								>
-									Forgot password?
-								</a>
+									{#if showPassword}
+										<EyeOff class="h-4 w-4" />
+									{:else}
+										<Eye class="h-4 w-4" />
+									{/if}
+								</button>
 							</div>
+						</div>
 
-							<Button
-								type="submit"
-								class="h-11 min-h-11 w-full shrink-0 text-base"
-								disabled={submitting}
+						<div class="flex justify-end">
+							<a
+								href={resolve('/forgot-password')}
+								class="text-sm font-medium text-primary hover:underline"
 							>
-								{submitting ? 'Signing in…' : 'Login'}
-							</Button>
-						</form>
-					</div>
+								Forgot password?
+							</a>
+						</div>
+
+						<Button
+							type="submit"
+							class="h-11 min-h-11 w-full shrink-0 text-base"
+							disabled={submitting}
+						>
+							{submitting ? 'Signing in…' : 'Login'}
+						</Button>
+					</form>
 				</div>
 			</div>
-		</main>
+		</div>
+	</main>
 
-		<footer
-			class="shrink-0 flex flex-col gap-15 bg-background px-5 py-5 text-center sm:px-8 lg:px-10"
-		>
-			<p class="text-xs text-muted-foreground sm:text-sm">
-				<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
-					Terms and Conditions
-				</a>
-				<span class="mx-2 text-border sm:mx-3" aria-hidden="true">|</span>
-				<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
-					Privacy Policy
-				</a>
-			</p>
-			<p class="mt-3 text-xs text-muted-foreground sm:text-sm">
-				© 2026 ElixirPay • Secure Payment Gateway Platform
-			</p>
-		</footer>
-	</div>
+	<footer
+		class="shrink-0 flex flex-col gap-15 bg-background px-5 py-5 text-center sm:px-8 lg:px-10"
+	>
+		<p class="text-xs text-muted-foreground sm:text-sm">
+			<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
+				Terms and Conditions
+			</a>
+			<span class="mx-2 text-border sm:mx-3" aria-hidden="true">|</span>
+			<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
+				Privacy Policy
+			</a>
+		</p>
+		<p class="mt-3 text-xs text-muted-foreground sm:text-sm">
+			© 2026 ElixirPay • Secure Payment Gateway Platform
+		</p>
+	</footer>
 </div>
 
 <Modal
