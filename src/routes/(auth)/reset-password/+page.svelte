@@ -184,6 +184,7 @@
 										autocomplete="new-password"
 										aria-invalid={passwordError ? 'true' : undefined}
 										class="h-11 pr-11 text-base!"
+										onblur={() => (password = password.trim())}
 									/>
 									<button
 										type="button"
@@ -216,6 +217,7 @@
 										autocomplete="new-password"
 										aria-invalid={confirmPasswordError ? 'true' : undefined}
 										class="h-11 pr-11 text-base!"
+										onblur={() => (confirmPassword = confirmPassword.trim())}
 									/>
 									<button
 										type="button"

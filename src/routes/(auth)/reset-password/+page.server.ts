@@ -14,8 +14,8 @@ export const actions: Actions = {
 	default: async ({ request, fetch, locals }) => {
 		const data = await request.formData();
 
-		const userEmail = String(data.get('userEmail') ?? '');
-		const confirmationCode = String(data.get('confirmationCode') ?? '');
+		const userEmail = String(data.get('userEmail') ?? '').trim();
+		const confirmationCode = String(data.get('confirmationCode') ?? '').trim();
 		const newPassword = String(data.get('newPassword') ?? '');
 		const confirmPassword = String(data.get('confirmPassword') ?? '');
 

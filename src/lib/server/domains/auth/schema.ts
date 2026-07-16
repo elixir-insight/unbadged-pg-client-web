@@ -40,12 +40,12 @@ export const SignInBodySchema = v.object({
 		v.minLength(1, 'Email is required'),
 		v.email('Enter a valid email')
 	),
-	password: v.pipe(v.string(), v.minLength(1, 'Password is required')),
+	password: v.pipe(v.string(), v.trim(), v.minLength(1, 'Password is required')),
 	force: v.optional(v.boolean(), false)
 });
 
 export const ForgotPasswordRequestSchema = v.object({
-	userEmail: v.pipe(v.string(), v.email('Enter a valid email'))
+	userEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email'))
 });
 
 export const ForgotPasswordResponseSchema = v.object({
@@ -56,8 +56,12 @@ export const ForgotPasswordResponseSchema = v.object({
 export type ForgotPasswordResponse = v.InferOutput<typeof ForgotPasswordResponseSchema>;
 
 export const ConfirmPasswordRequestSchema = v.object({
-	userEmail: v.pipe(v.string(), v.email('Enter a valid email')),
-	confirmationCode: v.pipe(v.string(), v.length(6, 'Enter the 6-digit code sent to your email')),
+	userEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email')),
+	confirmationCode: v.pipe(
+		v.string(),
+		v.trim(),
+		v.length(6, 'Enter the 6-digit code sent to your email')
+	),
 	newPassword: PasswordSchema
 });
 

@@ -67,6 +67,7 @@
 								autocomplete="email"
 								aria-invalid={form?.emailError ? 'true' : undefined}
 								class="h-11 text-base!"
+								onblur={() => (email = email.trim())}
 							/>
 							{#if form?.emailError}
 								<p class="text-sm text-destructive">{form.emailError}</p>

@@ -9,7 +9,7 @@ import { ForgotPasswordRequestSchema } from '$lib/server/domains/auth/schema';
 export const actions: Actions = {
 	default: async ({ request, fetch, locals }) => {
 		const data = await request.formData();
-		const userEmail = String(data.get('userEmail') ?? '');
+		const userEmail = String(data.get('userEmail') ?? '').trim();
 		const parsed = v.safeParse(ForgotPasswordRequestSchema, { userEmail });
 		if (!parsed.success) {
 			return fail(400, {
