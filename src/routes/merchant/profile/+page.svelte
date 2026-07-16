@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Button, Tabs, toast } from '$lib/components/reusable';
+	import { Tabs } from '$lib/components/reusable';
 	import type { TabItem } from '$lib/components/reusable';
-	import { Pencil, User, Briefcase } from '$lib/assets/icons';
+	import { User, Briefcase } from '$lib/assets/icons';
 	import {
 		merchantProfile,
 		ProfileSummaryCard,
@@ -26,9 +26,9 @@
 		}
 	];
 
-	function handleEditProfile() {
-		toast.info('Edit profile', { description: 'Profile editing is coming soon.' });
-	}
+	// function handleEditProfile() {
+	// 	toast.info('Edit profile', { description: 'Profile editing is coming soon.' });
+	// }
 </script>
 
 {#snippet personalTab()}
@@ -41,7 +41,7 @@
 
 <div class="flex flex-col gap-6">
 	<!-- Page header -->
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+	<!-- <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 		<div>
 			<h1 class="text-[32px] leading-tight font-bold tracking-tight text-foreground">
 				Merchant Profile
@@ -54,7 +54,7 @@
 			<Pencil class="size-4" />
 			Edit Profile
 		</Button>
-	</div>
+	</div> -->
 
 	<!-- Profile summary card -->
 	<ProfileSummaryCard profile={merchantProfile} />

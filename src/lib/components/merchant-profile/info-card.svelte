@@ -22,7 +22,10 @@
 </script>
 
 <div
-	class={cn('overflow-hidden rounded-xl border border-border bg-background shadow-sm', className)}
+	class={cn(
+		'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm',
+		className
+	)}
 >
 	<div class="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
 		<div class="flex items-center gap-3">
@@ -46,7 +49,7 @@
 			</div>
 		{/if}
 	</div>
-	<div class={contentClass}>
+	<div class={cn('flex-1', contentClass)}>
 		{@render children()}
 	</div>
 </div>
