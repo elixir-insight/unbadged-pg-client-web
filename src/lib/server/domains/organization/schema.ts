@@ -106,6 +106,21 @@ export const UploadOrganizationDocumentsResponseSchema = v.object({
 	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
 });
 
+export const OrganizationDocumentRecordSchema = v.object({
+	id: v.union([v.number(), v.string()]),
+	fileName: v.pipe(v.string(), v.minLength(1)),
+	fileType: v.optional(v.string()),
+	fileSize: v.optional(v.number()),
+	createdAt: v.optional(v.string()),
+	preSignedUrl: v.optional(v.string())
+});
+
+export const GetOrganizationDocumentsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.array(OrganizationDocumentRecordSchema))
+});
+
 /**
  * GET organization envelope — payload shape varies; map in map-get-response.ts.
  * Pagination is ignored when present.
@@ -124,5 +139,9 @@ export type AddOrganizationBankRequest = v.InferOutput<typeof AddOrganizationBan
 export type AddOrganizationBankResponse = v.InferOutput<typeof AddOrganizationBankResponseSchema>;
 export type UploadOrganizationDocumentsResponse = v.InferOutput<
 	typeof UploadOrganizationDocumentsResponseSchema
+>;
+export type OrganizationDocumentRecord = v.InferOutput<typeof OrganizationDocumentRecordSchema>;
+export type GetOrganizationDocumentsResponse = v.InferOutput<
+	typeof GetOrganizationDocumentsResponseSchema
 >;
 export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;

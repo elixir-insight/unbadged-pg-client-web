@@ -51,7 +51,14 @@ export interface OrganizationDocument {
 	status: DocumentStatus;
 	optional?: boolean;
 	activationGate?: boolean;
+	previewUrl?: string;
+	fileType?: string;
 }
+
+export type OrganizationDocumentUpload = Pick<
+	OrganizationDocument,
+	'id' | 'fileName' | 'uploadedDate' | 'status' | 'previewUrl' | 'fileType'
+>;
 
 export interface OrganizationDirector {
 	id: string;
@@ -60,8 +67,8 @@ export interface OrganizationDirector {
 	email: string;
 	phone: string;
 	designation: string;
-	aadharDocument: Pick<OrganizationDocument, 'id' | 'fileName' | 'uploadedDate' | 'status'>;
-	panDocument: Pick<OrganizationDocument, 'id' | 'fileName' | 'uploadedDate' | 'status'>;
+	aadharDocument: OrganizationDocumentUpload;
+	panDocument: OrganizationDocumentUpload;
 }
 
 export interface OrganizationKyb {

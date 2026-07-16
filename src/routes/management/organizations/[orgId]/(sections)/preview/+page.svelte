@@ -2,16 +2,21 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import type { ResolvedPathname } from '$app/types';
+	import { untrack } from 'svelte';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { BadgeCheck } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import { allSectionsComplete } from '../../completeness';
 	import {
+		cloneOrganization,
 		createChipSnippet,
 		formatRegisteredAddress,
-		maskAccountNumber,
-		previewPath
+		maskAccountNumber
 	} from '../../helpers';
+	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
+	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
+	import { hasDocumentPreview } from '../documents/document-preview';
 
 	type PreviewSection = 'kyb' | 'bank' | 'documents';
 
@@ -19,7 +24,23 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const canApprove = $derived(allSectionsComplete(organization));
+	const reviewDocuments = $derived(data.documents ?? organization.documents);
+	let previewOpen = $state(false);
+	let previewTitle = $state('Document preview');
+	let previewUrl = $state('');
+	let previewFileType = $state<string | undefined>(undefined);
+
+	untrack(() => {
+		if (data.documents) {
+			data.organization.documents = cloneOrganization(data.documents);
+		}
+		if (data.directors) {
+			data.organization.directors = cloneOrganization(data.directors);
+			if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
+		}
+	});
+
+	const canApprove = $derived(allSectionsComplete(data.organization));
 
 	const previewSections: { key: PreviewSection; label: string }[] = [
 		{ key: 'kyb', label: 'KYB' },
@@ -33,20 +54,39 @@
 		return 'kyb';
 	});
 
-	function sectionHref(section: PreviewSection): string {
-		const base = previewPath(orgId);
-		return section === 'kyb' ? base : `${base}?section=${section}`;
+	function previewSectionHref(section: PreviewSection): ResolvedPathname {
+		const base = resolve('/management/organizations/[orgId]/preview', { orgId });
+		return section === 'kyb' ? base : (`${base}?section=${section}` as ResolvedPathname);
 	}
 
-	const continueEditingHref = $derived(`/management/organizations/${orgId}/${activeSection}`);
+	const continueEditingHref = $derived.by(() => {
+		if (activeSection === 'bank') {
+			return `/management/organizations/${orgId}/bank`;
+		}
+		if (activeSection === 'documents') {
+			return `/management/organizations/${orgId}/documents`;
+		}
+		return `/management/organizations/${orgId}/kyb`;
+	});
 
 	function approve() {
-		organization.status = 'APPROVED';
-		if (organization.category === 'PARTNER') {
+		data.organization.status = 'APPROVED';
+		if (data.organization.category === 'PARTNER') {
 			goto(resolve('/management/organizations/[orgId]/activate/partner', { orgId }));
 			return;
 		}
 		goto(resolve('/management/organizations/[orgId]/activate/merchant', { orgId }));
+	}
+
+	function openDocumentPreview(
+		title: string,
+		document: { previewUrl?: string; fileType?: string }
+	) {
+		if (!document.previewUrl) return;
+		previewTitle = title;
+		previewUrl = document.previewUrl;
+		previewFileType = document.fileType;
+		previewOpen = true;
 	}
 </script>
 
@@ -61,8 +101,9 @@
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
 			{@const isActive = section.key === activeSection}
+			{@const sectionHref = previewSectionHref(section.key)}
 			<a
-				href={resolve(sectionHref(section.key) as '/')}
+				href={sectionHref}
 				class={cn(
 					'flex flex-1 items-center justify-center rounded-lg px-2 py-1.5 text-sm transition-colors',
 					isActive
@@ -150,19 +191,28 @@
 		</div>
 	{:else if activeSection === 'documents'}
 		<div class="space-y-3">
-			{#each organization.documents as document (document.id)}
+			{#each reviewDocuments as document (document.id)}
 				<div
-					class="flex flex-col gap-1 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+					class="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
 				>
 					<p class="text-sm font-medium">{document.documentType}</p>
-					<p class="text-sm text-muted-foreground">
-						{document.status}
-						{#if document.uploadedDate}
-							· Uploaded {document.uploadedDate}
-						{:else if document.status === 'Pending'}
-							· Pending
+					<div class="flex flex-wrap items-center gap-3">
+						<p class="text-sm text-muted-foreground">
+							{document.status}
+							{#if document.uploadedDate}
+								· Uploaded {document.uploadedDate}
+							{:else if document.status === 'Pending'}
+								· Pending
+							{/if}
+						</p>
+						{#if hasDocumentPreview(document)}
+							<DocumentActionsMenu
+								{document}
+								readOnly
+								onPreview={() => openDocumentPreview(document.documentType, document)}
+							/>
 						{/if}
-					</p>
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -183,3 +233,10 @@
 		</div>
 	</div>
 </div>
+
+<DocumentPreviewModal
+	bind:open={previewOpen}
+	title={previewTitle}
+	{previewUrl}
+	fileType={previewFileType}
+/>

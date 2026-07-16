@@ -3,6 +3,7 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	AddOrganizationBankResponseSchema,
 	CreateOrganizationResponseSchema,
+	GetOrganizationDocumentsResponseSchema,
 	GetOrganizationResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationResponseSchema,
@@ -79,6 +80,22 @@ export const organizationClient = {
 			gatewayToken,
 			body,
 			schema: AddOrganizationBankResponseSchema
+		}),
+
+	getDocuments: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/documents`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: GetOrganizationDocumentsResponseSchema
 		}),
 
 	uploadDocuments: (

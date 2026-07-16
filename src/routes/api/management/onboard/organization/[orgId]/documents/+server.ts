@@ -71,6 +71,51 @@ function findOversizedFileField(formData: FormData): string | null {
 	return null;
 }
 
+export const GET: RequestHandler = async ({ params, cookies, fetch, locals }) => {
+	const log = locals.logger;
+	const orgId = params.orgId?.trim();
+
+	if (!orgId) {
+		error(400, 'Organization id is required');
+	}
+
+	let tokens;
+	try {
+		tokens = await getValidSession(cookies, fetch, log);
+	} catch (e) {
+		if (e instanceof SessionInactiveError || e instanceof SessionError) {
+			error(401, e.message);
+		}
+		throw e;
+	}
+
+	const result = await organizationClient.getDocuments(
+		fetch,
+		log,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId
+	);
+
+	if (!result.ok) {
+		const status = result.error.kind === 'http' ? result.error.status : 502;
+		return json(
+			{
+				message: result.error.message,
+				exceptionCode: result.error.kind === 'http' ? result.error.code : undefined,
+				statusCode: status
+			},
+			{ status }
+		);
+	}
+
+	return json({
+		message: result.data.message ?? 'Documents fetched successfully',
+		statusCode: result.data.statusCode ?? 200,
+		data: result.data.data ?? []
+	});
+};
+
 export const POST: RequestHandler = async ({ params, request, cookies, fetch, locals }) => {
 	const log = locals.logger;
 	const orgId = params.orgId?.trim();
