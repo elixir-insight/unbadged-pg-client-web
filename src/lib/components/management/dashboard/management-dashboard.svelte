@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertTriangle, Building2, Clock, RefreshCw, UserPlus } from '$lib/assets/icons';
+	import { AlertTriangle, Building2, Clock, UserPlus } from '$lib/assets/icons';
 	import CollectionsTab from './collections-tab.svelte';
 	import DisbursementsTab from './disbursements-tab.svelte';
 	import MetricTile, { type MetricTileData } from './metric-tile.svelte';
@@ -100,10 +100,6 @@
 					<p class="mt-0.5 text-sm text-muted-foreground">
 						Here's what's happening with your business today.
 					</p>
-				</div>
-				<div class="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-					<RefreshCw class="size-3.5" aria-hidden="true" />
-					Updated just now
 				</div>
 			</div>
 

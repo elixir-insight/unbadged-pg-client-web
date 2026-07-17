@@ -37,7 +37,13 @@
 
 	const allItems = $derived(navConfig[app].flatMap((g) => g.items));
 
-	const isDashboard = $derived(page.url.pathname === rootRoutes[app]);
+	const rootRouteIds: Record<AppId, string> = {
+		management: '/management',
+		merchant: '/merchant',
+		partner: '/partner'
+	};
+
+	const isDashboard = $derived(page.route.id === rootRouteIds[app]);
 
 	const pageTitle = $derived(
 		allItems.find((i) => page.url.pathname === i.href)?.title ??
@@ -99,7 +105,7 @@
 			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
 			<header
-				class={`flex h-14 shrink-0 items-center gap-3 border-b border-border px-4${isDashboard ? ' md:hidden' : ''}`}
+				class={`${isDashboard ? ' md:hidden' : ''} flex h-14 shrink-0 items-center gap-3 border-b border-border px-4`}
 			>
 				<!-- Mobile: open drawer -->
 				<button
