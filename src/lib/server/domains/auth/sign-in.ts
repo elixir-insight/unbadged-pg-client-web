@@ -1,7 +1,9 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
+import * as v from 'valibot';
 import { authClient } from './client';
 import { decodeJwt } from './jwt';
+import { SignInPasswordChangeResponseSchema } from './schema';
 import { storeSession } from './session';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
 import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
@@ -16,11 +18,29 @@ export type SignInFailure = {
 	exceptionCode?: string;
 	requiresForce?: boolean;
 };
-export type SignInResult = SignInSuccess | SignInFailure;
-function isSessionAlreadyExists(
-	item: { sessionAlreadyExists: true } | { accessToken: string }
-): item is { sessionAlreadyExists: true } {
+export type SignInPasswordChangeRequired = {
+	ok: false;
+	status: 202;
+	message: string;
+	requiresPasswordChange: true;
+	challengeSession: string;
+	userEmail: string;
+};
+export type SignInResult = SignInSuccess | SignInFailure | SignInPasswordChangeRequired;
+
+type SignInDataItem =
+	| { sessionAlreadyExists: true }
+	| { challengeSession: string; requiresPasswordChange: true }
+	| { accessToken: string; gatewayToken: string; idToken: string; refreshToken: string };
+
+function isSessionAlreadyExists(item: SignInDataItem): item is { sessionAlreadyExists: true } {
 	return 'sessionAlreadyExists' in item && item.sessionAlreadyExists === true;
+}
+
+function isPasswordChangeRequired(
+	item: SignInDataItem
+): item is { challengeSession: string; requiresPasswordChange: true } {
+	return 'requiresPasswordChange' in item && item.requiresPasswordChange === true;
 }
 export async function performSignIn(opts: {
 	fetch: typeof fetch;
@@ -35,6 +55,23 @@ export async function performSignIn(opts: {
 	log.info({ ip, userEmail }, 'sign-in attempt');
 	const result = await authClient.signIn(fetchFn, log, userEmail, password, force);
 	if (!result.ok) {
+		// The password-change challenge (202) can arrive through the error path
+		// when the body carries an exceptionCode — recover it from the raw body.
+		if (result.error.kind === 'http') {
+			const challengeParse = v.safeParse(SignInPasswordChangeResponseSchema, result.error.body);
+			const challengeItem = challengeParse.success ? challengeParse.output.data[0] : undefined;
+			if (challengeItem) {
+				log.info({ ip, userEmail }, 'sign-in requires password change — temporary password');
+				return {
+					ok: false,
+					status: 202,
+					message: challengeParse.success ? challengeParse.output.message : '',
+					requiresPasswordChange: true,
+					challengeSession: challengeItem.challengeSession,
+					userEmail
+				};
+			}
+		}
 		const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
 		const upstreamStatus = result.error.kind === 'http' ? result.error.status : undefined;
 		const message =
@@ -97,6 +134,18 @@ export async function performSignIn(opts: {
 			status: 409,
 			message: result.data.message,
 			requiresForce: true
+		};
+	}
+	// { data: [{ challengeSession, requiresPasswordChange: true }], message: "Password change required", statusCode: 202 }
+	if (isPasswordChangeRequired(item)) {
+		log.info({ ip, userEmail }, 'sign-in requires password change — temporary password');
+		return {
+			ok: false,
+			status: 202,
+			message: result.data.message,
+			requiresPasswordChange: true,
+			challengeSession: item.challengeSession,
+			userEmail
 		};
 	}
 	const accessPayload = decodeJwt<AccessTokenPayload>(item.accessToken);

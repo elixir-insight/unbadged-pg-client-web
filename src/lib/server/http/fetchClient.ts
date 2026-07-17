@@ -78,7 +78,10 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 					kind: 'http',
 					status,
 					code: errorBody?.exceptionCode,
-					message: errorBody?.message ?? `Request failed (${status})`
+					message: errorBody?.message ?? `Request failed (${status})`,
+					// Some business "errors" still carry usable data (e.g. the
+					// password-change challenge on sign-in) — keep it for callers.
+					body: json
 				} satisfies ApiError
 			};
 		}

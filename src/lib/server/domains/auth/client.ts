@@ -47,6 +47,23 @@ export const authClient = {
 			schema: RefreshResponseSchema
 		}),
 
+	/** Completes the temporary-password challenge returned by sign-in (202). */
+	setPassword: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		userEmail: string,
+		challengeSession: string,
+		newPassword: string
+	) =>
+		apiFetch('/api/v1/user/password/set', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body: { userEmail, challengeSession, newPassword },
+			schema: v.nullable(v.looseObject({ message: v.optional(v.string()) }))
+		}),
+
 	signOut: (
 		fetchFn: typeof fetch,
 		logger: Logger,

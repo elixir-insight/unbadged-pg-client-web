@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { theme } from '$lib/stores/theme.svelte';
+
 	let { children } = $props();
 
 	let videoEl = $state<HTMLVideoElement | null>(null);
@@ -21,7 +24,7 @@
 			void el.play().then(reveal).catch(fail);
 		};
 
-		// Reveal on first decoded frame — canplay waits for a large buffer and feels ~10s slow.
+		// Reveal on first decoded frame — canplay waits for a large buffer and feels slow.
 		el.addEventListener('loadeddata', startPlayback);
 		el.addEventListener('playing', reveal);
 		el.addEventListener('error', fail);
@@ -35,6 +38,10 @@
 			el.removeEventListener('playing', reveal);
 			el.removeEventListener('error', fail);
 		};
+	});
+
+	onMount(() => {
+		theme.init();
 	});
 </script>
 
@@ -64,5 +71,8 @@
 		/>
 	</div>
 
-	{@render children()}
+	<!-- Right Panel — page content -->
+	<div class="relative flex min-h-0 w-full flex-1 flex-col bg-background lg:w-1/2">
+		{@render children()}
+	</div>
 </div>
