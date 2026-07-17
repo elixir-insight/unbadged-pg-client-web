@@ -38,7 +38,9 @@
 >
 	<p class="shrink-0 text-sm font-semibold">Dispute overview</p>
 
-	<div class="flex min-h-0 flex-col m-4 sm:mt-2 sm:flex-1 items-center justify-center gap-4">
+	<div
+		class="flex min-h-0 flex-col sm:flex-row m-4 sm:mt-2 sm:flex-1 items-center justify-center gap-4"
+	>
 		<div class="relative aspect-square h-full min-h-24 max-h-36 w-auto min-w-24">
 			<Chart.Container config={chartConfig} class="aspect-auto size-full">
 				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-20} padAngle={0.02}>

@@ -64,7 +64,7 @@
 			</div>
 
 			<div
-				class="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-rows-[90px_minmax(220px,1.3fr)_minmax(170px,1fr)]"
+				class="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-rows-[91px_minmax(220px,1.3fr)_minmax(170px,1fr)]"
 			>
 				<!-- Row 1 · KPI overview -->
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

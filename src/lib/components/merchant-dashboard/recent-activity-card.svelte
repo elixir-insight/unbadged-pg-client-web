@@ -62,13 +62,8 @@
 	</div>
 
 	<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-		{#each payments.slice(0, 6) as payment, i (payment.name)}
-			<div
-				class={cn(
-					'flex shrink-0 items-center gap-2.5 py-1',
-					i < Math.min(payments.length, 6) - 1 && 'border-b border-border/60'
-				)}
-			>
+		{#each payments.slice(0, 6) as payment (payment.name)}
+			<div class={cn('flex shrink-0 items-center gap-2.5 py-1')}>
 				<span
 					class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
 				>

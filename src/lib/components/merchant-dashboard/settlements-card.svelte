@@ -31,6 +31,22 @@
 		success: { label: 'Success', variant: 'success' as const },
 		pending: { label: 'Pending', variant: 'warning' as const }
 	} satisfies Record<LastSettlementStatus, { label: string; variant: 'success' | 'warning' }>;
+	let containerEl: HTMLDivElement;
+	let isCompact = $state(false);
+
+	$effect(() => {
+		if (!containerEl) return;
+
+		const observer = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				// Tune this threshold to the min height your text needs
+				isCompact = entry.contentRect.height < 110;
+			}
+		});
+		observer.observe(containerEl);
+
+		return () => observer.disconnect();
+	});
 </script>
 
 <div
@@ -58,22 +74,25 @@
 		</span>
 	</div>
 
-	<div class="flex flex-col min-h-0 gap-3">
-		<div class="flex flex-col justify-center rounded-lg bg-muted px-2 py-2">
-			<p class="text-[11px] tracking-wide text-muted-foreground">Pending settlement</p>
-			<p class="mt-0.5 text-sm font-semibold tracking-tight">{pendingSettlement}</p>
+	<div
+		bind:this={containerEl}
+		class="flex min-h-0 flex-1 justify-evenly {isCompact ? 'flex-row' : 'flex-col'} gap-2"
+	>
+		<div class="flex min-h-0 min-w-0 flex-1 flex-col justify-center rounded-lg bg-muted px-2 py-2">
+			<p class="truncate text-[11px] tracking-wide text-muted-foreground">Pending settlement</p>
+			<p class="mt-0.5 truncate text-sm font-semibold tracking-tight">{pendingSettlement}</p>
 		</div>
-		<div class="flex flex-col justify-center rounded-lg bg-muted px-2 py-2">
+		<div class="flex min-h-0 min-w-0 flex-1 flex-col justify-center rounded-lg bg-muted px-2 py-2">
 			<div class="flex items-center justify-between gap-1">
-				<p class="text-[11px] tracking-wide text-muted-foreground">Last settled</p>
+				<p class="truncate text-[11px] tracking-wide text-muted-foreground">Last settled</p>
 				<Chip variant={lastSettlementStatusMeta[lastSettlementStatus].variant} class="shrink-0">
 					{lastSettlementStatusMeta[lastSettlementStatus].label}
 				</Chip>
 			</div>
-			<p class="mt-0.5 text-sm font-semibold tracking-tight">{lastSettlementAmount}</p>
+			<p class="mt-0.5 truncate text-sm font-semibold tracking-tight">{lastSettlementAmount}</p>
 		</div>
 	</div>
-	<div class="flex justify-end mt-3">
+	<div class="flex shrink-0 justify-end mt-3">
 		<a
 			href={resolve('/merchant/settlements')}
 			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"

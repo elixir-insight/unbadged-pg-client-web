@@ -59,7 +59,7 @@
 
 <div
 	class={cn(
-		'relative  isolate flex flex-col justify-center overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 p-4 shadow-xs backdrop-blur-sm',
+		'relative  isolate flex flex-col justify-center overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 px-4 py-5 shadow-xs backdrop-blur-sm',
 		className
 	)}
 >
