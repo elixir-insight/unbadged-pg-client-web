@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formDataFieldName } from './map-upload-field';
+import { directorFormDataFieldName, formDataFieldName } from './map-upload-field';
 
 describe('formDataFieldName', () => {
 	it('maps a known document type to its backend field name', () => {
@@ -16,5 +16,12 @@ describe('formDataFieldName', () => {
 
 	it('prefixes the field name with the director id when provided', () => {
 		expect(formDataFieldName('Aadhar Card', 'dir-1')).toBe('DIRECTOR_DIR-1_AADHAR_CARD');
+	});
+});
+
+describe('directorFormDataFieldName', () => {
+	it('maps director document slots to upstream field names', () => {
+		expect(directorFormDataFieldName('aadharDocument')).toBe('aadhar');
+		expect(directorFormDataFieldName('panDocument')).toBe('pan');
 	});
 });

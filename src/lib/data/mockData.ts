@@ -66,7 +66,7 @@ export interface OrganizationDirector {
 	pan: string;
 	email: string;
 	phone: string;
-	designation: string;
+	aadhar: string;
 	aadharDocument: OrganizationDocumentUpload;
 	panDocument: OrganizationDocumentUpload;
 }
@@ -366,7 +366,7 @@ function createDirectors(
 			pan: `ABCDE${seed + index}F`,
 			email: `director${index + 1}.${seed}@${name.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com`,
 			phone: `+91 97${String(10000000 + seed + index).slice(-8)}`,
-			designation: index === 0 ? 'Managing Director' : 'Director',
+			aadhar: `2345678901${index}`,
 			aadharDocument: createMissingDirectorDocument(`${id}-aadhar`, documentStatus, baseDate),
 			panDocument: createMissingDirectorDocument(`${id}-pan`, documentStatus, baseDate)
 		};

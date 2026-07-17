@@ -158,7 +158,7 @@
 				{:else}
 					{#each organization.directors as director (director.id)}
 						<p class="text-sm">
-							{director.name || 'Unnamed'} — {director.designation || 'No designation'} — PAN {director.pan ||
+							{director.name || 'Unnamed'} — PAN {director.pan || '—'} — Aadhar {director.aadhar ||
 								'—'}
 						</p>
 					{/each}

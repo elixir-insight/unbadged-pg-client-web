@@ -3,6 +3,7 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	AddOrganizationBankResponseSchema,
 	CreateOrganizationResponseSchema,
+	GetOrganizationBankAccountsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
 	GetOrganizationResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
@@ -64,6 +65,22 @@ export const organizationClient = {
 			schema: UpdateOrganizationResponseSchema
 		}),
 
+	getBankAccounts: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/bank-accounts`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: GetOrganizationBankAccountsResponseSchema
+		}),
+
 	addBank: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -115,6 +132,28 @@ export const organizationClient = {
 			body,
 			schema: UploadOrganizationDocumentsResponseSchema
 		}),
+
+	uploadDirectorDocuments: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		directorId: string,
+		body: FormData
+	) =>
+		apiFetch(
+			`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/directors/${encodeURIComponent(directorId)}/documents`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'POST',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: UploadOrganizationDocumentsResponseSchema
+			}
+		),
 
 	updateBank: (
 		fetchFn: typeof fetch,

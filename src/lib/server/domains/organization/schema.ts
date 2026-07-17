@@ -72,8 +72,22 @@ export const UpdateOrganizationKybDetailsSchema = v.object({
 	tan: v.string()
 });
 
+export const UpdateOrganizationDirectorSchema = v.object({
+	aadhar: v.pipe(
+		v.string(),
+		v.transform((value) => value.replace(/\D/g, '')),
+		v.minLength(12),
+		v.check((value) => /^[2-9]\d{11}$/.test(value), 'Enter a valid 12-digit Aadhar number')
+	),
+	email: v.pipe(v.string(), v.trim(), v.email()),
+	name: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	pan: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	phoneNumber: v.pipe(v.string(), v.trim(), v.minLength(1))
+});
+
 export const UpdateOrganizationKybRequestSchema = v.object({
 	addressDetails: UpdateOrganizationAddressDetailsSchema,
+	directors: v.array(UpdateOrganizationDirectorSchema),
 	kyb: UpdateOrganizationKybDetailsSchema
 });
 
@@ -121,6 +135,31 @@ export const GetOrganizationDocumentsResponseSchema = v.object({
 	data: v.optional(v.array(OrganizationDocumentRecordSchema))
 });
 
+export const OrganizationBankAccountRecordSchema = v.object({
+	id: v.optional(v.union([v.number(), v.string()])),
+	accountId: v.optional(v.union([v.number(), v.string()])),
+	bankAccountId: v.optional(v.union([v.number(), v.string()])),
+	holderName: v.optional(v.string()),
+	accountHolderName: v.optional(v.string()),
+	accountNumber: v.optional(v.string()),
+	ifscCode: v.optional(v.string()),
+	bankName: v.optional(v.string()),
+	branchName: v.optional(v.string()),
+	branch: v.optional(v.string()),
+	accountType: v.optional(v.string()),
+	status: v.optional(v.string()),
+	createdAt: v.optional(v.string()),
+	updatedAt: v.optional(v.string()),
+	createdBy: v.optional(v.number()),
+	updatedBy: v.optional(v.number())
+});
+
+export const GetOrganizationBankAccountsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.array(OrganizationBankAccountRecordSchema))
+});
+
 /**
  * GET organization envelope — payload shape varies; map in map-get-response.ts.
  * Pagination is ignored when present.
@@ -143,5 +182,11 @@ export type UploadOrganizationDocumentsResponse = v.InferOutput<
 export type OrganizationDocumentRecord = v.InferOutput<typeof OrganizationDocumentRecordSchema>;
 export type GetOrganizationDocumentsResponse = v.InferOutput<
 	typeof GetOrganizationDocumentsResponseSchema
+>;
+export type OrganizationBankAccountRecord = v.InferOutput<
+	typeof OrganizationBankAccountRecordSchema
+>;
+export type GetOrganizationBankAccountsResponse = v.InferOutput<
+	typeof GetOrganizationBankAccountsResponseSchema
 >;
 export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;

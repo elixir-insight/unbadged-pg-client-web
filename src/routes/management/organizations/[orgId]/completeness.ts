@@ -60,7 +60,7 @@ export function directorsComplete(org: Organization): boolean {
 		org.directors.length > 0 &&
 		org.directors.every(
 			(director) =>
-				director.name && director.pan && director.email && director.phone && director.designation
+				director.name && director.pan && director.email && director.phone && director.aadhar
 		)
 	);
 }

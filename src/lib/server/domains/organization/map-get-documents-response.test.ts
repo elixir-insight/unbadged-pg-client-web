@@ -56,7 +56,7 @@ describe('mapGetDocumentsResponse', () => {
 				pan: 'ABCDE1234F',
 				email: 'jane@example.com',
 				phone: '9999999999',
-				designation: 'Director',
+				aadhar: '234567890123',
 				aadharDocument: {
 					id: 'aadhar-pending',
 					fileName: '',
@@ -91,7 +91,7 @@ describe('mapGetDocumentsResponse', () => {
 				pan: 'ABCDE1234F',
 				email: 'jane@example.com',
 				phone: '9999999999',
-				designation: 'Director',
+				aadhar: '234567890123',
 				aadharDocument: {
 					id: 'aadhar-pending',
 					fileName: '',

@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { UpdateOrganizationKybRequestSchema, type UpdateOrganizationKybRequest } from './schema';
 import { toE164IndianPhone } from './map-request';
 import {
+	aadharSchema,
 	addressSchema,
 	businessPanSchema,
 	businessPhoneSchema,
@@ -9,6 +10,8 @@ import {
 	gstinSchema,
 	industrySchema,
 	joinStreetAddress,
+	normalizeAadhar,
+	normalizePanInput,
 	optionalCinSchema,
 	optionalTanSchema,
 	organizationWebsiteSchema,
@@ -17,6 +20,19 @@ import {
 } from '$lib/validation/organization-kyb';
 
 export const UpdateOrganizationFormAddressSchema = addressSchema;
+
+export const UpdateOrganizationDirectorFormSchema = v.object({
+	name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Name is required')),
+	pan: v.pipe(
+		v.string(),
+		v.trim(),
+		v.transform(normalizePanInput),
+		v.minLength(1, 'PAN is required')
+	),
+	email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),
+	phone: businessPhoneSchema,
+	aadhar: aadharSchema
+});
 
 export const UpdateOrganizationFormBodySchema = v.object({
 	businessType: v.string(),
@@ -29,7 +45,8 @@ export const UpdateOrganizationFormBodySchema = v.object({
 	cin: optionalCinSchema,
 	tan: optionalTanSchema,
 	registeredAddress: UpdateOrganizationFormAddressSchema,
-	communicationAddress: UpdateOrganizationFormAddressSchema
+	communicationAddress: UpdateOrganizationFormAddressSchema,
+	directors: v.optional(v.array(UpdateOrganizationDirectorFormSchema), [])
 });
 
 export type UpdateOrganizationFormBody = v.InferOutput<typeof UpdateOrganizationFormBodySchema>;
@@ -49,6 +66,13 @@ export function buildUpdateOrganizationKybRequest(
 			pinCode: input.registeredAddress.pincode,
 			state: input.registeredAddress.state
 		},
+		directors: (input.directors ?? []).map((director) => ({
+			aadhar: normalizeAadhar(director.aadhar),
+			email: director.email,
+			name: director.name,
+			pan: normalizePanInput(director.pan),
+			phoneNumber: toE164IndianPhone(director.phone)
+		})),
 		kyb: {
 			businessPan: input.businessPan,
 			businessPhone: toE164IndianPhone(input.businessPhone),

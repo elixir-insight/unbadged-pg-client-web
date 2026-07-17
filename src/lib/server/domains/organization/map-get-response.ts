@@ -245,7 +245,7 @@ function mapAccountType(value: string): AccountType {
 	return 'CURRENT';
 }
 
-function mapBankAccounts(value: unknown): OrganizationBankAccount[] {
+export function mapBankAccounts(value: unknown): OrganizationBankAccount[] {
 	if (!Array.isArray(value)) return [];
 	return value
 		.map((item, index) => {

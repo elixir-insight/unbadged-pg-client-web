@@ -56,6 +56,33 @@ describe('buildUpdateOrganizationKybRequest', () => {
 			registeredYear: 2018,
 			tan: 'BLRR12345A'
 		});
+		expect(upstream.directors).toEqual([]);
+	});
+
+	it('maps directors to upstream payload', () => {
+		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
+			...validFormBody,
+			directors: [
+				{
+					name: 'Jane Doe',
+					pan: 'ABCDE1234F',
+					email: 'jane@example.com',
+					phone: '9876543210',
+					aadhar: '2345 6789 0123'
+				}
+			]
+		});
+		const upstream = buildUpdateOrganizationKybRequest(parsed);
+
+		expect(upstream.directors).toEqual([
+			{
+				aadhar: '234567890123',
+				email: 'jane@example.com',
+				name: 'Jane Doe',
+				pan: 'ABCDE1234F',
+				phoneNumber: '+919876543210'
+			}
+		]);
 	});
 
 	it('uppercases GSTIN and PAN on parse', () => {

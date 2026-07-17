@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -68,8 +68,9 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
+	const bankAccountsLoadError = $derived(data.bankAccountsLoadError);
 
-	let bankAccounts = $state(untrack(() => cloneOrganization(organization.bankAccounts)));
+	let bankAccounts = $state(untrack(() => cloneOrganization(data.bankAccounts)));
 	let lastOrgId = $state(untrack(() => organization.id));
 	let expandedRowId = $state<string | null>(null);
 	let deleteAccountId = $state<string | null>(null);
@@ -78,14 +79,21 @@
 	let saving = $state(false);
 
 	$effect(() => {
-		if (organization.id !== lastOrgId) {
-			bankAccounts = cloneOrganization(organization.bankAccounts);
-			lastOrgId = organization.id;
+		const nextAccounts = data.bankAccounts;
+		const currentOrgId = organization.id;
+
+		if (currentOrgId !== lastOrgId) {
+			bankAccounts = cloneOrganization(nextAccounts);
+			lastOrgId = currentOrgId;
 			expandedRowId = null;
 			deleteAccountId = null;
 			bankDraft = emptyBankDraft();
 			fieldErrors = {};
+		} else if (expandedRowId === null && !saving) {
+			bankAccounts = cloneOrganization(nextAccounts);
 		}
+
+		data.organization.bankAccounts = cloneOrganization(nextAccounts);
 	});
 
 	const adjacent = $derived(getAdjacentFlowSteps('bank'));
@@ -276,6 +284,7 @@
 				expandedRowId = null;
 				bankDraft = emptyBankDraft();
 				fieldErrors = {};
+				await invalidate('org-bank-accounts');
 				toast.success('Bank account added', { description: message });
 			} catch (error) {
 				toast.error('Failed to add bank account', {
@@ -316,6 +325,7 @@
 			expandedRowId = null;
 			bankDraft = emptyBankDraft();
 			fieldErrors = {};
+			await invalidate('org-bank-accounts');
 			toast.success('Bank account updated', { description: message });
 		} catch (error) {
 			toast.error('Failed to update bank account', {
@@ -455,6 +465,11 @@
 		<p class="mt-1 text-sm text-muted-foreground">
 			Add at least one active account before approval.
 		</p>
+		{#if bankAccountsLoadError}
+			<p class="mt-2 text-sm text-destructive">
+				Could not load bank accounts: {bankAccountsLoadError}
+			</p>
+		{/if}
 	</div>
 
 	{#if bankAccounts.length === 0 && expandedRowId !== NEW_ROW_ID}

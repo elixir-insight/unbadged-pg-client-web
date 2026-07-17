@@ -23,6 +23,13 @@ const KNOWN_DOCUMENT_FIELDS: Record<string, string> = {
 	bankstatementlast3months: 'BANK_STATEMENT'
 };
 
+/** Maps a director document slot to the multipart field name the upload API expects. */
+export function directorFormDataFieldName(
+	field: 'aadharDocument' | 'panDocument'
+): 'aadhar' | 'pan' {
+	return field === 'aadharDocument' ? 'aadhar' : 'pan';
+}
+
 /** Maps a document type label (e.g. "PAN Card") to the multipart field name the upload API expects. */
 export function formDataFieldName(documentType: string, directorId?: string): string {
 	const normalized = documentType

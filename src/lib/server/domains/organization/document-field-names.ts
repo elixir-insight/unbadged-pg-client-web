@@ -23,7 +23,9 @@ export type DirectorDocumentField = 'aadharDocument' | 'panDocument';
 
 const directorBackendFieldMap: Record<string, DirectorDocumentField> = {
 	aadharcard: 'aadharDocument',
-	pancard: 'panDocument'
+	aadhar: 'aadharDocument',
+	pancard: 'panDocument',
+	pan: 'panDocument'
 };
 
 export type ParsedOrganizationDocumentField = {
@@ -47,7 +49,7 @@ export function parseDocumentFileName(fileName: string): ParsedDocumentField {
 	const trimmed = fileName.trim();
 	if (!trimmed) return null;
 
-	const directorMatch = trimmed.match(/^DIRECTOR_(.+)_(aadharCard|panCard)$/i);
+	const directorMatch = trimmed.match(/^DIRECTOR_(.+)_(aadharCard|panCard|aadhar|pan)$/i);
 	if (directorMatch) {
 		const field = directorBackendFieldMap[directorMatch[2].toLowerCase()];
 		if (!field) return null;

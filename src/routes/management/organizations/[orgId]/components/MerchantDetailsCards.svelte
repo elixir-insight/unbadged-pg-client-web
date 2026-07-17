@@ -8,8 +8,9 @@
 	} from '$lib/data/mockData';
 	import { addressesEqual } from '../helpers';
 	import { untrack } from 'svelte';
+	import { formatAadharInput, normalizePanInput } from '$lib/validation/organization-kyb';
 
-	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'designation';
+	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
 	type AddressField = 'line1' | 'line2' | 'city' | 'state' | 'pincode' | 'country';
 
 	let {
@@ -58,7 +59,7 @@
 		directorsDraft.length > 0 &&
 			directorsDraft.every(
 				(director) =>
-					director.name && director.pan && director.email && director.phone && director.designation
+					director.name && director.pan && director.email && director.phone && director.aadhar
 			)
 	);
 
@@ -93,7 +94,7 @@
 				pan: '',
 				email: '',
 				phone: '',
-				designation: '',
+				aadhar: '',
 				aadharDocument: createMissingDirectorDocument(`${id}-aadhar`),
 				panDocument: createMissingDirectorDocument(`${id}-pan`)
 			}
@@ -109,8 +110,14 @@
 	}
 
 	function updateDirector(id: string, field: DirectorTextField, value: string) {
+		const normalized =
+			field === 'pan'
+				? normalizePanInput(value)
+				: field === 'aadhar'
+					? formatAadharInput(value)
+					: value;
 		directorsDraft = directorsDraft.map((director) =>
-			director.id === id ? { ...director, [field]: value } : director
+			director.id === id ? { ...director, [field]: normalized } : director
 		);
 	}
 </script>
@@ -361,11 +368,14 @@
 									{@render textField('Name', director.name, (value) =>
 										updateDirector(director.id, 'name', value)
 									)}
-									{@render textField('Designation', director.designation, (value) =>
-										updateDirector(director.id, 'designation', value)
-									)}
 									{@render textField('PAN', director.pan, (value) =>
 										updateDirector(director.id, 'pan', value)
+									)}
+									{@render textField(
+										'Aadhar',
+										director.aadhar,
+										(value) => updateDirector(director.id, 'aadhar', value),
+										'XXXX XXXX XXXX'
 									)}
 									{@render textField(
 										'Email',
@@ -387,7 +397,7 @@
 									<div class="space-y-0.5">
 										<p class="text-sm font-medium">{director.name || 'New director'}</p>
 										<p class="text-sm text-muted-foreground">
-											{director.designation || 'No designation'}
+											PAN {director.pan || '—'} · Aadhar {director.aadhar || '—'}
 										</p>
 									</div>
 									<div class="flex flex-wrap gap-2">

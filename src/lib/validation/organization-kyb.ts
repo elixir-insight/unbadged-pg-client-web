@@ -2,6 +2,7 @@ import * as v from 'valibot';
 
 const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const AADHAR_PATTERN = /^[2-9]\d{11}$/;
 const CIN_PATTERN = /^[UL]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/;
 const TAN_PATTERN = /^[A-Z]{4}\d{5}[A-Z]$/;
 const PINCODE_PATTERN = /^[1-9][0-9]{5}$/;
@@ -33,6 +34,40 @@ export const businessPanSchema = v.pipe(
 	v.minLength(1, 'Business PAN is required'),
 	v.transform(normalizeId),
 	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid 10-character PAN')
+);
+
+export const directorPanSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.minLength(1, 'PAN is required'),
+	v.transform(normalizePanInput),
+	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid 10-character PAN')
+);
+
+export function normalizePanInput(value: string): string {
+	return value
+		.replace(/[^a-zA-Z0-9]/g, '')
+		.toUpperCase()
+		.slice(0, 10);
+}
+
+export function normalizeAadhar(value: string): string {
+	return value.replace(/\D/g, '').slice(0, 12);
+}
+
+/** Formats Aadhar as `XXXX XXXX XXXX` while typing. */
+export function formatAadharInput(value: string): string {
+	const digits = normalizeAadhar(value);
+	return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+}
+
+export const aadharSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.transform(normalizeAadhar),
+	v.minLength(12, 'Aadhar is required'),
+	v.maxLength(12, 'Enter a valid 12-digit Aadhar number'),
+	v.check((val) => AADHAR_PATTERN.test(val), 'Enter a valid 12-digit Aadhar number')
 );
 
 export const businessPhoneSchema = v.pipe(
@@ -197,6 +232,43 @@ export function validateAddressStep(input: AddressStepInput): Record<string, str
 	});
 	const result = v.safeParse(schema, input);
 	return result.success ? {} : collectIssues(result.issues);
+}
+
+export interface DirectorStepInput {
+	name: string;
+	pan: string;
+	email: string;
+	phone: string;
+	aadhar: string;
+}
+
+const directorFieldSchema = v.object({
+	name: requiredTextSchema('Name'),
+	pan: directorPanSchema,
+	email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),
+	phone: businessPhoneSchema,
+	aadhar: aadharSchema
+});
+
+export function validateDirectorsStep(directors: DirectorStepInput[]): Record<string, string> {
+	if (directors.length === 0) {
+		return { directors: 'Add at least one director' };
+	}
+
+	const errors: Record<string, string> = {};
+	directors.forEach((director, index) => {
+		const result = v.safeParse(directorFieldSchema, director);
+		if (!result.success) {
+			for (const issue of result.issues) {
+				const field = issue.path?.[0];
+				const key = `directors.${index}.${String(field ?? 'root')}`;
+				if (!errors[key]) {
+					errors[key] = issue.message;
+				}
+			}
+		}
+	});
+	return errors;
 }
 
 export function firstValidationError(errors: Record<string, string>): string | null {

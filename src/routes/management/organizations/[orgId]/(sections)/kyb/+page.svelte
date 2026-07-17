@@ -11,7 +11,10 @@
 	import { cn } from '$lib/utils';
 	import {
 		firstValidationError,
+		formatAadharInput,
+		normalizePanInput,
 		validateAddressStep,
+		validateDirectorsStep,
 		validateLegalStep
 	} from '$lib/validation/organization-kyb';
 	import {
@@ -22,7 +25,7 @@
 		type FlowStepKey
 	} from '../../helpers';
 
-	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'designation';
+	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
 	type AddressField = 'line1' | 'line2' | 'city' | 'state' | 'pincode' | 'country';
 
 	type KybStep = Extract<FlowStepKey, 'legal' | 'address' | 'directors'>;
@@ -133,8 +136,8 @@
 			return firstValidationError(fieldErrors);
 		}
 
-		fieldErrors = {};
-		return null;
+		fieldErrors = validateDirectorsStep(editableDirectors);
+		return firstValidationError(fieldErrors);
 	}
 
 	function canPutFullKyb(): boolean {
@@ -173,7 +176,14 @@
 					cin: editableKyb.cin,
 					tan: editableKyb.tan,
 					registeredAddress: editableKyb.registeredAddress,
-					communicationAddress: editableKyb.communicationAddress
+					communicationAddress: editableKyb.communicationAddress,
+					directors: editableDirectors.map((director) => ({
+						name: director.name,
+						pan: director.pan,
+						email: director.email,
+						phone: director.phone,
+						aadhar: director.aadhar
+					}))
 				})
 			}
 		);
@@ -225,7 +235,11 @@
 
 		saveKyb();
 
-		const shouldPut = (currentStep === 'legal' || currentStep === 'address') && canPutFullKyb();
+		const shouldPut =
+			canPutFullKyb() &&
+			(currentStep === 'legal' ||
+				currentStep === 'address' ||
+				(currentStep === 'directors' && editableDirectors.length > 0));
 
 		if (shouldPut) {
 			saving = true;
@@ -280,7 +294,7 @@
 				pan: '',
 				email: '',
 				phone: '',
-				designation: '',
+				aadhar: '',
 				aadharDocument: createMissingDirectorDocument(`${id}-aadhar`),
 				panDocument: createMissingDirectorDocument(`${id}-pan`)
 			}
@@ -296,9 +310,19 @@
 	}
 
 	function updateDirector(id: string, field: DirectorTextField, value: string) {
+		const index = editableDirectors.findIndex((director) => director.id === id);
+		const normalized =
+			field === 'pan'
+				? normalizePanInput(value)
+				: field === 'aadhar'
+					? formatAadharInput(value)
+					: value;
 		editableDirectors = editableDirectors.map((director) =>
-			director.id === id ? { ...director, [field]: value } : director
+			director.id === id ? { ...director, [field]: normalized } : director
 		);
+		if (index >= 0) {
+			clearFieldError(`directors.${index}.${field}`);
+		}
 	}
 </script>
 
@@ -555,7 +579,7 @@
 				<p class="text-sm text-muted-foreground">Add at least one director before approval.</p>
 			{:else}
 				<div class="space-y-3">
-					{#each editableDirectors as director (director.id)}
+					{#each editableDirectors as director, index (director.id)}
 						{@const isExpanded = expandedDirectorId === director.id}
 						<div class="rounded-xl border border-border/60 p-4">
 							{#if isExpanded}
@@ -579,20 +603,30 @@
 									</div>
 								</div>
 								<div class="grid gap-4 md:grid-cols-2">
-									{@render textField('Name', director.name, (value) =>
-										updateDirector(director.id, 'name', value)
+									{@render textField(
+										'Name',
+										director.name,
+										(value) => updateDirector(director.id, 'name', value),
+										`directors.${index}.name`
 									)}
-									{@render textField('Designation', director.designation, (value) =>
-										updateDirector(director.id, 'designation', value)
+									{@render textField(
+										'PAN',
+										director.pan,
+										(value) => updateDirector(director.id, 'pan', value),
+										`directors.${index}.pan`
 									)}
-									{@render textField('PAN', director.pan, (value) =>
-										updateDirector(director.id, 'pan', value)
+									{@render textField(
+										'Aadhar',
+										director.aadhar,
+										(value) => updateDirector(director.id, 'aadhar', value),
+										`directors.${index}.aadhar`,
+										'XXXX XXXX XXXX'
 									)}
 									{@render textField(
 										'Email',
 										director.email,
 										(value) => updateDirector(director.id, 'email', value),
-										'',
+										`directors.${index}.email`,
 										'',
 										'email'
 									)}
@@ -600,7 +634,7 @@
 										'Phone',
 										director.phone,
 										(value) => updateDirector(director.id, 'phone', value),
-										'',
+										`directors.${index}.phone`,
 										'',
 										'tel'
 									)}
@@ -610,7 +644,7 @@
 									<div class="space-y-0.5">
 										<p class="text-sm font-medium">{director.name || 'New director'}</p>
 										<p class="text-sm text-muted-foreground">
-											{director.designation || 'No designation'}
+											PAN {director.pan || '—'} · Aadhar {director.aadhar || '—'}
 										</p>
 									</div>
 									<div class="flex flex-wrap gap-2">

@@ -18,7 +18,7 @@
 		previewPath
 	} from '../../helpers';
 	import { toast } from 'svelte-sonner';
-	import { formDataFieldName } from './map-upload-field';
+	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
 	import DocumentPreviewModal from './document-preview-modal.svelte';
 	import DocumentActionsMenu from './document-actions-menu.svelte';
 	import {
@@ -139,6 +139,31 @@
 			orgId
 		});
 
+		return uploadFormData(endpoint, formData, onProgress);
+	}
+
+	async function uploadDirectorFileToServer(
+		directorId: string,
+		fieldName: 'aadhar' | 'pan',
+		file: File,
+		onProgress?: (progress: number) => void
+	) {
+		const formData = new FormData();
+		formData.append(fieldName, file, file.name);
+
+		const endpoint = resolve(
+			'/api/management/onboard/organization/[orgId]/directors/[directorId]/documents',
+			{ orgId, directorId }
+		);
+
+		return uploadFormData(endpoint, formData, onProgress);
+	}
+
+	function uploadFormData(
+		endpoint: string,
+		formData: FormData,
+		onProgress?: (progress: number) => void
+	) {
 		return new Promise<string>((resolvePromise, reject) => {
 			const xhr = new XMLHttpRequest();
 			xhr.open('POST', endpoint);
@@ -371,12 +396,11 @@
 		field: 'aadharDocument' | 'panDocument',
 		file: File
 	) {
-		const documentType = field === 'aadharDocument' ? 'Aadhar Card' : 'PAN Card';
-		const fieldName = formDataFieldName(documentType, directorId);
+		const fieldName = directorFormDataFieldName(field);
 		const documentId = directors.find((entry) => entry.id === directorId)?.[field].id ?? '';
 
 		await runUpload(documentId, file, async (onProgress) => {
-			await uploadFileToServer(fieldName, file, onProgress);
+			await uploadDirectorFileToServer(directorId, fieldName, file, onProgress);
 			await refreshDocumentsFromServer();
 		});
 	}
