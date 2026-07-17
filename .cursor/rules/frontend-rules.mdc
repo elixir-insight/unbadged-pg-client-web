@@ -98,7 +98,7 @@ Violating this rule is a critical error.
 - NEVER guess requirements — STOP and ask first.
 - NEVER use deprecated patterns or outdated syntax.
 
-## AI Behaviour
+## AI Behavior
 
 1. Understand the task fully before writing any code.
 2. Read related files first.
