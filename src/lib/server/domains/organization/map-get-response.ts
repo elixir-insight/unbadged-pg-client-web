@@ -346,6 +346,7 @@ export function mapGetOrganizationResponse(
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
 		payoutConfiguration: emptyPayoutConfiguration(),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
-		commissionRules: []
+		commissionRules: [],
+		feeConfigDrafts: []
 	};
 }

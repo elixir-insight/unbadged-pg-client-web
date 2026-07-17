@@ -138,6 +138,20 @@ export interface OrganizationPayinConfiguration {
 	configured: false;
 }
 
+export interface OrganizationFeeSectionDraft {
+	slabs: import('$lib/fee-config/types').FeeSlabRow[];
+	effectiveFrom: string;
+	effectiveTo: string;
+}
+
+export interface OrganizationFeeConfigDraft {
+	methodConfigId: string;
+	charges: OrganizationFeeSectionDraft | null;
+	commission: OrganizationFeeSectionDraft | null;
+	partner: OrganizationFeeSectionDraft | null;
+	feeConfigId: string | null;
+}
+
 export interface Organization {
 	[key: string]: unknown;
 	id: string;
@@ -159,6 +173,8 @@ export interface Organization {
 	payoutConfiguration: OrganizationPayoutConfiguration;
 	payinConfiguration: OrganizationPayinConfiguration | null;
 	commissionRules: OrganizationCommissionRule[];
+	affiliateId?: string;
+	feeConfigDrafts: OrganizationFeeConfigDraft[];
 }
 
 const businessTypeLabelMap: Record<OrganizationBusinessType, OrganizationKyb['businessType']> = {
@@ -325,7 +341,8 @@ export function createOrganizationShell(params: {
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
 		payoutConfiguration: emptyPayoutConfiguration(),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
-		commissionRules: []
+		commissionRules: [],
+		feeConfigDrafts: []
 	};
 }
 
@@ -491,6 +508,8 @@ export function createOrganization(params: {
 	documentsComplete?: boolean;
 	businessAgreementReady?: boolean;
 	integrationComplete?: boolean;
+	affiliateId?: string;
+	feeConfigDrafts?: OrganizationFeeConfigDraft[];
 }): Organization {
 	const seed = Number(params.id.replace(/\D/g, '')) % 97;
 	const primaryContact = createPrimaryContact(params.name, seed);
@@ -573,7 +592,9 @@ export function createOrganization(params: {
 				: null,
 		payoutConfiguration: createPayoutConfiguration(params.status === 'ACTIVE'),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
-		commissionRules: createCommissionRules(seed)
+		commissionRules: createCommissionRules(seed),
+		affiliateId: params.affiliateId ?? (params.category === 'MERCHANT' ? 'AFF-HD01' : undefined),
+		feeConfigDrafts: params.feeConfigDrafts ?? []
 	};
 }
 
@@ -648,7 +669,8 @@ export const organizations: Organization[] = [
 		kybComplete: true,
 		bankComplete: true,
 		documentsComplete: true,
-		integrationComplete: true
+		integrationComplete: true,
+		affiliateId: 'AFF-HD01'
 	}),
 	createOrganization({
 		id: 'ORG-1009',
@@ -770,6 +792,7 @@ export const organizations: Organization[] = [
 		bankComplete: true,
 		documentsComplete: true,
 		integrationComplete: true,
-		businessAgreementReady: true
+		businessAgreementReady: true,
+		affiliateId: 'AFF-IC01'
 	})
 ];

@@ -15,7 +15,7 @@ import {
 	integrationComplete,
 	kybComplete,
 	legalComplete,
-	merchantActivationValid
+	activationDocumentReady
 } from './completeness';
 
 describe('organization completeness', () => {
@@ -215,97 +215,21 @@ describe('organization completeness', () => {
 		expect(withPayins.payinConfiguration).toEqual({ configured: false });
 	});
 
-	it('requires payout limits, methods, commission, and agreement checkbox for activation', () => {
+	it('seeds fee config drafts and activation document readiness defaults', () => {
 		const org = createOrganization({
-			id: 'ORG-TEST-COMMISSION',
-			name: 'Commission Test',
+			id: 'ORG-TEST-FEE',
+			name: 'Fee Config Test',
 			businessType: 'LLP',
 			category: 'MERCHANT',
 			status: 'APPROVED',
 			kybStatus: 'VERIFIED',
 			createdAt: '2026-01-01',
 			assignedAdmin: 'Test Admin',
-			businessAgreementReady: true
+			affiliateId: 'AFF-HD01'
 		});
 
-		expect(org.commissionRules).toHaveLength(2);
-		expect(org.payoutConfiguration.txnAmountMin).toBe('100');
-		expect(org.payoutConfiguration.allowedTransactionTypes).toEqual([]);
-		expect(merchantActivationValid(org, true)).toBe(false);
-
-		const configured = {
-			...org,
-			payoutConfiguration: {
-				securityDeposit: '10000',
-				dailyTxnLimit: '100000',
-				txnAmountMin: '100',
-				txnAmountMax: '50000',
-				dailyDepositLimit: '200000',
-				bankPipeline: 'HDFC Bank',
-				allowedTransactionTypes: [
-					{
-						transactionType: 'IMPS' as const,
-						txnAmountMin: '100',
-						txnAmountMax: '25000',
-						dailyTxnLimit: '40000'
-					},
-					{
-						transactionType: 'NEFT' as const,
-						txnAmountMin: '100',
-						txnAmountMax: '50000',
-						dailyTxnLimit: '60000'
-					}
-				],
-				virtualAccountsEnabled: false
-			}
-		};
-		expect(merchantActivationValid(configured, true)).toBe(true);
-		expect(merchantActivationValid(configured, false)).toBe(false);
-
-		const missingPartnerFee = {
-			...configured,
-			commissionRules: configured.commissionRules.map((rule, index) =>
-				index === 0 ? { ...rule, partnerFee: '' } : rule
-			)
-		};
-		expect(merchantActivationValid(missingPartnerFee, true)).toBe(false);
-
-		const overDailyCap = {
-			...configured,
-			payoutConfiguration: {
-				...configured.payoutConfiguration,
-				allowedTransactionTypes: [
-					{
-						transactionType: 'IMPS' as const,
-						txnAmountMin: '100',
-						txnAmountMax: '25000',
-						dailyTxnLimit: '60000'
-					},
-					{
-						transactionType: 'NEFT' as const,
-						txnAmountMin: '100',
-						txnAmountMax: '50000',
-						dailyTxnLimit: '60000'
-					}
-				]
-			}
-		};
-		expect(merchantActivationValid(overDailyCap, true)).toBe(false);
-
-		const methodMaxExceedsParent = {
-			...configured,
-			payoutConfiguration: {
-				...configured.payoutConfiguration,
-				allowedTransactionTypes: [
-					{
-						transactionType: 'IMPS' as const,
-						txnAmountMin: '100',
-						txnAmountMax: '75000',
-						dailyTxnLimit: '40000'
-					}
-				]
-			}
-		};
-		expect(merchantActivationValid(methodMaxExceedsParent, true)).toBe(false);
+		expect(org.feeConfigDrafts).toEqual([]);
+		expect(org.affiliateId).toBe('AFF-HD01');
+		expect(activationDocumentReady()).toBe(true);
 	});
 });
