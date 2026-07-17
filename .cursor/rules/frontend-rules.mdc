@@ -53,7 +53,7 @@ If unsure about any API or syntax, check the official docs first before generati
 
 ## Components
 
-- ALWAYS check shadcn-svelte before creating any custom component.
+- Always check shadcn-svelte before creating any custom component.
 - If a shadcn-svelte component exists for the use case, use it — do NOT create a custom one.
 - If the user asks to create a custom component that already exists in shadcn-svelte, REFUSE and suggest the existing one.
 - Keep components small and reusable.
