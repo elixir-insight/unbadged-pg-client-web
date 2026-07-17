@@ -14,7 +14,14 @@ import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/t
 
 // Keep auth pages + API routes public so missing/expired cookies never block
 // sign-in/sign-out or forgot/reset password flows.
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/api/auth', '/logout'];
+const PUBLIC_PATHS = [
+	'/login',
+	'/forgot-password',
+	'/reset-password',
+	'/reset-temporary-password',
+	'/api/auth',
+	'/logout'
+];
 
 function isPublicPath(pathname: string) {
 	if (pathname === '/') return true;

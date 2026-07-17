@@ -23,10 +23,23 @@ const SignInSessionExistsResponseSchema = v.object({
 	)
 });
 
-/** Tokens on success, or session-conflict payload on 202. */
+// 202 "Password change required" — user signed in with a temporary password.
+export const SignInPasswordChangeResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(
+		v.object({
+			challengeSession: v.string(),
+			requiresPasswordChange: v.literal(true)
+		})
+	)
+});
+
+/** Tokens on success, or session-conflict / password-change payload on 202. */
 export const SignInResponseSchema = v.union([
 	SignInTokensResponseSchema,
-	SignInSessionExistsResponseSchema
+	SignInSessionExistsResponseSchema,
+	SignInPasswordChangeResponseSchema
 ]);
 
 /** Refresh only returns tokens — not the session-conflict union. */
