@@ -1,5 +1,5 @@
-export { default as ManagementDashboard } from './management-dashboard.svelte';
 export { default as QuickActions } from './quick-actions.svelte';
+export { default as OverviewTab } from './overview-tab.svelte';
 export { default as MetricTile } from './metric-tile.svelte';
 export { default as VolumeTrendCard } from './volume-trend-card.svelte';
 export { default as StatusDistributionCard } from './status-distribution-card.svelte';
