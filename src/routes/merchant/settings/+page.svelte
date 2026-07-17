@@ -6,6 +6,7 @@
 	import { cn } from '$lib/utils';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import ChangePasswordModal from './change-password-modal.svelte';
+	import IpWhitelistTab from './ip-whitelist-tab.svelte';
 
 	merchantSession.initialize();
 
@@ -39,6 +40,11 @@
 			value: 'configuration',
 			label: 'Configuration',
 			content: configurationTab
+		},
+		{
+			value: 'ip-whitelist',
+			label: 'Whitelisted IP Address',
+			content: ipWhitelistTab
 		}
 	];
 
@@ -94,6 +100,10 @@
 			<p class="mt-2 font-mono text-sm tracking-widest text-muted-foreground">••••••••••••••••</p>
 		</div>
 	</section>
+{/snippet}
+
+{#snippet ipWhitelistTab()}
+	<IpWhitelistTab />
 {/snippet}
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
