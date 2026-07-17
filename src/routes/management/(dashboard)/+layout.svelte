@@ -1,18 +1,38 @@
 <script lang="ts">
-	import {
-		CollectionsTab,
-		DisbursementsTab,
-		OverviewTab
-	} from '$lib/components/management/dashboard';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import type { Snippet } from 'svelte';
+
+	let { children }: { children: Snippet } = $props();
 
 	const userName = 'Linda';
 
-	let activeTab = $state<'overview' | 'collections' | 'disbursements'>('overview');
+	const tabPaths = {
+		overview: resolve('/management'),
+		collections: resolve('/management/collections'),
+		disbursements: resolve('/management/disbursements')
+	} as const;
+
+	type TabValue = keyof typeof tabPaths;
+
+	const activeTab = $derived<TabValue>(
+		(Object.keys(tabPaths) as TabValue[]).find((tab) => tabPaths[tab] === page.url.pathname) ??
+			'overview'
+	);
+
+	function handleValueChange(value: string) {
+		goto(tabPaths[value as TabValue]);
+	}
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-	<Tabs.Root bind:value={activeTab} class="flex h-full min-h-0 flex-col">
+	<Tabs.Root
+		value={activeTab}
+		onValueChange={handleValueChange}
+		class="flex h-full min-h-0 flex-col"
+	>
 		<!-- Sticky header: greeting, subtitle, tabs -->
 
 		<div class="flex shrink-0 flex-col gap-3">
@@ -39,16 +59,8 @@
 		<!-- px/-mx cancel out (preserves alignment with the header above) while still giving card
 		     box-shadows room to render before overflow-y-auto's clip edge cuts them off -->
 		<div class="min-h-0 flex-1 overflow-y-auto -mx-3 px-3 pt-1 pb-3">
-			<Tabs.Content value="overview" class="h-full min-h-0">
-				<OverviewTab />
-			</Tabs.Content>
-
-			<Tabs.Content value="collections" class="h-full min-h-0">
-				<CollectionsTab />
-			</Tabs.Content>
-
-			<Tabs.Content value="disbursements" class="h-full min-h-0">
-				<DisbursementsTab />
+			<Tabs.Content value={activeTab} class="h-full min-h-0">
+				{@render children()}
 			</Tabs.Content>
 		</div>
 	</Tabs.Root>

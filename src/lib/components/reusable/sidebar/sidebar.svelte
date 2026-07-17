@@ -60,7 +60,7 @@
 
 	function isActive(href: string): boolean {
 		if (page.url.pathname === href) return true;
-		if (href === rootRoutes[app]) return false;
+		if (href === rootRoutes[app]) return page.route.id?.includes('/(dashboard)') ?? false;
 		return page.url.pathname.startsWith(href + '/');
 	}
 

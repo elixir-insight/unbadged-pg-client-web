@@ -43,7 +43,9 @@
 		partner: '/partner'
 	};
 
-	const isDashboard = $derived(page.route.id === rootRouteIds[app]);
+	const isDashboard = $derived(
+		page.route.id === rootRouteIds[app] || (page.route.id?.includes('/(dashboard)') ?? false)
+	);
 
 	const pageTitle = $derived(
 		allItems.find((i) => page.url.pathname === i.href)?.title ??
