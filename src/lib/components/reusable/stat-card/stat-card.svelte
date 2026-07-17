@@ -47,13 +47,6 @@
 		class: className
 	}: Props = $props();
 
-	// const iconBoxClasses: Record<StatCardIconVariant, string> = {
-	// 	muted: 'bg-muted text-muted-foreground',
-	// 	success: 'bg-green-500/15 text-green-600 dark:bg-green-500/20 dark:text-green-400',
-	// 	warning: 'bg-orange-500/15 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
-	// 	error: 'bg-red-500/15 text-red-600 dark:bg-red-500/20 dark:text-red-400'
-	// };
-
 	const points = $derived.by(() => {
 		if (!sparkline || sparkline.length < 2) return '';
 		const min = Math.min(...sparkline);
@@ -66,7 +59,7 @@
 
 <div
 	class={cn(
-		'relative isolate flex flex-col justify-center overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 p-3 shadow-xs backdrop-blur-sm',
+		'relative  isolate flex flex-col justify-center overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 p-4 shadow-xs backdrop-blur-sm',
 		className
 	)}
 >
@@ -76,15 +69,7 @@
 
 	<div class="flex items-start justify-between gap-2">
 		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-		<!-- {#if Icon}
-			<div
-				class={cn(
-					'flex size-8 shrink-0 items-center justify-center rounded-lg',
-					iconBoxClasses[iconVariant]
-				)}
-			>
-				<Icon class="size-4" />
-			</div> -->
+
 		{#if badge}
 			<Chip variant={badge.variant ?? 'default'} class="shrink-0">
 				{#if badge.trend === 'up'}

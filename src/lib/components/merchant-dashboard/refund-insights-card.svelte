@@ -26,7 +26,7 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col gap-2.5 rounded-lg border border-border bg-background p-2.5 shadow-xs',
+		'flex h-full min-h-0 flex-col gap-3 rounded-lg border border-border bg-background p-4 shadow-xs',
 		className
 	)}
 >
@@ -35,7 +35,7 @@
 		<p class="text-xs text-muted-foreground">{total} refunds</p>
 	</div>
 
-	<div class="flex h-2.5 w-full shrink-0 overflow-hidden rounded-full bg-muted">
+	<div class="flex h-2.5 mt-6 w-full shrink-0 overflow-hidden rounded-full bg-muted">
 		{#each segments as segment (segment.label)}
 			<div
 				class={cn('h-full', segment.color)}
@@ -46,12 +46,12 @@
 
 	<div class="flex min-h-0 flex-1 flex-col justify-evenly">
 		{#each segments as segment (segment.label)}
-			<div class="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
-				<div class="flex items-center gap-2">
+			<div class="flex items-center justify-between pt-2 text-sm px-4">
+				<div class="flex items-center gap-3">
 					<span class={cn('size-2.5 shrink-0 rounded-full', segment.color)}></span>
 					<span class="text-muted-foreground">{segment.label}</span>
 				</div>
-				<div class="flex items-baseline gap-1.5">
+				<div class="flex items-baseline gap-2">
 					<span class="font-semibold">{segment.value}</span>
 					<span class="text-xs text-muted-foreground"
 						>({Math.round((segment.value / total) * 100)}%)</span

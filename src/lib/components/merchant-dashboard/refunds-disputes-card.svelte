@@ -32,16 +32,16 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-2.5 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-4 shadow-xs',
 		className
 	)}
 >
 	<p class="shrink-0 text-sm font-semibold">Dispute overview</p>
 
-	<div class="flex min-h-0 flex-1 items-center justify-center gap-4">
+	<div class="flex min-h-0 flex-col m-4 sm:mt-2 sm:flex-1 items-center justify-center gap-4">
 		<div class="relative aspect-square h-full min-h-24 max-h-36 w-auto min-w-24">
 			<Chart.Container config={chartConfig} class="aspect-auto size-full">
-				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-18} padAngle={0.02}>
+				<PieChart {data} key="key" value="value" c="key" {cRange} innerRadius={-20} padAngle={0.02}>
 					{#snippet tooltip()}
 						<Chart.Tooltip hideLabel nameKey="key" />
 					{/snippet}
@@ -53,7 +53,7 @@
 			</div>
 		</div>
 
-		<div class="flex flex-col gap-1.5 text-xs">
+		<div class="flex flex-col gap-2 text-sm">
 			{#each data as item, i (item.key)}
 				<div class="flex items-center gap-1.5">
 					<span class="size-2 shrink-0 rounded-full" style="background-color: {cRange[i]}"></span>

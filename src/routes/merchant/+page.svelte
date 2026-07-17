@@ -60,11 +60,7 @@
 	{#if merchantSession.hasBothServices()}
 		<div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
 			<div class="flex shrink-0 items-center justify-between">
-				<h2 class="text-base leading-tight font-semibold">Dashboard</h2>
-				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium">{merchantName}</span>
-					<Avatar name={merchantName} size="sm" />
-				</div>
+				<h2 class="text-base leading-tight font-semibold">Welcome back, {merchantName}</h2>
 			</div>
 
 			<div
@@ -77,7 +73,7 @@
 						value="₹6,42,300"
 						subtext="128 transactions"
 						icon={ArrowDownToLine}
-						class="h-full"
+						class="h-full "
 					/>
 					<StatCard
 						label="Available funds"
@@ -120,10 +116,8 @@
 					<SettlementsCard
 						availableFunds="₹18,42,650"
 						availableFundsChangeLabel="+4.2%"
-						todaySettlement="₹6,42,300"
 						pendingSettlement="₹38,900"
 						lastSettlementAmount="₹7,65,400"
-						nextSettlement="Tomorrow, 10:00 AM"
 						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
 					/>
 					<RefundInsightsCard
@@ -145,9 +139,8 @@
 	{:else if merchantSession.hasPayinAccess()}
 		<div class="space-y-6">
 			<div class="flex items-center justify-between">
-				<h2 class="text-lg font-semibold">Dashboard</h2>
+				<h2 class="text-lg font-semibold">Welcome back, {merchantName}</h2>
 				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium">{merchantName}</span>
 					<Avatar name={merchantName} size="sm" />
 				</div>
 			</div>
@@ -177,9 +170,8 @@
 	{:else if merchantSession.hasPayoutAccess()}
 		<div class="space-y-6">
 			<div class="flex items-center justify-between">
-				<h2 class="text-lg font-semibold">Dashboard</h2>
+				<h2 class="text-lg font-semibold">Welcome back, {merchantName}</h2>
 				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium">{merchantName}</span>
 					<Avatar name={merchantName} size="sm" />
 				</div>
 			</div>

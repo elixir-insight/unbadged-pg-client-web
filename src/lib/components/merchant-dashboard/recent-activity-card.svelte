@@ -46,11 +46,11 @@
 
 <div
 	class={cn(
-		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background px-2.5 py-2 shadow-xs',
+		'flex h-full min-h-0 flex-col rounded-lg border border-border bg-background p-4 shadow-xs',
 		className
 	)}
 >
-	<div class="mb-1 flex shrink-0 items-center justify-between">
+	<div class="mb-3 flex shrink-0 items-center justify-between">
 		<p class="text-sm font-semibold">Recent transactions</p>
 		<a
 			href={resolve('/merchant/transactions')}
@@ -61,7 +61,7 @@
 		</a>
 	</div>
 
-	<div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+	<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
 		{#each payments.slice(0, 6) as payment, i (payment.name)}
 			<div
 				class={cn(
