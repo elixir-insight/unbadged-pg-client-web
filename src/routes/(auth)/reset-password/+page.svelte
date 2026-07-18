@@ -1,9 +1,19 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import * as v from 'valibot';
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Input, Button } from '$lib/components/reusable';
+	import { Input, Button, toast } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
+	import { theme } from '$lib/stores/theme.svelte';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
+	import { NewPasswordFormSchema } from '$lib/validation/password';
+	import type { PageProps } from './$types';
+	import type { SubmitFunction } from '@sveltejs/kit';
 
+	let { data, form }: PageProps = $props();
+
+	const userEmail = $derived(data.userEmail);
 	let password = $state('');
 	let confirmPassword = $state('');
 	let showPassword = $state(false);
@@ -12,12 +22,39 @@
 	let resendSeconds = $state(30);
 	let otpDigits = $state(['', '', '', '', '', '']);
 	let otpRefs = $state<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
+	let submitting = $state(false);
+	let resending = $state(false);
+	let attemptedContinue = $state(false);
 
-	const canContinue = $derived(
-		password.trim().length > 0 && confirmPassword.trim().length > 0 && password === confirmPassword
-	);
+	const confirmationCode = $derived(otpDigits.join(''));
 
 	const canSubmitOtp = $derived(otpDigits.every((digit) => digit.length === 1));
+
+	function computePasswordErrors(pwd: string, confirmPwd: string) {
+		const result = v.safeParse(NewPasswordFormSchema, {
+			newPassword: pwd,
+			confirmPassword: confirmPwd
+		});
+		if (result.success) return { pwdError: '', confirmError: '' };
+
+		let pwdError = '';
+		let confirmError = '';
+		for (const issue of result.issues) {
+			const field = issue.path?.[0]?.key;
+			if (field === 'newPassword' && !pwdError) pwdError = issue.message;
+			if (field === 'confirmPassword' && !confirmError) confirmError = issue.message;
+		}
+
+		return { pwdError, confirmError };
+	}
+
+	const passwordErrors = $derived(
+		attemptedContinue
+			? computePasswordErrors(password, confirmPassword)
+			: { pwdError: '', confirmError: '' }
+	);
+	const passwordError = $derived(passwordErrors.pwdError);
+	const confirmPasswordError = $derived(passwordErrors.confirmError);
 
 	$effect(() => {
 		if (currentStep !== 'otp' || resendSeconds <= 0) return;
@@ -75,17 +112,57 @@
 	}
 
 	function goToOtpStep() {
-		if (!canContinue) return;
+		attemptedContinue = true;
+		const { pwdError, confirmError } = computePasswordErrors(password, confirmPassword);
+		if (pwdError || confirmError) return;
 		currentStep = 'otp';
 		resendSeconds = 30;
 	}
 
-	function resendOtp() {
-		if (resendSeconds > 0) return;
-		otpDigits = ['', '', '', '', '', ''];
-		resendSeconds = 30;
-		moveFocus(0);
-	}
+	onMount(() => {
+		theme.init();
+	});
+
+	const handleEnhance: SubmitFunction = ({ action }) => {
+		const isResend = action.search.includes('/resend');
+
+		if (isResend) {
+			resending = true;
+		} else {
+			submitting = true;
+		}
+
+		return async ({ result, update }) => {
+			if (isResend) {
+				resending = false;
+				if (result.type === 'failure') {
+					const message =
+						(result.data as { error?: string } | undefined)?.error ?? 'Failed to resend the code.';
+					toast.error(message, { position: 'top-right', closeButton: false });
+					return;
+				}
+				if (result.type === 'success') {
+					otpDigits = ['', '', '', '', '', ''];
+					resendSeconds = 30;
+					moveFocus(0);
+					toast.success('A new code has been sent to your email.', { position: 'top-right' });
+				}
+				return;
+			}
+
+			submitting = false;
+			if (result.type === 'redirect') {
+				const redirectUrl = new URL(result.location, window.location.origin);
+				const message = redirectUrl.searchParams.get('message');
+				console.log(message);
+				toast.success(message ?? 'Reset instructions sent', {
+					description: 'Your password has been reset. Please sign in.',
+					position: 'top-right'
+				});
+			}
+			await update();
+		};
+	};
 </script>
 
 <main class="flex flex-1 items-center justify-center px-10">
@@ -117,7 +194,9 @@
 								placeholder="Enter password"
 								bind:value={password}
 								autocomplete="new-password"
+								aria-invalid={passwordError ? 'true' : undefined}
 								class="h-11 pr-11 text-base!"
+								onblur={() => (password = password.trim())}
 							/>
 							<button
 								type="button"
@@ -132,6 +211,9 @@
 								{/if}
 							</button>
 						</div>
+						{#if passwordError}
+							<p class="text-sm text-destructive">{passwordError}</p>
+						{/if}
 					</div>
 
 					<div class="flex flex-col gap-3">
@@ -145,7 +227,9 @@
 								placeholder="Re-enter password"
 								bind:value={confirmPassword}
 								autocomplete="new-password"
+								aria-invalid={confirmPasswordError ? 'true' : undefined}
 								class="h-11 pr-11 text-base!"
+								onblur={() => (confirmPassword = confirmPassword.trim())}
 							/>
 							<button
 								type="button"
@@ -160,11 +244,12 @@
 								{/if}
 							</button>
 						</div>
+						{#if confirmPasswordError}
+							<p class="text-sm text-destructive">{confirmPasswordError}</p>
+						{/if}
 					</div>
 
-					<Button type="submit" class="h-11 w-full text-base" disabled={!canContinue}>
-						Reset Password
-					</Button>
+					<Button type="submit" class="h-11 w-full text-base">Reset Password</Button>
 				</form>
 			</div>
 		{:else}
@@ -178,7 +263,21 @@
 				</div>
 				<!-- </div> -->
 
-				<form class="flex w-full flex-col items-center gap-10" onsubmit={(e) => e.preventDefault()}>
+				<form
+					class="flex w-full flex-col items-center gap-10"
+					method="POST"
+					action="?/confirm"
+					use:enhance={handleEnhance}
+				>
+					<input type="hidden" name="userEmail" value={userEmail} />
+					<input type="hidden" name="newPassword" value={password} />
+					<input type="hidden" name="confirmPassword" value={confirmPassword} />
+					<input type="hidden" name="confirmationCode" value={confirmationCode} />
+
+					{#if form?.error}
+						<p class="text-sm text-destructive">{form.error}</p>
+					{/if}
+
 					<div class="flex w-full justify-center gap-4">
 						{#each otpDigits as digit, index (index)}
 							<input
@@ -199,10 +298,10 @@
 
 					<div class="flex flex-col items-center gap-6">
 						<button
-							type="button"
+							type="submit"
+							formaction="?/resend"
 							class="text-base text-gray-700 underline underline-offset-4 disabled:opacity-50"
-							disabled={resendSeconds > 0}
-							onclick={resendOtp}
+							disabled={resendSeconds > 0 || resending}
 						>
 							{#if resendSeconds > 0}
 								Resend the code in {resendSeconds}s
@@ -212,8 +311,12 @@
 						</button>
 
 						<div class="items-center">
-							<Button type="submit" class="h-11 px-12  text-base" disabled={!canSubmitOtp}>
-								Verify OTP
+							<Button
+								type="submit"
+								class="h-11 px-12  text-base"
+								disabled={!canSubmitOtp || submitting}
+							>
+								{submitting ? 'Verifying…' : 'Verify OTP'}
 							</Button>
 						</div>
 					</div>

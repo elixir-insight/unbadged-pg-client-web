@@ -66,19 +66,6 @@
 
 <Modal bind:open title="Initiate Refund" description="Refund to {customerName}">
 	<div class="flex flex-col gap-5">
-		<!-- Amount summary -->
-		<!-- <div class="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
-			<div class="flex items-center justify-between gap-2">
-				<span class="text-muted-foreground">Transaction amount</span>
-				<span class="font-medium text-foreground">{transactionAmount}</span>
-			</div>
-			<div class="mt-1.5 flex items-center justify-between gap-2">
-				<span class="text-muted-foreground">Max refundable</span>
-				<span class="font-medium text-foreground">{refundableAmount}</span>
-			</div>
-		</div> -->
-
-		<!-- Refund amount -->
 		<div class="flex flex-col gap-1.5">
 			<div class="flex items-center justify-between">
 				<label for="refund-amount" class="text-sm font-medium text-foreground">
@@ -130,7 +117,6 @@
 			</button>
 		</div>
 
-		<!-- Remarks -->
 		<div class="flex flex-col gap-1.5">
 			<label for="refund-remarks" class="text-sm font-medium text-foreground">
 				Remarks <span class="text-destructive">*</span>
