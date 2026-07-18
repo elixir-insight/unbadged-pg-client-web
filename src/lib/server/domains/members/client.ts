@@ -11,6 +11,7 @@ import {
 	type CreateMemberBody,
 	type UpdateMemberBody
 } from './schema';
+import { type MembersApiPortal, membersBasePath } from './portal';
 
 export type MembersListQuery = {
 	page?: number;
@@ -28,9 +29,10 @@ export const membersClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		query: MembersListQuery = {}
+		query: MembersListQuery = {},
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch('/api/v1/management/member', {
+		apiFetch(`${membersBasePath(portal)}/member`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -48,9 +50,10 @@ export const membersClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		memberId: number
+		memberId: number,
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`/api/v1/management/member/${memberId}`, {
+		apiFetch(`${membersBasePath(portal)}/member/${memberId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -65,9 +68,10 @@ export const membersClient = {
 		accessToken: string,
 		gatewayToken: string,
 		orgId: number,
-		query: OrgRolesListQuery = {}
+		query: OrgRolesListQuery = {},
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`/api/v1/management/organizations/${orgId}/roles`, {
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -85,9 +89,10 @@ export const membersClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		query: OrgRolesListQuery = {}
+		query: OrgRolesListQuery = {},
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch('/api/v1/management/user/list', {
+		apiFetch(`${membersBasePath(portal)}/user/list`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -105,9 +110,10 @@ export const membersClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		body: CreateMemberBody
+		body: CreateMemberBody,
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch('/api/v1/management/member', {
+		apiFetch(`${membersBasePath(portal)}/member`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -123,9 +129,10 @@ export const membersClient = {
 		accessToken: string,
 		gatewayToken: string,
 		memberId: number,
-		body: UpdateMemberBody
+		body: UpdateMemberBody,
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`/api/v1/management/member/${memberId}`, {
+		apiFetch(`${membersBasePath(portal)}/member/${memberId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -140,9 +147,10 @@ export const membersClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		memberId: number
+		memberId: number,
+		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`/api/v1/management/member/${memberId}`, {
+		apiFetch(`${membersBasePath(portal)}/member/${memberId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,

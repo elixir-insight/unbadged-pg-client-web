@@ -5,6 +5,7 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import { CreateMemberBodySchema, type MemberListItem } from '$lib/server/domains/members/schema';
 import type { ApiUsersListResponse } from '$lib/stores/user-management/api-types';
 import { mapStatusFilterToEnabled } from '$lib/stores/user-management/user-mapper';
@@ -51,14 +52,19 @@ async function requireSession(cookies: Cookies, fetchFn: typeof fetch, logger: L
 	}
 }
 
-export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 
 	if (userId) {
 		const memberId = Number(userId);
-		const log = locals.logger.child({ action: 'view-user', memberId: userId });
+		const log = locals.logger.child({ action: 'view-user', memberId: userId, portal });
 
 		if (!Number.isFinite(memberId)) {
 			log.warn('invalid user id');
@@ -72,7 +78,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			log,
 			tokens.accessToken,
 			tokens.gatewayToken,
-			memberId
+			memberId,
+			portal
 		);
 
 		if (!result.ok) {
@@ -124,7 +131,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			log,
 			tokens.accessToken,
 			tokens.gatewayToken,
-			{ page: 1, limit: 1000 }
+			{ page: 1, limit: 1000 },
+			portal
 		);
 
 		if (!membersList.ok) {
@@ -208,7 +216,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			// When filters are applied, load a larger page and filter locally until
 			// the upstream API supports search/status/role query params.
 			limit: hasFilters ? Math.max(limit, 1000) : limit
-		}
+		},
+		portal
 	);
 
 	if (!result.ok) {
@@ -240,8 +249,13 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 	return json(response);
 };
 
-export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) => {
+export const POST: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	let body: unknown;
 	try {
@@ -260,7 +274,8 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) 
 		locals.logger,
 		tokens.accessToken,
 		tokens.gatewayToken,
-		parsed.output
+		parsed.output,
+		portal
 	);
 
 	if (!result.ok) {
@@ -275,6 +290,11 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) 
 
 export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 	const memberId = Number(userId);
@@ -300,7 +320,8 @@ export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals
 		tokens.accessToken,
 		tokens.gatewayToken,
 		memberId,
-		parsed.output
+		parsed.output,
+		portal
 	);
 
 	if (!result.ok) {
@@ -313,8 +334,13 @@ export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals
 	return json(result.data);
 };
 
-export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+export const DELETE: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 	const memberId = Number(userId);
@@ -327,7 +353,8 @@ export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) =>
 		locals.logger,
 		tokens.accessToken,
 		tokens.gatewayToken,
-		memberId
+		memberId,
+		portal
 	);
 
 	if (!result.ok) {
