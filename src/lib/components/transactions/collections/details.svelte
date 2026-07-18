@@ -1,11 +1,13 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- linkHref uses resolve() and optional scope query suffix */
 	import { resolve } from '$app/paths';
 	import { cn } from '$lib/utils';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Check from '@lucide/svelte/icons/check';
 
-	type ResolvePath = Parameters<typeof resolve>[0];
-	type ResolveParams = Parameters<typeof resolve>[1];
+	type DetailLinkPath =
+		| '/merchant/transactions/collections/orders/[orderId]'
+		| '/management/transactions/collections/orders/[orderId]';
 
 	export interface DetailRow {
 		label: string;
@@ -15,8 +17,8 @@
 		variant?: 'default' | 'negative' | 'positive';
 		bold?: boolean;
 		link?: {
-			path: ResolvePath;
-			params?: ResolveParams;
+			path: DetailLinkPath;
+			params: { orderId: string };
 		};
 	}
 
@@ -25,7 +27,11 @@
 		rows: DetailRow[];
 	}
 
-	let { sections, flat = false }: { sections: DetailSection[]; flat?: boolean } = $props();
+	let {
+		sections,
+		flat = false,
+		linkQuery = ''
+	}: { sections: DetailSection[]; flat?: boolean; linkQuery?: string } = $props();
 
 	let copiedKey = $state<string | null>(null);
 
@@ -33,6 +39,10 @@
 		navigator.clipboard.writeText(text);
 		copiedKey = key;
 		setTimeout(() => (copiedKey = null), 1500);
+	}
+
+	function linkHref(link: NonNullable<DetailRow['link']>): string {
+		return `${resolve(link.path, link.params)}${linkQuery}`;
 	}
 </script>
 
@@ -69,7 +79,7 @@
 						<div class="flex min-w-0 items-center gap-1.5">
 							{#if row.link}
 								<a
-									href={resolve(row.link.path, row.link.params)}
+									href={linkHref(row.link)}
 									class={cn(
 										'min-w-0 truncate text-right text-sm font-medium text-primary hover:underline',
 										row.mono && 'font-mono text-xs'

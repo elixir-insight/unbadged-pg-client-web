@@ -6,8 +6,11 @@
 	import { ArrowUpFromLine, RefreshCw } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import { getPayoutDetail } from '$lib/data/payout-detail-mock';
-	import Timeline from './timeline.svelte';
-	import Details, { type DetailSection } from './details.svelte';
+	import {
+		DisbursementDetails,
+		DisbursementTimeline,
+		type DetailSection
+	} from '$lib/components/transactions/disbursements';
 	import RetryModal from './retry-modal.svelte';
 	import { toast } from '$lib/components/reusable';
 
@@ -195,9 +198,9 @@
 
 			<div class="px-4 py-5 sm:px-6">
 				{#if activeTab === 'updates'}
-					<Timeline entries={transaction.transactionTimeline} />
+					<DisbursementTimeline entries={transaction.transactionTimeline} />
 				{:else}
-					<Details sections={detailSections} />
+					<DisbursementDetails sections={detailSections} />
 				{/if}
 			</div>
 		</div>

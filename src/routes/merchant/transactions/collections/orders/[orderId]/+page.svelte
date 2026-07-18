@@ -5,12 +5,15 @@
 	import { Chip } from '$lib/components/ui/badge';
 	import { getPayinOrderDetail, getPaymentsByOrderId } from '$lib/data/payin-order-mock';
 	import { buildOrderTimeline } from '$lib/utils/payin-timeline';
-	import Timeline from '../../timeline.svelte';
-	import Details, { type DetailSection } from '../../details.svelte';
-	import OrderStatusBadge from '../../order-status-badge.svelte';
-	import RelatedPaymentsTable from '../../related-payments-table.svelte';
-	import DetailPageLayout from '../../detail-page-layout.svelte';
-	import DetailSummaryCard from '../../detail-summary-card.svelte';
+	import {
+		DetailPageLayout,
+		DetailSummaryCard,
+		Details,
+		OrderStatusBadge,
+		RelatedPaymentsTable,
+		Timeline,
+		type DetailSection
+	} from '$lib/components/transactions/collections';
 
 	const orderId = $derived(page.params.orderId ?? '');
 	const order = $derived(getPayinOrderDetail(orderId));
@@ -73,7 +76,10 @@
 					<p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
 						Related payments
 					</p>
-					<RelatedPaymentsTable {payments} />
+					<RelatedPaymentsTable
+						{payments}
+						paymentDetailPath="/merchant/transactions/collections/payments/[txnId]"
+					/>
 				</div>
 			{/if}
 		{/snippet}
