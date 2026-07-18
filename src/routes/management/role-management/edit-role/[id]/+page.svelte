@@ -3,14 +3,25 @@
 	import { resolve } from '$app/paths';
 	import { Button, Input, Textarea } from '$lib/components/reusable';
 	import { AccessSelectTable } from '$lib/components/role-management';
+	import { page } from '$app/state';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES, PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
+
+	const roleId = $derived(page.params.id);
 
 	$effect(() => {
 		if (!roleFormStore.isEditMode || roleFormStore.roleId === null) {
 			goto(resolve('/management/role-management'));
 		}
 	});
+
+	const canPreview = $derived(roleFormStore.isValid && roleFormStore.hasChanges);
+
+	function goToPreview() {
+		const id = roleId ?? String(roleFormStore.roleId ?? '');
+		if (!id || !canPreview) return;
+		goto(resolve('/management/role-management/edit-role/[id]/preview', { id }));
+	}
 </script>
 
 <div class="space-y-6 w-full md:w-[75%] m-auto">
@@ -24,12 +35,7 @@
 		</div>
 		<div class="flex justify-end gap-2">
 			<Button variant="outline" onclick={() => roleFormStore.clear()}>Clear</Button>
-			<Button
-				disabled={!roleFormStore.isValid || !roleFormStore.hasChanges}
-				onclick={() => goto(resolve('/management/role-management/edit-role/preview'))}
-			>
-				Preview
-			</Button>
+			<Button disabled={!canPreview} onclick={goToPreview}>Preview</Button>
 		</div>
 	</div>
 

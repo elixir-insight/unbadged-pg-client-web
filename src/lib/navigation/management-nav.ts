@@ -30,8 +30,40 @@ export const managementNav: NavGroup[] = [
 	{
 		title: 'Access Control',
 		items: [
-			{ title: 'User Management', href: '/management/user-management', icon: Users },
-			{ title: 'Role Management', href: '/management/role-management', icon: ShieldCheck }
+			{
+				title: 'User Management',
+				href: '/management/user-management',
+				icon: Users,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/user-management\/view-user\/[^/]+$/,
+						title: 'View User'
+					},
+					{
+						matcher: /^\/management\/user-management\/edit-user\/[^/]+$/,
+						title: 'Edit User'
+					}
+				]
+			},
+			{
+				title: 'Role Management',
+				href: '/management/role-management',
+				icon: ShieldCheck,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/role-management\/view-role\/[^/]+$/,
+						title: 'View Role'
+					},
+					{
+						matcher: /^\/management\/role-management\/edit-role\/[^/]+$/,
+						title: 'Edit Role'
+					},
+					{
+						matcher: /^\/management\/role-management\/edit-role\/[^/]+\/preview$/,
+						title: 'Preview'
+					}
+				]
+			}
 		]
 	},
 	{
@@ -41,7 +73,17 @@ export const managementNav: NavGroup[] = [
 			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
 			{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
 			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
-			{ title: 'Settlements', href: '/management/settlements', icon: Landmark }
+			{
+				title: 'Settlements',
+				href: '/management/settlements',
+				icon: Landmark,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/settlements\/[^/]+$/,
+						title: 'Settlement Details'
+					}
+				]
+			}
 		]
 	},
 	{

@@ -223,7 +223,20 @@ const MOCK_API_USER_DETAILS: Record<number, ApiUserDetailItem> = {
 		],
 		enabled: true,
 		createdBy: 100000,
-		assignedUsers: []
+		assignedUsers: [
+			{
+				userId: 100430,
+				userName: 'Brock Howard',
+				userEmail: 'brock@gmail.com',
+				employeeId: 'QA1234'
+			},
+			{
+				userId: 100132,
+				userName: 'Babu A',
+				userEmail: 'Babu12@gmail.com',
+				employeeId: 'B0012'
+			}
+		]
 	}
 };
 

@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { createUrlPagination, Dropdown, Search } from '$lib/components/reusable';
 	import { UserCard } from '$lib/components/user-management';
-	import { Plus } from '$lib/assets/icons';
+	import { Plus, X } from '$lib/assets/icons';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { fetchUsers } from '$lib/stores/user-management/users-api';
@@ -12,11 +12,7 @@
 
 	const pagination = createUrlPagination();
 
-	const ALL_STATUS = 'all';
-	const ALL_ROLES = 'all';
-
 	const statusOptions = [
-		{ value: ALL_STATUS, label: 'All Status' },
 		{ value: 'Active', label: 'Active' },
 		{ value: 'Invited', label: 'Invited' }
 	];
@@ -27,16 +23,37 @@
 	let selectedId = $state<string | null>(null);
 
 	const searchInput = $derived(pagination.search);
-	const statusFilter = $derived(pagination.status || ALL_STATUS);
-	const roleFilter = $derived(pagination.role || ALL_ROLES);
+	const statusFilter = $derived(pagination.status);
+	const roleFilter = $derived(pagination.role);
 
-	const roleOptions = $derived([
-		{ value: ALL_ROLES, label: 'All Roles' },
-		...availableRoles.map((role) => ({
+	const roleOptions = $derived(
+		availableRoles.map((role) => ({
 			value: role,
 			label: role
 		}))
+	);
+
+	const activeFilters = $derived([
+		...(pagination.status
+			? [
+					{
+						key: 'status',
+						label: `Status: ${statusOptions.find((option) => option.value === pagination.status)?.label ?? pagination.status}`
+					}
+				]
+			: []),
+		...(pagination.role
+			? [
+					{
+						key: 'role',
+						label: `Role: ${roleOptions.find((option) => option.value === pagination.role)?.label ?? pagination.role}`
+					}
+				]
+			: []),
+		...(pagination.search ? [{ key: 'search', label: `Search: "${pagination.search}"` }] : [])
 	]);
+
+	const hasActiveFilters = $derived(activeFilters.length > 0);
 
 	async function loadUsers(search: string, status: string, role: string) {
 		loading = true;
@@ -68,6 +85,16 @@
 		debouncedSearch(value);
 	}
 
+	function removeFilter(key: string) {
+		if (key === 'status') pagination.setStatus('');
+		else if (key === 'role') pagination.setRole('');
+		else if (key === 'search') pagination.setSearch('');
+	}
+
+	function clearFilters() {
+		pagination.clearAllFilters();
+	}
+
 	function selectUser(user: UserItem) {
 		selectedId = user.id;
 		userFormStore.setViewUser(user);
@@ -94,23 +121,50 @@
 
 		<Dropdown
 			value={statusFilter}
-			onValueChange={(value) => pagination.setStatus(value === ALL_STATUS ? '' : value)}
+			onValueChange={(value) => pagination.setStatus(value)}
 			options={statusOptions}
-			placeholder="All Status"
+			placeholder="Status"
 			bordered
 			class="w-full sm:w-44"
 		/>
 
 		<Dropdown
 			value={roleFilter}
-			onValueChange={(value) => pagination.setRole(value === ALL_ROLES ? '' : value)}
+			onValueChange={(value) => pagination.setRole(value)}
 			options={roleOptions}
-			placeholder="All Roles"
+			placeholder="Role"
 			bordered
 			search
 			class="w-full sm:w-64"
 		/>
 	</div>
+
+	{#if hasActiveFilters}
+		<div class="flex flex-wrap items-center gap-2">
+			{#each activeFilters as filter (filter.key)}
+				<span
+					class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-white/10 dark:text-gray-400"
+				>
+					{filter.label}
+					<button
+						type="button"
+						onclick={() => removeFilter(filter.key)}
+						class="text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+						aria-label="Remove {filter.label} filter"
+					>
+						<X class="size-3" />
+					</button>
+				</span>
+			{/each}
+			<button
+				type="button"
+				onclick={clearFilters}
+				class="text-xs text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+			>
+				Clear all filters
+			</button>
+		</div>
+	{/if}
 
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		<button
@@ -139,7 +193,7 @@
 	{:else if !loading && users.length === 0}
 		<div class="py-12 text-center text-sm text-muted-foreground">
 			No users found
-			{#if searchInput || statusFilter !== ALL_STATUS || roleFilter !== ALL_ROLES}
+			{#if searchInput || statusFilter || roleFilter}
 				matching your filters.
 			{:else}
 				.

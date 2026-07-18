@@ -64,18 +64,35 @@
 
 		const segments = rest.split('/').filter(Boolean);
 
-		const items = segments.map((seg, index) => {
+		const items: { href: string; label: string }[] = [];
+
+		segments.forEach((seg, index) => {
 			const href = root + '/' + segments.slice(0, index + 1).join('/');
 
 			const custom = breadcrumbRoutes.find((route) => route.matcher.test(href));
+			if (custom) {
+				items.push({ href, label: custom.title });
+				return;
+			}
 
-			return {
-				href,
-				label: custom?.title ?? navTitleMap.get(href) ?? formatSegment(seg)
-			};
+			const navTitle = navTitleMap.get(href);
+			if (navTitle) {
+				items.push({ href, label: navTitle });
+				return;
+			}
+
+			// This segment is a literal path piece (e.g. "view-role") that only exists
+			// to lead into a dynamic id further down the path — it isn't its own
+			// breadcrumb level, so skip it instead of falling back to a formatted label.
+			const isPrefixOfDynamicRoute = breadcrumbRoutes.some((route) =>
+				route.matcher.test(href + '/__probe__')
+			);
+			if (isPrefixOfDynamicRoute) return;
+
+			items.push({ href, label: formatSegment(seg) });
 		});
 
-		// Remove numeric ID segments when a custom breadcrumb matched
+		// Remove numeric ID segments when no custom breadcrumb matched
 		return items.filter(
 			(item) => !/\/\d+$/.test(item.href) || item.label !== item.href.split('/').pop()
 		);
