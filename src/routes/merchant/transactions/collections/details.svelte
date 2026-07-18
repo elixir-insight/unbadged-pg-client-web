@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import type { RouteId, RouteParams } from '$app/types';
 	import { cn } from '$lib/utils';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Check from '@lucide/svelte/icons/check';
 
-	type ResolvePath = Parameters<typeof resolve>[0];
-	type ResolveParams = Parameters<typeof resolve>[1];
+	export type DetailRowLink = {
+		[K in RouteId]: RouteParams<K> extends Record<string, never>
+			? { path: K }
+			: { path: K; params: RouteParams<K> };
+	}[RouteId];
 
 	export interface DetailRow {
 		label: string;
@@ -14,10 +18,7 @@
 		mono?: boolean;
 		variant?: 'default' | 'negative' | 'positive';
 		bold?: boolean;
-		link?: {
-			path: ResolvePath;
-			params?: ResolveParams;
-		};
+		link?: DetailRowLink;
 	}
 
 	export interface DetailSection {
@@ -33,6 +34,14 @@
 		navigator.clipboard.writeText(text);
 		copiedKey = key;
 		setTimeout(() => (copiedKey = null), 1500);
+	}
+
+	function rowLinkHref(link: DetailRowLink) {
+		if ('params' in link) {
+			return resolve(...([link.path, link.params] as Parameters<typeof resolve>));
+		}
+
+		return resolve(...([link.path] as Parameters<typeof resolve>));
 	}
 </script>
 
@@ -69,7 +78,7 @@
 						<div class="flex min-w-0 items-center gap-1.5">
 							{#if row.link}
 								<a
-									href={resolve(row.link.path, row.link.params)}
+									href={rowLinkHref(row.link)}
 									class={cn(
 										'min-w-0 truncate text-right text-sm font-medium text-primary hover:underline',
 										row.mono && 'font-mono text-xs'
