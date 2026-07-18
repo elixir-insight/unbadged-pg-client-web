@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Chip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
-	import { PermissionDot } from '$lib/components/role-management';
+	import { PermissionsTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES, MODULE_PERMISSION_IDS } from '$lib/stores/role-management/role-modules';
 	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
@@ -16,10 +16,8 @@
 
 	const { role } = data;
 
-	// Build a Set of granted permission IDs for O(1) lookup
 	const grantedIds = $derived(new Set(role.permissions.map((p) => p.id)));
 
-	// Format SCREAMING_SNAKE_CASE → Title Case
 	const displayName = $derived(
 		role.roleInfo.roleName
 			.split('_')
@@ -27,32 +25,31 @@
 			.join(' ')
 	);
 
-	const permColumns = [
-		{ key: 'read', apiName: 'read', label: 'Read' },
-		{ key: 'writeUnrestricted', apiName: 'write', label: 'Write\n(unrestricted)' },
-		{ key: 'writeRestricted', apiName: 'write-restricted', label: 'Write\n(restricted)' },
-		{ key: 'delete', apiName: 'delete', label: 'Delete' },
-		{ key: 'approve', apiName: 'approve', label: 'Approve' }
+	const apiPermCols = [
+		{ key: 'read', apiName: 'read' },
+		{ key: 'writeUnrestricted', apiName: 'write' },
+		{ key: 'writeRestricted', apiName: 'write-restricted' },
+		{ key: 'delete', apiName: 'delete' },
+		{ key: 'approve', apiName: 'approve' }
 	] as const;
 
 	const modules = $derived(
 		ROLE_MODULES.map((mod) => {
 			const permIds = MODULE_PERMISSION_IDS[mod.id] ?? {};
 			const perms = Object.fromEntries(
-				permColumns.map((col) => {
+				apiPermCols.map((col) => {
 					const permId = permIds[col.apiName];
 					const status: PermStatus =
 						permId !== undefined && grantedIds.has(permId) ? 'granted' : 'denied';
 					return [col.key, status];
 				})
-			) as Record<(typeof permColumns)[number]['key'], PermStatus>;
+			) as Record<(typeof apiPermCols)[number]['key'], PermStatus>;
 			return { name: mod.name, icon: mod.icon, ...perms };
 		})
 	);
 
 	const isDefaultRole = $derived(role.roleInfo.defaultRole);
 
-	// Description is passed from the list page via goto() state
 	const description = $derived((page.state as { description?: string }).description ?? '');
 
 	function handleEdit() {
@@ -69,7 +66,7 @@
 		}
 		for (const mod of ROLE_MODULES) {
 			const permIds = MODULE_PERMISSION_IDS[mod.id] ?? {};
-			for (const col of permColumns) {
+			for (const col of apiPermCols) {
 				const permId = permIds[col.apiName];
 				if (permId !== undefined) {
 					perms[mod.id][col.key] = grantedIds.has(permId);
@@ -125,51 +122,7 @@
 	</div>
 
 	<!-- Access & permissions -->
-	<div class="rounded-xl border border-border bg-card p-5 shadow">
-		<div class="mb-4">
-			<h2 class="text-sm font-semibold text-foreground">Access &amp; permissions</h2>
-		</div>
-
-		<div class="overflow-x-auto">
-			<table class="w-full min-w-160">
-				<thead>
-					<tr>
-						<th class="w-60 pb-3 text-left"></th>
-						{#each permColumns as col (col.key)}
-							<th class="min-w-20 pb-3 text-center text-xs font-medium text-muted-foreground">
-								{#each col.label.split('\n') as line, i (i)}
-									{#if i > 0}<br />{/if}{line}
-								{/each}
-							</th>
-						{/each}
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border">
-					{#each modules as mod (mod.name)}
-						<tr>
-							<td class="py-3 pr-4">
-								<div class="flex items-center gap-3">
-									<div
-										class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow"
-									>
-										<mod.icon class="h-4 w-4" />
-									</div>
-									<span class="text-sm text-foreground">{mod.name}</span>
-								</div>
-							</td>
-							{#each permColumns as col (col.key)}
-								<td class="py-3 text-center">
-									<div class="flex justify-center">
-										<PermissionDot status={mod[col.key]} />
-									</div>
-								</td>
-							{/each}
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	</div>
+	<PermissionsTable {modules} />
 
 	<!-- Assigned users -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">

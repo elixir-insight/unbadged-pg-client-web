@@ -25,6 +25,7 @@ export const ROLE_MODULES: ModuleDef[] = [
 	{ id: 'USER_MANAGEMENT', name: 'User management', icon: UserManagement }
 ];
 
+// All permission keys including the derived fullAccess (used for rendering UI rows)
 export const PERM_KEYS: PermKey[] = [
 	'read',
 	'writeUnrestricted',
@@ -32,6 +33,15 @@ export const PERM_KEYS: PermKey[] = [
 	'delete',
 	'approve',
 	'fullAccess'
+];
+
+// The 5 "real" permissions — fullAccess is derived, not counted
+export const CORE_PERM_KEYS: PermKey[] = [
+	'read',
+	'writeUnrestricted',
+	'writeRestricted',
+	'delete',
+	'approve'
 ];
 
 export const PERM_LABELS: Record<PermKey, string> = {
