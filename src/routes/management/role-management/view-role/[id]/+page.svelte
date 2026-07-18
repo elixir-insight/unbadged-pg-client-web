@@ -78,7 +78,7 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 w-full md:w-[75%] m-auto">
 	<!-- Page header -->
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
