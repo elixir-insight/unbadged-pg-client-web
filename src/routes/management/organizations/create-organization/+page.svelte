@@ -1,7 +1,15 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
-	import { onboardingDrafts } from '$lib/stores/onboarding-draft.svelte';
 	import { ClientTypeStep, MerchantProfileStep } from '$lib/components/onboarding';
+	import {
+		createOrganization,
+		organizations,
+		type OrganizationBusinessType,
+		type OrganizationCategory,
+		type OrganizationServiceType
+	} from '$lib/data/mockData';
 	import {
 		type ClientType,
 		businessTypes,
@@ -10,6 +18,24 @@
 		affiliatesByPipeline
 	} from './constants';
 	import { firstValidationError, validateCreateOrganization } from './validation';
+
+	const businessTypeEnumMap: Record<string, OrganizationBusinessType> = {
+		'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
+		Partnership: 'PARTNERSHIP',
+		LLP: 'LLP',
+		'Private Limited': 'PRIVATE_LIMITED'
+	};
+
+	const serviceTypeMap: Record<string, OrganizationServiceType> = {
+		Payouts: 'Payouts',
+		'Pay-Ins': 'Pay-Ins'
+	};
+
+	function toOrganizationServiceTypes(selected: string[]): OrganizationServiceType[] {
+		return selected
+			.map((value) => serviceTypeMap[value])
+			.filter((value): value is OrganizationServiceType => value !== undefined);
+	}
 
 	let activeStep = $state(0);
 	let completedSteps = $state(new Set<number>());
@@ -76,24 +102,29 @@
 
 			try {
 				const newId = `ORG-${Date.now().toString().slice(-6)}`;
-				onboardingDrafts.add({
+				const category = selectedCategory!.toUpperCase() as OrganizationCategory;
+				const businessType =
+					businessTypeEnumMap[orgBusinessType] ?? ('PRIVATE_LIMITED' as OrganizationBusinessType);
+
+				const result = createOrganization({
 					id: newId,
 					name: orgName,
-					category: selectedCategory!,
-					businessType: orgBusinessType || '—',
-					phone: orgPhone,
-					email: orgEmail,
-					serviceTypes: selectedServiceTypes,
-					bankPipelines: selectedServiceTypes.map((s) => servicePipelines[s]).filter(Boolean),
-					affiliateId,
-					status: 'In Progress',
-					createdAt: new Date().toISOString().slice(0, 10)
+					businessType,
+					category,
+					status: 'IN_PROGRESS',
+					kybStatus: 'Not Started',
+					createdAt: new Date().toISOString().slice(0, 10),
+					assignedAdmin: 'Sarah Chen',
+					serviceTypes: toOrganizationServiceTypes(selectedServiceTypes)
 				});
+
+				organizations.push(result);
 
 				toast.success(`${selectedCategory} created successfully`, {
 					description: `${orgName} has been added. Continue with KYB & compliance.`
 				});
-				// goto(resolve(`/management/onboarding/${newId}`));
+
+				goto(resolve('/management/organizations/[orgId]', { orgId: newId }));
 			} catch (error) {
 				toast.error(`Failed to create ${selectedCategory ?? 'organization'}`, {
 					description:
@@ -110,6 +141,8 @@
 	function prev() {
 		if (activeStep > 0) {
 			activeStep -= 1;
+			errors = {};
+			submitAttempted = false;
 		}
 	}
 </script>

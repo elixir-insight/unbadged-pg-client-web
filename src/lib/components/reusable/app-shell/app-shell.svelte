@@ -132,7 +132,7 @@
 			</header>
 
 			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
-				<div class="min-h-full p-5">
+				<div class="app-shell-page min-h-0 p-5">
 					{@render children()}
 				</div>
 			</div>
