@@ -263,7 +263,7 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'PENDING' || selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						// href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
+						href={resolve('/management/onboarding/[orgId]', { orgId: selectedOrg.id })}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
