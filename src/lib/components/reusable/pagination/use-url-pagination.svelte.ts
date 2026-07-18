@@ -41,6 +41,7 @@ export function createUrlPagination({
 	const search = $derived(page.url.searchParams.get('search') ?? '');
 	const status = $derived(page.url.searchParams.get('status') ?? '');
 	const type = $derived(page.url.searchParams.get('type') ?? '');
+	const role = $derived(page.url.searchParams.get('role') ?? '');
 	const currentPage = $derived(Math.ceil(skip / limit) + 1);
 	const pageCount = $derived(Math.max(1, Math.ceil(total() / limit)));
 	const showingText = $derived.by(() => {
@@ -86,6 +87,9 @@ export function createUrlPagination({
 		get type() {
 			return type;
 		},
+		get role() {
+			return role;
+		},
 		get currentPage() {
 			return currentPage;
 		},
@@ -128,9 +132,13 @@ export function createUrlPagination({
 		setType(value: string) {
 			navigate({ type: value || null, skip: null }, true);
 		},
-		/** Clear all filters (search, status, type) and reset pagination (replaces history). */
+		/** Update role filter and reset to page 1 (replaces history). */
+		setRole(value: string) {
+			navigate({ role: value || null, skip: '0' }, true);
+		},
+		/** Clear all filters (search, status, type, role) and reset pagination (replaces history). */
 		clearAllFilters() {
-			navigate({ search: null, status: null, type: null, skip: null }, true);
+			navigate({ search: null, status: null, type: null, role: null, skip: null }, true);
 		}
 	};
 }
