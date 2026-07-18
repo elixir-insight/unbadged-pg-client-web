@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button, Input } from '$lib/components/reusable';
 	import { RolesReportingPanel } from '$lib/components/user-management';
@@ -33,30 +34,37 @@
 			return;
 		}
 
-		if (createUserFormStore.isEditMode && createUserFormStore.userId === id) {
-			loading = false;
-			loadManagers(id);
-			loadRoles();
-			return;
-		}
+		// untrack: loadForEdit updates these fields; tracking them re-ran this effect
+		// and duplicated directory/roles fetches.
+		const skipUserFetch = untrack(
+			() => createUserFormStore.isEditMode && createUserFormStore.userId === id
+		);
 
 		let cancelled = false;
-		loading = true;
+		loading = !skipUserFetch;
 
-		fetchUserById(id)
-			.then((detail) => {
-				if (cancelled) return;
-				if (!detail) {
-					goto(resolve('/merchant/user-management'));
-					return;
+		void (async () => {
+			try {
+				if (!skipUserFetch) {
+					const detail = await fetchUserById(id);
+					if (cancelled) return;
+					if (!detail) {
+						goto(resolve('/merchant/user-management'));
+						return;
+					}
+					createUserFormStore.loadForEdit(detail);
 				}
-				createUserFormStore.loadForEdit(detail);
-				loadManagers(id);
-				loadRoles();
-			})
-			.finally(() => {
-				if (!cancelled) loading = false;
-			});
+
+				if (cancelled) return;
+				loading = false;
+				await Promise.all([loadManagers(id), loadRoles({ commitSnapshot: !skipUserFetch })]);
+			} catch {
+				if (!cancelled) {
+					loading = false;
+					toast.error('Could not load user');
+				}
+			}
+		})();
 
 		return () => {
 			cancelled = true;
@@ -82,11 +90,14 @@
 		}
 	}
 
-	async function loadRoles() {
+	async function loadRoles(options: { commitSnapshot?: boolean } = {}) {
 		rolesLoading = true;
 		try {
 			roles = await fetchAssignableRoles();
 			createUserFormStore.syncRolesFromAssignable(roles);
+			if (options.commitSnapshot) {
+				createUserFormStore.commitSnapshot();
+			}
 		} catch {
 			toast.error('Could not load roles');
 			roles = [];

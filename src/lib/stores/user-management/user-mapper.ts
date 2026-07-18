@@ -99,7 +99,7 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber),
 		reportingManager: mapReportingManager(user.reportingTo),
-		assignedUsersCount: 0
+		assignedUsersCount: user.assignedUsersCount ?? 0
 	};
 }
 

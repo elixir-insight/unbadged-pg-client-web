@@ -96,6 +96,18 @@ export const CreateMemberResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
+/** Same shape as create — PUT sends the full member payload (changed + unchanged fields). */
+export const UpdateMemberBodySchema = CreateMemberBodySchema;
+
+export const UpdateMemberResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(v.unknown()),
+	pagination: v.optional(PaginationSchema)
+});
+
+export const DeleteMemberResponseSchema = UpdateMemberResponseSchema;
+
 /** Lightweight user from GET /api/v1/management/user/list — for reporting-to lookup */
 export const UserDirectoryItemSchema = v.object({
 	id: v.number(),
@@ -117,5 +129,8 @@ export type OrgRoleItem = v.InferOutput<typeof OrgRoleItemSchema>;
 export type OrgRolesListResponse = v.InferOutput<typeof OrgRolesListResponseSchema>;
 export type CreateMemberBody = v.InferOutput<typeof CreateMemberBodySchema>;
 export type CreateMemberResponse = v.InferOutput<typeof CreateMemberResponseSchema>;
+export type UpdateMemberBody = v.InferOutput<typeof UpdateMemberBodySchema>;
+export type UpdateMemberResponse = v.InferOutput<typeof UpdateMemberResponseSchema>;
+export type DeleteMemberResponse = v.InferOutput<typeof DeleteMemberResponseSchema>;
 export type UserDirectoryItem = v.InferOutput<typeof UserDirectoryItemSchema>;
 export type UserDirectoryListResponse = v.InferOutput<typeof UserDirectoryListResponseSchema>;

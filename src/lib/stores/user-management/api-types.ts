@@ -44,6 +44,8 @@ export interface ApiUserDetailItem {
 		employeeId?: string;
 		userEmail?: string;
 	};
+	/** Count of members whose supervisorId is this user — blocks delete when > 0 */
+	assignedUsersCount?: number;
 }
 
 export interface ApiPagination {

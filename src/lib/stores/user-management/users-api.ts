@@ -12,8 +12,15 @@ export type CreateUserPayload = {
 	userName: string;
 };
 
+/** Full member payload — send all fields (changed + existing) on every update. */
+export type UpdateUserPayload = CreateUserPayload;
+
 export type CreateUserResult = {
 	memberId: number;
+	message: string;
+};
+
+export type UpdateUserResult = {
 	message: string;
 };
 
@@ -100,5 +107,46 @@ export async function createUser(payload: CreateUserPayload): Promise<CreateUser
 	return {
 		memberId,
 		message: raw.message ?? 'Member created successfully'
+	};
+}
+
+export async function updateUser(
+	userId: string,
+	payload: UpdateUserPayload
+): Promise<UpdateUserResult> {
+	const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(payload)
+	});
+
+	const raw: { message?: string } = await res.json().catch(() => ({}));
+
+	if (!res.ok) {
+		throw new Error(raw.message ?? 'Failed to update user');
+	}
+
+	return {
+		message: raw.message ?? 'Member updated successfully'
+	};
+}
+
+export type DeleteUserResult = {
+	message: string;
+};
+
+export async function deleteUser(userId: string): Promise<DeleteUserResult> {
+	const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+		method: 'DELETE'
+	});
+
+	const raw: { message?: string } = await res.json().catch(() => ({}));
+
+	if (!res.ok) {
+		throw new Error(raw.message ?? 'Failed to delete user');
+	}
+
+	return {
+		message: raw.message ?? 'Member deleted successfully'
 	};
 }

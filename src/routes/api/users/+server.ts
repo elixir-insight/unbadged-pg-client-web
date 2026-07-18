@@ -112,65 +112,71 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			'member detail fetched (Active and Invited both resolve reporting-to the same way)'
 		);
 
-		// Reporting-to is resolved for every member that has a supervisorId —
-		// including inactive/Invited (enabled: false). Status is never used as a filter here.
-		const supervisorId = member.supervisorId ?? null;
-		if (supervisorId == null) {
-			log.warn(
-				{ supervisorId: member.supervisorId, enabled: member.enabled },
-				'no supervisorId on member — reporting-to will be empty'
-			);
-			return json(result.data);
-		}
+		// Enrich from members list: reporting-to name + count of direct reports
+		// (supervisors with reports cannot be deleted).
+		let reportingTo:
+			| { id: number; name: string; employeeId?: string; userEmail?: string }
+			| undefined;
+		let assignedUsersCount = 0;
 
-		log.info(
-			{ supervisorId, enabled: member.enabled },
-			'resolving reporting-to: match user-list id === supervisorId'
-		);
-
-		const directory = await membersClient.listUsers(
+		const membersList = await membersClient.list(
 			fetch,
 			log,
 			tokens.accessToken,
 			tokens.gatewayToken,
-			{ page: 0, limit: 1000 }
+			{ page: 1, limit: 1000 }
 		);
 
-		if (!directory.ok) {
+		if (!membersList.ok) {
 			log.warn(
 				{
-					supervisorId,
-					errorKind: directory.error.kind,
-					message: directory.error.message
+					errorKind: membersList.error.kind,
+					message: membersList.error.message
 				},
-				'user directory fetch failed — reporting-to will be empty'
+				'members list fetch failed — reporting-to and assignedUsersCount may be empty'
 			);
-			return json(result.data);
+			return json({
+				...result.data,
+				data: [{ ...member, assignedUsersCount }]
+			});
 		}
 
-		log.info({ directoryCount: directory.data.data.length }, 'user directory loaded');
+		assignedUsersCount = membersList.data.data.filter(
+			(item) => item.supervisorId != null && Number(item.supervisorId) === Number(memberId)
+		).length;
 
-		// Compare GET /api/v1/management/user/list → data[].id
-		// with member detail → supervisorId, then show that user's userName.
-		const supervisor = directory.data.data.find((user) => Number(user.id) === Number(supervisorId));
-		if (!supervisor) {
-			log.warn(
-				{
-					supervisorId,
-					directoryIds: directory.data.data.map((user) => user.id)
-				},
-				'supervisor not found in user directory — reporting-to will be empty'
+		const supervisorId = member.supervisorId ?? null;
+		if (supervisorId != null) {
+			const supervisor = membersList.data.data.find(
+				(item) => Number(item.id) === Number(supervisorId)
 			);
-			return json(result.data);
+			if (supervisor) {
+				reportingTo = {
+					id: supervisor.id,
+					name: supervisor.userName,
+					employeeId: supervisor.employeeId ?? undefined,
+					userEmail: supervisor.userEmail
+				};
+			} else {
+				log.warn(
+					{ supervisorId },
+					'supervisor not found in members list — reporting-to will be empty'
+				);
+			}
+		} else {
+			log.warn(
+				{ supervisorId: member.supervisorId, enabled: member.enabled },
+				'no supervisorId on member — reporting-to will be empty'
+			);
 		}
 
 		log.info(
 			{
 				supervisorId,
-				supervisorName: supervisor.userName,
-				reportingTo: { id: supervisor.id, name: supervisor.userName }
+				reportingTo: reportingTo ?? null,
+				assignedUsersCount
 			},
-			'reporting-to resolved — returning view-user response'
+			'reporting-to and assigned-reports resolved — returning view-user response'
 		);
 
 		return json({
@@ -178,10 +184,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			data: [
 				{
 					...member,
-					reportingTo: {
-						id: supervisor.id,
-						name: supervisor.userName
-					}
+					...(reportingTo ? { reportingTo } : {}),
+					assignedUsersCount
 				}
 			]
 		});
@@ -267,4 +271,71 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) 
 	}
 
 	return json(result.data, { status: 201 });
+};
+
+export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const userId = url.searchParams.get('userId');
+	const memberId = Number(userId);
+	if (!userId || !Number.isFinite(memberId)) {
+		error(400, { message: 'Invalid user id' });
+	}
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		error(400, { message: 'Invalid JSON body' });
+	}
+
+	const parsed = v.safeParse(CreateMemberBodySchema, body);
+	if (!parsed.success) {
+		error(400, { message: 'Invalid update member payload' });
+	}
+
+	const result = await membersClient.update(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		memberId,
+		parsed.output
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json(result.data);
+};
+
+export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const userId = url.searchParams.get('userId');
+	const memberId = Number(userId);
+	if (!userId || !Number.isFinite(memberId)) {
+		error(400, { message: 'Invalid user id' });
+	}
+
+	const result = await membersClient.delete(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		memberId
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json(result.data);
 };

@@ -2,11 +2,14 @@ import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
 	CreateMemberResponseSchema,
+	DeleteMemberResponseSchema,
 	MemberDetailResponseSchema,
 	MembersListResponseSchema,
 	OrgRolesListResponseSchema,
+	UpdateMemberResponseSchema,
 	UserDirectoryListResponseSchema,
-	type CreateMemberBody
+	type CreateMemberBody,
+	type UpdateMemberBody
 } from './schema';
 
 export type MembersListQuery = {
@@ -112,5 +115,39 @@ export const membersClient = {
 			method: 'POST',
 			body,
 			schema: CreateMemberResponseSchema
+		}),
+
+	update: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		memberId: number,
+		body: UpdateMemberBody
+	) =>
+		apiFetch(`/api/v1/management/member/${memberId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'PUT',
+			body,
+			schema: UpdateMemberResponseSchema
+		}),
+
+	delete: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		memberId: number
+	) =>
+		apiFetch(`/api/v1/management/member/${memberId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'DELETE',
+			schema: DeleteMemberResponseSchema
 		})
 };

@@ -153,6 +153,12 @@ class CreateUserFormStore {
 			.filter((role): role is SelectedRole => role !== null);
 	}
 
+	/** Re-capture baseline after async hydration (e.g. role ID sync) so hasChanges stays accurate. */
+	commitSnapshot() {
+		if (!this.isEditMode) return;
+		this.#snapshot = snapshotFromStore(this);
+	}
+
 	setReportingManager(id: string, name: string, employeeId = '', email = '') {
 		this.reportingManagerId = id;
 		this.reportingManagerName = name;
@@ -177,7 +183,7 @@ class CreateUserFormStore {
 		this.lastName = lastName;
 		this.employeeId = user.employeeId;
 		this.mobileNumber = user.mobileNumber ?? '';
-		// Edit API wiring will replace display names with role IDs when available.
+		// Placeholder role IDs until syncRolesFromAssignable maps display names → org role IDs.
 		this.selectedRoles = user.roles.map((displayName, index) => ({
 			roleId: -(index + 1),
 			roleName: displayName,

@@ -3,14 +3,17 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import { IdCardIcon, MailIcon, PhoneIcon, Shield, ShieldCheck, User } from '$lib/assets/icons';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
+	import { updateUser } from '$lib/stores/user-management/users-api';
 	import type { Component } from 'svelte';
 
 	const userId = $derived(page.params.id);
+	let saving = $state(false);
 
 	onMount(() => {
 		const id = userId;
@@ -28,9 +31,42 @@
 		}
 	});
 
-	function handleSave() {
-		createUserFormStore.reset();
-		goto(resolve('/management/user-management'));
+	async function handleSave() {
+		if (saving) return;
+
+		const id = createUserFormStore.userId;
+		if (!id) {
+			goto(resolve('/management/user-management'));
+			return;
+		}
+
+		const reportingTo = Number(createUserFormStore.reportingManagerId);
+		if (!Number.isFinite(reportingTo)) {
+			toast.error('Select a reporting manager');
+			return;
+		}
+
+		saving = true;
+		try {
+			const result = await updateUser(id, {
+				employeeId: createUserFormStore.employeeId.trim(),
+				phoneNumber: createUserFormStore.formattedMobile,
+				reportingTo,
+				roles: createUserFormStore.selectedRoleIds,
+				userEmail: createUserFormStore.email.trim(),
+				userName: createUserFormStore.fullName
+			});
+
+			toast.success(result.message);
+			createUserFormStore.reset();
+			goto(resolve('/management/user-management'));
+		} catch (e) {
+			toast.error('Could not update user', {
+				description: e instanceof Error ? e.message : 'Something went wrong'
+			});
+		} finally {
+			saving = false;
+		}
 	}
 
 	type ContactField = {
@@ -163,6 +199,8 @@
 	</div>
 
 	<div class="flex justify-end gap-2 pt-2">
-		<Button onclick={handleSave}>Confirm &amp; save</Button>
+		<Button disabled={saving} onclick={handleSave}>
+			{saving ? 'Saving…' : 'Confirm & save'}
+		</Button>
 	</div>
 </div>

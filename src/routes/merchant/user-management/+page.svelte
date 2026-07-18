@@ -74,6 +74,10 @@
 		const search = filters?.search ?? pagination.search;
 		const status = filters?.status ?? pagination.status;
 		const role = filters?.role ?? pagination.role;
+		const hasFilters = Boolean(search || status || role);
+		// Filters force a large upstream fetch in the BFF — load once instead of
+		// re-fetching ~1000 members on every infinite-scroll page.
+		const limit = hasFilters ? 1000 : PAGE_SIZE;
 		const seq = ++requestSeq;
 
 		loading = true;
@@ -85,7 +89,7 @@
 				status,
 				role,
 				page: pageToLoad,
-				limit: PAGE_SIZE
+				limit
 			});
 
 			if (seq !== requestSeq) return;
@@ -96,14 +100,21 @@
 				users = data.items;
 			} else {
 				const seen = new Set(users.map((user) => user.id));
-				users = [...users, ...data.items.filter((user) => !seen.has(user.id))];
+				const fresh = data.items.filter((user) => !seen.has(user.id));
+				// Stop infinite-scroll if the API keeps returning the same page/duplicates.
+				if (fresh.length === 0) {
+					hasMore = false;
+					return;
+				}
+				users = [...users, ...fresh];
 			}
 
 			availableRoles = getUniqueRoles(users);
 			nextPage = pageToLoad + 1;
-			hasMore =
-				data.items.length > 0 &&
-				(data.meta.total > 0 ? users.length < data.meta.total : data.items.length === PAGE_SIZE);
+			hasMore = hasFilters
+				? false
+				: data.items.length > 0 &&
+					(data.meta.total > 0 ? users.length < data.meta.total : data.items.length === PAGE_SIZE);
 		} catch (e) {
 			if (seq !== requestSeq) return;
 			loadError = e instanceof Error ? e.message : 'Failed to load users';
