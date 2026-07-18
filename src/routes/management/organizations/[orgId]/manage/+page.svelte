@@ -9,10 +9,15 @@
 
 	const organization = $derived(data.organization);
 
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let payoutDraft = $state(cloneOrganization(data.organization.payoutConfiguration));
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let commissionDraft = $state(cloneOrganization(data.organization.commissionRules));
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let kybDraft = $state(cloneOrganization(data.organization.kyb));
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let directorsDraft = $state(cloneOrganization(data.organization.directors));
+	// svelte-ignore state_referenced_locally (one-time snapshot used to detect subsequent org changes)
 	let lastOrgId = $state(data.organization.id);
 	let draftSaved = $state(false);
 	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);

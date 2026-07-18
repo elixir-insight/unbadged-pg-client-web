@@ -1,13 +1,16 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve -- linkHref uses resolve() and optional scope query suffix */
+	/* eslint-disable svelte/no-navigation-without-resolve -- rowLinkHref uses resolve() and optional scope query suffix */
 	import { resolve } from '$app/paths';
+	import type { RouteId, RouteParams } from '$app/types';
 	import { cn } from '$lib/utils';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Check from '@lucide/svelte/icons/check';
 
-	type DetailLinkPath =
-		| '/merchant/transactions/collections/orders/[orderId]'
-		| '/management/transactions/collections/orders/[orderId]';
+	export type DetailRowLink = {
+		[K in RouteId]: RouteParams<K> extends Record<string, never>
+			? { path: K }
+			: { path: K; params: RouteParams<K> };
+	}[RouteId];
 
 	export interface DetailRow {
 		label: string;
@@ -16,10 +19,7 @@
 		mono?: boolean;
 		variant?: 'default' | 'negative' | 'positive';
 		bold?: boolean;
-		link?: {
-			path: DetailLinkPath;
-			params: { orderId: string };
-		};
+		link?: DetailRowLink;
 	}
 
 	export interface DetailSection {
@@ -41,8 +41,13 @@
 		setTimeout(() => (copiedKey = null), 1500);
 	}
 
-	function linkHref(link: NonNullable<DetailRow['link']>): string {
-		return `${resolve(link.path, link.params)}${linkQuery}`;
+	function rowLinkHref(link: DetailRowLink) {
+		const base =
+			'params' in link
+				? resolve(...([link.path, link.params] as Parameters<typeof resolve>))
+				: resolve(...([link.path] as Parameters<typeof resolve>));
+
+		return `${base}${linkQuery}`;
 	}
 </script>
 
@@ -79,7 +84,7 @@
 						<div class="flex min-w-0 items-center gap-1.5">
 							{#if row.link}
 								<a
-									href={linkHref(row.link)}
+									href={rowLinkHref(row.link)}
 									class={cn(
 										'min-w-0 truncate text-right text-sm font-medium text-primary hover:underline',
 										row.mono && 'font-mono text-xs'
