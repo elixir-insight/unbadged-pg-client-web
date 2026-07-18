@@ -9,6 +9,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - env | grep -e API_BASE_URL >> .env
         - npm run build
   artifacts:
     baseDirectory: build
