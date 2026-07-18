@@ -5,13 +5,16 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Undo } from '$lib/assets/icons';
 	import { getPayinPaymentDetail } from '$lib/data/payin-order-mock';
-	import Timeline from '../../timeline.svelte';
-	import Details, { type DetailSection } from '../../details.svelte';
-	import PaymentStatusBadge from '../../payment-status-badge.svelte';
-	import RefundModal from '../../refund-modal.svelte';
-	import PaymentRefundsTable from '../../payment-refunds-table.svelte';
-	import DetailPageLayout from '../../detail-page-layout.svelte';
-	import DetailSummaryCard from '../../detail-summary-card.svelte';
+	import {
+		DetailPageLayout,
+		DetailSummaryCard,
+		Details,
+		PaymentRefundsTable,
+		PaymentStatusBadge,
+		RefundModal,
+		Timeline,
+		type DetailSection
+	} from '$lib/components/transactions/collections';
 	import type { PayinPaymentStatus, PayinRefundDetail } from '$lib/types/payin';
 	import { toast } from '$lib/components/reusable';
 

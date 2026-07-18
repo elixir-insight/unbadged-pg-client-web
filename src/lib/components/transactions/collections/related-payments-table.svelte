@@ -1,10 +1,23 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- scoped navigation appends query params after resolve() */
 	import type { PayinPaymentDetail } from '$lib/types/payin';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import PaymentStatusBadge from './payment-status-badge.svelte';
 
-	let { payments }: { payments: PayinPaymentDetail[] } = $props();
+	type PaymentDetailPath =
+		| '/merchant/transactions/collections/payments/[txnId]'
+		| '/management/transactions/collections/payments/[txnId]';
+
+	let {
+		payments,
+		paymentDetailPath,
+		scopeQuery = ''
+	}: {
+		payments: PayinPaymentDetail[];
+		paymentDetailPath: PaymentDetailPath;
+		scopeQuery?: string;
+	} = $props();
 </script>
 
 {#if payments.length === 0}
@@ -25,11 +38,7 @@
 					<tr
 						class="cursor-pointer border-b border-border/40 transition-colors last:border-b-0 hover:bg-muted/30"
 						onclick={() =>
-							goto(
-								resolve('/merchant/transactions/collections/payments/[txnId]', {
-									txnId: payment.txnId
-								})
-							)}
+							goto(`${resolve(paymentDetailPath, { txnId: payment.txnId })}${scopeQuery}`)}
 					>
 						<td class="py-3 font-mono text-xs">{payment.txnId}</td>
 						<td class="py-3">{payment.attemptNumber}</td>

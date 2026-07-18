@@ -5,6 +5,8 @@ import type {
 	PayinPaymentListItem,
 	PayinTimelineEntry
 } from '$lib/types/payin';
+import type { TransactionScope } from '$lib/types/virtual-account';
+import { matchesScope, scopeFieldsFromVan, type ScopeFields } from '$lib/data/management-van-mock';
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
@@ -28,11 +30,75 @@ function fmtDate(ms: number): string {
 }
 
 interface PayinCatalogEntry {
+	order: Omit<PayinOrderDetail, 'orgId' | 'vanId' | 'vanNumber' | 'merchantName'>;
+	payments: Omit<PayinPaymentDetail, 'orgId' | 'vanId' | 'vanNumber' | 'merchantName'>[];
+}
+
+interface ScopedPayinCatalogEntry {
 	order: PayinOrderDetail;
 	payments: PayinPaymentDetail[];
 }
 
-const catalog: PayinCatalogEntry[] = [
+const ORDER_SCOPE_MAP: Record<string, ScopeFields> = {
+	'ORD-2026-001': scopeFieldsFromVan({
+		vanId: 'VAN-1001',
+		vanNumber: 'VA9823410001',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-002': scopeFieldsFromVan({
+		vanId: 'VAN-1001',
+		vanNumber: 'VA9823410001',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-003': scopeFieldsFromVan({
+		vanId: 'VAN-1001',
+		vanNumber: 'VA9823410001',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-004': scopeFieldsFromVan({
+		vanId: 'VAN-1001',
+		vanNumber: 'VA9823410001',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-006': scopeFieldsFromVan({
+		vanId: 'VAN-1002',
+		vanNumber: 'VA9823410002',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-008': scopeFieldsFromVan({
+		vanId: 'VAN-3001',
+		vanNumber: 'VA9823430001',
+		orgId: 'ORG-1003',
+		merchantName: 'Vertex Robotics',
+		status: 'active'
+	}),
+	'ORD-2026-010': scopeFieldsFromVan({
+		vanId: 'VAN-1002',
+		vanNumber: 'VA9823410002',
+		orgId: 'ORG-1000',
+		merchantName: 'Northwind Capital',
+		status: 'active'
+	}),
+	'ORD-2026-019': scopeFieldsFromVan({
+		vanId: 'VAN-3002',
+		vanNumber: 'VA9823430002',
+		orgId: 'ORG-1003',
+		merchantName: 'Vertex Robotics',
+		status: 'active'
+	})
+};
+
+const rawCatalog: PayinCatalogEntry[] = [
 	{
 		order: {
 			orderId: 'ORD-2026-001',
@@ -993,6 +1059,19 @@ const catalog: PayinCatalogEntry[] = [
 	}
 ];
 
+function applyScope(entry: PayinCatalogEntry): ScopedPayinCatalogEntry {
+	const scope = ORDER_SCOPE_MAP[entry.order.orderId];
+	if (!scope) {
+		throw new Error(`Missing scope mapping for order ${entry.order.orderId}`);
+	}
+	return {
+		order: { ...entry.order, ...scope },
+		payments: entry.payments.map((payment) => ({ ...payment, ...scope }))
+	};
+}
+
+const catalog: ScopedPayinCatalogEntry[] = rawCatalog.map(applyScope);
+
 function orderCreatedMs(order: PayinOrderDetail): number {
 	return order.orderTimeline[0]?.timestampMs ?? 0;
 }
@@ -1009,7 +1088,11 @@ export const payinOrderListMock: PayinOrderListItem[] = catalog.map(({ order, pa
 	status: order.orderStatus,
 	attemptCount: payments.length,
 	createdAt: order.createdAt,
-	_dateMs: orderCreatedMs(order)
+	_dateMs: orderCreatedMs(order),
+	orgId: order.orgId,
+	vanId: order.vanId,
+	vanNumber: order.vanNumber,
+	merchantName: order.merchantName
 }));
 
 export const payinPaymentListMock: PayinPaymentListItem[] = catalog.flatMap(({ order, payments }) =>
@@ -1022,22 +1105,52 @@ export const payinPaymentListMock: PayinPaymentListItem[] = catalog.flatMap(({ o
 		status: (payment.refunds?.length ?? 0) > 0 ? 'refunded' : payment.paymentStatus,
 		attemptNumber: payment.attemptNumber,
 		createdAt: fmtDate(paymentCreatedMs(payment)),
-		_dateMs: paymentCreatedMs(payment)
+		_dateMs: paymentCreatedMs(payment),
+		orgId: payment.orgId,
+		vanId: payment.vanId,
+		vanNumber: payment.vanNumber,
+		merchantName: payment.merchantName
 	}))
 );
 
-export function getPayinOrderDetail(orderId: string): PayinOrderDetail | null {
-	return catalog.find((e) => e.order.orderId === orderId)?.order ?? null;
+export function getPayinOrderList(scope?: TransactionScope): PayinOrderListItem[] {
+	return payinOrderListMock.filter((item) => matchesScope(item, scope));
 }
 
-export function getPayinPaymentDetail(txnId: string): PayinPaymentDetail | null {
+export function getPayinPaymentList(scope?: TransactionScope): PayinPaymentListItem[] {
+	return payinPaymentListMock.filter((item) => matchesScope(item, scope));
+}
+
+export function getPayinOrderDetail(
+	orderId: string,
+	scope?: TransactionScope
+): PayinOrderDetail | null {
+	const order = catalog.find((e) => e.order.orderId === orderId)?.order ?? null;
+	if (!order) return null;
+	if (scope && !matchesScope(order, scope)) return null;
+	return order;
+}
+
+export function getPayinPaymentDetail(
+	txnId: string,
+	scope?: TransactionScope
+): PayinPaymentDetail | null {
 	for (const entry of catalog) {
 		const payment = entry.payments.find((p) => p.txnId === txnId);
-		if (payment) return payment;
+		if (payment) {
+			if (scope && !matchesScope(payment, scope)) return null;
+			return payment;
+		}
 	}
 	return null;
 }
 
-export function getPaymentsByOrderId(orderId: string): PayinPaymentDetail[] {
-	return catalog.find((e) => e.order.orderId === orderId)?.payments ?? [];
+export function getPaymentsByOrderId(
+	orderId: string,
+	scope?: TransactionScope
+): PayinPaymentDetail[] {
+	const order = catalog.find((e) => e.order.orderId === orderId);
+	if (!order) return [];
+	if (scope && !matchesScope(order.order, scope)) return [];
+	return order.payments;
 }

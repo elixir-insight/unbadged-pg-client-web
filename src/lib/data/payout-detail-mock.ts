@@ -1,4 +1,14 @@
 import type { PayoutDetail } from '$lib/types/payout';
+import type { TransactionScope } from '$lib/types/virtual-account';
+import { matchesScope, scopeFieldsFromVan } from '$lib/data/management-van-mock';
+
+const northwindVan1 = scopeFieldsFromVan({
+	vanId: 'VAN-1001',
+	vanNumber: 'VA9823410001',
+	orgId: 'ORG-1000',
+	merchantName: 'Northwind Capital',
+	status: 'active'
+});
 
 export const mockPayoutDetails: Record<string, PayoutDetail> = {
 	'PO-1001': {
@@ -19,7 +29,10 @@ export const mockPayoutDetails: Record<string, PayoutDetail> = {
 		gatewayFee: '₹2.50',
 		gatewayGst: '₹0.45',
 		netDebited: '₹4,507.95',
-		orgId: 'ORG-001',
+		orgId: northwindVan1.orgId,
+		vanId: northwindVan1.vanId,
+		vanNumber: northwindVan1.vanNumber,
+		merchantName: northwindVan1.merchantName,
 		crn: 'CRN-2026001',
 		utr: '123456789012',
 		bankPipelineCode: 'HDFC',
@@ -116,7 +129,10 @@ export const mockPayoutDetails: Record<string, PayoutDetail> = {
 		gatewayFee: '₹6.00',
 		gatewayGst: '₹1.08',
 		netDebited: '₹12,019.08',
-		orgId: 'ORG-001',
+		orgId: northwindVan1.orgId,
+		vanId: northwindVan1.vanId,
+		vanNumber: northwindVan1.vanNumber,
+		merchantName: northwindVan1.merchantName,
 		crn: 'CRN-2026002',
 		utr: '234567890123',
 		bankPipelineCode: 'ICICI',
@@ -189,7 +205,10 @@ export const mockPayoutDetails: Record<string, PayoutDetail> = {
 		gatewayFee: '₹0.00',
 		gatewayGst: '₹0.00',
 		netDebited: '₹0.00',
-		orgId: 'ORG-001',
+		orgId: northwindVan1.orgId,
+		vanId: northwindVan1.vanId,
+		vanNumber: northwindVan1.vanNumber,
+		merchantName: northwindVan1.merchantName,
 		crn: 'CRN-2026003',
 		utr: '345678901234',
 		bankPipelineCode: 'AXIS',
@@ -270,6 +289,9 @@ export const mockPayoutDetails: Record<string, PayoutDetail> = {
 	}
 };
 
-export function getPayoutDetail(id: string): PayoutDetail | null {
-	return mockPayoutDetails[id] ?? null;
+export function getPayoutDetail(id: string, scope?: TransactionScope): PayoutDetail | null {
+	const detail = mockPayoutDetails[id] ?? null;
+	if (!detail) return null;
+	if (scope && !matchesScope(detail, scope)) return null;
+	return detail;
 }

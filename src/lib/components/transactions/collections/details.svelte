@@ -1,4 +1,5 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- rowLinkHref uses resolve() and optional scope query suffix */
 	import { resolve } from '$app/paths';
 	import type { RouteId, RouteParams } from '$app/types';
 	import { cn } from '$lib/utils';
@@ -26,7 +27,11 @@
 		rows: DetailRow[];
 	}
 
-	let { sections, flat = false }: { sections: DetailSection[]; flat?: boolean } = $props();
+	let {
+		sections,
+		flat = false,
+		linkQuery = ''
+	}: { sections: DetailSection[]; flat?: boolean; linkQuery?: string } = $props();
 
 	let copiedKey = $state<string | null>(null);
 
@@ -37,11 +42,12 @@
 	}
 
 	function rowLinkHref(link: DetailRowLink) {
-		if ('params' in link) {
-			return resolve(...([link.path, link.params] as Parameters<typeof resolve>));
-		}
+		const base =
+			'params' in link
+				? resolve(...([link.path, link.params] as Parameters<typeof resolve>))
+				: resolve(...([link.path] as Parameters<typeof resolve>));
 
-		return resolve(...([link.path] as Parameters<typeof resolve>));
+		return `${base}${linkQuery}`;
 	}
 </script>
 

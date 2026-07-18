@@ -70,6 +70,10 @@ export interface PayinOrderListItem extends Record<string, unknown> {
 	attemptCount: number;
 	createdAt: string;
 	_dateMs: number;
+	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 }
 
 export interface PayinOrderDetail {
@@ -85,6 +89,10 @@ export interface PayinOrderDetail {
 	createdAt: string;
 	expiresAt: string;
 	orderTimeline: PayinTimelineEntry[];
+	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 }
 
 export interface PayinPaymentListItem extends Record<string, unknown> {
@@ -97,6 +105,10 @@ export interface PayinPaymentListItem extends Record<string, unknown> {
 	attemptNumber: number;
 	createdAt: string;
 	_dateMs: number;
+	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 }
 
 export interface PayinPaymentDetail {
@@ -124,6 +136,10 @@ export interface PayinPaymentDetail {
 	refundableAmount?: string;
 	refunds?: PayinRefundDetail[];
 	paymentTimeline: PayinTimelineEntry[];
+	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 }
 
 export interface PayinOrderListResponse {
