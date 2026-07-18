@@ -16,9 +16,12 @@
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
 
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let commissionDraft = $state(cloneOrganization(data.organization.commissionRules));
+	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
 	let payoutDraft = $state(cloneOrganization(data.organization.payoutConfiguration));
 	let agreementConfirmed = $state(false);
+	// svelte-ignore state_referenced_locally (one-time snapshot used to detect subsequent org changes)
 	let lastOrgId = $state(data.organization.id);
 
 	$effect(() => {
@@ -155,13 +158,13 @@
 						<Checkbox id="merchant-agreement-confirm" bind:checked={agreementConfirmed} />
 						<label for="merchant-agreement-confirm" class="text-sm leading-relaxed text-foreground">
 							I confirm that the merchant details are accurate and I accept the
-							<a href="#" class="font-medium text-primary underline underline-offset-2">
+							<button type="button" class="font-medium text-primary underline underline-offset-2">
 								Merchant Agreement
-							</a>
+							</button>
 							and
-							<a href="#" class="font-medium text-primary underline underline-offset-2">
+							<button type="button" class="font-medium text-primary underline underline-offset-2">
 								Platform Terms of Service
-							</a>
+							</button>
 							.
 						</label>
 					</div>
