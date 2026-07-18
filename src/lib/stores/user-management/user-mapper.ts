@@ -75,7 +75,8 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 		roles,
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber),
-		reportingManager: mapReportingManager(user.reportingTo)
+		reportingManager: mapReportingManager(user.reportingTo),
+		assignedUsersCount: user.assignedUsers?.length ?? 0
 	};
 }
 

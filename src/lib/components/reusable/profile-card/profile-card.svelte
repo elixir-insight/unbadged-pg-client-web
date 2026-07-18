@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { User, Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { cn } from '$lib/utils';
@@ -80,12 +81,16 @@
 				Settings
 			</DropdownMenu.Item>
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
-			<DropdownMenu.Item
-				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
-			>
-				<LogOut class="h-4 w-4 shrink-0" />
-				Sign out
-			</DropdownMenu.Item>
+
+			<form method="POST" action={resolve('/logout')}>
+				<button
+					type="submit"
+					class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
+				>
+					<LogOut class="h-4 w-4 shrink-0" />
+					Sign out
+				</button>
+			</form>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>

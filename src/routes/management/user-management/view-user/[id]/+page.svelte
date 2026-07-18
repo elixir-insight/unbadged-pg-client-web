@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Button, Chip } from '$lib/components/reusable';
+	import { Button, Chip, Tooltip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import {
 		ArrowLeft,
@@ -18,6 +18,7 @@
 	} from '$lib/assets/icons';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
+	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import { fetchUserById } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
@@ -27,6 +28,13 @@
 	let loading = $state(false);
 
 	const userId = $derived(page.params.id);
+
+	const hasAssignedReports = $derived((user?.assignedUsersCount ?? 0) > 0);
+	const deleteDisabledReason = $derived(
+		hasAssignedReports
+			? 'This user has people reporting to them. Reassign those users before deleting.'
+			: null
+	);
 
 	$effect(() => {
 		const id = userId;
@@ -57,6 +65,12 @@
 		goto(resolve('/management/user-management'));
 	}
 
+	function handleEdit() {
+		if (!user) return;
+		createUserFormStore.loadForEdit(user);
+		goto(resolve('/management/user-management/edit-user/[id]', { id: user.id }));
+	}
+
 	function getInitials(name: string): string {
 		const parts = name.trim().split(/\s+/).filter(Boolean);
 		if (parts.length >= 2) {
@@ -66,7 +80,7 @@
 	}
 
 	function statusVariant(status: UserItem['status']): BadgeVariant {
-		return status === 'Active' ? 'success' : 'warning';
+		return status === 'Active' ? 'success' : 'info';
 	}
 
 	type ContactField = {
@@ -109,11 +123,6 @@
 				<h1 class="text-2xl font-bold text-foreground">User Details</h1>
 				<p class="mt-1 text-sm text-muted-foreground">View and manage user information.</p>
 			</div>
-
-			<Button variant="outline" class="gap-2" onclick={backToUsers}>
-				<ArrowLeft class="h-4 w-4" />
-				Back
-			</Button>
 		</div>
 
 		<div class="space-y-6 rounded-xl border p-8 shadow">
@@ -208,11 +217,20 @@
 		</div>
 
 		<div class="flex justify-end gap-2 pt-2">
-			<Button variant="destructive" class="gap-2">
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
-			<Button variant="outline" class="gap-2">
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" class="gap-2" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" class="gap-2" onclick={() => {}}>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</Button>
+			{/if}
+			<Button variant="outline" class="gap-2" onclick={handleEdit}>
 				<Pencil class="h-4 w-4" />
 				Edit
 			</Button>
