@@ -103,7 +103,7 @@
 	<p class="py-12 text-center text-sm text-muted-foreground">Loading user details…</p>
 {:else if user}
 	{@const fields = contactFields(user)}
-	<div class="space-y-6">
+	<div class="space-y-6 w-full md:w-[75%] m-auto">
 		<div class="flex flex-wrap items-start justify-between gap-4">
 			<div>
 				<h1 class="text-2xl font-bold text-foreground">User Details</h1>

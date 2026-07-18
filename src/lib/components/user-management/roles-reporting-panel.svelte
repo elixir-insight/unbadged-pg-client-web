@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Checkbox, Chip } from '$lib/components/reusable';
+	import { Chip } from '$lib/components/reusable';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Search } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import { Shield, User } from '$lib/assets/icons';
@@ -16,8 +17,7 @@
 	let activeTab = $state<'roles' | 'reporting'>('roles');
 	let managerSearch = $state('');
 
-	const selectedRoleCount = $derived(createUserFormStore.selectedRoles.length);
-	const selectedRoles = $derived(createUserFormStore.selectedRoles);
+	const selectedRoleCount = $derived(createUserFormStore.selectedRoleCount);
 	const statusSummary = $derived(createUserFormStore.statusSummary);
 
 	const filteredManagers = $derived(
@@ -118,7 +118,7 @@
 								<span class="truncate">{role}</span>
 							</div>
 							<div class="pointer-events-none shrink-0">
-								<Checkbox checked={selectedRoles.includes(role)} />
+								<Checkbox checked={createUserFormStore.selectedRoles.includes(role)} />
 							</div>
 						</button>
 					{/each}
