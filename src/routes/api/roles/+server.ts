@@ -8,8 +8,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleName: 'QA_LEAD',
 		roleAssignedCount: 4,
 		defaultRole: false,
-		description:
-			'QA Lead drives the testing strategy, mentors QA analysts, and coordinates with product and development teams to deliver bug-free releases on schedule.'
+		description: 'QA Lead drives the testing strategy and mentors QA analysts'
 	},
 	{
 		roleId: 166,
@@ -17,31 +16,28 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 6,
 		defaultRole: false,
 		description:
-			'Delivery Manager oversees project delivery timelines, coordinates between engineering and business teams, and ensures features reach production on schedule.'
+			'Delivery Manager oversees project delivery timelines, coordinates between engineering and business teams'
 	},
 	{
 		roleId: 133,
 		roleName: 'BUSINESS_DEVELOPMENT_LEAD',
-		roleAssignedCount: 3,
+		roleAssignedCount: 0,
 		defaultRole: false,
-		description:
-			'Business Development Lead identifies growth opportunities, manages partner onboarding, and tracks revenue performance across the platform.'
+		description: 'Business Development Lead identifies growth opportunities.'
 	},
 	{
 		roleId: 100,
 		roleName: 'HEAD_OF_GLOBAL_PARTNERSHIPS',
 		roleAssignedCount: 2,
 		defaultRole: false,
-		description:
-			'Head of Global Partnerships leads the international partner strategy, manages high-value partner relationships, and oversees cross-border settlement configurations.'
+		description: 'Head of Global Partnerships leads the international partner strategy.'
 	},
 	{
 		roleId: 67,
 		roleName: 'ONBOARDING_TEAM_LEAD',
 		roleAssignedCount: 1,
 		defaultRole: false,
-		description:
-			'Onboarding Team Lead manages the onboarding process, approves new accounts, and coordinates with cross-functional teams to ensure smooth merchant activation.'
+		description: 'Onboarding Team Lead manages the onboarding process and approves new accounts.'
 	},
 	{
 		roleId: 34,
@@ -49,7 +45,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 1,
 		defaultRole: false,
 		description:
-			'A Quality Analyst ensures software quality by testing applications, identifying bugs, validating requirements, and improving user experience. They perform functional, regression, and usability testing while collaborating with developers and teams.'
+			'A Quality Analyst ensures software quality by testing applications, identifying bugs and validating requirements.'
 	},
 	{
 		roleId: 32,
@@ -57,7 +53,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 3,
 		defaultRole: false,
 		description:
-			'Admin has full access to all modules including user management, billing, and system configuration. Can create, update, and delete records across the platform.'
+			'Admin has full access to all modules including user management, billing, and system configuration.'
 	},
 	{
 		roleId: 31,
@@ -65,7 +61,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 2,
 		defaultRole: false,
 		description:
-			'QA Manager oversees quality assurance workflows, manages QA teams, reviews test plans, approves releases, and ensures all deliverables meet quality standards.'
+			'QA Manager oversees quality assurance workflows, manages QA teams and reviews test plans'
 	},
 	{
 		roleId: 30,
@@ -73,7 +69,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 6,
 		defaultRole: false,
 		description:
-			'Tester is responsible for executing test cases, logging defects, and verifying fixes. Has read access to most modules for testing purposes.'
+			'Tester is responsible for executing test cases, logging defects, and verifying fixes. '
 	},
 	{
 		roleId: 7,
@@ -81,7 +77,7 @@ const MOCK_ROLES: RoleItem[] = [
 		roleAssignedCount: 4,
 		defaultRole: true,
 		description:
-			'Read-only access to organization wallet balances, transaction history, and activity logs. Cannot initiate transfers or modify wallet configurations.'
+			'Read-only access to organization wallet balances, transaction history, and activity logs.'
 	}
 ];
 

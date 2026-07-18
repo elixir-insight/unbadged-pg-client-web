@@ -39,11 +39,8 @@
 			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<div class="min-w-0">
 					<h1 class="text-lg font-bold whitespace-nowrap text-foreground">
-						Good Morning, {userName} 👋
+						Good Morning, {userName}
 					</h1>
-					<p class="mt-0.5 text-sm text-muted-foreground">
-						Here's what's happening with your business today.
-					</p>
 				</div>
 			</div>
 

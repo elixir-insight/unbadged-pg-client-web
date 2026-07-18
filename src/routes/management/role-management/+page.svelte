@@ -4,11 +4,15 @@
 	import { createUrlPagination, Search } from '$lib/components/reusable';
 	import { RoleCard } from '$lib/components/role-management';
 	import type { RoleItem } from '$lib/stores/role-management/role-management';
-	import { Plus } from '$lib/assets/icons';
+	import { Plus, X } from '$lib/assets/icons';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { debounce } from '$lib/utils/debounce';
 
 	const pagination = createUrlPagination();
+	const activeFilters = $derived([
+		...(pagination.search ? [{ key: 'search', label: `Search: "${pagination.search}"` }] : [])
+	]);
+	const hasActiveFilters = $derived(activeFilters.length > 0);
 
 	// searchInput is derived from the URL so back/forward navigation restores it.
 	// It can also be overridden locally for immediate keystroke feedback.
@@ -52,6 +56,14 @@
 		debouncedSearch(value);
 	}
 
+	function removeFilter(key: string) {
+		if (key === 'search') pagination.setSearch('');
+	}
+
+	function clearFilters() {
+		pagination.clearAllFilters();
+	}
+
 	function selectRole(role: RoleItem) {
 		selectedId = role.roleId;
 		goto(resolve('/management/role-management/view-role/[id]', { id: String(role.roleId) }), {
@@ -93,6 +105,33 @@
 			class="max-w-sm flex-1"
 		/>
 	</div>
+
+	{#if hasActiveFilters}
+		<div class="flex flex-wrap items-center gap-2">
+			{#each activeFilters as filter (filter.key)}
+				<span
+					class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-white/10 dark:text-gray-400"
+				>
+					{filter.label}
+					<button
+						type="button"
+						onclick={() => removeFilter(filter.key)}
+						class="text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+						aria-label="Remove {filter.label} filter"
+					>
+						<X class="size-3" />
+					</button>
+				</span>
+			{/each}
+			<button
+				type="button"
+				onclick={clearFilters}
+				class="text-xs text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+			>
+				Clear all filters
+			</button>
+		</div>
+	{/if}
 
 	<!-- Grid -->
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
