@@ -188,6 +188,11 @@
 	* {
 		@apply border-border outline-ring/50;
 	}
+	html,
+	body {
+		height: 100%;
+		overflow: hidden;
+	}
 	body {
 		@apply bg-background text-foreground;
 		letter-spacing: var(--tracking-normal);
@@ -250,8 +255,12 @@
 
 /* === View Transitions === */
 
-/* Assign stable view-transition-name values via class selectors */
-.app-shell-content {
+/*
+  Keep view-transition-name off the overflow-y-auto scrollport.
+  Naming the scroll container makes Chrome promote it during navigations and
+  leaks a second (document) scrollbar — most visible on tall pages like Documents.
+*/
+.app-shell-page {
 	view-transition-name: page;
 	scroll-behavior: smooth;
 }
