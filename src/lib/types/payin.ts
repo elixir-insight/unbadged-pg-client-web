@@ -37,6 +37,114 @@ export interface PayinTimelineEntry {
 	isCompleted: boolean;
 }
 
+export type PayinOrderStatus = 'created' | 'pending' | 'success' | 'failed' | 'expired';
+
+export type PayinPaymentStatus = 'pending' | 'failed' | 'authorized' | 'success' | 'refunded';
+
+export type PayinRefundStatus = 'initiated' | 'processing' | 'completed' | 'failed';
+
+export type PayinRefundType = 'full' | 'partial';
+
+export interface PayinRefundDetail {
+	refundId: string;
+	txnId: string;
+	orderId: string;
+	customerName: string;
+	originalAmount: string;
+	refundAmount: string;
+	refundStatus: PayinRefundStatus;
+	refundType: PayinRefundType;
+	refundSpeed: string;
+	refundMode: string;
+	remark: string;
+	createdAt: string;
+	refundTimeline: PayinTimelineEntry[];
+}
+
+export interface PayinOrderListItem extends Record<string, unknown> {
+	orderId: string;
+	crn: string;
+	customer: string;
+	amount: string;
+	status: PayinOrderStatus;
+	attemptCount: number;
+	createdAt: string;
+	_dateMs: number;
+}
+
+export interface PayinOrderDetail {
+	orderId: string;
+	crn: string;
+	customerName: string;
+	customerEmail: string;
+	customerPhoneNumber: string;
+	orderAmount: string;
+	orderStatus: PayinOrderStatus;
+	statusDescription: string;
+	clientDescription: string;
+	createdAt: string;
+	expiresAt: string;
+	orderTimeline: PayinTimelineEntry[];
+}
+
+export interface PayinPaymentListItem extends Record<string, unknown> {
+	txnId: string;
+	orderId: string;
+	customer: string;
+	amount: string;
+	paymentMethod: string;
+	status: PayinPaymentStatus;
+	attemptNumber: number;
+	createdAt: string;
+	_dateMs: number;
+}
+
+export interface PayinPaymentDetail {
+	txnId: string;
+	orderId: string;
+	attemptNumber: number;
+	customerName: string;
+	transactionAmount: string;
+	paymentMethod: string;
+	paymentChannel: string;
+	paymentStatus: PayinPaymentStatus;
+	statusDescription: string;
+	utr: string;
+	bankRRN: string;
+	cardNumber: string;
+	cardType: string;
+	errorDescription: string;
+	payerVpa: string;
+	bankPipelineCode: string;
+	processingFee?: string;
+	gatewayFee?: string;
+	gatewayGst?: string;
+	partnerFee?: string;
+	partnerGst?: string;
+	refundableAmount?: string;
+	refunds?: PayinRefundDetail[];
+	paymentTimeline: PayinTimelineEntry[];
+}
+
+export interface PayinOrderListResponse {
+	data: PayinOrderListItem[];
+	pagination: { total: number; page: number; limit: number };
+}
+
+export interface PayinOrderDetailResponse {
+	data: PayinOrderDetail;
+}
+
+export interface PayinPaymentListResponse {
+	data: PayinPaymentListItem[];
+	pagination: { total: number; page: number; limit: number };
+}
+
+export interface PayinPaymentDetailResponse {
+	data: PayinPaymentDetail;
+}
+
+/** @deprecated Use PayinOrderDetail and PayinPaymentDetail instead */
 export interface PayinDetail {
 	txnId: string;
 	customerName: string;
