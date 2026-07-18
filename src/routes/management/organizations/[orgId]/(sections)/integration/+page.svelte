@@ -40,9 +40,12 @@
 
 	$effect(() => {
 		if (organization.category !== 'MERCHANT') {
-			goto(resolve('/management/organizations/[orgId]/kyb', { orgId: organization.id }), {
-				replaceState: true
-			});
+			goto(
+				resolve('/management/organizations/[orgId]/(sections)/kyb', { orgId: organization.id }),
+				{
+					replaceState: true
+				}
+			);
 		}
 	});
 
