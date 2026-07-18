@@ -2,7 +2,7 @@ import type { CognitoIdToken } from './types';
 
 export const mockCognitoToken: CognitoIdToken = {
 	sub: '2183adaa-1041-701a-34df-ff1d32f11e85',
-	'cognito:groups': ['Payin', 'Payout'],
+	'cognito:groups': ['MERCHANT'],
 	email_verified: true,
 	iss: 'https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_3dJPlaFsP',
 	'custom:user_id': '100001',
