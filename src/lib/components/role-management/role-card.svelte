@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { Users } from '$lib/assets/icons';
+	import { Chip } from '$lib/components/reusable';
+	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { cn } from '$lib/utils';
 	import type { RoleItem } from '$lib/stores/role-management/role-management';
+
+	function roleBadgeVariant(defaultRole: boolean): BadgeVariant {
+		return defaultRole ? 'alert' : 'info';
+	}
 
 	let {
 		role,
@@ -44,11 +50,7 @@
 	)}
 >
 	<!-- Clickable top section: icon + name -->
-	<button
-		class="flex cursor-pointer flex-col gap-3 p-4 text-left h-full shadow"
-		{onclick}
-		tabindex="0"
-	>
+	<button class="flex cursor-pointer flex-col gap-3 p-4 text-left h-full" {onclick} tabindex="0">
 		<!-- Icon row + type badge -->
 		<div class="flex items-start justify-between">
 			<div class="flex gap-4 items-center">
@@ -66,16 +68,9 @@
 				<p class="text-sm font-semibold leading-tight text-foreground">{displayName}</p>
 			</div>
 
-			<span
-				class={cn(
-					'rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow',
-					role.defaultRole
-						? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-						: 'border-primary/30 bg-primary/10 text-primary'
-				)}
-			>
+			<Chip variant={roleBadgeVariant(role.defaultRole)} class="text-[10px] tracking-wide">
 				{role.defaultRole ? 'Default' : 'Custom'}
-			</span>
+			</Chip>
 		</div>
 
 		<!-- Description -->

@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/reusable';
 	import { Input } from '$lib/components/reusable';
 	import { Textarea } from '$lib/components/reusable';
-	import { DetailViewTable } from '$lib/components/role-management';
+	import { AccessSelectTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES, PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
 </script>
@@ -47,7 +47,7 @@
 	</div>
 
 	<!-- Access & permissions -->
-	<DetailViewTable
+	<AccessSelectTable
 		modules={ROLE_MODULES}
 		title="Access & permissions"
 		description="Select the permissions to grant for this module"
