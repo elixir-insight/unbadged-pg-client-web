@@ -7,7 +7,6 @@ describe('toPipelineDropdownOptions', () => {
 			toPipelineDropdownOptions({
 				data: [
 					{
-						id: 1,
 						bankPipelineCode: '1234TET',
 						name: 'BANK',
 						allowedTransactionTypes: ['UPI', 'CARD', 'NET_BANKING']

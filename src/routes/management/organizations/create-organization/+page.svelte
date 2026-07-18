@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { ClientTypeStep, MerchantProfileStep } from '$lib/components/onboarding';
 	import {
@@ -19,7 +18,7 @@
 	import { firstValidationError, validateCreateOrganization } from './validation';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: { message?: string } | null } = $props();
 
 	const businessTypeEnumMap: Record<string, OrganizationBusinessType> = {
 		'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
@@ -64,6 +63,14 @@
 		if (data.pipelinesError) {
 			toast.error('Could not load bank pipelines', {
 				description: data.pipelinesError
+			});
+		}
+	});
+
+	$effect(() => {
+		if (form?.message) {
+			toast.error(`Failed to create ${selectedCategory ?? 'organization'}`, {
+				description: form.message
 			});
 		}
 	});
@@ -128,85 +135,40 @@
 		organizations.push(result);
 	}
 
-	async function createViaApi() {
-		const response = await fetch(resolve('/api/management/onboard/organization'), {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				selectedCategory,
-				orgName,
-				orgPhone,
-				orgEmail,
-				orgBusinessType,
-				affiliateId,
-				selectedServiceTypes,
-				servicePipelines
-			})
-		});
-
-		const payload: unknown = await response.json().catch(() => null);
-		const message =
-			payload &&
-			typeof payload === 'object' &&
-			'message' in payload &&
-			typeof payload.message === 'string'
-				? payload.message
-				: `Request failed (${response.status})`;
-
-		if (!response.ok) {
-			throw new Error(message);
-		}
-
-		const organizationId =
-			payload &&
-			typeof payload === 'object' &&
-			'organizationId' in payload &&
-			typeof payload.organizationId === 'string' &&
-			payload.organizationId.trim()
-				? payload.organizationId.trim()
-				: null;
-
-		if (!organizationId) {
-			throw new Error('Organization created but no orgId was returned');
-		}
-
-		return organizationId;
+	function extractOrgIdFromRedirect(location: string): string | null {
+		const match = location.match(/\/management\/organizations\/([^/]+)/);
+		return match?.[1] ?? null;
 	}
 
-	async function next() {
-		if (activeStep === 1) {
-			if (submitting) return;
+	const onEnhance: SubmitFunction = () => {
+		submitAttempted = true;
+		const validationError = validate();
+		if (validationError) {
+			toast.error(`Could not create ${selectedCategory ?? 'organization'}`, {
+				description: validationError
+			});
+			return ({ cancel }) => cancel();
+		}
 
-			submitAttempted = true;
-			const validationError = validate();
-			if (validationError) {
-				toast.error(`Could not create ${selectedCategory ?? 'organization'}`, {
-					description: validationError
-				});
-				return;
-			}
+		submitting = true;
+		return async ({ result, update }) => {
+			submitting = false;
 
-			submitting = true;
-			try {
-				const organizationId = await createViaApi();
-				seedLocalOrganization(organizationId);
-
-				await goto(resolve('/management/organizations/[orgId]', { orgId: organizationId }));
-
+			if (result.type === 'redirect') {
+				const organizationId = extractOrgIdFromRedirect(result.location);
+				if (organizationId) {
+					seedLocalOrganization(organizationId);
+				}
 				toast.success(`${selectedCategory} created successfully`, {
 					description: `${orgName} has been added. Continue with KYB & compliance.`
 				});
-			} catch (error) {
-				toast.error(`Failed to create ${selectedCategory ?? 'organization'}`, {
-					description:
-						error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-				});
-			} finally {
-				submitting = false;
 			}
-			return;
-		}
 
+			await update({ reset: false });
+		};
+	};
+
+	function next() {
 		completedSteps = new Set([...completedSteps, activeStep]);
 		activeStep += 1;
 	}
@@ -241,7 +203,7 @@
 		onToggleService={toggleService}
 		{onPipelineChange}
 		onPrev={prev}
-		onNext={next}
 		{submitting}
+		{onEnhance}
 	/>
 {/if}

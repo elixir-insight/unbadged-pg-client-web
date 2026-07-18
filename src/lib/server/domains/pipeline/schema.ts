@@ -3,7 +3,6 @@ import * as v from 'valibot';
 export const PipelineRoleSchema = v.picklist(['PAYIN', 'PAYOUT']);
 
 export const PipelineSchema = v.object({
-	id: v.number(),
 	bankPipelineCode: v.pipe(v.string(), v.minLength(1)),
 	name: v.string(),
 	allowedTransactionTypes: v.optional(v.array(v.string()), [])

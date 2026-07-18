@@ -1,8 +1,14 @@
-import type { PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 import {
 	loadOrganizationBankAccounts,
 	resolveOrganizationBase
 } from '$lib/server/domains/organization/load-bank-accounts';
+import { parseBankAccountFormData } from '$lib/server/domains/organization/form-data';
+import {
+	addBankAccountMutation,
+	updateBankAccountMutation
+} from '$lib/server/domains/organization/mutations/bank-account';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-bank-accounts');
@@ -27,3 +33,75 @@ export const load: PageServerLoad = async ({ params, parent, cookies, fetch, loc
 		organizationBase
 	});
 };
+
+export const actions = {
+	createAccount: async ({ request, params, cookies, fetch, locals }) => {
+		const log = locals.logger;
+		const orgId = params.orgId?.trim() ?? '';
+		const formData = await request.formData();
+		const parsed = parseBankAccountFormData(formData);
+
+		if (!parsed.success) {
+			log.warn({ issues: parsed.issues }, 'add bank rejected — invalid form data');
+			return fail(400, {
+				message: parsed.issues[0]?.message ?? 'Invalid bank account payload'
+			});
+		}
+
+		const result = await addBankAccountMutation({
+			fetch,
+			log,
+			cookies,
+			orgId,
+			body: parsed.output
+		});
+
+		if (!result.ok) {
+			return fail(result.status, { message: result.message });
+		}
+
+		return {
+			success: true,
+			message: result.message,
+			accountId: result.accountId
+		};
+	},
+
+	updateAccount: async ({ request, params, cookies, fetch, locals }) => {
+		const log = locals.logger;
+		const orgId = params.orgId?.trim() ?? '';
+		const formData = await request.formData();
+		const accountId = String(formData.get('accountId') ?? '').trim();
+
+		if (!accountId) {
+			return fail(400, { message: 'Bank account id is required' });
+		}
+
+		const parsed = parseBankAccountFormData(formData);
+
+		if (!parsed.success) {
+			log.warn({ issues: parsed.issues }, 'update bank rejected — invalid form data');
+			return fail(400, {
+				message: parsed.issues[0]?.message ?? 'Invalid bank account payload'
+			});
+		}
+
+		const result = await updateBankAccountMutation({
+			fetch,
+			log,
+			cookies,
+			orgId,
+			accountId,
+			body: parsed.output
+		});
+
+		if (!result.ok) {
+			return fail(result.status, { message: result.message });
+		}
+
+		return {
+			success: true,
+			message: result.message
+		};
+	}
+} satisfies Actions;

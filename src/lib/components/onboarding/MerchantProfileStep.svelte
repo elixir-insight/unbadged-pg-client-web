@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { cn } from '$lib/utils';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -42,8 +44,8 @@
 		onToggleService: (value: string, checked: boolean) => void;
 		onPipelineChange: (serviceType: string) => void;
 		onPrev: () => void;
-		onNext: () => void;
 		submitting?: boolean;
+		onEnhance: SubmitFunction;
 	}
 
 	let {
@@ -64,8 +66,8 @@
 		onToggleService,
 		onPipelineChange,
 		onPrev,
-		onNext,
-		submitting = false
+		submitting = false,
+		onEnhance
 	}: Props = $props();
 </script>
 
@@ -73,10 +75,16 @@
 	class="relative flex flex-col items-center px-4 py-12"
 	in:fly={{ y: 16, duration: 280, easing: cubicOut }}
 >
-	<div class="w-full max-w-2xl space-y-6">
+	<form method="POST" action="?/create" use:enhance={onEnhance} class="w-full max-w-2xl space-y-6">
 		<h2 class="text-center font-bold tracking-tight">
 			Tell us about your {selectedCategory ?? 'organization'}
 		</h2>
+
+		<input type="hidden" name="selectedCategory" value={selectedCategory ?? ''} />
+		<input type="hidden" name="servicePipelines" value={JSON.stringify(servicePipelines)} />
+		{#each selectedServiceTypes as serviceType (serviceType)}
+			<input type="hidden" name="selectedServiceTypes" value={serviceType} />
+		{/each}
 
 		<div class="space-y-6 rounded-2xl border border-border bg-background p-6 shadow-xs">
 			<div class="grid grid-cols-1 gap-5 sm:grid-cols-1">
@@ -86,9 +94,12 @@
 					</label>
 					<Input
 						id="org-name"
+						name="orgName"
 						bind:value={orgName}
 						oninput={onFieldInput}
 						placeholder="Enter Organization Name"
+						required
+						disabled={submitting}
 						class={cn(errors.orgName && 'border-destructive focus-visible:ring-destructive/30')}
 					/>
 					{#if errors.orgName}
@@ -104,10 +115,13 @@
 					</label>
 					<Input
 						id="org-email"
+						name="orgEmail"
 						type="email"
 						bind:value={orgEmail}
 						oninput={onFieldInput}
 						placeholder="Enter Email Address"
+						required
+						disabled={submitting}
 						class={cn(errors.orgEmail && 'border-destructive focus-visible:ring-destructive/30')}
 					/>
 					{#if errors.orgEmail}
@@ -123,10 +137,13 @@
 					</label>
 					<Input
 						id="org-phone"
+						name="orgPhone"
 						type="tel"
 						bind:value={orgPhone}
 						oninput={onFieldInput}
 						placeholder="Enter Mobile Number"
+						required
+						disabled={submitting}
 						class={cn(errors.orgPhone && 'border-destructive focus-visible:ring-destructive/30')}
 					/>
 					{#if errors.orgPhone}
@@ -141,10 +158,13 @@
 						Business Type <span class="text-destructive">*</span>
 					</label>
 					<Dropdown
+						name="orgBusinessType"
 						bind:value={orgBusinessType}
 						onValueChange={onFieldInput}
 						options={businessTypes.map((t) => ({ value: t, label: t }))}
 						placeholder="Select Business Type"
+						required
+						disabled={submitting}
 						class={cn(' w-full', errors.orgBusinessType && 'border-destructive')}
 					/>
 					{#if errors.orgBusinessType}
@@ -166,15 +186,18 @@
 					{affiliatesByPipeline}
 					{onToggleService}
 					{onPipelineChange}
+					disabled={submitting}
 				/>
 			{/if}
 		</div>
 
 		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<Button variant="outline" size="lg" onclick={onPrev} disabled={submitting}>Back</Button>
-			<Button size="lg" onclick={onNext} disabled={submitting}>
+			<Button type="button" variant="outline" size="lg" onclick={onPrev} disabled={submitting}>
+				Back
+			</Button>
+			<Button type="submit" size="lg" disabled={submitting}>
 				{submitting ? 'Creating…' : `Create ${selectedCategory ?? 'Organization'}`}
 			</Button>
 		</div>
-	</div>
+	</form>
 </div>

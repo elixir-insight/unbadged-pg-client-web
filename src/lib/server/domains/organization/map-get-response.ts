@@ -13,6 +13,7 @@ import {
 	type OrganizationStatus,
 	type OrganizationServiceType
 } from '$lib/data/mockData';
+import { mapDirectors } from './map-directors';
 import type { GetOrganizationResponse } from './schema';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -124,6 +125,7 @@ function mapCategory(value: string): OrganizationCategory {
 
 function mapStatus(value: string): OrganizationStatus {
 	const normalized = value.trim().toUpperCase().replace(/\s+/g, '_');
+	if (normalized === 'FROZEN') return 'ON_HOLD';
 	if (
 		normalized === 'IN_PROGRESS' ||
 		normalized === 'APPROVED' ||
@@ -287,9 +289,9 @@ function mapKyb(
 		legalCompanyName: asString(payload.legalCompanyName ?? kyb.legalCompanyName, name),
 		businessType: mapBusinessTypeLabel(businessType),
 		cin: asString(kyb.cin ?? payload.cin),
-		tan: asString(kyb.tan ?? payload.tan),
+		tan: asString(kyb.tan ?? payload.tan ?? payload.orgTan),
 		gstin: asString(kyb.gstNumber ?? kyb.gstin ?? payload.gstNumber ?? payload.gstin),
-		businessPan: asString(kyb.businessPan ?? payload.businessPan),
+		businessPan: asString(kyb.businessPan ?? payload.businessPan ?? payload.orgPan),
 		businessPhone: asString(kyb.businessPhone ?? payload.businessPhone ?? phone),
 		industry: asString(kyb.industry ?? payload.industry),
 		organizationWebsite: asString(kyb.organizationWebsite ?? payload.organizationWebsite),
@@ -315,16 +317,22 @@ export function mapGetOrganizationResponse(
 	const name = asString(payload.legalCompanyName ?? payload.name, orgId);
 	const businessType = mapBusinessType(asString(payload.businessType));
 	const category = mapCategory(asString(payload.profileType ?? payload.category, 'MERCHANT'));
-	const status = mapStatus(asString(payload.status ?? payload.organizationStatus, 'IN_PROGRESS'));
+	const status = mapStatus(
+		asString(payload.profileStatus ?? payload.status ?? payload.organizationStatus, 'IN_PROGRESS')
+	);
 	const phone = asString(payload.phoneNumber ?? payload.phone);
 	const email = asString(payload.userEmail ?? payload.email);
-	const registeredAddress = mapAddressDetails(payload.addressDetails ?? payload.registeredAddress);
+	const registeredAddress = mapAddressDetails(
+		payload.addressDetails ?? payload.registeredAddress ?? payload.address
+	);
 	const serviceTypes = mapServiceTypes(payload.serviceTypes);
 	const bankAccounts = mapBankAccounts(
 		payload.bankAccounts ?? payload.banks ?? payload.bankAccountDetails
 	);
+	const directors = mapDirectors(payload.directors);
 
 	const kyb = mapKyb(payload, registeredAddress, name, businessType, phone, email);
+	kyb.directors = directors;
 
 	return {
 		id: orgId,
@@ -340,7 +348,7 @@ export function mapGetOrganizationResponse(
 		serviceTypes,
 		kyb,
 		addressDetails: registeredAddress,
-		directors: [],
+		directors,
 		bankAccounts,
 		documents: pendingDocuments(),
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
@@ -348,5 +356,24 @@ export function mapGetOrganizationResponse(
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
 		commissionRules: [],
 		feeConfigDrafts: []
+	};
+}
+
+/** Overlay KYB fields and directors from GET /details onto a base organization record. */
+export function applyOrganizationDetails(base: Organization, details: Organization): Organization {
+	return {
+		...base,
+		name: details.name || base.name,
+		businessType: details.businessType || base.businessType,
+		category: details.category || base.category,
+		status: details.status || base.status,
+		serviceTypes: details.serviceTypes.length > 0 ? details.serviceTypes : base.serviceTypes,
+		addressDetails: details.addressDetails,
+		directors: details.directors,
+		kyb: {
+			...base.kyb,
+			...details.kyb,
+			directors: details.directors
+		}
 	};
 }

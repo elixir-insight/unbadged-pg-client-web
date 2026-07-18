@@ -7,9 +7,14 @@ import {
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
 import { organizationClient } from '$lib/server/domains/organization/client';
-import { mapGetOrganizationResponse } from '$lib/server/domains/organization/map-get-response';
+import {
+	applyOrganizationDetails,
+	mapGetOrganizationResponse
+} from '$lib/server/domains/organization/map-get-response';
 
-export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals }) => {
+export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
+	depends('org');
+
 	const log = locals.logger;
 	const orgId = params.orgId?.trim();
 
@@ -42,8 +47,26 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals })
 		orgId
 	);
 
+	const detailsResult = await organizationClient.getDetails(
+		fetch,
+		log,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId
+	);
+
 	if (result.ok) {
-		const organization = mapGetOrganizationResponse(result.data, orgId);
+		let organization = mapGetOrganizationResponse(result.data, orgId);
+
+		if (detailsResult.ok) {
+			const detailsOrganization = mapGetOrganizationResponse(detailsResult.data, orgId);
+			if (organization && detailsOrganization) {
+				organization = applyOrganizationDetails(organization, detailsOrganization);
+			} else if (detailsOrganization) {
+				organization = detailsOrganization;
+			}
+		}
+
 		if (organization) {
 			return {
 				organization,
@@ -59,6 +82,22 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals })
 			allowShell: true,
 			loadError: 'Unexpected organization response shape'
 		};
+	}
+
+	if (detailsResult.ok) {
+		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
+		if (organization) {
+			return {
+				organization,
+				orgId,
+				allowShell: false,
+				loadError: null
+			};
+		}
+		log.warn(
+			{ orgId, upstream: detailsResult.data },
+			'GET organization details returned unmapped payload'
+		);
 	}
 
 	const status = result.error.kind === 'http' ? result.error.status : undefined;

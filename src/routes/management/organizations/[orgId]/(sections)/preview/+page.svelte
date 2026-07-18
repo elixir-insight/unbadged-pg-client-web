@@ -1,26 +1,29 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
+	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import type { ResolvedPathname } from '$app/types';
-	import { untrack } from 'svelte';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
-	import { BadgeCheck } from '$lib/assets/icons';
+	import { BadgeCheck, ZapIcon } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
-	import { allSectionsComplete } from '../../completeness';
 	import {
-		cloneOrganization,
-		createChipSnippet,
-		formatRegisteredAddress,
-		maskAccountNumber
-	} from '../../helpers';
+		allSectionsComplete,
+		bankDetailsComplete,
+		documentsComplete,
+		kybComplete
+	} from '../../completeness';
+	import { createChipSnippet, formatRegisteredAddress, maskAccountNumber } from '../../helpers';
 	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
 	import { hasDocumentPreview } from '../documents/document-preview';
+	import ActivateProfileModal from './activate-profile-modal.svelte';
 
 	type PreviewSection = 'kyb' | 'bank' | 'documents';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
@@ -29,18 +32,38 @@
 	let previewTitle = $state('Document preview');
 	let previewUrl = $state('');
 	let previewFileType = $state<string | undefined>(undefined);
+	let approving = $state(false);
+	let activateOpen = $state(false);
 
-	untrack(() => {
-		if (data.documents) {
-			data.organization.documents = cloneOrganization(data.documents);
-		}
-		if (data.directors) {
-			data.organization.directors = cloneOrganization(data.directors);
-			if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
-		}
+	const isApproved = $derived(organization.status === 'APPROVED');
+	const isActive = $derived(organization.status === 'ACTIVE');
+	const manageHref = $derived(resolve('/management/organizations/[orgId]/manage', { orgId }));
+
+	const reviewOrganization = $derived.by(() => {
+		const org = data.organization;
+		const documents = data.documents ?? org.documents;
+		const directors = data.directors ?? org.directors;
+
+		return {
+			...org,
+			documents,
+			directors,
+			kyb: {
+				...org.kyb,
+				directors
+			}
+		};
 	});
 
-	const canApprove = $derived(allSectionsComplete(data.organization));
+	const canApprove = $derived(allSectionsComplete(reviewOrganization));
+
+	const approvalBlockers = $derived.by(() => {
+		const blockers: string[] = [];
+		if (!kybComplete(reviewOrganization)) blockers.push('KYB');
+		if (!bankDetailsComplete(reviewOrganization)) blockers.push('bank details');
+		if (!documentsComplete(reviewOrganization)) blockers.push('documents');
+		return blockers;
+	});
 
 	const previewSections: { key: PreviewSection; label: string }[] = [
 		{ key: 'kyb', label: 'KYB' },
@@ -54,8 +77,8 @@
 		return 'kyb';
 	});
 
-	function previewSectionHref(section: PreviewSection): ResolvedPathname {
-		const base = resolve('/management/organizations/[orgId]/preview', { orgId });
+	function previewSectionHref(section: PreviewSection, organizationId: string): ResolvedPathname {
+		const base = resolve(`/management/organizations/${organizationId}/preview`);
 		return section === 'kyb' ? base : (`${base}?section=${section}` as ResolvedPathname);
 	}
 
@@ -69,14 +92,41 @@
 		return `/management/organizations/${orgId}/kyb`;
 	});
 
-	function approve() {
-		data.organization.status = 'APPROVED';
-		if (data.organization.category === 'PARTNER') {
-			goto(resolve('/management/organizations/[orgId]/activate/partner', { orgId }));
+	const onApproveEnhance: SubmitFunction = ({ cancel }) => {
+		if (!canApprove) {
+			cancel();
 			return;
 		}
-		goto(resolve('/management/organizations/[orgId]/activate/merchant', { orgId }));
-	}
+
+		approving = true;
+		return async ({ result, update }) => {
+			approving = false;
+
+			if (result.type === 'failure') {
+				const message =
+					form?.message ??
+					(result.data &&
+					typeof result.data === 'object' &&
+					'message' in result.data &&
+					typeof result.data.message === 'string'
+						? result.data.message
+						: 'Something went wrong');
+				toast.error('Failed to approve profile', { description: message });
+				await update({ reset: false });
+				return;
+			}
+
+			if (result.type === 'success') {
+				data.organization.status = 'APPROVED';
+				toast.success('Profile approved', {
+					description: 'All onboarding sections complete. Activate when ready.'
+				});
+				await invalidate('org');
+			}
+
+			await update({ reset: false });
+		};
+	};
 
 	function openDocumentPreview(
 		title: string,
@@ -101,7 +151,7 @@
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
 			{@const isActive = section.key === activeSection}
-			{@const sectionHref = previewSectionHref(section.key)}
+			{@const sectionHref = previewSectionHref(section.key, orgId)}
 			<a
 				href={sectionHref}
 				class={cn(
@@ -219,20 +269,49 @@
 	{/if}
 
 	<div class="border-t border-border/60 pt-4">
-		{#if !canApprove}
+		{#if isActive}
 			<p class="mb-4 text-sm text-muted-foreground">
-				Approve stays disabled until KYB, bank details, and required documents are complete.
+				This organization is active. Open manage to view operational settings.
 			</p>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+				<Button href={manageHref}>Go to manage</Button>
+			</div>
+		{:else if isApproved}
+			<p class="mb-4 text-sm text-muted-foreground">
+				Profile approved. Activate to upload the business certificate, enter gateway credentials,
+				and continue to commission configuration.
+			</p>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+				<Button onclick={() => (activateOpen = true)}>
+					<ZapIcon class="size-4" />
+					Activate
+				</Button>
+			</div>
+		{:else}
+			{#if !canApprove}
+				<p class="mb-4 text-sm text-muted-foreground">
+					Approve stays disabled until KYB, bank details, and required documents are complete.
+					{#if approvalBlockers.length > 0}
+						Still incomplete: {approvalBlockers.join(', ')}.
+					{/if}
+				</p>
+			{/if}
+			<form method="POST" action="?/approve" use:enhance={onApproveEnhance}>
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button type="submit" disabled={!canApprove || approving}>
+						<BadgeCheck class="size-4" />
+						{approving ? 'Approving…' : 'Approve'}
+					</Button>
+				</div>
+			</form>
 		{/if}
-		<div class="flex flex-wrap items-center justify-between gap-3">
-			<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
-			<Button disabled={!canApprove} onclick={approve}>
-				<BadgeCheck class="size-4" />
-				Approve
-			</Button>
-		</div>
 	</div>
 </div>
+
+<ActivateProfileModal bind:open={activateOpen} category={organization.category} {form} />
 
 <DocumentPreviewModal
 	bind:open={previewOpen}

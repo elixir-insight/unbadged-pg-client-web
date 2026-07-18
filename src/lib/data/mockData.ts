@@ -382,8 +382,8 @@ function createDirectors(
 			name: `${name.split(' ')[0]} Director ${index + 1}`,
 			pan: `ABCDE${seed + index}F`,
 			email: `director${index + 1}.${seed}@${name.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com`,
-			phone: `+91 97${String(10000000 + seed + index).slice(-8)}`,
-			aadhar: `2345678901${index}`,
+			phone: `97${String(10000000 + seed + index).slice(-8)}`,
+			aadhar: `23456789012${index}`,
 			aadharDocument: createMissingDirectorDocument(`${id}-aadhar`, documentStatus, baseDate),
 			panDocument: createMissingDirectorDocument(`${id}-pan`, documentStatus, baseDate)
 		};

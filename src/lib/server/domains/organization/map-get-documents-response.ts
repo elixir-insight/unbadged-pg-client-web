@@ -5,7 +5,7 @@ import type {
 	OrganizationDocument
 } from '$lib/data/mockData';
 import { parseDocumentFileName, type DirectorDocumentField } from './document-field-names';
-import type { OrganizationDocumentRecord } from './schema';
+import type { OrganizationDirectorDocumentRecord, OrganizationDocumentRecord } from './schema';
 
 function asString(value: unknown, fallback = ''): string {
 	if (typeof value === 'string') return value.trim();
@@ -151,4 +151,37 @@ export function mapGetDocumentsResponse(
 	}
 
 	return { documents, directors };
+}
+
+export function normalizeDirectorDocumentRecord(
+	record: OrganizationDirectorDocumentRecord
+): OrganizationDocumentRecord | null {
+	const id = record.documentId ?? record.id;
+	if (id === undefined || id === null || id === '') return null;
+
+	return {
+		id,
+		fileName: record.fileName,
+		fileType: record.fileType,
+		fileSize: record.fileSize,
+		createdAt: record.createdAt,
+		preSignedUrl: record.preSignedUrl
+	};
+}
+
+/** Maps GET /directors/{directorId}/documents items onto a single director. */
+export function mapDirectorDocumentsResponse(
+	items: OrganizationDirectorDocumentRecord[],
+	director: OrganizationDirector
+): OrganizationDirector {
+	const normalized = items
+		.map(normalizeDirectorDocumentRecord)
+		.filter((item): item is OrganizationDocumentRecord => item !== null);
+
+	const { directors } = mapGetDocumentsResponse(normalized, {
+		documents: [],
+		directors: [director]
+	});
+
+	return directors[0] ?? director;
 }

@@ -3,14 +3,18 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	AddOrganizationBankResponseSchema,
 	CreateOrganizationResponseSchema,
+	GetDirectorDocumentsResponseSchema,
 	GetOrganizationBankAccountsResponseSchema,
+	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
 	GetOrganizationResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationResponseSchema,
+	UpdateOrganizationStatusResponseSchema,
 	type AddOrganizationBankRequest,
 	type CreateOrganizationRequest,
-	type UpdateOrganizationKybRequest
+	type UpdateOrganizationKybRequest,
+	type UpdateOrganizationStatusRequest
 } from './schema';
 
 export const organizationClient = {
@@ -45,6 +49,22 @@ export const organizationClient = {
 			accessToken,
 			gatewayToken,
 			schema: GetOrganizationResponseSchema
+		}),
+
+	getDetails: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/details`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: GetOrganizationDetailsResponseSchema
 		}),
 
 	update: (
@@ -155,6 +175,26 @@ export const organizationClient = {
 			}
 		),
 
+	getDirectorDocuments: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		directorId: string
+	) =>
+		apiFetch(
+			`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/directors/${encodeURIComponent(directorId)}/documents`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				schema: GetDirectorDocumentsResponseSchema
+			}
+		),
+
 	updateBank: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -175,5 +215,23 @@ export const organizationClient = {
 				body,
 				schema: AddOrganizationBankResponseSchema
 			}
-		)
+		),
+
+	updateStatus: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		body: UpdateOrganizationStatusRequest
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/status`, {
+			fetch: fetchFn,
+			logger,
+			method: 'PUT',
+			accessToken,
+			gatewayToken,
+			body,
+			schema: UpdateOrganizationStatusResponseSchema
+		})
 };

@@ -75,6 +75,31 @@ export function previewPath(orgId: string): string {
 	return `/management/organizations/${orgId}/preview`;
 }
 
+const ORG_ONBOARDING_SECTION_PATH =
+	/^\/management\/organizations\/[^/]+\/(kyb|bank|documents|preview)(?:\/|$)/;
+
+export function isOrgOnboardingSectionPath(pathname: string): boolean {
+	return ORG_ONBOARDING_SECTION_PATH.test(pathname);
+}
+
+/** Internal path for a flow step. Wrap with resolve() at navigation call sites. */
+export function flowStepHref(orgId: string, step: FlowStepKey): string {
+	const kybBase = `/management/organizations/${orgId}/kyb`;
+
+	switch (step) {
+		case 'bank':
+			return `/management/organizations/${orgId}/bank`;
+		case 'documents':
+			return `/management/organizations/${orgId}/documents`;
+		case 'review':
+			return `/management/organizations/${orgId}/preview`;
+		case 'legal':
+			return kybBase;
+		default:
+			return `${kybBase}?step=${step}`;
+	}
+}
+
 export const tabVariantMap: Record<'Completed' | 'Pending', BadgeVariant> = {
 	Completed: 'success',
 	Pending: 'warning'

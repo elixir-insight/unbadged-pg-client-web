@@ -32,6 +32,7 @@
 		affiliatesByPipeline: Record<string, Affiliate[]>;
 		onToggleService: (value: string, checked: boolean) => void;
 		onPipelineChange: (serviceType: string) => void;
+		disabled?: boolean;
 	}
 
 	let {
@@ -43,7 +44,8 @@
 		bankPipelinesByService,
 		affiliatesByPipeline,
 		onToggleService,
-		onPipelineChange
+		onPipelineChange,
+		disabled = false
 	}: Props = $props();
 
 	const activePipelines = $derived(
@@ -157,8 +159,9 @@
 		</label>
 
 		<Dropdown
+			name="affiliateId"
 			bind:value={affiliateId}
-			disabled={activePipelines.length === 0}
+			disabled={disabled || activePipelines.length === 0}
 			options={affiliateOptions.map((a) => ({ value: a.value, label: a.label }))}
 			placeholder={affiliatePlaceholder}
 			class="w-full"

@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { beforeNavigate, goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Button, Chip, Dropdown } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import {
@@ -15,9 +17,11 @@
 		cloneOrganization,
 		createChipSnippet,
 		getAdjacentFlowSteps,
-		previewPath
+		flowStepHref,
+		type FlowStepKey
 	} from '../../helpers';
 	import { toast } from 'svelte-sonner';
+	import { cn } from '$lib/utils';
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
 	import DocumentPreviewModal from './document-preview-modal.svelte';
 	import DocumentActionsMenu from './document-actions-menu.svelte';
@@ -55,6 +59,13 @@
 	let previewFileType = $state<string | undefined>(undefined);
 	let uploadStates = $state<Record<string, DocumentUploadState>>({});
 	let retryFiles = $state<Record<string, File>>({});
+	let orgUploadForm = $state<HTMLFormElement | null>(null);
+	let orgUploadInput = $state<HTMLInputElement | null>(null);
+	let directorUploadForm = $state<HTMLFormElement | null>(null);
+	let directorUploadInput = $state<HTMLInputElement | null>(null);
+	let directorUploadDirectorId = $state<HTMLInputElement | null>(null);
+	let activeUploadDocumentId = $state('');
+	let navigating = $state(false);
 
 	untrack(() => {
 		data.organization.documents = cloneOrganization(data.documents);
@@ -127,75 +138,78 @@
 		};
 	}
 
-	async function uploadFileToServer(
-		fieldName: string,
-		file: File,
-		onProgress?: (progress: number) => void
-	) {
-		const formData = new FormData();
-		formData.append(fieldName, file, file.name);
-
-		const endpoint = resolve('/api/management/onboard/organization/[orgId]/documents', {
-			orgId
-		});
-
-		return uploadFormData(endpoint, formData, onProgress);
+	function assignFileToInput(input: HTMLInputElement, file: File, fieldName: string) {
+		const dataTransfer = new DataTransfer();
+		dataTransfer.items.add(file);
+		input.name = fieldName;
+		input.files = dataTransfer.files;
 	}
 
-	async function uploadDirectorFileToServer(
-		directorId: string,
-		fieldName: 'aadhar' | 'pan',
-		file: File,
-		onProgress?: (progress: number) => void
-	) {
-		const formData = new FormData();
-		formData.append(fieldName, file, file.name);
+	const orgUploadEnhance: SubmitFunction = () => {
+		const documentId = activeUploadDocumentId;
+		documentError = '';
+		documentErrorId = '';
+		setUploadState(documentId, { phase: 'uploading', progress: null });
 
-		const endpoint = resolve(
-			'/api/management/onboard/organization/[orgId]/directors/[directorId]/documents',
-			{ orgId, directorId }
-		);
-
-		return uploadFormData(endpoint, formData, onProgress);
-	}
-
-	function uploadFormData(
-		endpoint: string,
-		formData: FormData,
-		onProgress?: (progress: number) => void
-	) {
-		return new Promise<string>((resolvePromise, reject) => {
-			const xhr = new XMLHttpRequest();
-			xhr.open('POST', endpoint);
-			xhr.responseType = 'json';
-
-			xhr.upload.onprogress = (event) => {
-				if (!onProgress || !event.lengthComputable) return;
-				onProgress(Math.round((event.loaded / event.total) * 100));
-			};
-
-			xhr.onload = () => {
-				const payload = xhr.response as {
-					message?: string;
-					statusCode?: number;
-				} | null;
+		return async ({ result, update }) => {
+			if (result.type === 'failure') {
 				const message =
-					payload && typeof payload.message === 'string'
-						? payload.message
-						: `Request failed (${xhr.status})`;
+					result.data &&
+					typeof result.data === 'object' &&
+					'message' in result.data &&
+					typeof result.data.message === 'string'
+						? result.data.message
+						: 'Upload failed';
+				setUploadState(documentId, { phase: 'error', message });
+				documentError = message;
+				documentErrorId = documentId;
+				toast.error('Upload failed', { description: message });
+				await update({ reset: false });
+				return;
+			}
 
-				if (xhr.status >= 200 && xhr.status < 300) {
-					resolvePromise(message);
-					return;
-				}
+			if (result.type === 'success') {
+				const nextRetryFiles = { ...retryFiles };
+				delete nextRetryFiles[documentId];
+				retryFiles = nextRetryFiles;
+				clearUploadState(documentId);
+				persist();
+				await invalidate('org-documents');
+				await refreshDocumentsFromServer();
+				toast.success('Document uploaded successfully');
+			}
 
-				reject(new Error(message));
-			};
+			await update({ reset: false });
+		};
+	};
 
-			xhr.onerror = () => reject(new Error('Network error'));
-			xhr.onabort = () => reject(new Error('Upload cancelled'));
-			xhr.send(formData);
-		});
+	const directorUploadEnhance: SubmitFunction = orgUploadEnhance;
+
+	function applyDirectorUpload(
+		directorId: string,
+		field: 'aadharDocument' | 'panDocument',
+		file: File
+	) {
+		if (!directorUploadForm || !directorUploadInput || !directorUploadDirectorId) return;
+
+		const fieldName = directorFormDataFieldName(field);
+		const documentId = directors.find((entry) => entry.id === directorId)?.[field].id ?? '';
+
+		retryFiles = { ...retryFiles, [documentId]: file };
+		activeUploadDocumentId = documentId;
+		directorUploadDirectorId.value = directorId;
+		assignFileToInput(directorUploadInput, file, fieldName);
+		directorUploadForm.requestSubmit();
+	}
+
+	function applyOrgUpload(document: OrganizationDocument, file: File) {
+		if (!orgUploadForm || !orgUploadInput) return;
+
+		const fieldName = formDataFieldName(document.documentType ?? 'document');
+		retryFiles = { ...retryFiles, [document.id]: file };
+		activeUploadDocumentId = document.id;
+		assignFileToInput(orgUploadInput, file, fieldName);
+		orgUploadForm.requestSubmit();
 	}
 
 	function setUploadState(documentId: string, state: DocumentUploadState) {
@@ -251,47 +265,18 @@
 		if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
 	}
 
-	function navigateAfterSave(href: string) {
+	function navigateAfterSave(step: FlowStepKey) {
 		persist();
-		goto(resolve(href as '/'));
+		navigating = true;
+		goto(resolve(flowStepHref(orgId, step) as '/'));
 	}
 
 	function goNext() {
 		if (adjacent.next) {
-			navigateAfterSave(adjacent.next.href(orgId));
+			navigateAfterSave(adjacent.next.key);
 			return;
 		}
-		navigateAfterSave(previewPath(orgId));
-	}
-
-	async function runUpload(
-		documentId: string,
-		file: File,
-		upload: (onProgress: (progress: number) => void) => Promise<void>
-	) {
-		documentError = '';
-		documentErrorId = '';
-		retryFiles = { ...retryFiles, [documentId]: file };
-		setUploadState(documentId, { phase: 'uploading', progress: null });
-
-		try {
-			await upload((progress) => {
-				setUploadState(documentId, { phase: 'uploading', progress });
-			});
-
-			const nextRetryFiles = { ...retryFiles };
-			delete nextRetryFiles[documentId];
-			retryFiles = nextRetryFiles;
-			clearUploadState(documentId);
-			persist();
-			toast.success('Document uploaded successfully');
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Upload failed';
-			setUploadState(documentId, { phase: 'error', message });
-			documentError = message;
-			documentErrorId = documentId;
-			toast.error('Upload failed', { description: message });
-		}
+		navigateAfterSave('review');
 	}
 
 	function matchesDocument(left: OrganizationDocument, right: OrganizationDocument): boolean {
@@ -348,14 +333,6 @@
 		toast.success('Document deleted');
 	}
 
-	async function applyOrgUpload(document: OrganizationDocument, file: File) {
-		const fieldName = formDataFieldName(document.documentType ?? 'document');
-		await runUpload(document.id, file, async (onProgress) => {
-			await uploadFileToServer(fieldName, file, onProgress);
-			await refreshDocumentsFromServer();
-		});
-	}
-
 	function selectChoiceOption(groupKey: string, option: DocumentType) {
 		const group = documentChoiceGroups.find((entry) => entry.key === groupKey);
 		if (!group) return;
@@ -391,20 +368,6 @@
 		return ensureOrgDocument(type, documents);
 	}
 
-	async function applyDirectorUpload(
-		directorId: string,
-		field: 'aadharDocument' | 'panDocument',
-		file: File
-	) {
-		const fieldName = directorFormDataFieldName(field);
-		const documentId = directors.find((entry) => entry.id === directorId)?.[field].id ?? '';
-
-		await runUpload(documentId, file, async (onProgress) => {
-			await uploadDirectorFileToServer(directorId, fieldName, file, onProgress);
-			await refreshDocumentsFromServer();
-		});
-	}
-
 	function choiceGroupOptions(groupKey: string): DropdownOption[] {
 		const group = documentChoiceGroups.find((entry) => entry.key === groupKey);
 		return (group?.options ?? []).map((option) => ({ value: option, label: option }));
@@ -422,17 +385,21 @@
 
 {#snippet uploadProgressBar(documentId: string)}
 	{@const uploadState = uploadStateFor(documentId)}
-	{#if uploadState.phase === 'uploading' && uploadState.progress !== null}
+	{#if uploadState.phase === 'uploading'}
 		<div
 			class="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted"
 			role="progressbar"
 			aria-valuemin="0"
 			aria-valuemax="100"
-			aria-valuenow={uploadState.progress}
+			aria-valuenow={uploadState.progress ?? undefined}
+			aria-busy={uploadState.progress === null ? 'true' : undefined}
 		>
 			<div
-				class="h-full rounded-full bg-primary transition-[width] duration-150"
-				style:width="{uploadState.progress}%"
+				class={cn(
+					'h-full rounded-full bg-primary',
+					uploadState.progress === null ? 'w-1/3 animate-pulse' : 'transition-[width] duration-150'
+				)}
+				style:width={uploadState.progress === null ? undefined : `${uploadState.progress}%`}
 			></div>
 		</div>
 	{/if}
@@ -605,12 +572,39 @@
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
 		<div class="flex flex-wrap items-center gap-3">
-			<Button onclick={goNext}>
-				{adjacent.next?.key === 'review' || !adjacent.next ? 'Review & approve' : 'Next step'}
+			<Button onclick={goNext} disabled={navigating}>
+				{navigating
+					? 'Loading…'
+					: adjacent.next?.key === 'review' || !adjacent.next
+						? 'Review & approve'
+						: 'Next step'}
 			</Button>
 		</div>
 	</div>
 </div>
+
+<form
+	bind:this={orgUploadForm}
+	method="POST"
+	action="?/uploadOrgDocument"
+	enctype="multipart/form-data"
+	use:enhance={orgUploadEnhance}
+	class="hidden"
+>
+	<input bind:this={orgUploadInput} type="file" />
+</form>
+
+<form
+	bind:this={directorUploadForm}
+	method="POST"
+	action="?/uploadDirectorDocument"
+	enctype="multipart/form-data"
+	use:enhance={directorUploadEnhance}
+	class="hidden"
+>
+	<input bind:this={directorUploadDirectorId} type="hidden" name="directorId" value="" />
+	<input bind:this={directorUploadInput} type="file" />
+</form>
 
 <DocumentPreviewModal
 	bind:open={previewOpen}

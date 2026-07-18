@@ -1,4 +1,5 @@
-import type { PageServerLoad } from './$types';
+import { fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 import { pipelineClient } from '$lib/server/domains/pipeline/client';
 import { toPipelineDropdownOptions } from '$lib/server/domains/pipeline/map-options';
 import {
@@ -6,6 +7,8 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/form-data';
+import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	const log = locals.logger;
@@ -40,3 +43,31 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 		pipelinesError: failures.length > 0 ? [...new Set(failures)].join('; ') : null
 	};
 };
+
+export const actions = {
+	create: async ({ request, cookies, fetch, locals }) => {
+		const log = locals.logger;
+		const formData = await request.formData();
+		const parsed = parseCreateOrganizationFormData(formData);
+
+		if (!parsed.success) {
+			log.warn({ issues: parsed.issues }, 'create organization rejected — invalid form data');
+			return fail(400, {
+				message: parsed.issues[0]?.message ?? 'Invalid organization payload'
+			});
+		}
+
+		const result = await createOrganizationMutation({
+			fetch,
+			log,
+			cookies,
+			body: parsed.output
+		});
+
+		if (!result.ok) {
+			return fail(result.status, { message: result.message });
+		}
+
+		redirect(303, `/management/organizations/${result.organizationId}/kyb`);
+	}
+} satisfies Actions;

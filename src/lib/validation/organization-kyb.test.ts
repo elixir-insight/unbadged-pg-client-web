@@ -48,6 +48,10 @@ describe('organization KYB validation', () => {
 		expect(errors.businessPhone).toContain('10-digit');
 	});
 
+	it('accepts Indian mobile numbers with +91 prefix', () => {
+		expect(validateLegalStep({ ...validLegal, businessPhone: '+91 9876543210' })).toEqual({});
+	});
+
 	it('requires CIN for Private Limited companies', () => {
 		const errors = validateLegalStep({
 			...validLegal,

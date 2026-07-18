@@ -33,7 +33,7 @@ export const businessPanSchema = v.pipe(
 	v.trim(),
 	v.minLength(1, 'Business PAN is required'),
 	v.transform(normalizeId),
-	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid 10-character PAN')
+	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid PAN (e.g. ABCDE1234F)')
 );
 
 export const directorPanSchema = v.pipe(
@@ -41,7 +41,7 @@ export const directorPanSchema = v.pipe(
 	v.trim(),
 	v.minLength(1, 'PAN is required'),
 	v.transform(normalizePanInput),
-	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid 10-character PAN')
+	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid PAN (e.g. ABCDE1234F)')
 );
 
 export function normalizePanInput(value: string): string {
@@ -53,6 +53,18 @@ export function normalizePanInput(value: string): string {
 
 export function normalizeAadhar(value: string): string {
 	return value.replace(/\D/g, '').slice(0, 12);
+}
+
+/** Strips +91 / leading 0 so validation accepts common Indian phone formats. */
+export function normalizeIndianMobilePhone(value: string): string {
+	const digits = value.replace(/\D/g, '');
+	if (digits.length === 12 && digits.startsWith('91')) {
+		return digits.slice(2);
+	}
+	if (digits.length === 11 && digits.startsWith('0')) {
+		return digits.slice(1);
+	}
+	return digits;
 }
 
 /** Formats Aadhar as `XXXX XXXX XXXX` while typing. */
@@ -74,10 +86,8 @@ export const businessPhoneSchema = v.pipe(
 	v.string(),
 	v.trim(),
 	v.minLength(1, 'Business phone is required'),
-	v.check(
-		(val) => /^[6-9]\d{9}$/.test(val.replace(/\D/g, '')),
-		'Enter a valid 10-digit Indian mobile number'
-	)
+	v.transform(normalizeIndianMobilePhone),
+	v.check((val) => /^[6-9]\d{9}$/.test(val), 'Enter a valid 10-digit Indian mobile number')
 );
 
 export const industrySchema = v.pipe(

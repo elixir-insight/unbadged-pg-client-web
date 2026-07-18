@@ -97,6 +97,25 @@ export const UpdateOrganizationResponseSchema = v.object({
 	data: v.optional(v.union([v.array(v.unknown()), v.null()]))
 });
 
+export const OrganizationProfileStatusSchema = v.picklist([
+	'APPROVED',
+	'ON_HOLD',
+	'FROZEN',
+	'IN_PROGRESS'
+]);
+
+export const UpdateOrganizationStatusRequestSchema = v.object({
+	profileStatus: OrganizationProfileStatusSchema,
+	remarks: v.string()
+});
+
+/** Success envelope; pagination is ignored when present. */
+export const UpdateOrganizationStatusResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.union([v.array(v.unknown()), v.null()]))
+});
+
 export const AddOrganizationBankRequestSchema = v.object({
 	accountNumber: v.pipe(v.string(), v.trim(), v.minLength(1)),
 	accountType: v.pipe(v.string(), v.trim(), v.minLength(1)),
@@ -129,10 +148,27 @@ export const OrganizationDocumentRecordSchema = v.object({
 	preSignedUrl: v.optional(v.string())
 });
 
+/** Director document records — upstream may use `documentId` instead of `id`. Pagination is ignored. */
+export const OrganizationDirectorDocumentRecordSchema = v.object({
+	documentId: v.optional(v.union([v.number(), v.string()])),
+	id: v.optional(v.union([v.number(), v.string()])),
+	fileName: v.pipe(v.string(), v.minLength(1)),
+	fileType: v.optional(v.string()),
+	fileSize: v.optional(v.number()),
+	createdAt: v.optional(v.string()),
+	preSignedUrl: v.optional(v.string())
+});
+
 export const GetOrganizationDocumentsResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),
 	data: v.optional(v.array(OrganizationDocumentRecordSchema))
+});
+
+export const GetDirectorDocumentsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.array(OrganizationDirectorDocumentRecordSchema))
 });
 
 export const OrganizationBankAccountRecordSchema = v.object({
@@ -160,6 +196,45 @@ export const GetOrganizationBankAccountsResponseSchema = v.object({
 	data: v.optional(v.array(OrganizationBankAccountRecordSchema))
 });
 
+export const OrganizationDetailsDirectorRecordSchema = v.object({
+	id: v.optional(v.union([v.number(), v.string()])),
+	name: v.optional(v.string()),
+	pan: v.optional(v.string()),
+	email: v.optional(v.string()),
+	phoneNumber: v.optional(v.string()),
+	aadhar: v.optional(v.string())
+});
+
+export const OrganizationDetailsAddressSchema = v.object({
+	address: v.optional(v.string()),
+	city: v.optional(v.string()),
+	country: v.optional(v.string()),
+	pinCode: v.optional(v.string()),
+	state: v.optional(v.string())
+});
+
+export const OrganizationDetailsRecordSchema = v.object({
+	orgId: v.optional(v.string()),
+	legalCompanyName: v.optional(v.string()),
+	businessType: v.optional(v.string()),
+	profileType: v.optional(v.string()),
+	profileStatus: v.optional(v.string()),
+	phoneNumber: v.optional(v.string()),
+	email: v.optional(v.string()),
+	businessPhone: v.optional(v.string()),
+	cin: v.optional(v.string()),
+	orgPan: v.optional(v.string()),
+	orgTan: v.optional(v.string()),
+	gstNumber: v.optional(v.string()),
+	industry: v.optional(v.string()),
+	organizationWebsite: v.optional(v.string()),
+	registeredYear: v.optional(v.number()),
+	communicationAddress: v.optional(v.string()),
+	serviceTypes: v.optional(v.array(v.string())),
+	address: v.optional(OrganizationDetailsAddressSchema),
+	directors: v.optional(v.array(OrganizationDetailsDirectorRecordSchema))
+});
+
 /**
  * GET organization envelope — payload shape varies; map in map-get-response.ts.
  * Pagination is ignored when present.
@@ -170,19 +245,38 @@ export const GetOrganizationResponseSchema = v.object({
 	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
 });
 
+/** GET organization details — KYB fields and directors; map in map-get-response.ts. */
+export const GetOrganizationDetailsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(
+		v.union([v.array(OrganizationDetailsRecordSchema), OrganizationDetailsRecordSchema, v.null()])
+	)
+});
+
 export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationRequestSchema>;
 export type CreateOrganizationResponse = v.InferOutput<typeof CreateOrganizationResponseSchema>;
 export type UpdateOrganizationKybRequest = v.InferOutput<typeof UpdateOrganizationKybRequestSchema>;
 export type UpdateOrganizationResponse = v.InferOutput<typeof UpdateOrganizationResponseSchema>;
+export type UpdateOrganizationStatusRequest = v.InferOutput<
+	typeof UpdateOrganizationStatusRequestSchema
+>;
+export type UpdateOrganizationStatusResponse = v.InferOutput<
+	typeof UpdateOrganizationStatusResponseSchema
+>;
 export type AddOrganizationBankRequest = v.InferOutput<typeof AddOrganizationBankRequestSchema>;
 export type AddOrganizationBankResponse = v.InferOutput<typeof AddOrganizationBankResponseSchema>;
 export type UploadOrganizationDocumentsResponse = v.InferOutput<
 	typeof UploadOrganizationDocumentsResponseSchema
 >;
 export type OrganizationDocumentRecord = v.InferOutput<typeof OrganizationDocumentRecordSchema>;
+export type OrganizationDirectorDocumentRecord = v.InferOutput<
+	typeof OrganizationDirectorDocumentRecordSchema
+>;
 export type GetOrganizationDocumentsResponse = v.InferOutput<
 	typeof GetOrganizationDocumentsResponseSchema
 >;
+export type GetDirectorDocumentsResponse = v.InferOutput<typeof GetDirectorDocumentsResponseSchema>;
 export type OrganizationBankAccountRecord = v.InferOutput<
 	typeof OrganizationBankAccountRecordSchema
 >;
@@ -190,3 +284,7 @@ export type GetOrganizationBankAccountsResponse = v.InferOutput<
 	typeof GetOrganizationBankAccountsResponseSchema
 >;
 export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;
+export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
+export type GetOrganizationDetailsResponse = v.InferOutput<
+	typeof GetOrganizationDetailsResponseSchema
+>;

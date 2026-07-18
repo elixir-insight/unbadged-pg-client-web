@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as v from 'valibot';
 import {
 	buildUpdateOrganizationKybRequest,
+	buildUpdateOrganizationSectionRequest,
 	UpdateOrganizationFormBodySchema
 } from './map-update-request';
 
@@ -85,6 +86,24 @@ describe('buildUpdateOrganizationKybRequest', () => {
 		]);
 	});
 
+	it('accepts director phone numbers with +91 prefix', () => {
+		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
+			...validFormBody,
+			directors: [
+				{
+					name: 'Jane Doe',
+					pan: 'ABCDE1234F',
+					email: 'jane@example.com',
+					phone: '+91 9710000002',
+					aadhar: '234567890123'
+				}
+			]
+		});
+		const upstream = buildUpdateOrganizationKybRequest(parsed);
+
+		expect(upstream.directors[0]?.phoneNumber).toBe('+919710000002');
+	});
+
 	it('uppercases GSTIN and PAN on parse', () => {
 		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
 			...validFormBody,
@@ -102,5 +121,52 @@ describe('buildUpdateOrganizationKybRequest', () => {
 			cin: ''
 		});
 		expect(() => buildUpdateOrganizationKybRequest(parsed)).toThrow();
+	});
+
+	it('builds a legal section request without requiring address fields', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'legal',
+			businessType: 'Partnership',
+			gstin: '29ABCDE1234F1Z5',
+			businessPan: 'ABCDE1234F',
+			businessPhone: '9876543210',
+			industry: 'Technology',
+			organizationWebsite: 'https://www.example.com',
+			registeredYear: 2018,
+			cin: '',
+			tan: '',
+			registeredAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			communicationAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			directors: []
+		});
+
+		expect(upstream.directors).toEqual([]);
+		expect(upstream.kyb.gstNumber).toBe('29ABCDE1234F1Z5');
+		expect(upstream.addressDetails.city).toBe('-');
+	});
+
+	it('builds an address section request with validated addresses', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'address',
+			...validFormBody,
+			directors: []
+		});
+
+		expect(upstream.addressDetails.city).toBe('Bengaluru');
+		expect(upstream.directors).toEqual([]);
 	});
 });

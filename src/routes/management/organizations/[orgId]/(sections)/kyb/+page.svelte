@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
-	import { SvelteURL } from 'svelte/reactivity';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button, Checkbox, Input } from '$lib/components/reusable';
 	import { Pencil, Plus, Trash2 } from '$lib/assets/icons';
@@ -21,7 +22,7 @@
 		addressesEqual,
 		cloneOrganization,
 		getAdjacentFlowSteps,
-		previewPath,
+		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
 
@@ -63,6 +64,7 @@
 	let expandedDirectorId = $state<string | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 	let saving = $state(false);
+	let formElement = $state<HTMLFormElement | null>(null);
 
 	$effect(() => {
 		if (organization.id !== lastOrgId) {
@@ -98,6 +100,36 @@
 	const adjacent = $derived(getAdjacentFlowSteps(currentStep));
 	const meta = $derived(stepCopy[currentStep]);
 
+	$effect(() => {
+		void currentStep;
+		fieldErrors = {};
+	});
+
+	function collectStepValidationErrors(): Record<string, string> {
+		if (currentStep === 'legal') {
+			return validateLegalStep({
+				gstin: editableKyb.gstin,
+				businessPan: editableKyb.businessPan,
+				businessPhone: editableKyb.businessPhone,
+				industry: editableKyb.industry,
+				organizationWebsite: editableKyb.organizationWebsite,
+				registeredYear: editableKyb.registeredYear,
+				cin: editableKyb.cin,
+				tan: editableKyb.tan,
+				businessType: editableKyb.businessType
+			});
+		}
+
+		if (currentStep === 'address') {
+			return validateAddressStep({
+				registeredAddress: editableKyb.registeredAddress,
+				communicationAddress: editableKyb.communicationAddress
+			});
+		}
+
+		return validateDirectorsStep(editableDirectors);
+	}
+
 	function clearFieldError(key: string) {
 		if (!fieldErrors[key]) return;
 		const next = { ...fieldErrors };
@@ -113,35 +145,79 @@
 	}
 
 	function validateCurrentStep(): string | null {
-		if (currentStep === 'legal') {
-			fieldErrors = validateLegalStep({
-				gstin: editableKyb.gstin,
-				businessPan: editableKyb.businessPan,
-				businessPhone: editableKyb.businessPhone,
-				industry: editableKyb.industry,
-				organizationWebsite: editableKyb.organizationWebsite,
-				registeredYear: editableKyb.registeredYear,
-				cin: editableKyb.cin,
-				tan: editableKyb.tan,
-				businessType: editableKyb.businessType
-			});
-			return firstValidationError(fieldErrors);
-		}
-
-		if (currentStep === 'address') {
-			fieldErrors = validateAddressStep({
-				registeredAddress: editableKyb.registeredAddress,
-				communicationAddress: editableKyb.communicationAddress
-			});
-			return firstValidationError(fieldErrors);
-		}
-
-		fieldErrors = validateDirectorsStep(editableDirectors);
+		fieldErrors = collectStepValidationErrors();
 		return firstValidationError(fieldErrors);
 	}
 
-	function canPutFullKyb(): boolean {
-		const legalErrors = validateLegalStep({
+	const canProceed = $derived(firstValidationError(collectStepValidationErrors()) === null);
+
+	function directorFieldsPayload(
+		directors: Array<{
+			name: string;
+			pan: string;
+			email: string;
+			phone: string;
+			aadhar: string;
+		}>
+	) {
+		return JSON.stringify(
+			directors.map((director) => ({
+				name: director.name.trim(),
+				pan: normalizePanInput(director.pan),
+				email: director.email.trim(),
+				phone: director.phone.trim(),
+				aadhar: director.aadhar.replace(/\D/g, '')
+			}))
+		);
+	}
+
+	function isCurrentStepUnchanged(): boolean {
+		if (currentStep === 'legal') {
+			return (
+				editableKyb.gstin === organization.kyb.gstin &&
+				editableKyb.businessPan === organization.kyb.businessPan &&
+				editableKyb.businessPhone === organization.kyb.businessPhone &&
+				editableKyb.industry === organization.kyb.industry &&
+				editableKyb.organizationWebsite === organization.kyb.organizationWebsite &&
+				editableKyb.registeredYear === organization.kyb.registeredYear &&
+				editableKyb.cin === organization.kyb.cin &&
+				editableKyb.tan === organization.kyb.tan &&
+				editableKyb.businessType === organization.kyb.businessType
+			);
+		}
+
+		if (currentStep === 'address') {
+			return (
+				addressesEqual(editableKyb.registeredAddress, organization.kyb.registeredAddress) &&
+				addressesEqual(editableKyb.communicationAddress, organization.kyb.communicationAddress)
+			);
+		}
+
+		return (
+			directorFieldsPayload(editableDirectors) === directorFieldsPayload(organization.directors)
+		);
+	}
+
+	function handleNext() {
+		const validationError = validateCurrentStep();
+		if (validationError) {
+			toast.error('Please fix the highlighted fields', { description: validationError });
+			return;
+		}
+
+		if (isCurrentStepUnchanged()) {
+			saveKyb();
+			navigateAfterSave();
+			return;
+		}
+
+		saveKyb();
+		formElement?.requestSubmit();
+	}
+
+	function buildFormPayload() {
+		return {
+			businessType: editableKyb.businessType,
 			gstin: editableKyb.gstin,
 			businessPan: editableKyb.businessPan,
 			businessPhone: editableKyb.businessPhone,
@@ -150,128 +226,83 @@
 			registeredYear: editableKyb.registeredYear,
 			cin: editableKyb.cin,
 			tan: editableKyb.tan,
-			businessType: editableKyb.businessType
-		});
-		const addressErrors = validateAddressStep({
 			registeredAddress: editableKyb.registeredAddress,
-			communicationAddress: editableKyb.communicationAddress
-		});
-		return Object.keys(legalErrors).length === 0 && Object.keys(addressErrors).length === 0;
+			communicationAddress: editableKyb.communicationAddress,
+			directors: editableDirectors.map((director) => ({
+				name: director.name,
+				pan: director.pan,
+				email: director.email,
+				phone: director.phone,
+				aadhar: director.aadhar
+			}))
+		};
 	}
 
-	async function updateKybViaApi() {
-		const response = await fetch(
-			resolve('/api/management/onboard/organization/[orgId]', { orgId }),
-			{
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					businessType: editableKyb.businessType,
-					gstin: editableKyb.gstin,
-					businessPan: editableKyb.businessPan,
-					businessPhone: editableKyb.businessPhone,
-					industry: editableKyb.industry,
-					organizationWebsite: editableKyb.organizationWebsite,
-					registeredYear: editableKyb.registeredYear,
-					cin: editableKyb.cin,
-					tan: editableKyb.tan,
-					registeredAddress: editableKyb.registeredAddress,
-					communicationAddress: editableKyb.communicationAddress,
-					directors: editableDirectors.map((director) => ({
-						name: director.name,
-						pan: director.pan,
-						email: director.email,
-						phone: director.phone,
-						aadhar: director.aadhar
-					}))
-				})
-			}
-		);
+	function navigateAfterSave() {
+		const nextStep = adjacent.next?.key ?? 'review';
+		const href = resolve(flowStepHref(orgId, nextStep) as '/');
+		const isKybSubStep = nextStep === 'legal' || nextStep === 'address' || nextStep === 'directors';
 
-		const payload: unknown = await response.json().catch(() => null);
-		const message =
-			payload &&
-			typeof payload === 'object' &&
-			'message' in payload &&
-			typeof payload.message === 'string'
-				? payload.message
-				: `Request failed (${response.status})`;
-
-		if (!response.ok) {
-			throw new Error(message);
-		}
-
-		return message;
-	}
-
-	function setStep(step: KybStep) {
-		const url = new SvelteURL(page.url.toString());
-		if (step === 'legal') {
-			url.searchParams.delete('step');
-		} else {
-			url.searchParams.set('step', step);
-		}
-		const href =
-			`${page.url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}` as `${typeof page.url.pathname}${string}`;
-		goto(resolve(href as '/'), {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
+		goto(href, {
+			replaceState: isKybSubStep,
+			noScroll: isKybSubStep,
+			keepFocus: isKybSubStep,
+			invalidateAll: isKybSubStep ? false : undefined
 		});
 	}
 
-	function navigateToHref(href: string) {
-		goto(resolve(href as '/'));
-	}
-
-	async function goNext() {
-		if (saving) return;
-
+	const onEnhance: SubmitFunction = ({ formData, cancel }) => {
 		const validationError = validateCurrentStep();
 		if (validationError) {
 			toast.error('Please fix the highlighted fields', { description: validationError });
+			cancel();
 			return;
 		}
 
 		saveKyb();
+		formData.set('section', currentStep);
+		formData.set('payload', JSON.stringify(buildFormPayload()));
 
-		const shouldPut =
-			canPutFullKyb() &&
-			(currentStep === 'legal' ||
-				currentStep === 'address' ||
-				(currentStep === 'directors' && editableDirectors.length > 0));
+		saving = true;
+		return async ({ result, update }) => {
+			saving = false;
 
-		if (shouldPut) {
-			saving = true;
-			try {
-				const message = await updateKybViaApi();
-				toast.success('Organization updated', { description: message });
-			} catch (error) {
-				toast.error('Failed to update organization', {
-					description:
-						error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-				});
-				saving = false;
+			if (result.type === 'failure') {
+				const message =
+					result.data &&
+					typeof result.data === 'object' &&
+					'message' in result.data &&
+					typeof result.data.message === 'string'
+						? result.data.message
+						: 'Something went wrong. Please try again.';
+				toast.error('Failed to update organization', { description: message });
+				await update({ reset: false });
 				return;
-			} finally {
-				saving = false;
 			}
-		}
 
-		if (!adjacent.next) {
-			navigateToHref(previewPath(orgId));
-			return;
-		}
-		if (
-			adjacent.next.key === 'legal' ||
-			adjacent.next.key === 'address' ||
-			adjacent.next.key === 'directors'
-		) {
-			setStep(adjacent.next.key);
-			return;
-		}
-		navigateToHref(adjacent.next.href(orgId));
-	}
+			if (result.type === 'success') {
+				const message =
+					result.data &&
+					typeof result.data === 'object' &&
+					'message' in result.data &&
+					typeof result.data.message === 'string'
+						? result.data.message
+						: 'Saved successfully';
+				const sectionLabel =
+					currentStep === 'legal'
+						? 'Legal details'
+						: currentStep === 'address'
+							? 'Address'
+							: 'Directors';
+				toast.success(`${sectionLabel} saved`, { description: message });
+				await update({ reset: false });
+				navigateAfterSave();
+				return;
+			}
+
+			await update({ reset: false });
+		};
+	};
 
 	function updateRegisteredAddress(field: AddressField, value: string) {
 		clearFieldError(`registeredAddress.${field}`);
@@ -356,7 +387,13 @@
 	</label>
 {/snippet}
 
-<div class="space-y-6">
+<form
+	method="POST"
+	action="?/saveSection"
+	use:enhance={onEnhance}
+	class="space-y-6"
+	bind:this={formElement}
+>
 	<div>
 		<h2 class="text-base font-semibold">{meta.title}</h2>
 		<p class="mt-1 text-sm text-muted-foreground">{meta.description}</p>
@@ -613,7 +650,8 @@
 										'PAN',
 										director.pan,
 										(value) => updateDirector(director.id, 'pan', value),
-										`directors.${index}.pan`
+										`directors.${index}.pan`,
+										'ABCDE1234F'
 									)}
 									{@render textField(
 										'Aadhar',
@@ -679,7 +717,7 @@
 
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
-		<Button onclick={goNext} disabled={saving}>
+		<Button type="button" disabled={saving || !canProceed} onclick={handleNext}>
 			{saving
 				? 'Saving…'
 				: adjacent.next?.key === 'review' || !adjacent.next
@@ -687,4 +725,4 @@
 					: 'Next step'}
 		</Button>
 	</div>
-</div>
+</form>

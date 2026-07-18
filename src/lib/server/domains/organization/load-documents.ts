@@ -5,6 +5,7 @@ import {
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
 import { organizationClient } from '$lib/server/domains/organization/client';
+import { loadDirectorDocuments } from '$lib/server/domains/organization/load-director-documents';
 import { mapGetDocumentsResponse } from '$lib/server/domains/organization/map-get-documents-response';
 import type { Logger } from 'pino';
 
@@ -57,6 +58,9 @@ export async function loadOrganizationDocuments(params: {
 		orgId
 	);
 
+	let documents = organizationBase.documents;
+	let directors = organizationBase.directors;
+
 	if (!result.ok) {
 		log.warn(
 			{
@@ -66,19 +70,24 @@ export async function loadOrganizationDocuments(params: {
 			},
 			'GET organization documents failed'
 		);
-
-		return {
-			documentsLoadError: result.error.message,
-			documents: organizationBase.documents,
-			directors: organizationBase.directors
-		};
+	} else {
+		const mapped = mapGetDocumentsResponse(result.data.data ?? [], organizationBase);
+		documents = mapped.documents;
+		directors = mapped.directors;
 	}
 
-	const mapped = mapGetDocumentsResponse(result.data.data ?? [], organizationBase);
+	directors = await loadDirectorDocuments({
+		fetch,
+		log,
+		accessToken: tokens.accessToken,
+		gatewayToken: tokens.gatewayToken,
+		orgId,
+		directors
+	});
 
 	return {
-		documentsLoadError: null,
-		documents: mapped.documents,
-		directors: mapped.directors
+		documentsLoadError: result.ok ? null : result.error.message,
+		documents,
+		directors
 	};
 }

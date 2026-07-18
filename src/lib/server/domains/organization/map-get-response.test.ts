@@ -107,6 +107,114 @@ describe('mapGetOrganizationResponse', () => {
 		]);
 	});
 
+	it('maps directors from nested payload fields', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: {
+					orgId: 'org_2be',
+					legalCompanyName: 'Acme Pvt Ltd',
+					businessType: 'PARTNERSHIP',
+					profileType: 'MERCHANT',
+					directors: [
+						{
+							id: 7,
+							name: 'Jane Doe',
+							pan: 'ABCDE1234F',
+							email: 'jane@example.com',
+							phoneNumber: '+919876543210',
+							aadhar: '234567890123'
+						}
+					]
+				}
+			},
+			'org_2be'
+		);
+
+		expect(organization?.directors).toEqual([
+			expect.objectContaining({
+				id: '7',
+				name: 'Jane Doe',
+				pan: 'ABCDE1234F',
+				email: 'jane@example.com',
+				phone: '+919876543210',
+				aadhar: '234567890123'
+			})
+		]);
+		expect(organization?.kyb.directors).toHaveLength(1);
+	});
+
+	it('maps GET /details payload fields including directors', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2be',
+						legalCompanyName: 'Acme Pvt Ltd',
+						businessType: 'PRIVATE_LIMITED',
+						profileType: 'MERCHANT',
+						profileStatus: 'IN_PROGRESS',
+						phoneNumber: '+919876543210',
+						email: 'admin@acme.com',
+						businessPhone: '9876543210',
+						cin: 'U12345KA2018PTC123456',
+						orgPan: 'ABCDE1234F',
+						orgTan: 'BLRR12345A',
+						gstNumber: '29ABCDE1234F1Z5',
+						industry: 'Technology',
+						organizationWebsite: 'https://www.example.com',
+						registeredYear: 2018,
+						communicationAddress: '20 Market Street, Floor 2, Bengaluru, Karnataka, 560002, India',
+						serviceTypes: ['PAYOUT'],
+						address: {
+							address: '10 Park Road, Suite 100',
+							city: 'Bengaluru',
+							state: 'Karnataka',
+							pinCode: '560001',
+							country: 'India'
+						},
+						directors: [
+							{
+								id: 7,
+								name: 'Jane Doe',
+								pan: 'ABCDE1234F',
+								email: 'jane@example.com',
+								phoneNumber: '+919876543210',
+								aadhar: '234567890123'
+							}
+						]
+					}
+				]
+			},
+			'org_2be'
+		);
+
+		expect(organization).toMatchObject({
+			id: 'org_2be',
+			name: 'Acme Pvt Ltd',
+			kyb: {
+				businessPan: 'ABCDE1234F',
+				tan: 'BLRR12345A',
+				gstin: '29ABCDE1234F1Z5',
+				registeredYear: 2018
+			},
+			addressDetails: {
+				line1: '10 Park Road',
+				line2: 'Suite 100',
+				city: 'Bengaluru',
+				pincode: '560001',
+				country: 'India'
+			}
+		});
+		expect(organization?.directors).toEqual([
+			expect.objectContaining({
+				id: '7',
+				name: 'Jane Doe'
+			})
+		]);
+	});
+
 	it('returns null when data is missing', () => {
 		expect(mapGetOrganizationResponse({ statusCode: 200, data: [] }, 'org_2be')).toBeNull();
 	});
