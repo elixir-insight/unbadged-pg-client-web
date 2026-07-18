@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
-	import { Chip } from '$lib/components/reusable/index';
+	import { Chip, Tooltip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
@@ -14,7 +14,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { role } = data;
+	const { role } = $derived(data);
 
 	const grantedIds = $derived(new Set(role.permissions.map((p) => p.id)));
 
@@ -49,6 +49,17 @@
 	);
 
 	const isDefaultRole = $derived(role.roleInfo.defaultRole);
+	const hasAssignedUsers = $derived(role.users.length > 0);
+
+	const editDisabledReason = $derived(isDefaultRole ? 'Default roles cannot be edited.' : null);
+
+	const deleteDisabledReason = $derived(
+		isDefaultRole
+			? 'Default roles cannot be deleted.'
+			: hasAssignedUsers
+				? 'Remove all assigned users before deleting this role.'
+				: null
+	);
 
 	const description = $derived((page.state as { description?: string }).description ?? '');
 
@@ -74,11 +85,15 @@
 			}
 		}
 		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
-		goto(resolve('/management/role-management/edit-role'));
+		goto(
+			resolve('/management/role-management/edit-role/[id]', {
+				id: String(role.roleInfo.roleId)
+			})
+		);
 	}
 </script>
 
-<div class="space-y-6 w-full md:w-[75%] m-auto">
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<!-- Page header -->
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
@@ -88,7 +103,7 @@
 					variant="outline"
 					class={isDefaultRole
 						? 'border-amber-500/30 bg-amber-500/10 text-amber-500 shadow'
-						: 'border-border shadow text-muted-foreground'}
+						: 'border-border text-muted-foreground shadow'}
 				>
 					{isDefaultRole ? 'Default' : 'Custom'}
 				</Chip>
@@ -100,19 +115,33 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={handleEdit} disabled={isDefaultRole}>
-				<Pencil class="h-4 w-4" />
-				Edit role
-			</Button>
-			<Button
-				variant="destructive"
-				size="sm"
-				onclick={() => {}}
-				disabled={isDefaultRole || role.users.length > 0}
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			{#if editDisabledReason}
+				<Tooltip content={editDisabledReason}>
+					<Button variant="outline" size="sm" disabled>
+						<Pencil class="h-4 w-4" />
+						Edit role
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="outline" size="sm" onclick={handleEdit}>
+					<Pencil class="h-4 w-4" />
+					Edit role
+				</Button>
+			{/if}
+
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" size="sm" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" size="sm" onclick={() => {}}>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</Button>
+			{/if}
 		</div>
 	</div>
 

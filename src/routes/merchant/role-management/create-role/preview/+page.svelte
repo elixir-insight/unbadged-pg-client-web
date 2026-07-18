@@ -5,18 +5,12 @@
 	import { Chip } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { ROLE_MODULES } from '$lib/stores/role-management/role-modules';
+	import { MERCHANT_ROLE_MODULES } from '$lib/stores/role-management/merchant-role-modules';
 	import type { PermStatus } from '$lib/stores/role-management/role-management';
 	import { Pencil } from '$lib/assets/icons';
 
-	$effect(() => {
-		if (!roleFormStore.isEditMode || roleFormStore.roleId === null) {
-			goto(resolve('/management/role-management'));
-		}
-	});
-
 	const modules = $derived(
-		ROLE_MODULES.map((mod) => {
+		MERCHANT_ROLE_MODULES.map((mod) => {
 			const perms = roleFormStore.permissions[mod.id];
 			return {
 				name: mod.name,
@@ -31,25 +25,16 @@
 	);
 
 	function handleConfirm() {
-		const roleId = roleFormStore.roleId;
 		roleFormStore.reset();
-		goto(
-			resolve('/management/role-management/view-role/[id]', {
-				id: String(roleId)
-			})
-		);
+		goto(resolve('/merchant/role-management'));
 	}
 </script>
 
-<div class="space-y-6 w-full md:w-[75%] m-auto">
-	<!-- Header -->
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex flex-wrap items-center gap-3">
 			<h1 class="text-2xl font-bold text-foreground">
-				{roleFormStore.name
-					.split('_')
-					.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-					.join(' ') || 'Untitled role'}
+				{roleFormStore.name || 'Untitled role'}
 			</h1>
 			<Chip variant="outline" class="border-primary/40 bg-primary/10 text-primary">Preview</Chip>
 		</div>
@@ -57,16 +42,15 @@
 			<Button
 				variant="outline"
 				size="sm"
-				onclick={() => goto(resolve('/management/role-management/edit-role'))}
+				onclick={() => goto(resolve('/merchant/role-management/create-role'))}
 			>
 				<Pencil class="h-4 w-4" />
 				Edit
 			</Button>
-			<Button onclick={handleConfirm}>Confirm &amp; save</Button>
+			<Button onclick={handleConfirm}>Confirm &amp; create</Button>
 		</div>
 	</div>
 
-	<!-- Role detail -->
 	<div class="rounded-xl border border-border bg-card shadow">
 		<div class="border-b border-border px-5 py-4">
 			<h2 class="text-sm font-semibold text-foreground">Role detail</h2>
@@ -74,12 +58,7 @@
 		<div class="divide-y divide-border">
 			<div class="flex items-start gap-4 px-5 py-3">
 				<span class="w-36 shrink-0 text-sm text-muted-foreground">Role name</span>
-				<span class="text-sm font-medium text-foreground"
-					>{roleFormStore.name
-						.split('_')
-						.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-						.join(' ') || '—'}</span
-				>
+				<span class="text-sm font-medium text-foreground">{roleFormStore.name || '—'}</span>
 			</div>
 			<div class="flex items-start gap-4 px-5 py-3">
 				<span class="w-36 shrink-0 text-sm text-muted-foreground">Description</span>
@@ -88,6 +67,5 @@
 		</div>
 	</div>
 
-	<!-- Access & permissions -->
 	<AccessPreviewTable {modules} />
 </div>

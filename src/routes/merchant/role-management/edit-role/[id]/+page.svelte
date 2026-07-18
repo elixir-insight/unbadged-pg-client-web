@@ -1,20 +1,31 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { Button, Input, Textarea } from '$lib/components/reusable';
 	import { AccessSelectTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { ROLE_MODULES, PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
+	import { MERCHANT_ROLE_MODULES } from '$lib/stores/role-management/merchant-role-modules';
+	import { PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
+
+	const roleId = $derived(page.params.id);
 
 	$effect(() => {
 		if (!roleFormStore.isEditMode || roleFormStore.roleId === null) {
-			goto(resolve('/management/role-management'));
+			goto(resolve('/merchant/role-management'));
 		}
 	});
+
+	const canPreview = $derived(roleFormStore.isValid && roleFormStore.hasChanges);
+
+	function goToPreview() {
+		const id = roleId ?? String(roleFormStore.roleId ?? '');
+		if (!id || !canPreview) return;
+		goto(resolve('/merchant/role-management/edit-role/[id]/preview', { id }));
+	}
 </script>
 
-<div class="space-y-6 w-full md:w-[75%] m-auto">
-	<!-- Header -->
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
 			<h1 class="text-2xl font-bold text-foreground">Edit role</h1>
@@ -24,16 +35,10 @@
 		</div>
 		<div class="flex justify-end gap-2">
 			<Button variant="outline" onclick={() => roleFormStore.clear()}>Clear</Button>
-			<Button
-				disabled={!roleFormStore.isValid || !roleFormStore.hasChanges}
-				onclick={() => goto(resolve('/management/role-management/edit-role/preview'))}
-			>
-				Preview
-			</Button>
+			<Button disabled={!canPreview} onclick={goToPreview}>Preview</Button>
 		</div>
 	</div>
 
-	<!-- Role detail -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">
 		<h2 class="mb-5 text-sm font-semibold text-foreground">Role detail</h2>
 		<div class="space-y-4">
@@ -59,9 +64,8 @@
 		</div>
 	</div>
 
-	<!-- Access & permissions -->
 	<AccessSelectTable
-		modules={ROLE_MODULES}
+		modules={MERCHANT_ROLE_MODULES}
 		title="Access & permissions"
 		permissions={roleFormStore.permissions}
 		permKeys={PERM_KEYS}

@@ -3,15 +3,17 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Search } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
-	import { Shield, User } from '$lib/assets/icons';
+	import { Shield, ShieldCheck, User } from '$lib/assets/icons';
 	import { ASSIGNABLE_ROLES } from '$lib/stores/user-management/assignable-roles';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 
 	let {
-		managers = [] as UserItem[]
+		managers = [] as UserItem[],
+		errors = {} as Record<string, string>
 	}: {
 		managers?: UserItem[];
+		errors?: Record<string, string>;
 	} = $props();
 
 	let activeTab = $state<'roles' | 'reporting'>('roles');
@@ -114,7 +116,7 @@
 							onclick={() => createUserFormStore.toggleRole(role)}
 						>
 							<div class="flex min-w-0 items-center gap-2.5 text-sm text-foreground">
-								<Shield class="h-3.5 w-3.5 shrink-0" />
+								<ShieldCheck class="h-3.5 w-3.5 shrink-0" />
 								<span class="truncate">{role}</span>
 							</div>
 							<div class="pointer-events-none shrink-0">
@@ -123,6 +125,9 @@
 						</button>
 					{/each}
 				</div>
+				{#if errors.selectedRoles}
+					<p class="mt-3 text-xs text-destructive">{errors.selectedRoles}</p>
+				{/if}
 			{:else}
 				<div class="mb-5">
 					<p class="text-sm font-semibold text-foreground">Reporting to</p>
@@ -166,6 +171,9 @@
 						<p class="py-8 text-center text-sm text-muted-foreground">No managers found.</p>
 					{/if}
 				</div>
+				{#if errors.reportingManager}
+					<p class="mt-3 text-xs text-destructive">{errors.reportingManager}</p>
+				{/if}
 			{/if}
 		</div>
 	</div>
