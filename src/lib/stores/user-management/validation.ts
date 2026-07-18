@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import type { SelectedRole } from './user-form.svelte';
 
 const userFormSchema = v.object({
 	email: v.pipe(
@@ -25,7 +26,7 @@ export interface UserFormInput {
 	firstName: string;
 	employeeId: string;
 	mobileNumber: string;
-	selectedRoles: string[];
+	selectedRoles: SelectedRole[];
 	reportingManagerId: string | null;
 }
 

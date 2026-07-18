@@ -7,11 +7,18 @@
 	import { RolesReportingPanel } from '$lib/components/user-management';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { firstValidationError } from '$lib/stores/user-management/validation';
-	import { fetchUserById, fetchUsers } from '$lib/stores/user-management/users-api';
+	import {
+		fetchAssignableRoles,
+		fetchUserById,
+		fetchUserDirectory
+	} from '$lib/stores/user-management/users-api';
+	import type { AssignableRole } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { cn } from '$lib/utils';
 
 	let managers = $state<UserItem[]>([]);
+	let roles = $state<AssignableRole[]>([]);
+	let rolesLoading = $state(false);
 	let loading = $state(true);
 	let submitAttempted = $state(false);
 
@@ -29,6 +36,7 @@
 		if (createUserFormStore.isEditMode && createUserFormStore.userId === id) {
 			loading = false;
 			loadManagers(id);
+			loadRoles();
 			return;
 		}
 
@@ -44,6 +52,7 @@
 				}
 				createUserFormStore.loadForEdit(detail);
 				loadManagers(id);
+				loadRoles();
 			})
 			.finally(() => {
 				if (!cancelled) loading = false;
@@ -55,8 +64,35 @@
 	});
 
 	async function loadManagers(currentUserId: string) {
-		const data = await fetchUsers({ status: 'Active', limit: 100 });
-		managers = data.items.filter((manager) => manager.id !== currentUserId);
+		try {
+			const directory = await fetchUserDirectory();
+			managers = directory
+				.filter((user) => user.id !== currentUserId)
+				.map((user) => ({
+					id: user.id,
+					name: user.name,
+					email: '',
+					employeeId: '',
+					roles: [],
+					status: 'Active' as const
+				}));
+		} catch {
+			toast.error('Could not load reporting managers');
+			managers = [];
+		}
+	}
+
+	async function loadRoles() {
+		rolesLoading = true;
+		try {
+			roles = await fetchAssignableRoles();
+			createUserFormStore.syncRolesFromAssignable(roles);
+		} catch {
+			toast.error('Could not load roles');
+			roles = [];
+		} finally {
+			rolesLoading = false;
+		}
 	}
 
 	function goToPreview() {
@@ -187,7 +223,7 @@
 			</div>
 		</div>
 
-		<RolesReportingPanel {managers} {errors} />
+		<RolesReportingPanel {managers} {roles} {rolesLoading} {errors} />
 
 		<div class="flex justify-end gap-2">
 			<Button variant="outline" onclick={() => createUserFormStore.restore()}>Reset</Button>

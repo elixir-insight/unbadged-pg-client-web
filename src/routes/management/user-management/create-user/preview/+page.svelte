@@ -2,12 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import { IdCardIcon, MailIcon, PhoneIcon, Shield, ShieldCheck, User } from '$lib/assets/icons';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
+	import { createUser } from '$lib/stores/user-management/users-api';
 	import type { Component } from 'svelte';
+
+	let creating = $state(false);
 
 	onMount(() => {
 		if (!createUserFormStore.isValid) {
@@ -15,9 +19,36 @@
 		}
 	});
 
-	function handleCreate() {
-		createUserFormStore.reset();
-		goto(resolve('/management/user-management'));
+	async function handleCreate() {
+		if (creating) return;
+
+		const reportingTo = Number(createUserFormStore.reportingManagerId);
+		if (!Number.isFinite(reportingTo)) {
+			toast.error('Select a reporting manager');
+			return;
+		}
+
+		creating = true;
+		try {
+			const result = await createUser({
+				employeeId: createUserFormStore.employeeId.trim(),
+				phoneNumber: createUserFormStore.formattedMobile,
+				reportingTo,
+				roles: createUserFormStore.selectedRoleIds,
+				userEmail: createUserFormStore.email.trim(),
+				userName: createUserFormStore.fullName
+			});
+
+			toast.success(result.message);
+			createUserFormStore.reset();
+			goto(resolve('/management/user-management'));
+		} catch (e) {
+			toast.error('Could not create user', {
+				description: e instanceof Error ? e.message : 'Something went wrong'
+			});
+		} finally {
+			creating = false;
+		}
 	}
 
 	type ContactField = {
@@ -131,13 +162,13 @@
 
 			{#if createUserFormStore.selectedRoles.length > 0}
 				<div class="flex flex-wrap gap-2">
-					{#each createUserFormStore.selectedRoles as role (role)}
+					{#each createUserFormStore.selectedRoles as role (role.roleId)}
 						<Chip
 							variant="outline"
 							class={cn('gap-1.5 border-border bg-background text-sm text-foreground')}
 						>
 							<ShieldCheck class="h-3.5 w-3.5" />
-							{role}
+							{role.displayName}
 						</Chip>
 					{/each}
 				</div>
@@ -148,6 +179,8 @@
 	</div>
 
 	<div class="flex justify-end gap-2 pt-2">
-		<Button onclick={handleCreate}>Create User</Button>
+		<Button disabled={creating} onclick={handleCreate}>
+			{creating ? 'Creating…' : 'Create User'}
+		</Button>
 	</div>
 </div>

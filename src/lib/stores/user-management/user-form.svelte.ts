@@ -1,6 +1,12 @@
 import type { UserItem } from './user-management';
 import { validateUserForm } from './validation';
 
+export type SelectedRole = {
+	roleId: number;
+	roleName: string;
+	displayName: string;
+};
+
 interface EditSnapshot {
 	email: string;
 	firstName: string;
@@ -42,7 +48,7 @@ class CreateUserFormStore {
 	lastName = $state('');
 	employeeId = $state('');
 	mobileNumber = $state('');
-	selectedRoles = $state<string[]>([]);
+	selectedRoles = $state<SelectedRole[]>([]);
 	reportingManagerId = $state<string | null>(null);
 	reportingManagerName = $state('');
 	reportingManagerEmployeeId = $state('');
@@ -64,6 +70,10 @@ class CreateUserFormStore {
 
 	get formattedMobile() {
 		return this.mobileNumber.trim() ? `+91${this.mobileNumber.trim()}` : '';
+	}
+
+	get selectedRoleIds() {
+		return this.selectedRoles.map((role) => role.roleId);
 	}
 
 	get validationErrors() {
@@ -106,12 +116,41 @@ class CreateUserFormStore {
 		return `${roleText} · ${managerText}`;
 	}
 
-	toggleRole(role: string) {
-		if (this.selectedRoles.includes(role)) {
-			this.selectedRoles = this.selectedRoles.filter((item) => item !== role);
+	isRoleSelected(roleId: number) {
+		return this.selectedRoles.some((role) => role.roleId === roleId);
+	}
+
+	toggleRole(role: SelectedRole) {
+		if (this.isRoleSelected(role.roleId)) {
+			this.selectedRoles = this.selectedRoles.filter((item) => item.roleId !== role.roleId);
 		} else {
 			this.selectedRoles = [...this.selectedRoles, role];
 		}
+	}
+
+	/** Match selected roles (often display names from detail) to org role IDs. */
+	syncRolesFromAssignable(roles: Array<{ roleId: number; roleName: string; displayName: string }>) {
+		const normalize = (value: string) => value.toLowerCase().replace(/[\s_]+/g, '');
+
+		this.selectedRoles = this.selectedRoles
+			.map((selected) => {
+				const match = roles.find(
+					(role) =>
+						role.roleId === selected.roleId ||
+						role.roleName === selected.roleName ||
+						role.displayName === selected.displayName ||
+						normalize(role.roleName) === normalize(selected.displayName) ||
+						normalize(role.displayName) === normalize(selected.displayName)
+				);
+				return match
+					? {
+							roleId: match.roleId,
+							roleName: match.roleName,
+							displayName: match.displayName
+						}
+					: null;
+			})
+			.filter((role): role is SelectedRole => role !== null);
 	}
 
 	setReportingManager(id: string, name: string, employeeId = '', email = '') {
@@ -138,7 +177,12 @@ class CreateUserFormStore {
 		this.lastName = lastName;
 		this.employeeId = user.employeeId;
 		this.mobileNumber = user.mobileNumber ?? '';
-		this.selectedRoles = [...user.roles];
+		// Edit API wiring will replace display names with role IDs when available.
+		this.selectedRoles = user.roles.map((displayName, index) => ({
+			roleId: -(index + 1),
+			roleName: displayName,
+			displayName
+		}));
 
 		if (user.reportingManager) {
 			this.setReportingManager(
@@ -166,7 +210,7 @@ class CreateUserFormStore {
 		this.lastName = snapshot.lastName;
 		this.employeeId = snapshot.employeeId;
 		this.mobileNumber = snapshot.mobileNumber;
-		this.selectedRoles = JSON.parse(snapshot.selectedRoles) as string[];
+		this.selectedRoles = JSON.parse(snapshot.selectedRoles) as SelectedRole[];
 		this.reportingManagerId = snapshot.reportingManagerId;
 		this.reportingManagerName = snapshot.reportingManagerName;
 		this.reportingManagerEmployeeId = snapshot.reportingManagerEmployeeId;

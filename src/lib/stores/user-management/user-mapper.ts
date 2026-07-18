@@ -5,28 +5,51 @@ import type {
 	ApiUserDetailResponse,
 	ApiUsersListResponse
 } from './api-types';
-import type {
-	UserItem,
-	UserReportingManager,
-	UserStatus,
-	UsersListResponse
-} from './user-management';
+import type { UserItem, UserStatus, UsersListResponse } from './user-management';
+
+/**
+ * Detail API returns role IDs; list returns SCREAMING_SNAKE names.
+ * Map known IDs → canonical names (extend as more roles are confirmed).
+ */
+const ROLE_ID_TO_NAME: Record<number, string> = {
+	2: 'MGMT_FULL_ACCESS'
+};
 
 function mapEnabledToStatus(enabled: boolean): UserStatus {
 	return enabled ? 'Active' : 'Invited';
 }
 
-function mapRoleName(role: string | ApiUserRole): string {
-	if (typeof role === 'string') return role;
-	return role.roleName ?? role.name ?? '';
+/** SCREAMING_SNAKE_CASE → spaced Title Case (e.g. MGMT_FULL_ACCESS → Mgmt Full Access) */
+export function formatRoleDisplayName(value: string): string {
+	const parts = value
+		.trim()
+		.split(/[_\s]+/)
+		.filter(Boolean);
+	if (parts.length === 0) return '';
+
+	return parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
 }
 
-function mapRoles(roles: (string | ApiUserRole)[] | undefined): string[] {
+function resolveRoleRawName(role: ApiUserRole): string {
+	if (typeof role === 'string') return role;
+	if (typeof role === 'number') return ROLE_ID_TO_NAME[role] ?? '';
+	if (role.roleName) return role.roleName;
+	if (role.name) return role.name;
+	if (role.roleId !== undefined) return ROLE_ID_TO_NAME[role.roleId] ?? '';
+	return '';
+}
+
+function mapRoleName(role: ApiUserRole): string {
+	const raw = resolveRoleRawName(role);
+	return raw ? formatRoleDisplayName(raw) : '';
+}
+
+function mapRoles(roles: ApiUserRole[] | undefined): string[] {
 	if (!roles) return [];
 	return roles.map(mapRoleName).filter(Boolean);
 }
 
-function normalizePhoneNumber(phone?: string): string | undefined {
+function normalizePhoneNumber(phone?: string | null): string | undefined {
 	if (!phone?.trim()) return undefined;
 	const value = phone.trim();
 	if (value.startsWith('+91')) return value.slice(3);
@@ -34,7 +57,7 @@ function normalizePhoneNumber(phone?: string): string | undefined {
 	return value;
 }
 
-export function formatPhoneDisplay(phone?: string): string {
+export function formatPhoneDisplay(phone?: string | null): string {
 	if (!phone?.trim()) return '—';
 	const value = phone.trim();
 	if (value.startsWith('+')) return value;
@@ -43,8 +66,9 @@ export function formatPhoneDisplay(phone?: string): string {
 
 function mapReportingManager(
 	reportingTo: ApiUserDetailItem['reportingTo']
-): UserReportingManager | null {
-	if (!reportingTo) return null;
+): UserItem['reportingManager'] {
+	if (!reportingTo || typeof reportingTo !== 'object') return null;
+	if (!reportingTo.name?.trim()) return null;
 	return {
 		id: String(reportingTo.id),
 		name: reportingTo.name,
@@ -55,28 +79,27 @@ function mapReportingManager(
 
 export function mapApiListUser(user: ApiUserListItem): UserItem {
 	return {
-		id: String(user.userId),
+		id: String(user.id),
 		name: user.userName,
 		email: user.userEmail,
-		employeeId: user.employeeId,
+		employeeId: user.employeeId ?? '',
 		roles: mapRoles(user.roles),
-		status: mapEnabledToStatus(user.enabled)
+		status: mapEnabledToStatus(user.enabled),
+		mobileNumber: normalizePhoneNumber(user.phoneNumber)
 	};
 }
 
 export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
-	const roles = user.roleDetails?.length ? mapRoles(user.roleDetails) : mapRoles(user.roles);
-
 	return {
-		id: String(user.userId),
+		id: String(user.id),
 		name: user.userName,
 		email: user.userEmail,
-		employeeId: user.employeeId,
-		roles,
+		employeeId: user.employeeId ?? '',
+		roles: mapRoles(user.roles),
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber),
 		reportingManager: mapReportingManager(user.reportingTo),
-		assignedUsersCount: user.assignedUsers?.length ?? 0
+		assignedUsersCount: 0
 	};
 }
 

@@ -151,13 +151,13 @@
 
 			{#if createUserFormStore.selectedRoles.length > 0}
 				<div class="flex flex-wrap gap-2">
-					{#each createUserFormStore.selectedRoles as role (role)}
+					{#each createUserFormStore.selectedRoles as role (role.roleId)}
 						<Chip
 							variant="outline"
 							class={cn('gap-1.5 border-border bg-background text-foreground')}
 						>
 							<ShieldCheck class="h-3.5 w-3.5 text-primary" />
-							{role}
+							{role.displayName}
 						</Chip>
 					{/each}
 				</div>

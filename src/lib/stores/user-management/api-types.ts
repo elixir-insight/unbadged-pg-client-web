@@ -1,46 +1,49 @@
-/** Raw role shape — list endpoint may return strings or objects */
-export interface ApiUserRole {
-	roleId?: number;
-	roleName?: string;
-	name?: string;
-}
+/** Raw role shape — list may return names; detail returns role IDs */
+export type ApiUserRole = string | number | { roleId?: number; roleName?: string; name?: string };
 
-/** List item from GET members/users */
+/** List item from GET /api/v1/management/member */
 export interface ApiUserListItem {
-	userId: number;
+	id: number;
 	userName: string;
 	userEmail: string;
-	employeeId: string;
-	roles: string[] | ApiUserRole[];
+	employeeId?: string | null;
+	phoneNumber?: string | null;
+	userType?: string | null;
+	roles: ApiUserRole[];
+	supervisorId?: number | null;
+	orgId?: number | null;
 	enabled: boolean;
+	emailVerified?: boolean;
+	phoneNumberVerified?: boolean;
+	createdAt?: string | null;
+	updatedAt?: string | null;
 }
 
-/** Detail item from GET user by userId */
+/** Detail item from GET /api/v1/management/member/{memberId} */
 export interface ApiUserDetailItem {
-	userId: number;
+	id: number;
 	userName: string;
 	userEmail: string;
-	employeeId: string;
-	phoneNumber?: string;
-	roleDetails?: ApiUserRole[];
-	roles?: string[] | ApiUserRole[];
+	employeeId?: string | null;
+	phoneNumber?: string | null;
+	userType?: string | null;
+	roles: ApiUserRole[];
+	supervisorId?: number | null;
+	orgId?: number | null;
+	enabled: boolean;
+	emailVerified?: boolean;
+	phoneNumberVerified?: boolean;
+	createdAt?: string | null;
+	updatedAt?: string | null;
+	createdBy?: number | null;
+	updatedBy?: number | null;
+	/** Enriched from GET /api/v1/management/user/list via supervisorId */
 	reportingTo?: {
 		id: number;
 		name: string;
 		employeeId?: string;
 		userEmail?: string;
 	};
-	enabled: boolean;
-	createdBy?: number;
-	/** Users who report to this user — blocks delete when non-empty. */
-	assignedUsers?: Array<{
-		id?: number;
-		userId?: number;
-		name?: string;
-		userName?: string;
-		userEmail?: string;
-		employeeId?: string;
-	}>;
 }
 
 export interface ApiPagination {

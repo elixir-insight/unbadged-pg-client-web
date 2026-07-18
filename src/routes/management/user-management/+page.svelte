@@ -6,11 +6,13 @@
 	import { Plus, X } from '$lib/assets/icons';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
+	import { getUniqueRoles } from '$lib/stores/user-management/user-mapper';
 	import { fetchUsers } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { debounce } from '$lib/utils/debounce';
 
-	const pagination = createUrlPagination();
+	const PAGE_SIZE = 10;
+	const pagination = createUrlPagination({ defaultLimit: PAGE_SIZE });
 
 	const statusOptions = [
 		{ value: 'Active', label: 'Active' },
@@ -20,7 +22,14 @@
 	let users = $state<UserItem[]>([]);
 	let availableRoles = $state<string[]>([]);
 	let loading = $state(false);
+	let hasMore = $state(true);
+	let nextPage = $state(1);
+	let total = $state(0);
+	let loadError = $state<string | null>(null);
 	let selectedId = $state<string | null>(null);
+	let sentinel = $state<HTMLDivElement | null>(null);
+	let sentinelVisible = $state(false);
+	let requestSeq = 0;
 
 	const searchInput = $derived(pagination.search);
 	const statusFilter = $derived(pagination.status);
@@ -55,26 +64,93 @@
 
 	const hasActiveFilters = $derived(activeFilters.length > 0);
 
-	async function loadUsers(search: string, status: string, role: string) {
+	async function loadUsers(
+		reset: boolean,
+		filters?: { search: string; status: string; role: string }
+	) {
+		// Appends wait for an in-flight request; resets always start and invalidate older ones.
+		if (!reset && (loading || !hasMore)) return;
+
+		const pageToLoad = reset ? 1 : nextPage;
+		const search = filters?.search ?? pagination.search;
+		const status = filters?.status ?? pagination.status;
+		const role = filters?.role ?? pagination.role;
+		const seq = ++requestSeq;
+
 		loading = true;
+		loadError = null;
 
 		try {
 			const data = await fetchUsers({
 				search,
 				status,
 				role,
-				page: Math.floor(pagination.skip / pagination.limit),
-				limit: pagination.limit
+				page: pageToLoad,
+				limit: PAGE_SIZE
 			});
-			users = data.items;
-			availableRoles = data.meta.roles;
+
+			// Ignore stale responses from an older filter/search request.
+			if (seq !== requestSeq) return;
+
+			total = data.meta.total;
+
+			if (reset) {
+				users = data.items;
+			} else {
+				const seen = new Set(users.map((user) => user.id));
+				users = [...users, ...data.items.filter((user) => !seen.has(user.id))];
+			}
+
+			availableRoles = getUniqueRoles(users);
+			nextPage = pageToLoad + 1;
+			// Prefer API total when present; otherwise a full page means more may exist.
+			hasMore =
+				data.items.length > 0 &&
+				(data.meta.total > 0 ? users.length < data.meta.total : data.items.length === PAGE_SIZE);
+		} catch (e) {
+			if (seq !== requestSeq) return;
+			loadError = e instanceof Error ? e.message : 'Failed to load users';
+			hasMore = false;
 		} finally {
-			loading = false;
+			if (seq === requestSeq) loading = false;
 		}
 	}
 
+	// Reset list whenever filters change (including initial load).
 	$effect(() => {
-		loadUsers(pagination.search, pagination.status, pagination.role);
+		const search = pagination.search;
+		const status = pagination.status;
+		const role = pagination.role;
+
+		hasMore = true;
+		nextPage = 1;
+		void loadUsers(true, { search, status, role });
+	});
+
+	// Observe the sentinel against the AppShell scroll container (not the window).
+	$effect(() => {
+		if (!sentinel) return;
+
+		const root = sentinel.closest('.app-shell-content');
+		const observer = new IntersectionObserver(
+			(entries) => {
+				sentinelVisible = entries[0]?.isIntersecting ?? false;
+			},
+			{ root, rootMargin: '240px' }
+		);
+
+		observer.observe(sentinel);
+		return () => {
+			observer.disconnect();
+			sentinelVisible = false;
+		};
+	});
+
+	// React to visibility + loading/hasMore without stale closures.
+	$effect(() => {
+		if (sentinelVisible && hasMore && !loading) {
+			void loadUsers(false);
+		}
 	});
 
 	const debouncedSearch = debounce((value: string) => {
@@ -192,12 +268,26 @@
 		<p class="py-8 text-center text-sm text-muted-foreground">Loading users…</p>
 	{:else if !loading && users.length === 0}
 		<div class="py-12 text-center text-sm text-muted-foreground">
-			No users found
-			{#if searchInput || statusFilter || roleFilter}
-				matching your filters.
+			{#if loadError}
+				{loadError}
 			{:else}
-				.
+				No users found
+				{#if searchInput || statusFilter || roleFilter}
+					matching your filters.
+				{:else}
+					.
+				{/if}
 			{/if}
 		</div>
+	{:else if loading}
+		<p class="py-4 text-center text-sm text-muted-foreground">Loading more users…</p>
+	{:else if !hasMore && users.length > 0}
+		<p class="py-4 text-center text-sm text-muted-foreground">
+			Showing all {total || users.length} users
+		</p>
+	{/if}
+
+	{#if hasMore}
+		<div bind:this={sentinel} class="h-4 w-full" aria-hidden="true"></div>
 	{/if}
 </div>
