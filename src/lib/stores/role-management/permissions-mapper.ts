@@ -1,6 +1,6 @@
 import { Network } from '$lib/assets/icons';
 import { ROLE_MODULES, PERM_LABELS } from './role-modules';
-import type { ModuleDef, PermKey } from './role-management';
+import type { ModuleDef, PermKey, PermStatus } from './role-management';
 
 /** API permission names → UI form keys */
 export const API_PERM_NAME_TO_KEY: Record<string, Exclude<PermKey, 'fullAccess'>> = {
@@ -132,4 +132,67 @@ export function diffPermissionIds(
 		addPermissions: currentIds.filter((id) => !original.has(id)),
 		revokePermissions: originalIds.filter((id) => !current.has(id))
 	};
+}
+
+const PREVIEW_PERM_KEYS = [
+	'read',
+	'writeUnrestricted',
+	'writeRestricted',
+	'delete',
+	'approve'
+] as const satisfies readonly Exclude<PermKey, 'fullAccess'>[];
+
+/** Resolve preview cell: granted / denied / unavailable (no API field for that module). */
+export function resolvePreviewPermStatus(
+	selected: boolean | undefined,
+	available: boolean
+): PermStatus {
+	if (!available) return 'unavailable';
+	return selected ? 'granted' : 'denied';
+}
+
+/** Build preview status row from form checkbox state + catalog options. */
+export function buildFormPreviewStatuses(
+	perms: Partial<Record<PermKey, boolean>> | undefined,
+	options: PermissionOption[] | undefined
+): Record<(typeof PREVIEW_PERM_KEYS)[number], PermStatus> {
+	const available = new Set((options ?? []).map((o) => o.key));
+	return {
+		read: resolvePreviewPermStatus(perms?.read, available.has('read')),
+		writeUnrestricted: resolvePreviewPermStatus(
+			perms?.writeUnrestricted,
+			available.has('writeUnrestricted')
+		),
+		writeRestricted: resolvePreviewPermStatus(
+			perms?.writeRestricted,
+			available.has('writeRestricted')
+		),
+		delete: resolvePreviewPermStatus(perms?.delete, available.has('delete')),
+		approve: resolvePreviewPermStatus(perms?.approve, available.has('approve'))
+	};
+}
+
+/** Build preview status from granted IDs + catalog permission ID map (API name → id). */
+export function buildGrantedPreviewStatuses(
+	permissionIds: Partial<Record<string, number>> | undefined,
+	grantedIds: Set<number>
+): Record<(typeof PREVIEW_PERM_KEYS)[number], PermStatus> {
+	const apiNames = {
+		read: 'read',
+		writeUnrestricted: 'write',
+		writeRestricted: 'write-restricted',
+		delete: 'delete',
+		approve: 'approve'
+	} as const;
+
+	const result = {} as Record<(typeof PREVIEW_PERM_KEYS)[number], PermStatus>;
+	for (const key of PREVIEW_PERM_KEYS) {
+		const permId = permissionIds?.[apiNames[key]];
+		if (permId === undefined) {
+			result[key] = 'unavailable';
+		} else {
+			result[key] = grantedIds.has(permId) ? 'granted' : 'denied';
+		}
+	}
+	return result;
 }

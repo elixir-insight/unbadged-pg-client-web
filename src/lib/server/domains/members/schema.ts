@@ -207,6 +207,9 @@ export const UpdateOrgRoleResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
+/** DELETE /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+export const DeleteOrgRoleResponseSchema = UpdateOrgRoleResponseSchema;
+
 export type MemberListItem = v.InferOutput<typeof MemberListItemSchema>;
 export type MemberDetailItem = v.InferOutput<typeof MemberDetailItemSchema>;
 export type MembersListResponse = v.InferOutput<typeof MembersListResponseSchema>;
@@ -229,3 +232,4 @@ export type CreateOrgRoleBody = v.InferOutput<typeof CreateOrgRoleBodySchema>;
 export type CreateOrgRoleResponse = v.InferOutput<typeof CreateOrgRoleResponseSchema>;
 export type UpdateOrgRoleBody = v.InferOutput<typeof UpdateOrgRoleBodySchema>;
 export type UpdateOrgRoleResponse = v.InferOutput<typeof UpdateOrgRoleResponseSchema>;
+export type DeleteOrgRoleResponse = v.InferOutput<typeof DeleteOrgRoleResponseSchema>;

@@ -1,6 +1,6 @@
 import type { Component } from 'svelte';
 
-export type PermStatus = 'granted' | 'denied';
+export type PermStatus = 'granted' | 'denied' | 'unavailable';
 
 export type PermKey =
 	| 'read'

@@ -74,7 +74,7 @@
 		if (!sentinel) return;
 		const observer = new IntersectionObserver(
 			(entries) => {
-				if (entries[0].isIntersecting && !loading && hasMore) {
+				if (entries[0]?.isIntersecting && !loading && hasMore) {
 					void loadRoles(false, pagination.search);
 				}
 			},

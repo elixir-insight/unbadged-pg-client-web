@@ -184,7 +184,7 @@ class CreateUserFormStore {
 		this.employeeId = user.employeeId;
 		this.mobileNumber = user.mobileNumber ?? '';
 		// Placeholder role IDs until syncRolesFromAssignable maps display names → org role IDs.
-		this.selectedRoles = user.roles.map((displayName, index) => ({
+		this.selectedRoles = (user?.roles ?? []).map((displayName, index) => ({
 			roleId: -(index + 1),
 			roleName: displayName,
 			displayName

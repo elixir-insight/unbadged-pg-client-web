@@ -139,3 +139,43 @@ export const PATCH: RequestHandler = async ({ params, url, request, cookies, fet
 		data: result.data?.data ?? []
 	});
 };
+
+export const DELETE: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const roleId = parseRoleId(params.id);
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	const result = await membersClient.deleteOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		roleId,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json({
+		message: result.data?.message ?? 'Role deleted successfully',
+		statusCode: result.data?.statusCode ?? 200,
+		data: result.data?.data ?? []
+	});
+};

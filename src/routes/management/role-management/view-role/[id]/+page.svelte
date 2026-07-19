@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { Chip, Tooltip } from '$lib/components/reusable/index';
+	import { Chip, Modal, Tooltip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
+	import type { PermissionsState } from '$lib/stores/role-management/role-management';
 	import {
 		mapPermissionsCatalog,
-		collectSelectedPermissionIds
+		collectSelectedPermissionIds,
+		buildGrantedPreviewStatuses
 	} from '$lib/stores/role-management/permissions-mapper';
+	import { deleteRole } from '$lib/stores/role-management/roles-api';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
@@ -18,6 +21,9 @@
 
 	const { role } = $derived(data);
 	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
+
+	let deleteOpen = $state(false);
+	let deleting = $state(false);
 
 	const grantedIds = $derived(new Set((role?.permissions ?? []).map((p) => p.id)));
 
@@ -38,16 +44,8 @@
 
 	const modules = $derived(
 		catalog.modules.map((mod) => {
-			const permIds = catalog.permissionIds[mod.id] ?? {};
-			const perms = Object.fromEntries(
-				apiPermCols.map((col) => {
-					const permId = permIds[col.apiName];
-					const status: PermStatus =
-						permId !== undefined && grantedIds.has(permId) ? 'granted' : 'denied';
-					return [col.key, status];
-				})
-			) as Record<(typeof apiPermCols)[number]['key'], PermStatus>;
-			return { name: mod.name, icon: mod.icon, ...perms };
+			const statuses = buildGrantedPreviewStatuses(catalog.permissionIds[mod.id], grantedIds);
+			return { name: mod.name, icon: mod.icon, ...statuses };
 		})
 	);
 
@@ -105,6 +103,27 @@
 			})
 		);
 	}
+
+	async function confirmDelete() {
+		if (deleting || deleteDisabledReason) return;
+
+		const roleId = role?.roleInfo?.roleId;
+		if (roleId == null) return;
+
+		deleting = true;
+		try {
+			const result = await deleteRole(roleId, 'management');
+			toast.success(result.message);
+			deleteOpen = false;
+			goto(resolve('/management/role-management'));
+		} catch (e) {
+			toast.error('Could not delete role', {
+				description: e instanceof Error ? e.message : 'Something went wrong'
+			});
+		} finally {
+			deleting = false;
+		}
+	}
 </script>
 
 <div class="m-auto w-full space-y-6 md:w-[75%]">
@@ -122,10 +141,10 @@
 					{isDefaultRole ? 'Default' : 'Custom'}
 				</Chip>
 			</div>
-			<div class="flex items-center gap-1.5 text-sm text-muted-foreground">
-				<Users class="h-4 w-4" />
-				<span>{role?.users?.length ?? 0} assigned</span>
-			</div>
+			<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+				<Users class="h-3.5 w-3.5" />
+				{role?.roleInfo?.roleAssignedCount ?? 0} users assigned
+			</p>
 		</div>
 
 		<div class="flex items-center gap-2">
@@ -151,7 +170,7 @@
 					</Button>
 				</Tooltip>
 			{:else}
-				<Button variant="destructive" size="sm" onclick={() => {}}>
+				<Button variant="destructive" size="sm" onclick={() => (deleteOpen = true)}>
 					<Trash2 class="h-4 w-4" />
 					Delete
 				</Button>
@@ -181,7 +200,7 @@
 
 		<div class="divide-y divide-border">
 			{#each role?.users ?? [] as user (user.email)}
-				<div class="flex items-center gap-3 justify-between py-3">
+				<div class="flex items-center justify-between gap-3 py-3">
 					<div class="flex items-center gap-3">
 						<Avatar name={user?.userName} size="default" shape="circle" />
 						<span class="text-sm text-foreground">{user?.userName}</span>
@@ -192,3 +211,30 @@
 		</div>
 	</div>
 </div>
+
+<Modal
+	bind:open={deleteOpen}
+	title="Delete role"
+	description="Are you sure you want to delete {displayName}? This action cannot be undone."
+>
+	{#snippet footer()}
+		<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+			<Button
+				variant="outline"
+				class="w-full sm:w-auto"
+				disabled={deleting}
+				onclick={() => (deleteOpen = false)}
+			>
+				Cancel
+			</Button>
+			<Button
+				variant="destructive"
+				class="w-full sm:w-auto"
+				disabled={deleting}
+				onclick={confirmDelete}
+			>
+				{deleting ? 'Deleting…' : 'Delete role'}
+			</Button>
+		</div>
+	{/snippet}
+</Modal>

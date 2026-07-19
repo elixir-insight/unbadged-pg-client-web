@@ -7,10 +7,10 @@
 	import { Chip } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import type { PermStatus } from '$lib/stores/role-management/role-management';
 	import {
 		collectSelectedPermissionIds,
-		mapPermissionsCatalog
+		mapPermissionsCatalog,
+		buildFormPreviewStatuses
 	} from '$lib/stores/role-management/permissions-mapper';
 	import { createRole, RoleNameConflictError } from '$lib/stores/role-management/roles-api';
 	import { Pencil } from '$lib/assets/icons';
@@ -23,18 +23,14 @@
 	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
 
 	const modules = $derived(
-		catalog.modules.map((mod) => {
-			const perms = roleFormStore.permissions[mod.id];
-			return {
-				name: mod.name,
-				icon: mod.icon,
-				read: (perms?.read ? 'granted' : 'denied') as PermStatus,
-				writeUnrestricted: (perms?.writeUnrestricted ? 'granted' : 'denied') as PermStatus,
-				writeRestricted: (perms?.writeRestricted ? 'granted' : 'denied') as PermStatus,
-				delete: (perms?.delete ? 'granted' : 'denied') as PermStatus,
-				approve: (perms?.approve ? 'granted' : 'denied') as PermStatus
-			};
-		})
+		catalog.modules.map((mod) => ({
+			name: mod.name,
+			icon: mod.icon,
+			...buildFormPreviewStatuses(
+				roleFormStore.permissions[mod.id],
+				catalog.optionsByModule[mod.id]
+			)
+		}))
 	);
 
 	onMount(() => {

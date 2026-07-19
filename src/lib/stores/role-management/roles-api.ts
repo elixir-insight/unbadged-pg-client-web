@@ -111,3 +111,27 @@ export async function updateRole(
 		message: raw?.message ?? 'Role updated successfully'
 	};
 }
+
+export type DeleteRoleResult = {
+	message: string;
+};
+
+/** Delete a role via BFF (`DELETE /api/roles/{id}`). */
+export async function deleteRole(
+	roleId: number,
+	portal?: RolesApiPortal
+): Promise<DeleteRoleResult> {
+	const res = await fetch(withPortal(`/api/roles/${roleId}`, portal), {
+		method: 'DELETE'
+	});
+
+	const raw: { message?: string } = await res.json().catch(() => ({}));
+
+	if (!res.ok) {
+		throw new Error(raw?.message ?? 'Failed to delete role');
+	}
+
+	return {
+		message: raw?.message ?? 'Role deleted successfully'
+	};
+}

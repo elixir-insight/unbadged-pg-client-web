@@ -151,8 +151,8 @@
 						{/if}
 						<Chip variant="outline" class="gap-1.5 bg-background/80">
 							<Shield class="h-3.5 w-3.5" />
-							{user.roles.length}
-							{user.roles.length === 1 ? 'Role' : 'Roles'}
+							{(user?.roles ?? []).length}
+							{(user?.roles ?? []).length === 1 ? 'Role' : 'Roles'}
 						</Chip>
 					</div>
 				</div>
@@ -194,12 +194,12 @@
 					<Shield class="h-4 w-4" />
 				</div>
 				<h3 class="text-xs font-semibold tracking-wide text-primary uppercase">Assigned Roles</h3>
-				<Chip class="h-5 rounded-full px-2 text-xs">{user.roles.length}</Chip>
+				<Chip class="h-5 rounded-full px-2 text-xs">{(user?.roles ?? []).length}</Chip>
 			</div>
 
-			{#if user.roles.length > 0}
+			{#if (user?.roles ?? []).length > 0}
 				<div class="flex flex-wrap gap-2">
-					{#each user.roles as role (role)}
+					{#each user?.roles ?? [] as role, index (index)}
 						<Chip
 							variant="outline"
 							class={cn('gap-1.5 border-primary/30 bg-primary/5 text-foreground')}

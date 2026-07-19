@@ -115,6 +115,7 @@ export { default as Copy } from '@lucide/svelte/icons/copy';
 export { default as Fingerprint } from '@lucide/svelte/icons/fingerprint';
 export { default as X } from '@lucide/svelte/icons/x';
 export { default as Check } from '@lucide/svelte/icons/check';
+export { default as Minus } from '@lucide/svelte/icons/minus';
 export { default as AlignJustify } from '@lucide/svelte/icons/align-justify';
 export { default as LayoutGrid } from '@lucide/svelte/icons/layout-grid';
 export { default as Sparkles } from '@lucide/svelte/icons/sparkles';

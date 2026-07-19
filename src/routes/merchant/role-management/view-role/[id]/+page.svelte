@@ -6,8 +6,11 @@
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
-	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
+	import type { PermissionsState } from '$lib/stores/role-management/role-management';
+	import {
+		mapPermissionsCatalog,
+		buildGrantedPreviewStatuses
+	} from '$lib/stores/role-management/permissions-mapper';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
@@ -35,16 +38,8 @@
 
 	const modules = $derived(
 		catalog.modules.map((mod) => {
-			const permIds = catalog.permissionIds[mod.id] ?? {};
-			const perms = Object.fromEntries(
-				apiPermCols.map((col) => {
-					const permId = permIds[col.apiName];
-					const status: PermStatus =
-						permId !== undefined && grantedIds.has(permId) ? 'granted' : 'denied';
-					return [col.key, status];
-				})
-			) as Record<(typeof apiPermCols)[number]['key'], PermStatus>;
-			return { name: mod.name, icon: mod.icon, ...perms };
+			const statuses = buildGrantedPreviewStatuses(catalog.permissionIds[mod.id], grantedIds);
+			return { name: mod.name, icon: mod.icon, ...statuses };
 		})
 	);
 

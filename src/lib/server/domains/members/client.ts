@@ -4,6 +4,7 @@ import {
 	CreateMemberResponseSchema,
 	CreateOrgRoleResponseSchema,
 	DeleteMemberResponseSchema,
+	DeleteOrgRoleResponseSchema,
 	MemberDetailResponseSchema,
 	MembersListResponseSchema,
 	OrgRoleDetailResponseSchema,
@@ -148,6 +149,25 @@ export const membersClient = {
 			method: 'PATCH',
 			body,
 			schema: UpdateOrgRoleResponseSchema
+		}),
+
+	/** DELETE /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	deleteOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'DELETE',
+			schema: DeleteOrgRoleResponseSchema
 		}),
 
 	listUsers: (
