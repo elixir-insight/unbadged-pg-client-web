@@ -13,6 +13,17 @@ export type CreateRoleResult = {
 	message: string;
 };
 
+export type UpdateRolePayload = {
+	roleName: string;
+	description: string;
+	addPermissions: number[];
+	revokePermissions: number[];
+};
+
+export type UpdateRoleResult = {
+	message: string;
+};
+
 export class RoleNameConflictError extends Error {
 	constructor(message = 'Role name already exists. Please choose a different name.') {
 		super(message);
@@ -31,6 +42,10 @@ function withPortal(path: string, portal?: RolesApiPortal): string {
 	const resolved = resolvePortal(portal);
 	const sep = path.includes('?') ? '&' : '?';
 	return `${path}${sep}portal=${resolved}`;
+}
+
+function isNameConflictStatus(status: number): boolean {
+	return status === 409 || status === 422;
 }
 
 /** Fetch existing role names for duplicate checks. */
@@ -56,7 +71,7 @@ export async function createRole(
 	const raw: { message?: string } = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		if (res.status === 422) {
+		if (isNameConflictStatus(res.status)) {
 			throw new RoleNameConflictError(
 				raw?.message ?? 'Role name already exists. Please choose a different name.'
 			);
@@ -66,5 +81,33 @@ export async function createRole(
 
 	return {
 		message: raw?.message ?? 'Role created successfully'
+	};
+}
+
+/** Update a role via BFF (`PATCH /api/roles/{id}`). */
+export async function updateRole(
+	roleId: number,
+	payload: UpdateRolePayload,
+	portal?: RolesApiPortal
+): Promise<UpdateRoleResult> {
+	const res = await fetch(withPortal(`/api/roles/${roleId}`, portal), {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(payload)
+	});
+
+	const raw: { message?: string } = await res.json().catch(() => ({}));
+
+	if (!res.ok) {
+		if (isNameConflictStatus(res.status)) {
+			throw new RoleNameConflictError(
+				raw?.message ?? 'Role name already exists. Please choose a different name.'
+			);
+		}
+		throw new Error(raw?.message ?? 'Failed to update role');
+	}
+
+	return {
+		message: raw?.message ?? 'Role updated successfully'
 	};
 }

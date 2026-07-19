@@ -1,30 +1,44 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
+import { UpdateOrgRoleBodySchema } from '$lib/server/domains/members/schema';
 import type { RoleDetail } from '$lib/stores/role-management/role-management';
 
-export const GET: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
-	let tokens;
+async function requireSession(
+	cookies: Parameters<typeof getValidSession>[0],
+	fetchFn: typeof fetch,
+	logger: Parameters<typeof getValidSession>[2]
+) {
 	try {
-		tokens = await getValidSession(cookies, fetch, locals.logger);
+		return await getValidSession(cookies, fetchFn, logger);
 	} catch (e) {
 		if (e instanceof SessionError) {
 			error(401, { message: 'Unauthorized' });
 		}
 		throw e;
 	}
+}
+
+function parseRoleId(raw: string | undefined): number {
+	const roleId = Number(raw);
+	if (!Number.isFinite(roleId)) {
+		error(400, { message: 'Invalid role id' });
+	}
+	return roleId;
+}
+
+export const GET: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {
 		error(401, { message: 'Organization not found in session' });
 	}
 
-	const roleId = Number(params.id);
-	if (!Number.isFinite(roleId)) {
-		error(400, { message: 'Invalid role id' });
-	}
+	const roleId = parseRoleId(params.id);
 
 	const portal = resolveMembersApiPortalFromRequest({
 		url,
@@ -71,4 +85,57 @@ export const GET: RequestHandler = async ({ params, url, request, cookies, fetch
 	};
 
 	return json(role);
+};
+
+export const PATCH: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const roleId = parseRoleId(params.id);
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		error(400, { message: 'Invalid JSON body' });
+	}
+
+	const parsed = v.safeParse(UpdateOrgRoleBodySchema, body);
+	if (!parsed.success) {
+		error(400, { message: 'Invalid update role payload' });
+	}
+
+	const result = await membersClient.updateOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		roleId,
+		parsed.output,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json({
+		message: result.data?.message ?? 'Role updated successfully',
+		statusCode: result.data?.statusCode ?? 200,
+		data: result.data?.data ?? []
+	});
 };

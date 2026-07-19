@@ -10,10 +10,12 @@ import {
 	OrgRolesListResponseSchema,
 	PermissionsCatalogResponseSchema,
 	UpdateMemberResponseSchema,
+	UpdateOrgRoleResponseSchema,
 	UserDirectoryListResponseSchema,
 	type CreateMemberBody,
 	type CreateOrgRoleBody,
-	type UpdateMemberBody
+	type UpdateMemberBody,
+	type UpdateOrgRoleBody
 } from './schema';
 import { type MembersApiPortal, membersBasePath } from './portal';
 
@@ -125,6 +127,27 @@ export const membersClient = {
 			method: 'POST',
 			body,
 			schema: CreateOrgRoleResponseSchema
+		}),
+
+	/** PATCH /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	updateOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		body: UpdateOrgRoleBody,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'PATCH',
+			body,
+			schema: UpdateOrgRoleResponseSchema
 		}),
 
 	listUsers: (

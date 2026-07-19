@@ -119,3 +119,17 @@ export function collectSelectedPermissionIds(
 	}
 	return ids;
 }
+
+/** Diff original vs current permission IDs into add/revoke lists for PATCH. */
+export function diffPermissionIds(
+	originalIds: number[],
+	currentIds: number[]
+): { addPermissions: number[]; revokePermissions: number[] } {
+	const original = new Set(originalIds);
+	const current = new Set(currentIds);
+
+	return {
+		addPermissions: currentIds.filter((id) => !original.has(id)),
+		revokePermissions: originalIds.filter((id) => !current.has(id))
+	};
+}

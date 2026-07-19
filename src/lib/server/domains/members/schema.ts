@@ -192,6 +192,21 @@ export const CreateOrgRoleResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
+/** PATCH /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+export const UpdateOrgRoleBodySchema = v.object({
+	roleName: v.string(),
+	description: v.string(),
+	addPermissions: v.array(v.number()),
+	revokePermissions: v.array(v.number())
+});
+
+export const UpdateOrgRoleResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.optional(v.array(v.unknown()), []),
+	pagination: v.optional(PaginationSchema)
+});
+
 export type MemberListItem = v.InferOutput<typeof MemberListItemSchema>;
 export type MemberDetailItem = v.InferOutput<typeof MemberDetailItemSchema>;
 export type MembersListResponse = v.InferOutput<typeof MembersListResponseSchema>;
@@ -212,3 +227,5 @@ export type OrgRoleDetailItem = v.InferOutput<typeof OrgRoleDetailItemSchema>;
 export type OrgRoleDetailResponse = v.InferOutput<typeof OrgRoleDetailResponseSchema>;
 export type CreateOrgRoleBody = v.InferOutput<typeof CreateOrgRoleBodySchema>;
 export type CreateOrgRoleResponse = v.InferOutput<typeof CreateOrgRoleResponseSchema>;
+export type UpdateOrgRoleBody = v.InferOutput<typeof UpdateOrgRoleBodySchema>;
+export type UpdateOrgRoleResponse = v.InferOutput<typeof UpdateOrgRoleResponseSchema>;

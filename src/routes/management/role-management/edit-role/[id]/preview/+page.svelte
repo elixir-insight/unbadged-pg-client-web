@@ -2,16 +2,24 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Chip } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import type { PermStatus } from '$lib/stores/role-management/role-management';
-	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
+	import {
+		collectSelectedPermissionIds,
+		diffPermissionIds,
+		mapPermissionsCatalog
+	} from '$lib/stores/role-management/permissions-mapper';
+	import { RoleNameConflictError, updateRole } from '$lib/stores/role-management/roles-api';
 	import { Pencil } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	let saving = $state(false);
 
 	const roleId = $derived(page.params.id ?? String(roleFormStore.roleId ?? ''));
 	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
@@ -42,14 +50,79 @@
 		goto(resolve('/management/role-management/edit-role/[id]', { id: roleId }));
 	}
 
-	function handleConfirm() {
+	async function handleConfirm() {
+		if (saving) return;
+
 		const id = roleFormStore.roleId;
-		roleFormStore.reset();
-		goto(
-			resolve('/management/role-management/view-role/[id]', {
-				id: String(id)
-			})
+		if (id === null) {
+			goto(resolve('/management/role-management'));
+			return;
+		}
+
+		if (!roleFormStore.isValid) {
+			const nameError = roleFormStore.validationErrors.name;
+			toast.error(nameError ?? 'Could not update role', {
+				description: nameError
+					? 'Please go back and choose a different role name.'
+					: 'Fill in the role details and select at least one permission.'
+			});
+			goto(resolve('/management/role-management/edit-role/[id]', { id: String(id) }));
+			return;
+		}
+
+		if (!roleFormStore.hasChanges) {
+			toast.error('No changes to save');
+			goto(resolve('/management/role-management/edit-role/[id]', { id: String(id) }));
+			return;
+		}
+
+		const selectedIds = collectSelectedPermissionIds(
+			roleFormStore.permissions,
+			catalog.optionsByModule
 		);
+		const { addPermissions, revokePermissions } = diffPermissionIds(
+			roleFormStore.originalPermissionIds,
+			selectedIds
+		);
+
+		const nameChanged = roleFormStore.name.trim() !== roleFormStore.snapshotName.trim();
+		const descriptionChanged =
+			roleFormStore.description.trim() !== roleFormStore.snapshotDescription.trim();
+
+		saving = true;
+		try {
+			const result = await updateRole(
+				id,
+				{
+					roleName: nameChanged ? roleFormStore.name.trim() : '',
+					description: descriptionChanged ? roleFormStore.description.trim() : '',
+					addPermissions,
+					revokePermissions
+				},
+				'management'
+			);
+
+			toast.success(result.message);
+			roleFormStore.reset();
+			goto(
+				resolve('/management/role-management/view-role/[id]', {
+					id: String(id)
+				})
+			);
+		} catch (e) {
+			if (e instanceof RoleNameConflictError) {
+				toast.error(e.message, {
+					description: 'Please go back and choose a different role name.'
+				});
+				goto(resolve('/management/role-management/edit-role/[id]', { id: String(id) }));
+				return;
+			}
+			toast.error('Could not update role', {
+				description: e instanceof Error ? e.message : 'Something went wrong'
+			});
+		} finally {
+			saving = false;
+		}
 	}
 </script>
 
@@ -63,11 +136,13 @@
 			<Chip variant="outline" class="border-primary/40 bg-primary/10 text-primary">Preview</Chip>
 		</div>
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={goToEdit}>
+			<Button variant="outline" size="sm" disabled={saving} onclick={goToEdit}>
 				<Pencil class="h-4 w-4" />
 				Edit
 			</Button>
-			<Button onclick={handleConfirm}>Confirm &amp; save</Button>
+			<Button disabled={saving} onclick={handleConfirm}>
+				{saving ? 'Saving…' : 'Confirm & save'}
+			</Button>
 		</div>
 	</div>
 

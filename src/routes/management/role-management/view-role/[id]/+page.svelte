@@ -7,7 +7,10 @@
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
-	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
+	import {
+		mapPermissionsCatalog,
+		collectSelectedPermissionIds
+	} from '$lib/stores/role-management/permissions-mapper';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
@@ -93,7 +96,8 @@
 			role?.roleInfo?.roleId ?? 0,
 			role?.roleInfo?.roleName ?? '',
 			description,
-			perms
+			perms,
+			collectSelectedPermissionIds(perms, catalog.optionsByModule)
 		);
 		goto(
 			resolve('/management/role-management/edit-role/[id]', {
