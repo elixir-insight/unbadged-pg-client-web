@@ -36,3 +36,4 @@ export { default as SearchField } from './search-field/search-field.svelte';
 export type { SearchFieldOption } from './search-field/search-field.svelte';
 export { default as Calendar } from './calendar/calendar.svelte';
 export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
+export { default as ErrorPage } from './error-page/error-page.svelte';
