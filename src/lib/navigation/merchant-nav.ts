@@ -3,7 +3,6 @@ import {
 	LayoutDashboard,
 	Wallet,
 	ArrowLeftRight,
-	Receipt,
 	MessageSquareWarning,
 	Landmark,
 	FileText,
@@ -19,11 +18,43 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Payments',
 		items: [
-			{ title: 'Funds', href: '/merchant/funds', icon: Wallet },
-			{ title: 'Transactions', href: '/merchant/transactions', icon: ArrowLeftRight },
-			{ title: 'Collections', href: '/merchant/collections', icon: Receipt },
-			{ title: 'Disputes', href: '/merchant/disputes', icon: MessageSquareWarning },
-			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark }
+			{
+				title: 'Transactions',
+				href: '/merchant/transactions',
+				icon: ArrowLeftRight,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/transactions\/collections$/,
+						title: 'Collections'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements$/,
+						title: 'Disbursements'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/collections\/[^/]+$/,
+						title: 'Transaction Details'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements\/[^/]+$/,
+						title: 'Transaction Details'
+					}
+				]
+			},
+			{
+				title: 'Disputes',
+				href: '/merchant/disputes',
+				icon: MessageSquareWarning,
+				service: 'payin'
+			},
+			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' },
+			{ title: 'Funds', href: '/merchant/funds', icon: Wallet, service: 'payout' },
+			{
+				title: 'Beneficiaries',
+				href: '/merchant/beneficiaries',
+				icon: Users,
+				service: 'payout'
+			}
 		]
 	},
 	{
@@ -37,8 +68,4 @@ export const merchantNav: NavGroup[] = [
 			{ title: 'Role Management', href: '/merchant/roles', icon: ShieldCheck }
 		]
 	}
-	// {
-	// 	title: 'Configuration',
-	// 	items: [{ title: 'Settings', href: '/merchant/settings', icon: Settings }]
-	// }
 ];

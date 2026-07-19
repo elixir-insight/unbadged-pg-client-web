@@ -6,6 +6,7 @@
 	import { managementNav } from '$lib/navigation/management-nav';
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import ProfileCard from '../profile-card/profile-card.svelte';
 	import { CompanyLogoLight, X } from '$lib/assets/icons';
 
@@ -24,6 +25,32 @@
 	};
 
 	const navGroups = $derived(navConfig[app]);
+
+	const visibleNavGroups = $derived(
+		app === 'merchant'
+			? navGroups
+					.map((g) => ({
+						...g,
+						items: g.items.filter((i) => !i.service || merchantSession.hasService(i.service))
+					}))
+					.filter((g) => g.items.length > 0)
+			: navGroups
+	);
+
+	const profileProps = $derived(
+		app === 'merchant' && merchantSession.session
+			? {
+					userName: merchantSession.session.merchantName,
+					userRole: merchantSession.hasBothServices()
+						? 'Collections & Disbursements'
+						: merchantSession.hasPayinAccess()
+							? 'Collections'
+							: 'Disbursements',
+					userInitials: merchantSession.session.merchantName.slice(0, 2).toUpperCase(),
+					vanNumber: merchantSession.session.organizationId
+				}
+			: {}
+	);
 
 	const rootRoutes: Record<AppId, string> = {
 		management: '/management',
@@ -81,7 +108,7 @@
 
 	<!-- Navigation groups -->
 	<nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Main navigation">
-		{#each navGroups as group (group.title)}
+		{#each visibleNavGroups as group (group.title)}
 			<div class="mt-3 first:mt-0">
 				<p class="mb-1 px-2 text-xs tracking-wider text-muted-foreground">
 					{group.title}
@@ -123,5 +150,5 @@
 	</nav>
 
 	<!-- Profile card -->
-	<ProfileCard />
+	<ProfileCard {...profileProps} />
 </aside>

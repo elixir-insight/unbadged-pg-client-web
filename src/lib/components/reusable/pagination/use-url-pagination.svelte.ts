@@ -41,6 +41,7 @@ export function createUrlPagination({
 	const search = $derived(page.url.searchParams.get('search') ?? '');
 	const status = $derived(page.url.searchParams.get('status') ?? '');
 	const statuses = $derived(status ? status.split(',').filter(Boolean) : []);
+	const type = $derived(page.url.searchParams.get('type') ?? '');
 	const currentPage = $derived(Math.ceil(skip / limit) + 1);
 	const pageCount = $derived(Math.max(1, Math.ceil(total() / limit)));
 	const showingText = $derived.by(() => {
@@ -87,6 +88,9 @@ export function createUrlPagination({
 		get statuses() {
 			return statuses;
 		},
+		get type() {
+			return type;
+		},
 		get currentPage() {
 			return currentPage;
 		},
@@ -128,6 +132,14 @@ export function createUrlPagination({
 		/** Same as `setStatus`, for multi-select filters — joins values with a comma. */
 		setStatuses(values: string[]) {
 			navigate({ status: values.length ? values.join(',') : null, skip: '0' }, true);
+		},
+		/** Update type filter and reset to page 1 (replaces history). */
+		setType(value: string) {
+			navigate({ type: value || null, skip: null }, true);
+		},
+		/** Clear all filters (search, status, type) and reset pagination (replaces history). */
+		clearAllFilters() {
+			navigate({ search: null, status: null, type: null, skip: null }, true);
 		}
 	};
 }
