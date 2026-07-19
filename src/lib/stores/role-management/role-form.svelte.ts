@@ -86,6 +86,8 @@ class RoleFormStore {
 	#snapshotName = $state('');
 	#snapshotDescription = $state('');
 	#snapshotPermissions = $state('');
+	/** Org role names used to detect duplicates on create. */
+	#existingRoleNames = $state<string[]>([]);
 
 	get validationErrors() {
 		return validateRoleForm({
@@ -95,12 +97,18 @@ class RoleFormStore {
 				this.permissions,
 				this.#moduleIds,
 				this.#optionsByModule
-			)
+			),
+			existingRoleNames: this.isEditMode ? [] : this.#existingRoleNames,
+			excludeRoleName: this.isEditMode ? this.#snapshotName : undefined
 		});
 	}
 
 	get isValid() {
 		return Object.keys(this.validationErrors).length === 0;
+	}
+
+	setExistingRoleNames(names: string[]) {
+		this.#existingRoleNames = names;
 	}
 
 	hasChanges = $derived.by(() => {
@@ -213,6 +221,7 @@ class RoleFormStore {
 		this.#snapshotPermissions = '';
 		this.#optionsByModule = null;
 		this.#moduleIds = ROLE_MODULES.map((m) => m.id);
+		this.#existingRoleNames = [];
 	}
 
 	loadForEdit(roleId: number, roleName: string, roleDesc: string, perms: PermissionsState) {

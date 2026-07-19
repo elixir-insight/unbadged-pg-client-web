@@ -178,6 +178,20 @@ export const OrgRoleDetailResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
+/** POST /api/v1/{portal}/organizations/{orgId}/roles */
+export const CreateOrgRoleBodySchema = v.object({
+	roleName: v.string(),
+	description: v.string(),
+	permissions: v.array(v.number())
+});
+
+export const CreateOrgRoleResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.optional(v.array(v.unknown()), []),
+	pagination: v.optional(PaginationSchema)
+});
+
 export type MemberListItem = v.InferOutput<typeof MemberListItemSchema>;
 export type MemberDetailItem = v.InferOutput<typeof MemberDetailItemSchema>;
 export type MembersListResponse = v.InferOutput<typeof MembersListResponseSchema>;
@@ -196,3 +210,5 @@ export type ResourcePermissionModule = v.InferOutput<typeof ResourcePermissionMo
 export type PermissionsCatalogResponse = v.InferOutput<typeof PermissionsCatalogResponseSchema>;
 export type OrgRoleDetailItem = v.InferOutput<typeof OrgRoleDetailItemSchema>;
 export type OrgRoleDetailResponse = v.InferOutput<typeof OrgRoleDetailResponseSchema>;
+export type CreateOrgRoleBody = v.InferOutput<typeof CreateOrgRoleBodySchema>;
+export type CreateOrgRoleResponse = v.InferOutput<typeof CreateOrgRoleResponseSchema>;

@@ -2,6 +2,7 @@ import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
 	CreateMemberResponseSchema,
+	CreateOrgRoleResponseSchema,
 	DeleteMemberResponseSchema,
 	MemberDetailResponseSchema,
 	MembersListResponseSchema,
@@ -11,6 +12,7 @@ import {
 	UpdateMemberResponseSchema,
 	UserDirectoryListResponseSchema,
 	type CreateMemberBody,
+	type CreateOrgRoleBody,
 	type UpdateMemberBody
 } from './schema';
 import { type MembersApiPortal, membersBasePath } from './portal';
@@ -103,6 +105,26 @@ export const membersClient = {
 			gatewayToken,
 			method: 'GET',
 			schema: OrgRoleDetailResponseSchema
+		}),
+
+	/** POST /api/v1/{portal}/organizations/{orgId}/roles */
+	createOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		body: CreateOrgRoleBody,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'POST',
+			body,
+			schema: CreateOrgRoleResponseSchema
 		}),
 
 	listUsers: (

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { firstValidationError, formatRoleName, validateRoleForm } from './validation';
+import {
+	firstValidationError,
+	formatRoleName,
+	isRoleNameTaken,
+	normalizeRoleNameKey,
+	validateRoleForm
+} from './validation';
 
 const validBase = {
 	name: 'Finance Manager',
@@ -31,6 +37,27 @@ describe('validateRoleForm', () => {
 		expect(errors.permissions).toBe('Select at least one permission');
 	});
 
+	it('rejects a duplicate role name', () => {
+		const errors = validateRoleForm({
+			...validBase,
+			name: 'Finance Manager',
+			existingRoleNames: ['FINANCE_MANAGER', 'ADMIN']
+		});
+
+		expect(errors.name).toBe('Role name already exists. Please choose a different name.');
+	});
+
+	it('allows the current name when editing', () => {
+		const errors = validateRoleForm({
+			...validBase,
+			name: 'Finance Manager',
+			existingRoleNames: ['FINANCE_MANAGER'],
+			excludeRoleName: 'Finance Manager'
+		});
+
+		expect(errors.name).toBeUndefined();
+	});
+
 	it('returns the first validation error message', () => {
 		const errors = validateRoleForm({
 			...validBase,
@@ -40,6 +67,15 @@ describe('validateRoleForm', () => {
 		});
 
 		expect(firstValidationError(errors)).toBe('Role name is required');
+	});
+});
+
+describe('normalizeRoleNameKey / isRoleNameTaken', () => {
+	it('treats spaces and underscores as equivalent', () => {
+		expect(normalizeRoleNameKey('Finance Manager')).toBe('financemanager');
+		expect(normalizeRoleNameKey('FINANCE_MANAGER')).toBe('financemanager');
+		expect(isRoleNameTaken('Finance Manager', ['FINANCE_MANAGER'])).toBe(true);
+		expect(isRoleNameTaken('Ops Lead', ['FINANCE_MANAGER'])).toBe(false);
 	});
 });
 
