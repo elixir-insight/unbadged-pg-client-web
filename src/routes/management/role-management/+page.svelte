@@ -27,11 +27,11 @@
 	async function loadRoles(reset = false, q = '') {
 		if (!reset && (loading || !hasMore)) return;
 		loading = true;
-		const params = new URLSearchParams({ q });
+		const params = new URLSearchParams({ q, portal: 'management' });
 
 		try {
 			const res = await fetch(`/api/roles?${params}`);
-			const data: { items: RoleItem[] } = await res.json();
+			const data: { items?: RoleItem[] } = await res.json();
 
 			// Single-shot list for now — BFF returns the filtered page; appending the same
 			// response would duplicate cards and loop while the sentinel stays visible.
