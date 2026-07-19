@@ -5,7 +5,9 @@ import {
 	DeleteMemberResponseSchema,
 	MemberDetailResponseSchema,
 	MembersListResponseSchema,
+	OrgRoleDetailResponseSchema,
 	OrgRolesListResponseSchema,
+	PermissionsCatalogResponseSchema,
 	UpdateMemberResponseSchema,
 	UserDirectoryListResponseSchema,
 	type CreateMemberBody,
@@ -84,6 +86,25 @@ export const membersClient = {
 			schema: OrgRolesListResponseSchema
 		}),
 
+	/** GET /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	getOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'GET',
+			schema: OrgRoleDetailResponseSchema
+		}),
+
 	listUsers: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -103,6 +124,23 @@ export const membersClient = {
 				limit: query.limit ?? 1000
 			},
 			schema: UserDirectoryListResponseSchema
+		}),
+
+	/** GET /api/v1/{portal}/permissions — RBAC permission catalog for role management */
+	listPermissions: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/permissions`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'GET',
+			schema: PermissionsCatalogResponseSchema
 		}),
 
 	create: (

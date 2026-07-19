@@ -6,11 +6,15 @@
 	import { Chip } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { ROLE_MODULES } from '$lib/stores/role-management/role-modules';
 	import type { PermStatus } from '$lib/stores/role-management/role-management';
+	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
 	import { Pencil } from '$lib/assets/icons';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	const roleId = $derived(page.params.id ?? String(roleFormStore.roleId ?? ''));
+	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
 
 	$effect(() => {
 		if (!roleFormStore.isEditMode || roleFormStore.roleId === null) {
@@ -19,7 +23,7 @@
 	});
 
 	const modules = $derived(
-		ROLE_MODULES.map((mod) => {
+		catalog.modules.map((mod) => {
 			const perms = roleFormStore.permissions[mod.id];
 			return {
 				name: mod.name,
@@ -49,7 +53,7 @@
 	}
 </script>
 
-<div class="space-y-6 w-full md:w-[75%] m-auto">
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<!-- Header -->
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex flex-wrap items-center gap-3">

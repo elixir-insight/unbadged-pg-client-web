@@ -49,14 +49,14 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 		error(502, { message: result.error.message });
 	}
 
-	const items: RoleItem[] = result.data.data.filter((role) =>
+	const items: RoleItem[] = (result.data?.data ?? []).filter((role) =>
 		query ? role.roleName.toLowerCase().includes(query) : true
 	);
 
 	return json({
 		items,
-		pagination: result.data.pagination,
-		message: result.data.message,
-		statusCode: result.data.statusCode
+		pagination: result.data?.pagination ?? { total: 0, page: 0, limit: 0 },
+		message: result.data?.message ?? '',
+		statusCode: result.data?.statusCode ?? 200
 	});
 };

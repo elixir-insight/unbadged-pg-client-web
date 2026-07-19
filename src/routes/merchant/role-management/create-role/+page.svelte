@@ -4,8 +4,20 @@
 	import { Button, Input, Textarea } from '$lib/components/reusable';
 	import { AccessSelectTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { MERCHANT_ROLE_MODULES } from '$lib/stores/role-management/merchant-role-modules';
 	import { PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
+	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
+	import { untrack } from 'svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
+
+	$effect(() => {
+		const moduleIds = catalog.modules.map((m) => m.id);
+		const optionsByModule = catalog.optionsByModule;
+		untrack(() => roleFormStore.configureCatalog(moduleIds, optionsByModule));
+	});
 </script>
 
 <div class="m-auto w-full space-y-6 md:w-[75%]">
@@ -44,12 +56,13 @@
 	</div>
 
 	<AccessSelectTable
-		modules={MERCHANT_ROLE_MODULES}
+		modules={catalog.modules}
 		title="Access & permissions"
 		description="Select the permissions to grant for this module"
 		permissions={roleFormStore.permissions}
 		permKeys={PERM_KEYS}
 		permLabels={PERM_LABELS}
+		optionsByModule={catalog.optionsByModule}
 		allSelected={roleFormStore.allSelected}
 		onToggle={(moduleId, key) => roleFormStore.toggle(moduleId, key)}
 		onToggleAll={() => roleFormStore.toggleAll()}

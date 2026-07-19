@@ -104,18 +104,18 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 }
 
 export function mapUsersListResponse(response: ApiUsersListResponse): UsersListResponse {
-	const items = response.data.map(mapApiListUser);
+	const items = (response?.data ?? []).map(mapApiListUser);
 	return {
 		items,
 		meta: {
-			total: response.pagination.total,
+			total: response?.pagination?.total ?? 0,
 			roles: getUniqueRoles(items)
 		}
 	};
 }
 
 export function mapUserDetailResponse(response: ApiUserDetailResponse): UserItem | null {
-	const user = response.data[0];
+	const user = response?.data?.[0];
 	return user ? mapApiDetailUser(user) : null;
 }
 

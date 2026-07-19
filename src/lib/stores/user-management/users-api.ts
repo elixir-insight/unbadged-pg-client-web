@@ -89,16 +89,16 @@ export async function fetchUserDirectory(portal?: UsersApiPortal): Promise<Direc
 	const res = await fetch(withPortal('/api/users/directory', portal));
 	if (!res.ok) throw new Error('Failed to fetch user directory');
 
-	const raw: { items: DirectoryUser[] } = await res.json();
-	return raw.items;
+	const raw: { items?: DirectoryUser[] } = await res.json();
+	return raw?.items ?? [];
 }
 
 export async function fetchAssignableRoles(portal?: UsersApiPortal): Promise<AssignableRole[]> {
 	const res = await fetch(withPortal('/api/roles?page=0&limit=100', portal));
 	if (!res.ok) throw new Error('Failed to fetch roles');
 
-	const raw: { items: RoleItem[] } = await res.json();
-	return raw.items.map((role) => ({
+	const raw: { items?: RoleItem[] } = await res.json();
+	return (raw?.items ?? []).map((role) => ({
 		...role,
 		displayName: formatRoleDisplayName(role.roleName)
 	}));

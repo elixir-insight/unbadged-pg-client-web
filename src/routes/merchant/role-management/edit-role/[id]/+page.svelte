@@ -5,15 +5,26 @@
 	import { Button, Input, Textarea } from '$lib/components/reusable';
 	import { AccessSelectTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { MERCHANT_ROLE_MODULES } from '$lib/stores/role-management/merchant-role-modules';
 	import { PERM_KEYS, PERM_LABELS } from '$lib/stores/role-management/role-modules';
+	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
+	import { untrack } from 'svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	const roleId = $derived(page.params.id);
+	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
 
 	$effect(() => {
 		if (!roleFormStore.isEditMode || roleFormStore.roleId === null) {
 			goto(resolve('/merchant/role-management'));
 		}
+	});
+
+	$effect(() => {
+		const moduleIds = catalog.modules.map((m) => m.id);
+		const optionsByModule = catalog.optionsByModule;
+		untrack(() => roleFormStore.configureCatalog(moduleIds, optionsByModule));
 	});
 
 	const canPreview = $derived(roleFormStore.isValid && roleFormStore.hasChanges);
@@ -65,11 +76,12 @@
 	</div>
 
 	<AccessSelectTable
-		modules={MERCHANT_ROLE_MODULES}
+		modules={catalog.modules}
 		title="Access & permissions"
 		permissions={roleFormStore.permissions}
 		permKeys={PERM_KEYS}
 		permLabels={PERM_LABELS}
+		optionsByModule={catalog.optionsByModule}
 		description="Select the permissions to grant for this module"
 		allSelected={roleFormStore.allSelected}
 		onToggle={(moduleId, key) => roleFormStore.toggle(moduleId, key)}

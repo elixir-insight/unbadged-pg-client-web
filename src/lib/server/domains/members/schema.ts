@@ -121,6 +121,63 @@ export const UserDirectoryListResponseSchema = v.object({
 	pagination: v.optional(v.unknown())
 });
 
+/** Permission entry from GET /api/v1/{management|merchant}/permissions */
+export const ResourcePermissionItemSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	resourceName: v.optional(v.string())
+});
+
+export const ResourcePermissionModuleSchema = v.object({
+	module: v.string(),
+	permissions: v.array(ResourcePermissionItemSchema)
+});
+
+export const PermissionsCatalogDataSchema = v.object({
+	permissions: v.array(ResourcePermissionModuleSchema)
+});
+
+export const PermissionsCatalogResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(PermissionsCatalogDataSchema),
+	pagination: v.optional(PaginationSchema)
+});
+
+/** Role detail from GET /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+export const OrgRoleDetailPermissionSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.optional(v.string())
+});
+
+export const OrgRoleDetailUserSchema = v.object({
+	userName: v.string(),
+	email: v.string()
+});
+
+export const OrgRoleDetailInfoSchema = v.object({
+	roleId: v.number(),
+	roleName: v.string(),
+	description: v.optional(v.string(), ''),
+	roleAssignedCount: v.number(),
+	defaultRole: v.boolean()
+});
+
+export const OrgRoleDetailItemSchema = v.object({
+	roleInfo: OrgRoleDetailInfoSchema,
+	permissions: v.array(OrgRoleDetailPermissionSchema),
+	users: v.array(OrgRoleDetailUserSchema)
+});
+
+export const OrgRoleDetailResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(OrgRoleDetailItemSchema),
+	pagination: v.optional(PaginationSchema)
+});
+
 export type MemberListItem = v.InferOutput<typeof MemberListItemSchema>;
 export type MemberDetailItem = v.InferOutput<typeof MemberDetailItemSchema>;
 export type MembersListResponse = v.InferOutput<typeof MembersListResponseSchema>;
@@ -134,3 +191,8 @@ export type UpdateMemberResponse = v.InferOutput<typeof UpdateMemberResponseSche
 export type DeleteMemberResponse = v.InferOutput<typeof DeleteMemberResponseSchema>;
 export type UserDirectoryItem = v.InferOutput<typeof UserDirectoryItemSchema>;
 export type UserDirectoryListResponse = v.InferOutput<typeof UserDirectoryListResponseSchema>;
+export type ResourcePermissionItem = v.InferOutput<typeof ResourcePermissionItemSchema>;
+export type ResourcePermissionModule = v.InferOutput<typeof ResourcePermissionModuleSchema>;
+export type PermissionsCatalogResponse = v.InferOutput<typeof PermissionsCatalogResponseSchema>;
+export type OrgRoleDetailItem = v.InferOutput<typeof OrgRoleDetailItemSchema>;
+export type OrgRoleDetailResponse = v.InferOutput<typeof OrgRoleDetailResponseSchema>;

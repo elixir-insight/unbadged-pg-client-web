@@ -43,7 +43,7 @@ export type RoleItem = {
 export type RolePermission = {
 	name: string;
 	id: number;
-	// description: string;
+	description?: string;
 };
 
 export type RoleUser = {
@@ -57,7 +57,7 @@ export type RoleDetail = {
 		roleName: string;
 		roleAssignedCount: number;
 		defaultRole: boolean;
-		// description: string;
+		description: string;
 	};
 	permissions: RolePermission[];
 	users: RoleUser[];

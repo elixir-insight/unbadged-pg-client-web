@@ -6,23 +6,20 @@
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import {
-		MERCHANT_MODULE_PERMISSION_IDS,
-		MERCHANT_ROLE_MODULES
-	} from '$lib/stores/role-management/merchant-role-modules';
 	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
+	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
-	import { page } from '$app/state';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const { role } = $derived(data);
+	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
 
-	const grantedIds = $derived(new Set(role.permissions.map((p) => p.id)));
+	const grantedIds = $derived(new Set((role?.permissions ?? []).map((p) => p.id)));
 
 	const displayName = $derived(
-		role.roleInfo.roleName
+		(role?.roleInfo?.roleName ?? '')
 			.split('_')
 			.map((w: string) => w.charAt(0) + w.slice(1).toLowerCase())
 			.join(' ')
@@ -37,8 +34,8 @@
 	] as const;
 
 	const modules = $derived(
-		MERCHANT_ROLE_MODULES.map((mod) => {
-			const permIds = MERCHANT_MODULE_PERMISSION_IDS[mod.id] ?? {};
+		catalog.modules.map((mod) => {
+			const permIds = catalog.permissionIds[mod.id] ?? {};
 			const perms = Object.fromEntries(
 				apiPermCols.map((col) => {
 					const permId = permIds[col.apiName];
@@ -51,13 +48,18 @@
 		})
 	);
 
-	const isDefaultRole = $derived(role.roleInfo.defaultRole);
+	const isDefaultRole = $derived(role?.roleInfo?.defaultRole ?? false);
 
-	const description = $derived((page.state as { description?: string }).description ?? '');
+	const description = $derived(role?.roleInfo?.description ?? '');
 
 	function handleEdit() {
+		roleFormStore.configureCatalog(
+			catalog.modules.map((m) => m.id),
+			catalog.optionsByModule
+		);
+
 		const perms: PermissionsState = {};
-		for (const mod of MERCHANT_ROLE_MODULES) {
+		for (const mod of catalog.modules) {
 			perms[mod.id] = {
 				read: false,
 				writeUnrestricted: false,
@@ -67,8 +69,8 @@
 				fullAccess: false
 			};
 		}
-		for (const mod of MERCHANT_ROLE_MODULES) {
-			const permIds = MERCHANT_MODULE_PERMISSION_IDS[mod.id] ?? {};
+		for (const mod of catalog.modules) {
+			const permIds = catalog.permissionIds[mod.id] ?? {};
 			for (const col of apiPermCols) {
 				const permId = permIds[col.apiName];
 				if (permId !== undefined) {
@@ -76,10 +78,15 @@
 				}
 			}
 		}
-		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
+		roleFormStore.loadForEdit(
+			role?.roleInfo?.roleId ?? 0,
+			role?.roleInfo?.roleName ?? '',
+			description,
+			perms
+		);
 		goto(
 			resolve('/merchant/role-management/edit-role/[id]', {
-				id: String(role.roleInfo.roleId)
+				id: String(role?.roleInfo?.roleId ?? '')
 			})
 		);
 	}
@@ -101,7 +108,7 @@
 			</div>
 			<div class="flex items-center gap-1.5 text-sm text-muted-foreground">
 				<Users class="h-4 w-4" />
-				<span>{role.users.length} assigned</span>
+				<span>{role?.users?.length ?? 0} assigned</span>
 			</div>
 		</div>
 
@@ -114,7 +121,7 @@
 				variant="destructive"
 				size="sm"
 				onclick={() => {}}
-				disabled={isDefaultRole || role.users.length > 0}
+				disabled={isDefaultRole || (role?.users?.length ?? 0) > 0}
 			>
 				<Trash2 class="h-4 w-4" />
 				Delete
@@ -136,11 +143,11 @@
 	<div class="rounded-xl border border-border bg-card p-5 shadow">
 		<div class="mb-4">
 			<h2 class="text-sm font-semibold text-foreground">Assigned users</h2>
-			<p class="text-xs text-muted-foreground">{role.users.length} total</p>
+			<p class="text-xs text-muted-foreground">{role?.users?.length ?? 0} total</p>
 		</div>
 
 		<div class="divide-y divide-border">
-			{#each role.users as user (user.email)}
+			{#each role?.users ?? [] as user (user.email)}
 				<div class="flex items-center justify-between py-3">
 					<div class="flex items-center gap-3">
 						<Avatar name={user?.userName} size="default" shape="circle" />

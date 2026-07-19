@@ -5,12 +5,17 @@
 	import { Chip } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
-	import { MERCHANT_ROLE_MODULES } from '$lib/stores/role-management/merchant-role-modules';
 	import type { PermStatus } from '$lib/stores/role-management/role-management';
+	import { mapPermissionsCatalog } from '$lib/stores/role-management/permissions-mapper';
 	import { Pencil } from '$lib/assets/icons';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
 
 	const modules = $derived(
-		MERCHANT_ROLE_MODULES.map((mod) => {
+		catalog.modules.map((mod) => {
 			const perms = roleFormStore.permissions[mod.id];
 			return {
 				name: mod.name,

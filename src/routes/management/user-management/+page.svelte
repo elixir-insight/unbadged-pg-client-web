@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { createUrlPagination, Dropdown, Search } from '$lib/components/reusable';
-	import { UserCard } from '$lib/components/user-management';
+	import { UserCard, UserCardSkeleton } from '$lib/components/user-management';
 	import { Plus, X } from '$lib/assets/icons';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
@@ -21,7 +21,7 @@
 
 	let users = $state<UserItem[]>([]);
 	let availableRoles = $state<string[]>([]);
-	let loading = $state(false);
+	let loading = $state(true);
 	let hasMore = $state(true);
 	let nextPage = $state(1);
 	let total = $state(0);
@@ -96,13 +96,13 @@
 			// Ignore stale responses from an older filter/search request.
 			if (seq !== requestSeq) return;
 
-			total = data.meta.total;
+			total = data?.meta?.total ?? 0;
 
 			if (reset) {
-				users = data.items;
+				users = data?.items ?? [];
 			} else {
 				const seen = new Set(users.map((user) => user.id));
-				const fresh = data.items.filter((user) => !seen.has(user.id));
+				const fresh = (data?.items ?? []).filter((user) => !seen.has(user.id));
 				// Stop infinite-scroll if the API keeps returning the same page/duplicates.
 				if (fresh.length === 0) {
 					hasMore = false;
@@ -115,8 +115,10 @@
 			nextPage = pageToLoad + 1;
 			hasMore = hasFilters
 				? false
-				: data.items.length > 0 &&
-					(data.meta.total > 0 ? users.length < data.meta.total : data.items.length === PAGE_SIZE);
+				: (data?.items?.length ?? 0) > 0 &&
+					((data?.meta?.total ?? 0) > 0
+						? users.length < (data?.meta?.total ?? 0)
+						: (data?.items?.length ?? 0) === PAGE_SIZE);
 		} catch (e) {
 			if (seq !== requestSeq) return;
 			loadError = e instanceof Error ? e.message : 'Failed to load users';
@@ -134,6 +136,8 @@
 
 		hasMore = true;
 		nextPage = 1;
+		users = [];
+		loading = true;
 		void loadUsers(true, { search, status, role });
 	});
 
@@ -254,6 +258,7 @@
 
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		<button
+			type="button"
 			class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
 			onclick={() => {
 				userFormStore.reset();
@@ -269,14 +274,19 @@
 			<span class="text-sm font-medium text-foreground transition-colors">Add user</span>
 		</button>
 
-		{#each users as user (user.id)}
-			<UserCard {user} selected={selectedId === user.id} onclick={() => selectUser(user)} />
-		{/each}
+		{#if loading && users.length === 0}
+			<UserCardSkeleton count={5} />
+		{:else}
+			{#each users as user (user.id)}
+				<UserCard {user} selected={selectedId === user.id} onclick={() => selectUser(user)} />
+			{/each}
+			{#if loading}
+				<UserCardSkeleton count={3} />
+			{/if}
+		{/if}
 	</div>
 
-	{#if loading && users.length === 0}
-		<p class="py-8 text-center text-sm text-muted-foreground">Loading users…</p>
-	{:else if !loading && users.length === 0}
+	{#if !loading && users.length === 0}
 		<div class="py-12 text-center text-sm text-muted-foreground">
 			{#if loadError}
 				{loadError}
@@ -289,9 +299,7 @@
 				{/if}
 			{/if}
 		</div>
-	{:else if loading}
-		<p class="py-4 text-center text-sm text-muted-foreground">Loading more users…</p>
-	{:else if !hasMore && users.length > 0}
+	{:else if !loading && !hasMore && users.length > 0}
 		<p class="py-4 text-center text-sm text-muted-foreground">
 			Showing all {total || users.length} users
 		</p>
