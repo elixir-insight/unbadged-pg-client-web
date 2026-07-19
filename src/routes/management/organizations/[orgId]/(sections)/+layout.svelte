@@ -23,10 +23,14 @@
 
 		const leavingSection = isOrgOnboardingSectionPath(from.url.pathname);
 		const enteringSection = isOrgOnboardingSectionPath(to.url.pathname);
-		const routeChanged = from.url.pathname !== to.url.pathname || from.url.search !== to.url.search;
+		// Only show the overlay when switching sections (pathname), not KYB sub-steps (?step=).
+		const sectionChanged = from.url.pathname !== to.url.pathname;
 
-		if (leavingSection && enteringSection && routeChanged) {
+		if (leavingSection && enteringSection && sectionChanged) {
 			sectionLoading = true;
+			return () => {
+				sectionLoading = false;
+			};
 		}
 	});
 

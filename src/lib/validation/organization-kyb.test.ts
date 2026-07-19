@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+	addressStepFieldsEqual,
+	directorsStepFieldsEqual,
 	firstValidationError,
 	flattenCommunicationAddress,
 	joinStreetAddress,
+	legalStepFieldsEqual,
 	validateAddressStep,
 	validateLegalStep
 } from './organization-kyb';
@@ -119,5 +122,83 @@ describe('organization KYB validation', () => {
 		expect(flattenCommunicationAddress(validAddress)).toBe(
 			'10 Business Park Road, Suite 100, Bengaluru, Karnataka, 560001, India'
 		);
+	});
+
+	it('treats legal fields as equal when phone formatting differs after GET', () => {
+		expect(
+			legalStepFieldsEqual(validLegal, {
+				...validLegal,
+				businessPhone: '+91 9876543210'
+			})
+		).toBe(true);
+		expect(
+			legalStepFieldsEqual(validLegal, {
+				...validLegal,
+				businessPan: 'abcde1234f'
+			})
+		).toBe(true);
+	});
+
+	it('detects legal field changes', () => {
+		expect(
+			legalStepFieldsEqual(validLegal, {
+				...validLegal,
+				gstin: '29ABCDE1234F1Z6'
+			})
+		).toBe(false);
+	});
+
+	it('treats address fields as equal when same-as-registered is unchanged', () => {
+		expect(
+			addressStepFieldsEqual(
+				{ registeredAddress: validAddress, communicationAddress: validAddress },
+				{ registeredAddress: validAddress, communicationAddress: validAddress },
+				true,
+				true
+			)
+		).toBe(true);
+	});
+
+	it('detects address changes and same-as-registered toggles', () => {
+		expect(
+			addressStepFieldsEqual(
+				{ registeredAddress: validAddress, communicationAddress: validAddress },
+				{
+					registeredAddress: validAddress,
+					communicationAddress: { ...validAddress, city: 'Mumbai' }
+				},
+				false,
+				false
+			)
+		).toBe(false);
+		expect(
+			addressStepFieldsEqual(
+				{ registeredAddress: validAddress, communicationAddress: validAddress },
+				{ registeredAddress: validAddress, communicationAddress: validAddress },
+				true,
+				false
+			)
+		).toBe(false);
+	});
+
+	it('treats director fields as equal when formatting differs after GET', () => {
+		const directors = [
+			{
+				name: 'Jane Doe',
+				pan: 'ABCDE1234F',
+				email: 'jane@example.com',
+				phone: '9876543210',
+				aadhar: '2345 6789 0123'
+			}
+		];
+		expect(
+			directorsStepFieldsEqual(directors, [
+				{
+					...directors[0],
+					phone: '+919876543210',
+					aadhar: '234567890123'
+				}
+			])
+		).toBe(true);
 	});
 });

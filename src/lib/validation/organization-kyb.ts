@@ -204,6 +204,80 @@ export interface AddressStepInput {
 	};
 }
 
+type AddressFields = AddressStepInput['registeredAddress'];
+
+function registeredYearEqual(a: number | null | '', b: number | null | ''): boolean {
+	const normalize = (value: number | null | '') => (value === '' || value === null ? null : value);
+	return normalize(a) === normalize(b);
+}
+
+function addressFieldsEqual(a: AddressFields, b: AddressFields): boolean {
+	return (
+		a.line1.trim() === b.line1.trim() &&
+		a.line2.trim() === b.line2.trim() &&
+		a.city.trim() === b.city.trim() &&
+		a.state.trim() === b.state.trim() &&
+		a.pincode.trim() === b.pincode.trim() &&
+		(a.country ?? '').trim() === (b.country ?? '').trim()
+	);
+}
+
+/** Normalized comparison for legal KYB step — ignores phone/PAN formatting differences from GET. */
+export function legalStepFieldsEqual(a: LegalStepInput, b: LegalStepInput): boolean {
+	return (
+		a.gstin.trim().toUpperCase() === b.gstin.trim().toUpperCase() &&
+		normalizePanInput(a.businessPan) === normalizePanInput(b.businessPan) &&
+		normalizeIndianMobilePhone(a.businessPhone) === normalizeIndianMobilePhone(b.businessPhone) &&
+		a.industry.trim() === b.industry.trim() &&
+		a.organizationWebsite.trim() === b.organizationWebsite.trim() &&
+		registeredYearEqual(a.registeredYear, b.registeredYear) &&
+		a.cin.trim().toUpperCase() === b.cin.trim().toUpperCase() &&
+		a.tan.trim().toUpperCase() === b.tan.trim().toUpperCase() &&
+		a.businessType === b.businessType
+	);
+}
+
+/** Normalized comparison for address KYB step. */
+export function addressStepFieldsEqual(
+	a: AddressStepInput,
+	b: AddressStepInput,
+	aSameAsRegistered: boolean,
+	bSameAsRegistered: boolean
+): boolean {
+	if (aSameAsRegistered !== bSameAsRegistered) return false;
+	if (!addressFieldsEqual(a.registeredAddress, b.registeredAddress)) return false;
+	if (aSameAsRegistered) return true;
+	return addressFieldsEqual(a.communicationAddress, b.communicationAddress);
+}
+
+function serializeDirectorsForComparison(
+	directors: Array<{
+		name: string;
+		pan: string;
+		email: string;
+		phone: string;
+		aadhar: string;
+	}>
+): string {
+	return JSON.stringify(
+		directors.map((director) => ({
+			name: director.name.trim(),
+			pan: normalizePanInput(director.pan),
+			email: director.email.trim(),
+			phone: normalizeIndianMobilePhone(director.phone),
+			aadhar: normalizeAadhar(director.aadhar)
+		}))
+	);
+}
+
+/** Normalized comparison for directors KYB step. */
+export function directorsStepFieldsEqual(
+	a: Array<{ name: string; pan: string; email: string; phone: string; aadhar: string }>,
+	b: Array<{ name: string; pan: string; email: string; phone: string; aadhar: string }>
+): boolean {
+	return serializeDirectorsForComparison(a) === serializeDirectorsForComparison(b);
+}
+
 function collectIssues(issues: v.BaseIssue<unknown>[]): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const issue of issues) {

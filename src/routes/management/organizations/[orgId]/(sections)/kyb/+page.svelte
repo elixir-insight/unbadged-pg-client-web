@@ -11,8 +11,11 @@
 	import { createMissingDirectorDocument } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
 	import {
+		addressStepFieldsEqual,
+		directorsStepFieldsEqual,
 		firstValidationError,
 		formatAadharInput,
+		legalStepFieldsEqual,
 		normalizePanInput,
 		validateAddressStep,
 		validateDirectorsStep,
@@ -55,6 +58,13 @@
 
 	let editableKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
 	let editableDirectors = $state(untrack(() => cloneOrganization(organization.directors)));
+	let baselineKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
+	let baselineDirectors = $state(untrack(() => cloneOrganization(organization.directors)));
+	let baselineSameAsRegistered = $state(
+		untrack(() =>
+			addressesEqual(organization.kyb.registeredAddress, organization.kyb.communicationAddress)
+		)
+	);
 	let lastOrgId = $state(untrack(() => organization.id));
 	let sameAsRegistered = $state(
 		untrack(() =>
@@ -66,14 +76,25 @@
 	let saving = $state(false);
 	let formElement = $state<HTMLFormElement | null>(null);
 
+	function captureBaseline() {
+		baselineKyb = cloneOrganization(editableKyb);
+		baselineDirectors = cloneOrganization(editableDirectors);
+		baselineSameAsRegistered = sameAsRegistered;
+	}
+
+	function syncFromOrganization() {
+		editableKyb = cloneOrganization(organization.kyb);
+		editableDirectors = cloneOrganization(organization.directors);
+		sameAsRegistered = addressesEqual(
+			organization.kyb.registeredAddress,
+			organization.kyb.communicationAddress
+		);
+		captureBaseline();
+	}
+
 	$effect(() => {
 		if (organization.id !== lastOrgId) {
-			editableKyb = cloneOrganization(organization.kyb);
-			editableDirectors = cloneOrganization(organization.directors);
-			sameAsRegistered = addressesEqual(
-				organization.kyb.registeredAddress,
-				organization.kyb.communicationAddress
-			);
+			syncFromOrganization();
 			lastOrgId = organization.id;
 			expandedDirectorId = null;
 			fieldErrors = {};
@@ -151,51 +172,27 @@
 
 	const canProceed = $derived(firstValidationError(collectStepValidationErrors()) === null);
 
-	function directorFieldsPayload(
-		directors: Array<{
-			name: string;
-			pan: string;
-			email: string;
-			phone: string;
-			aadhar: string;
-		}>
-	) {
-		return JSON.stringify(
-			directors.map((director) => ({
-				name: director.name.trim(),
-				pan: normalizePanInput(director.pan),
-				email: director.email.trim(),
-				phone: director.phone.trim(),
-				aadhar: director.aadhar.replace(/\D/g, '')
-			}))
-		);
-	}
-
 	function isCurrentStepUnchanged(): boolean {
 		if (currentStep === 'legal') {
-			return (
-				editableKyb.gstin === organization.kyb.gstin &&
-				editableKyb.businessPan === organization.kyb.businessPan &&
-				editableKyb.businessPhone === organization.kyb.businessPhone &&
-				editableKyb.industry === organization.kyb.industry &&
-				editableKyb.organizationWebsite === organization.kyb.organizationWebsite &&
-				editableKyb.registeredYear === organization.kyb.registeredYear &&
-				editableKyb.cin === organization.kyb.cin &&
-				editableKyb.tan === organization.kyb.tan &&
-				editableKyb.businessType === organization.kyb.businessType
-			);
+			return legalStepFieldsEqual(editableKyb, baselineKyb);
 		}
 
 		if (currentStep === 'address') {
-			return (
-				addressesEqual(editableKyb.registeredAddress, organization.kyb.registeredAddress) &&
-				addressesEqual(editableKyb.communicationAddress, organization.kyb.communicationAddress)
+			return addressStepFieldsEqual(
+				{
+					registeredAddress: editableKyb.registeredAddress,
+					communicationAddress: editableKyb.communicationAddress
+				},
+				{
+					registeredAddress: baselineKyb.registeredAddress,
+					communicationAddress: baselineKyb.communicationAddress
+				},
+				sameAsRegistered,
+				baselineSameAsRegistered
 			);
 		}
 
-		return (
-			directorFieldsPayload(editableDirectors) === directorFieldsPayload(organization.directors)
-		);
+		return directorsStepFieldsEqual(editableDirectors, baselineDirectors);
 	}
 
 	function handleNext() {
@@ -252,6 +249,13 @@
 	}
 
 	const onEnhance: SubmitFunction = ({ formData, cancel }) => {
+		if (isCurrentStepUnchanged()) {
+			cancel();
+			saveKyb();
+			navigateAfterSave();
+			return;
+		}
+
 		const validationError = validateCurrentStep();
 		if (validationError) {
 			toast.error('Please fix the highlighted fields', { description: validationError });
@@ -295,6 +299,7 @@
 							? 'Address'
 							: 'Directors';
 				toast.success(`${sectionLabel} saved`, { description: message });
+				captureBaseline();
 				await update({ reset: false });
 				navigateAfterSave();
 				return;

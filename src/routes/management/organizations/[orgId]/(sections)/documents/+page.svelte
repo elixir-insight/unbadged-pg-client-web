@@ -11,7 +11,8 @@
 		fixedRequiredDocuments,
 		privateLimitedExtraDocuments,
 		type DocumentType,
-		type OrganizationDocument
+		type OrganizationDocument,
+		type OrganizationDocumentUpload
 	} from '$lib/data/mockData';
 	import {
 		cloneOrganization,
@@ -286,7 +287,7 @@
 		);
 	}
 
-	function resetDocument(document: OrganizationDocument): OrganizationDocument {
+	function resetDocument<T extends OrganizationDocumentUpload>(document: T): T {
 		return {
 			...document,
 			fileName: '',
