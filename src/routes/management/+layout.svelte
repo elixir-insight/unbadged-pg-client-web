@@ -1,9 +1,16 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { AppShell } from '$lib/components/reusable';
 
 	let { children } = $props();
+
+	const isErrorPage = $derived(page.status >= 400);
 </script>
 
-<AppShell app="management">
+{#if isErrorPage}
 	{@render children()}
-</AppShell>
+{:else}
+	<AppShell app="management">
+		{@render children()}
+	</AppShell>
+{/if}
