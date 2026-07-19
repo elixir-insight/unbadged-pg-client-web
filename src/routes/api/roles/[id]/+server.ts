@@ -233,14 +233,7 @@ const MOCK_ROLE_DETAILS: RoleDetail[] = [
 			{ name: 'write', id: 1026 },
 			{ name: 'read', id: 1027 }
 		],
-		users: [
-			{ userName: 'Karthik Reddy', email: 'karthik.reddy@company.com' },
-			{ userName: 'Meera Joshi', email: 'meera.joshi@company.com' },
-			{ userName: 'Rohan Mehta', email: 'rohan.mehta@company.com' },
-			{ userName: 'Aisha Khan', email: 'aisha.khan@company.com' },
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' },
-			{ userName: 'Pooja Das', email: 'pooja.das@company.com' }
-		]
+		users: []
 	},
 	{
 		roleInfo: {

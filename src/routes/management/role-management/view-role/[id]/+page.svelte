@@ -2,9 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
-	import { Chip } from '$lib/components/reusable/index';
+	import { Chip, Tooltip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
-	import { PermissionDot } from '$lib/components/role-management';
+	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { ROLE_MODULES, MODULE_PERMISSION_IDS } from '$lib/stores/role-management/role-modules';
 	import type { PermissionsState, PermStatus } from '$lib/stores/role-management/role-management';
@@ -14,12 +14,10 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { role } = data;
+	const { role } = $derived(data);
 
-	// Build a Set of granted permission IDs for O(1) lookup
 	const grantedIds = $derived(new Set(role.permissions.map((p) => p.id)));
 
-	// Format SCREAMING_SNAKE_CASE → Title Case
 	const displayName = $derived(
 		role.roleInfo.roleName
 			.split('_')
@@ -27,32 +25,42 @@
 			.join(' ')
 	);
 
-	const permColumns = [
-		{ key: 'read', apiName: 'read', label: 'Read' },
-		{ key: 'writeUnrestricted', apiName: 'write', label: 'Write\n(unrestricted)' },
-		{ key: 'writeRestricted', apiName: 'write-restricted', label: 'Write\n(restricted)' },
-		{ key: 'delete', apiName: 'delete', label: 'Delete' },
-		{ key: 'approve', apiName: 'approve', label: 'Approve' }
+	const apiPermCols = [
+		{ key: 'read', apiName: 'read' },
+		{ key: 'writeUnrestricted', apiName: 'write' },
+		{ key: 'writeRestricted', apiName: 'write-restricted' },
+		{ key: 'delete', apiName: 'delete' },
+		{ key: 'approve', apiName: 'approve' }
 	] as const;
 
 	const modules = $derived(
 		ROLE_MODULES.map((mod) => {
 			const permIds = MODULE_PERMISSION_IDS[mod.id] ?? {};
 			const perms = Object.fromEntries(
-				permColumns.map((col) => {
+				apiPermCols.map((col) => {
 					const permId = permIds[col.apiName];
 					const status: PermStatus =
 						permId !== undefined && grantedIds.has(permId) ? 'granted' : 'denied';
 					return [col.key, status];
 				})
-			) as Record<(typeof permColumns)[number]['key'], PermStatus>;
+			) as Record<(typeof apiPermCols)[number]['key'], PermStatus>;
 			return { name: mod.name, icon: mod.icon, ...perms };
 		})
 	);
 
 	const isDefaultRole = $derived(role.roleInfo.defaultRole);
+	const hasAssignedUsers = $derived(role.users.length > 0);
 
-	// Description is passed from the list page via goto() state
+	const editDisabledReason = $derived(isDefaultRole ? 'Default roles cannot be edited.' : null);
+
+	const deleteDisabledReason = $derived(
+		isDefaultRole
+			? 'Default roles cannot be deleted.'
+			: hasAssignedUsers
+				? 'Remove all assigned users before deleting this role.'
+				: null
+	);
+
 	const description = $derived((page.state as { description?: string }).description ?? '');
 
 	function handleEdit() {
@@ -69,19 +77,23 @@
 		}
 		for (const mod of ROLE_MODULES) {
 			const permIds = MODULE_PERMISSION_IDS[mod.id] ?? {};
-			for (const col of permColumns) {
+			for (const col of apiPermCols) {
 				const permId = permIds[col.apiName];
 				if (permId !== undefined) {
 					perms[mod.id][col.key] = grantedIds.has(permId);
 				}
 			}
 		}
-		roleFormStore.loadForEdit(role.roleInfo.roleName, description, perms);
-		goto(resolve('/management/role-management/edit-role'));
+		roleFormStore.loadForEdit(role.roleInfo.roleId, role.roleInfo.roleName, description, perms);
+		goto(
+			resolve('/management/role-management/edit-role/[id]', {
+				id: String(role.roleInfo.roleId)
+			})
+		);
 	}
 </script>
 
-<div class="space-y-6">
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<!-- Page header -->
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
@@ -91,7 +103,7 @@
 					variant="outline"
 					class={isDefaultRole
 						? 'border-amber-500/30 bg-amber-500/10 text-amber-500 shadow'
-						: 'border-border shadow text-muted-foreground'}
+						: 'border-border text-muted-foreground shadow'}
 				>
 					{isDefaultRole ? 'Default' : 'Custom'}
 				</Chip>
@@ -103,14 +115,33 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={handleEdit} disabled={isDefaultRole}>
-				<Pencil class="h-4 w-4" />
-				Edit role
-			</Button>
-			<Button variant="destructive" size="sm" onclick={() => {}} disabled={isDefaultRole}>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			{#if editDisabledReason}
+				<Tooltip content={editDisabledReason}>
+					<Button variant="outline" size="sm" disabled>
+						<Pencil class="h-4 w-4" />
+						Edit role
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="outline" size="sm" onclick={handleEdit}>
+					<Pencil class="h-4 w-4" />
+					Edit role
+				</Button>
+			{/if}
+
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" size="sm" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" size="sm" onclick={() => {}}>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</Button>
+			{/if}
 		</div>
 	</div>
 
@@ -125,51 +156,7 @@
 	</div>
 
 	<!-- Access & permissions -->
-	<div class="rounded-xl border border-border bg-card p-5 shadow">
-		<div class="mb-4">
-			<h2 class="text-sm font-semibold text-foreground">Access &amp; permissions</h2>
-		</div>
-
-		<div class="overflow-x-auto">
-			<table class="w-full min-w-160">
-				<thead>
-					<tr>
-						<th class="w-60 pb-3 text-left"></th>
-						{#each permColumns as col (col.key)}
-							<th class="min-w-20 pb-3 text-center text-xs font-medium text-muted-foreground">
-								{#each col.label.split('\n') as line, i (i)}
-									{#if i > 0}<br />{/if}{line}
-								{/each}
-							</th>
-						{/each}
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border">
-					{#each modules as mod (mod.name)}
-						<tr>
-							<td class="py-3 pr-4">
-								<div class="flex items-center gap-3">
-									<div
-										class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow"
-									>
-										<mod.icon class="h-4 w-4" />
-									</div>
-									<span class="text-sm text-foreground">{mod.name}</span>
-								</div>
-							</td>
-							{#each permColumns as col (col.key)}
-								<td class="py-3 text-center">
-									<div class="flex justify-center">
-										<PermissionDot status={mod[col.key]} />
-									</div>
-								</td>
-							{/each}
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	</div>
+	<AccessPreviewTable {modules} />
 
 	<!-- Assigned users -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">

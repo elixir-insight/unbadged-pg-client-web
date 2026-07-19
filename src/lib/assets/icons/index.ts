@@ -88,7 +88,6 @@ export { default as TableIcon } from '@lucide/svelte/icons/table';
 export { default as RowsIcon } from '@lucide/svelte/icons/rows-3';
 export { default as DollarSign } from '@lucide/svelte/icons/dollar-sign';
 export { default as Percent } from '@lucide/svelte/icons/percent';
-
 // create org
 export { default as ClipboardListIcon } from '@lucide/svelte/icons/clipboard-list';
 export { default as FileCheck2Icon } from '@lucide/svelte/icons/file-check-2';
@@ -135,3 +134,4 @@ export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
 export { default as UserManagement } from '@lucide/svelte/icons/user-key';
 export { default as Undo } from '@lucide/svelte/icons/undo-2';
+export { default as Mail } from '@lucide/svelte/icons/mail';

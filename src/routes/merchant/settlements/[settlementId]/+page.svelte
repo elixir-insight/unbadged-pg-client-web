@@ -8,12 +8,13 @@
 	import NegativeAmount from '$lib/components/settlements/negative-amount.svelte';
 	import DepositStatusPanel from './deposit-status-panel.svelte';
 	import StatusBadge from '../status-badge.svelte';
-	import PayinStatusBadge from '../../transactions/collections/status-badge.svelte';
+	import { PaymentStatusBadge } from '$lib/components/transactions/collections';
 	import type { PageData } from './$types';
 	import type { SettlementOrder } from '$lib/types/settlement';
+	import type { PayinPaymentStatus } from '$lib/types/payin';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
 	import { RefreshCw } from '$lib/assets/icons';
-	import { getPayinDetail } from '$lib/data/payin-detail-mock';
+	import { getPayinOrderDetail, getPaymentsByOrderId } from '$lib/data/payin-order-mock';
 
 	let { data }: { data: PageData } = $props();
 	const settlement = $derived(data.settlement);
@@ -49,7 +50,7 @@
 		_adjustedReason?: string;
 		_customer: string;
 		_method: string;
-		_status: string;
+		_status: PayinPaymentStatus;
 		amount: string;
 		fee: string;
 		netAmount: string;
@@ -60,14 +61,15 @@
 	// settlement's order rows reflect the real payment, not just its fee math.
 	const orderRows = $derived<OrderDisplayRow[]>(
 		settlement.orders.map((o) => {
-			const txn = getPayinDetail(o.id);
+			const order = getPayinOrderDetail(o.id);
+			const payment = getPaymentsByOrderId(o.id)[0];
 			return {
 				_id: o.id,
 				_description: o.description,
 				_adjustedReason: o.adjusted?.reason,
-				_customer: txn?.customerName ?? '—',
-				_method: txn?.paymentMethod ?? '—',
-				_status: txn?.transactionStatus ?? 'success',
+				_customer: order?.customerName ?? '—',
+				_method: payment?.paymentMethod ?? '—',
+				_status: payment?.paymentStatus ?? 'success',
 				amount: currency.format(o.amount),
 				fee: `−${currency.format(o.fee)}`,
 				netAmount: currency.format(o.netAmount)
@@ -98,7 +100,8 @@
 		{
 			accessorKey: '_status',
 			header: 'Status',
-			cell: (info) => renderComponent(PayinStatusBadge, { status: info.getValue<string>() })
+			cell: (info) =>
+				renderComponent(PaymentStatusBadge, { status: info.getValue<PayinPaymentStatus>() })
 		},
 		{
 			id: 'expand',
