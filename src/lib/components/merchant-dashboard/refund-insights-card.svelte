@@ -35,7 +35,7 @@
 		<p class="text-xs text-muted-foreground">{total} refunds</p>
 	</div>
 
-	<div class="flex h-2.5 mt-6 w-full shrink-0 overflow-hidden rounded-full bg-muted">
+	<div class="mt-6 flex h-2.5 w-full shrink-0 overflow-hidden rounded-full bg-muted">
 		{#each segments as segment (segment.label)}
 			<div
 				class={cn('h-full', segment.color)}
@@ -46,7 +46,7 @@
 
 	<div class="flex min-h-0 flex-1 flex-col justify-evenly">
 		{#each segments as segment (segment.label)}
-			<div class="flex items-center justify-between pt-2 text-sm px-4">
+			<div class="flex items-center justify-between px-4 pt-2 text-sm">
 				<div class="flex items-center gap-3">
 					<span class={cn('size-2.5 shrink-0 rounded-full', segment.color)}></span>
 					<span class="text-muted-foreground">{segment.label}</span>

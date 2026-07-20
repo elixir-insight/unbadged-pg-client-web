@@ -4,8 +4,7 @@
 	import { resolve } from '$app/paths';
 
 	type CollectionsBasePath =
-		| '/merchant/transactions/collections'
-		| '/management/transactions/collections';
+		'/merchant/transactions/collections' | '/management/transactions/collections';
 
 	let {
 		basePath,

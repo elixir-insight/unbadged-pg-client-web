@@ -12,10 +12,7 @@ export type OrganizationActivationInput = {
 };
 
 export type OrganizationActivationField =
-	| 'apiKey'
-	| 'saltKey'
-	| 'businessCertificateType'
-	| 'businessCertificate';
+	'apiKey' | 'saltKey' | 'businessCertificateType' | 'businessCertificate';
 
 export type OrganizationActivationErrors = Partial<Record<OrganizationActivationField, string>>;
 

@@ -55,10 +55,10 @@
 		className
 	)}
 >
-	<p class="shrink-0 text-sm font-semibold mb-2">Settlement insights</p>
+	<p class="mb-2 shrink-0 text-sm font-semibold">Settlement insights</p>
 
 	<div
-		class="flex shrink-0 items-center justify-between rounded-xl bg-linear-to-br from-chart-1/20 via-chart-2/14 to-chart-3/10 p-2 mb-2"
+		class="mb-2 flex shrink-0 items-center justify-between rounded-xl bg-linear-to-br from-chart-1/20 via-chart-2/14 to-chart-3/10 p-2"
 	>
 		<div class="min-w-0">
 			<p class="text-xs font-medium tracking-wide text-muted-foreground">Available funds</p>
@@ -92,7 +92,7 @@
 			<p class="mt-0.5 truncate text-sm font-semibold tracking-tight">{lastSettlementAmount}</p>
 		</div>
 	</div>
-	<div class="flex shrink-0 justify-end mt-3">
+	<div class="mt-3 flex shrink-0 justify-end">
 		<a
 			href={resolve('/merchant/settlements')}
 			class="flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"

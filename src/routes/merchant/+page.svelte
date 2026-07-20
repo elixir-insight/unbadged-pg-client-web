@@ -102,11 +102,11 @@
 				<div class="grid min-h-0 grid-cols-12 gap-3">
 					<TransactionVolumeChart
 						data={transactionVolume}
-						class="col-span-12 min-h-0 h-full lg:col-span-8"
+						class="col-span-12 h-full min-h-0 lg:col-span-8"
 					/>
 					<RecentActivityCard
 						payments={latestPayments}
-						class="col-span-12 min-h-0 h-full lg:col-span-4"
+						class="col-span-12 h-full min-h-0 lg:col-span-4"
 					/>
 				</div>
 
@@ -117,20 +117,20 @@
 						availableFundsChangeLabel="+4.2%"
 						pendingSettlement="₹38,900"
 						lastSettlementAmount="₹7,65,400"
-						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
+						class="col-span-12 h-full min-h-0 md:col-span-6 lg:col-span-4"
 					/>
 					<RefundInsightsCard
 						completed={refundStats.completed}
 						initiated={refundStats.initiated}
 						failed={refundStats.failed}
-						class="col-span-12 min-h-0 h-full md:col-span-6 lg:col-span-4"
+						class="col-span-12 h-full min-h-0 md:col-span-6 lg:col-span-4"
 					/>
 					<RefundsDisputesCard
 						open={3}
 						pending={4}
 						resolved={5}
 						avgResolutionTime="1.8 days"
-						class="col-span-12 min-h-0 h-full md:col-span-12 lg:col-span-4"
+						class="col-span-12 h-full min-h-0 md:col-span-12 lg:col-span-4"
 					/>
 				</div>
 			</div>

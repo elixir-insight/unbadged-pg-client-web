@@ -114,7 +114,7 @@
 			</svg>
 
 			<div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-				<span class="font-mono text-2xl font-semibold tabular-nums text-foreground">
+				<span class="font-mono text-2xl font-semibold text-foreground tabular-nums">
 					{computedTotal}
 				</span>
 				{#if unitLabel}
@@ -132,7 +132,7 @@
 							></span>
 							<span class="text-muted-foreground">{arc.label}</span>
 							<span
-								class="ml-auto font-mono text-[13.5px] font-semibold tabular-nums text-foreground"
+								class="ml-auto font-mono text-[13.5px] font-semibold text-foreground tabular-nums"
 							>
 								{arc.value}
 							</span>

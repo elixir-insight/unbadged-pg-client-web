@@ -158,8 +158,7 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 		// Picker uses user/list IDs; detail only returns supervisorId — resolve name from
 		// members first, then fall back to user directory (same source as the picker).
 		let reportingTo:
-			| { id: number; name: string; employeeId?: string; userEmail?: string }
-			| undefined;
+			{ id: number; name: string; employeeId?: string; userEmail?: string } | undefined;
 		let assignedUsersCount = 0;
 
 		const [membersList, directoryList] = await Promise.all([
