@@ -5,7 +5,6 @@ import { join } from 'node:path';
 const MAX_UPLOAD_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
 const handlerPath = join('build', 'compute', 'default', 'handler.js');
-const envPath = join('build', 'compute', 'default', 'env.js');
 
 if (!existsSync(handlerPath)) {
 	console.log('amplify handler not found — skipping BODY_SIZE_LIMIT patch');
@@ -17,34 +16,14 @@ const handlerPattern = /parseInt\(env\(["']BODY_SIZE_LIMIT["'],\s*["']524288["']
 
 if (!handlerPattern.test(handler)) {
 	console.warn('amplify handler BODY_SIZE_LIMIT default not found — skipping handler patch');
-} else {
-	handler = handler.replace(
-		handlerPattern,
-		`parseInt(env("BODY_SIZE_LIMIT", "${MAX_UPLOAD_FILE_SIZE_BYTES}"))`
-	);
-	writeFileSync(handlerPath, handler);
-	console.log(
-		`Patched amplify handler default BODY_SIZE_LIMIT to ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes (20MB)`
-	);
+	process.exit(0);
 }
 
-if (existsSync(envPath)) {
-	let envFile = readFileSync(envPath, 'utf8');
-
-	if (!envFile.includes('BODY_SIZE_LIMIT_FORCED')) {
-		envFile = envFile.replace(
-			'function env(name, fallback) {',
-			`function env(name, fallback) {
-	if (name === 'BODY_SIZE_LIMIT') {
-		const prefixed = ENV_PREFIX + name;
-		return prefixed in process.env
-			? process.env[prefixed]
-			: name in process.env
-				? process.env[name]
-				: '${MAX_UPLOAD_FILE_SIZE_BYTES}';
-	}`
-		);
-		writeFileSync(envPath, envFile);
-		console.log('Patched amplify env.js to default BODY_SIZE_LIMIT to 20MB');
-	}
-}
+handler = handler.replace(
+	handlerPattern,
+	`parseInt(env("BODY_SIZE_LIMIT", "${MAX_UPLOAD_FILE_SIZE_BYTES}"))`
+);
+writeFileSync(handlerPath, handler);
+console.log(
+	`Patched amplify handler default BODY_SIZE_LIMIT to ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes (20MB)`
+);
