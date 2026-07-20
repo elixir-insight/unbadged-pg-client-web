@@ -5,8 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
+		"build": "vite build && node scripts/patch-amplify-body-size-limit.mjs",
+		"preview": "BODY_SIZE_LIMIT=20971520 vite preview",
 		"prepare": "husky && playwright install chromium",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

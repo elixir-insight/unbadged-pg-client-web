@@ -43,7 +43,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const isPrivateLimited = $derived(organization.kyb.businessType === 'Private Limited');
+	const isPrivateLimited = $derived(organization.kyb?.businessType === 'Private Limited');
 	const documentsLoadError = $derived(data.documentsLoadError);
 
 	let documents = $state(untrack(() => cloneOrganization(data.documents)));
@@ -169,6 +169,15 @@
 				return;
 			}
 
+			if (result.type === 'error') {
+				const message = 'Upload failed unexpectedly. Please try again.';
+				setUploadState(documentId, { phase: 'error', message });
+				documentError = message;
+				documentErrorId = documentId;
+				toast.error('Upload failed', { description: message });
+				return;
+			}
+
 			if (result.type === 'success') {
 				const nextRetryFiles = { ...retryFiles };
 				delete nextRetryFiles[documentId];
@@ -176,8 +185,10 @@
 				clearUploadState(documentId);
 				persist();
 				await invalidate('org-documents');
-				await refreshDocumentsFromServer();
+				await update({ reset: false });
+				await syncDocumentsFromLoad();
 				toast.success('Document uploaded successfully');
+				return;
 			}
 
 			await update({ reset: false });
@@ -253,11 +264,6 @@
 		directors = cloneOrganization(data.directors);
 		choiceSelections = initialChoiceSelections(data.documents);
 		persist();
-	}
-
-	async function refreshDocumentsFromServer() {
-		await invalidate('org-documents');
-		await syncDocumentsFromLoad();
 	}
 
 	function persist() {
