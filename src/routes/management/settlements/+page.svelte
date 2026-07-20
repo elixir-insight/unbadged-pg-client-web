@@ -166,7 +166,7 @@
 			: lastSettlement.status === 'completed'
 				? { text: 'Completed', variant: 'success' }
 				: lastSettlement.status === 'failed'
-					? { text: 'Failed', variant: 'error' }
+					? { text: 'Failed', variant: 'danger' }
 					: { text: 'Pending', variant: 'warning' }
 	);
 

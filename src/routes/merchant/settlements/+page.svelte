@@ -16,7 +16,7 @@
 	import type { StatCardBadge } from '$lib/components/reusable';
 	import UtrCell from '$lib/components/settlements/utr-cell.svelte';
 	import type { DateRange } from 'bits-ui';
-	import { CalendarDate, parseDate } from '@internationalized/date';
+	import { CalendarDate, parseDate, type DateValue } from '@internationalized/date';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { RefreshCw, X } from '$lib/assets/icons';
 	import { goto, invalidate } from '$app/navigation';
@@ -177,7 +177,7 @@
 		const fromDate = page.url.searchParams.get('fromDate');
 		const toDate = page.url.searchParams.get('toDate');
 		if (fromDate && toDate && dateRange.start && dateRange.end) {
-			const fmt = (d: CalendarDate) =>
+			const fmt = (d: DateValue) =>
 				d.toDate('Asia/Kolkata').toLocaleDateString('en-IN', {
 					day: '2-digit',
 					month: 'short'
