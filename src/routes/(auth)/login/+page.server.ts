@@ -55,7 +55,6 @@ export const actions = {
 		const log = locals.logger;
 		const ip = getClientAddress();
 		const formData = await request.formData();
-
 		const raw = {
 			userEmail: String(formData.get('userEmail') ?? ''),
 			password: String(formData.get('password') ?? ''),
