@@ -1,3 +1,4 @@
+//navigation/types.ts
 import type { Component } from 'svelte';
 
 export type AppId = 'merchant' | 'management' | 'partner';
@@ -23,6 +24,10 @@ export type NavChild = {
 	icon: Component;
 	badge?: string;
 	service?: MerchantService;
+	breadcrumbChildren?: {
+		matcher: RegExp;
+		title: string;
+	}[];
 };
 
 export type NavGroup = {

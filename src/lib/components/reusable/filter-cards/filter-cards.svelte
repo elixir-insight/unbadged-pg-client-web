@@ -49,7 +49,7 @@
 				type="button"
 				onclick={() => handleSelect(card.label)}
 				class={cn(
-					'rounded-lg cursor-pointer border p-4 text-left shadow-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+					'cursor-pointer rounded-lg border p-4 text-left shadow-xs transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 					selected === card.label
 						? 'border-primary bg-primary/10 ring-1 ring-primary/20'
 						: 'border-border bg-background hover:border-primary/40 hover:bg-accent hover:shadow-sm'

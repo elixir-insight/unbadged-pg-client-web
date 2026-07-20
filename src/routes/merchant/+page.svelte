@@ -11,21 +11,21 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Collections</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Collections</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Settlements</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Settlements</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Fund Transfers
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Wallet Balance
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
@@ -41,17 +41,17 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Collections</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Collections</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Transactions
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Settlements</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Settlements</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 		</div>
@@ -65,19 +65,19 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Fund Transfers
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Wallet Balance
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Beneficiaries
 				</p>
 				<p class="mt-1 text-2xl font-bold">—</p>

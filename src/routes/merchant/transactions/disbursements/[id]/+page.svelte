@@ -6,8 +6,11 @@
 	import { ArrowUpFromLine, RefreshCw } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import { getPayoutDetail } from '$lib/data/payout-detail-mock';
-	import Timeline from './timeline.svelte';
-	import Details, { type DetailSection } from './details.svelte';
+	import {
+		DisbursementDetails,
+		DisbursementTimeline,
+		type DetailSection
+	} from '$lib/components/transactions/disbursements';
 	import RetryModal from './retry-modal.svelte';
 	import { toast } from '$lib/components/reusable';
 
@@ -168,7 +171,7 @@
 						type="button"
 						onclick={() => (activeTab = 'updates')}
 						class={cn(
-							'-mb-px px-1 pb-3 pt-3.5 text-sm font-medium transition-colors',
+							'-mb-px px-1 pt-3.5 pb-3 text-sm font-medium transition-colors',
 							activeTab === 'updates'
 								? 'border-b-2 border-primary text-primary'
 								: 'text-muted-foreground hover:text-foreground'
@@ -180,7 +183,7 @@
 						type="button"
 						onclick={() => (activeTab = 'details')}
 						class={cn(
-							'-mb-px ml-4 px-1 pb-3 pt-3.5 text-sm font-medium transition-colors',
+							'-mb-px ml-4 px-1 pt-3.5 pb-3 text-sm font-medium transition-colors',
 							activeTab === 'details'
 								? 'border-b-2 border-primary text-primary'
 								: 'text-muted-foreground hover:text-foreground'
@@ -195,9 +198,9 @@
 
 			<div class="px-4 py-5 sm:px-6">
 				{#if activeTab === 'updates'}
-					<Timeline entries={transaction.transactionTimeline} />
+					<DisbursementTimeline entries={transaction.transactionTimeline} />
 				{:else}
-					<Details sections={detailSections} />
+					<DisbursementDetails sections={detailSections} />
 				{/if}
 			</div>
 		</div>

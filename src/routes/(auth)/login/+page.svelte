@@ -177,7 +177,7 @@
 	</div>
 </main>
 
-<footer class="shrink-0 flex flex-col gap-15 bg-background px-5 py-5 text-center sm:px-8 lg:px-10">
+<footer class="flex shrink-0 flex-col gap-15 bg-background px-5 py-5 text-center sm:px-8 lg:px-10">
 	<p class="text-xs text-muted-foreground sm:text-sm">
 		<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
 			Terms and Conditions

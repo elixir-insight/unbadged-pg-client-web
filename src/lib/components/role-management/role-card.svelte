@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { Users } from '$lib/assets/icons';
+	import { Chip } from '$lib/components/reusable';
+	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { cn } from '$lib/utils';
 	import type { RoleItem } from '$lib/stores/role-management/role-management';
+
+	function roleBadgeVariant(defaultRole: boolean): BadgeVariant {
+		return defaultRole ? 'alert' : 'info';
+	}
 
 	let {
 		role,
@@ -39,19 +45,15 @@
 <div
 	id={String(role.roleId)}
 	class={cn(
-		'group/card flex w-full flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md shadow',
+		'group/card flex w-full flex-col overflow-hidden rounded-xl border bg-card shadow transition-all duration-200 hover:border-primary/40 hover:shadow-md',
 		selected ? 'border-primary bg-primary/5' : 'border-border'
 	)}
 >
 	<!-- Clickable top section: icon + name -->
-	<button
-		class="flex cursor-pointer flex-col gap-3 p-4 text-left h-full shadow"
-		{onclick}
-		tabindex="0"
-	>
+	<button class="flex h-full cursor-pointer flex-col gap-3 p-4 text-left" {onclick} tabindex="0">
 		<!-- Icon row + type badge -->
 		<div class="flex items-start justify-between">
-			<div class="flex gap-4 items-center">
+			<div class="flex items-center gap-4">
 				<div
 					class={cn(
 						'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow',
@@ -63,23 +65,16 @@
 				</div>
 
 				<!-- Name -->
-				<p class="text-sm font-semibold leading-tight text-foreground">{displayName}</p>
+				<p class="text-sm leading-tight font-semibold text-foreground">{displayName}</p>
 			</div>
 
-			<span
-				class={cn(
-					'rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow',
-					role.defaultRole
-						? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-						: 'border-primary/30 bg-primary/10 text-primary'
-				)}
-			>
+			<Chip variant={roleBadgeVariant(role.defaultRole)} class="text-[10px] tracking-wide">
 				{role.defaultRole ? 'Default' : 'Custom'}
-			</span>
+			</Chip>
 		</div>
 
 		<!-- Description -->
-		<p class="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{role.description}</p>
+		<p class="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{role.description}</p>
 	</button>
 
 	<!-- Divider -->

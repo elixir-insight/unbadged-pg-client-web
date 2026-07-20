@@ -1,6 +1,9 @@
-<script module>
+<script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import MultiSelect from './multi-select.svelte';
+
+	type MultiSelectProps = ComponentProps<typeof MultiSelect>;
 
 	const { Story } = defineMeta({
 		title: 'Reusable/MultiSelect',
@@ -24,7 +27,7 @@
 
 <!-- Empty selection -->
 <Story name="Empty" args={{ options, placeholder: 'Select frameworks…' }}>
-	{#snippet template(args)}
+	{#snippet template(args: MultiSelectProps)}
 		<div class="w-80">
 			<MultiSelect {...args} />
 		</div>
@@ -33,7 +36,7 @@
 
 <!-- Pre-selected values -->
 <Story name="Pre-selected" args={{ options, value: ['react', 'svelte'] }}>
-	{#snippet template(args)}
+	{#snippet template(args: MultiSelectProps)}
 		<div class="w-80">
 			<MultiSelect {...args} />
 		</div>
@@ -42,7 +45,7 @@
 
 <!-- With disabled option -->
 <Story name="With Disabled Option" args={{ options }}>
-	{#snippet template(args)}
+	{#snippet template(args: MultiSelectProps)}
 		<div class="w-80">
 			<MultiSelect {...args} />
 		</div>
@@ -51,7 +54,7 @@
 
 <!-- Disabled trigger -->
 <Story name="Disabled" args={{ options, disabled: true }}>
-	{#snippet template(args)}
+	{#snippet template(args: MultiSelectProps)}
 		<div class="w-80">
 			<MultiSelect {...args} />
 		</div>

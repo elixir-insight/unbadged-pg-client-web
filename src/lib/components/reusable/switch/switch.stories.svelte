@@ -91,11 +91,11 @@
 		<div class="flex items-center gap-6">
 			<div class="flex flex-col items-center gap-2">
 				<Switch size="default" />
-				<span class="text-muted-foreground text-xs">Default</span>
+				<span class="text-xs text-muted-foreground">Default</span>
 			</div>
 			<div class="flex flex-col items-center gap-2">
 				<Switch size="sm" />
-				<span class="text-muted-foreground text-xs">Small</span>
+				<span class="text-xs text-muted-foreground">Small</span>
 			</div>
 		</div>
 	{/snippet}
@@ -107,19 +107,19 @@
 		<div class="flex items-center gap-6">
 			<div class="flex flex-col items-center gap-2">
 				<Switch checked={false} />
-				<span class="text-muted-foreground text-xs">Off</span>
+				<span class="text-xs text-muted-foreground">Off</span>
 			</div>
 			<div class="flex flex-col items-center gap-2">
 				<Switch checked={true} />
-				<span class="text-muted-foreground text-xs">On</span>
+				<span class="text-xs text-muted-foreground">On</span>
 			</div>
 			<div class="flex flex-col items-center gap-2">
 				<Switch disabled={true} checked={false} />
-				<span class="text-muted-foreground text-xs">Disabled Off</span>
+				<span class="text-xs text-muted-foreground">Disabled Off</span>
 			</div>
 			<div class="flex flex-col items-center gap-2">
 				<Switch disabled={true} checked={true} />
-				<span class="text-muted-foreground text-xs">Disabled On</span>
+				<span class="text-xs text-muted-foreground">Disabled On</span>
 			</div>
 		</div>
 	{/snippet}

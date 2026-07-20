@@ -1,17 +1,18 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
-import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import adapter from 'amplify-adapter';
 const dirname =
 	typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
 	ssr: {
+		external: ['pino', 'pino-pretty'],
 		noExternal: ['bits-ui', 'svelte-toolbelt', 'svelte-sonner', 'vaul-svelte', 'runed']
 	},
 	optimizeDeps: {
@@ -40,9 +41,11 @@ export default defineConfig({
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
+					testTimeout: 60000,
 					browser: {
 						enabled: true,
 						provider: playwright(),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium',
@@ -74,12 +77,13 @@ export default defineConfig({
 				],
 				test: {
 					name: 'storybook',
-					testTimeout: 30000,
+					testTimeout: 60000,
 					fileParallelism: false,
 					browser: {
 						enabled: true,
 						headless: true,
 						provider: playwright({}),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium'
