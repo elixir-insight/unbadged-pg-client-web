@@ -33,7 +33,7 @@
 
 	const colorIndex = $derived(Number(user.id) % ICON_COLORS.length);
 	const color = $derived(ICON_COLORS[colorIndex]);
-	const visibleRoles = $derived(user.roles.slice(0, 2));
+	const visibleRoles = $derived(user.roles.slice(0, 3));
 	const hiddenRoles = $derived(user.roles.slice(2));
 </script>
 
@@ -91,16 +91,9 @@
 				{#if user.roles.length > 0}
 					<div class="flex flex-wrap items-center gap-1.5">
 						{#each visibleRoles as role (role)}
-							<Tooltip.Root>
-								<Tooltip.Trigger class="min-w-0 max-w-full">
-									<Chip variant="outline" class="block max-w-full truncate text-[10px]">
-										{role}
-									</Chip>
-								</Tooltip.Trigger>
-								<Tooltip.Content side="top" class="max-w-xs text-left">
-									{role}
-								</Tooltip.Content>
-							</Tooltip.Root>
+							<Chip variant="outline" class="block max-w-full truncate text-[10px]">
+								{role}
+							</Chip>
 						{/each}
 
 						{#if hiddenRoles.length > 0}

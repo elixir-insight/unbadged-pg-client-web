@@ -1,19 +1,26 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import type { ResolvedPathname } from '$app/types';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/reusable';
 	import { ThumbsUp } from '$lib/assets/icons';
 	import { activationDocumentReady } from '../../completeness';
+	import { isPostOnboardingStatus } from '../../helpers';
 
 	let { data } = $props();
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const canActivate = $derived(activationDocumentReady(organization));
+	const canActivate = $derived(activationDocumentReady());
+	const cancelHref = $derived.by((): ResolvedPathname => {
+		if (isPostOnboardingStatus(organization.status)) {
+			return resolve(`/management/organizations/${orgId}/preview`);
+		}
+		return resolve('/management/organizations/[orgId]/(sections)/kyb', { orgId });
+	});
 
 	function activatePartner() {
-		organization.status = 'ACTIVE';
-		goto(resolve('/management/organizations/[orgId]/manage', { orgId }));
+		goto(resolve('/management/organizations'));
 	}
 </script>
 
@@ -27,7 +34,7 @@
 		`ACTIVE`.
 	</p>
 	<div class="mt-4 flex flex-wrap justify-end gap-2">
-		<Button variant="ghost" href={`/management/organizations/${orgId}/kyb`}>Cancel</Button>
+		<Button variant="ghost" href={cancelHref}>Cancel</Button>
 		<Button disabled={!canActivate} onclick={activatePartner}>
 			<ThumbsUp class="size-4" />
 			Confirm activation

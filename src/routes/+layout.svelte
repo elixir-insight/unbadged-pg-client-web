@@ -5,6 +5,10 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toast } from '$lib/components/reusable';
 	import { merchantSession } from '$lib/stores/auth';
+	import {
+		isKybSubStepNavigation,
+		isPreviewSubSectionNavigation
+	} from './management/organizations/[orgId]/helpers';
 
 	let { data, children } = $props();
 	let isNavigating = $state(false);
@@ -14,12 +18,18 @@
 	});
 
 	onNavigate((navigation) => {
-		isNavigating = true;
-
 		const toPath = navigation.to?.url.pathname ?? '';
 		const fromPath = navigation.from?.url.pathname ?? '';
 		const sectionPath = /\/management\/organizations\/[^/]+\/(documents|integration)(?:\/|$)/;
-		const skipViewTransition = sectionPath.test(toPath) || sectionPath.test(fromPath);
+		const skipViewTransition =
+			sectionPath.test(toPath) ||
+			sectionPath.test(fromPath) ||
+			isKybSubStepNavigation(navigation.from?.url, navigation.to?.url) ||
+			isPreviewSubSectionNavigation(navigation.from?.url, navigation.to?.url);
+
+		if (!skipViewTransition) {
+			isNavigating = true;
+		}
 
 		if (!document.startViewTransition || skipViewTransition) {
 			navigation.complete.then(() => {

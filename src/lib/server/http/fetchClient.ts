@@ -12,7 +12,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		accessToken?: string;
 		gatewayToken?: string;
 		skipAuth?: boolean;
-		method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+		method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 		body?: unknown;
 		query?: Record<string, string | number | undefined>;
 		extraHeaders?: Record<string, string>;
