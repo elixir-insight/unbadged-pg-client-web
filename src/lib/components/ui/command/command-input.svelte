@@ -1,0 +1,26 @@
+<script lang="ts">
+	import { Command as CommandPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
+	import { Search } from '$lib/assets/icons';
+
+	let {
+		ref = $bindable(null),
+		class: className,
+		value = $bindable(''),
+		...restProps
+	}: CommandPrimitive.InputProps = $props();
+</script>
+
+<div class="flex items-center border-b border-border px-3" data-slot="command-input-wrapper">
+	<Search class="mr-2 size-4 shrink-0 opacity-50" />
+	<CommandPrimitive.Input
+		bind:ref
+		bind:value
+		data-slot="command-input"
+		class={cn(
+			'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+			className
+		)}
+		{...restProps}
+	/>
+</div>

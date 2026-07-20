@@ -3,12 +3,7 @@ import type { Component } from 'svelte';
 export type PermStatus = 'granted' | 'denied' | 'unavailable';
 
 export type PermKey =
-	| 'read'
-	| 'writeUnrestricted'
-	| 'writeRestricted'
-	| 'delete'
-	| 'approve'
-	| 'fullAccess';
+	'read' | 'writeUnrestricted' | 'writeRestricted' | 'delete' | 'approve' | 'fullAccess';
 
 export type ModulePermissions = Record<PermKey, boolean>;
 export type PermissionsState = Record<string, ModulePermissions>;

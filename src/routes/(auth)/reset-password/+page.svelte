@@ -166,7 +166,7 @@
 </script>
 
 <main class="flex flex-1 items-center justify-center px-10">
-	<div class="w-full max-w-md flex flex-col gap-17">
+	<div class="flex w-full max-w-md flex-col gap-17">
 		<div class="">
 			<CompanyLogoLight width="200" class="h-auto" />
 		</div>
@@ -287,7 +287,7 @@
 								autocomplete="one-time-code"
 								maxlength="1"
 								value={digit}
-								class="h-20 w-20 rounded-2xl border border-input bg-background text-center text-3xl text-foreground outline-none transition-colors focus:border-ring"
+								class="h-20 w-20 rounded-2xl border border-input bg-background text-center text-3xl text-foreground transition-colors outline-none focus:border-ring"
 								oninput={(event) => handleOtpInput(index, event)}
 								onkeydown={(event) => handleOtpKeydown(index, event)}
 								onpaste={handleOtpPaste}

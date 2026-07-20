@@ -45,15 +45,15 @@
 <div
 	id={String(role.roleId)}
 	class={cn(
-		'group/card flex w-full flex-col overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md shadow',
+		'group/card flex w-full flex-col overflow-hidden rounded-xl border bg-card shadow transition-all duration-200 hover:border-primary/40 hover:shadow-md',
 		selected ? 'border-primary bg-primary/5' : 'border-border'
 	)}
 >
 	<!-- Clickable top section: icon + name -->
-	<button class="flex cursor-pointer flex-col gap-3 p-4 text-left h-full" {onclick} tabindex="0">
+	<button class="flex h-full cursor-pointer flex-col gap-3 p-4 text-left" {onclick} tabindex="0">
 		<!-- Icon row + type badge -->
 		<div class="flex items-start justify-between">
-			<div class="flex gap-4 items-center">
+			<div class="flex items-center gap-4">
 				<div
 					class={cn(
 						'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow',
@@ -65,7 +65,7 @@
 				</div>
 
 				<!-- Name -->
-				<p class="text-sm font-semibold leading-tight text-foreground">{displayName}</p>
+				<p class="text-sm leading-tight font-semibold text-foreground">{displayName}</p>
 			</div>
 
 			<Chip variant={roleBadgeVariant(role.defaultRole)} class="text-[10px] tracking-wide">

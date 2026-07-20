@@ -38,13 +38,19 @@
 			: navGroups
 	);
 
+	const settingsHrefs: Partial<Record<AppId, string>> = {
+		management: '/management/settings',
+		merchant: '/merchant/settings'
+	};
+
 	const profileProps = $derived(
 		merchantSession.session?.merchantName
 			? {
 					userName: merchantSession.session.merchantName,
 					userRole: formatUserType(merchantSession.session.userType ?? ''),
 					userInitials: getUserInitials(merchantSession.session.merchantName),
-					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {})
+					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {}),
+					...(settingsHrefs[app] ? { settingsHref: settingsHrefs[app] } : {})
 				}
 			: null
 	);
@@ -57,7 +63,7 @@
 
 	function isActive(href: string): boolean {
 		if (page.url.pathname === href) return true;
-		if (href === rootRoutes[app]) return false;
+		if (href === rootRoutes[app]) return page.route.id?.includes('/(dashboard)') ?? false;
 		return page.url.pathname.startsWith(href + '/');
 	}
 
@@ -87,7 +93,7 @@
 >
 	<!-- Sidebar header -->
 	<div
-		class="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border mt-4 px-3"
+		class="mt-4 flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
 	>
 		<div class="flex min-w-0 items-center gap-2">
 			<CompanyLogoLight class=" shrink-0" />
@@ -95,7 +101,7 @@
 
 		<!-- Mobile: close drawer -->
 		<button
-			class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
+			class="relative flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
 			onclick={() => (isMobileOpen = false)}
 			aria-label="Close navigation"
 		>
@@ -116,7 +122,7 @@
 						<li class="relative">
 							{#if isActive(item.href)}
 								<span
-									class="sidebar-active-indicator absolute left-0 inset-y-1 w-0.5 rounded-r-full bg-primary"
+									class="sidebar-active-indicator absolute inset-y-1 left-0 w-0.5 rounded-r-full bg-primary"
 								></span>
 							{/if}
 							<a
@@ -133,7 +139,7 @@
 								<span class="flex-1 truncate">{item.title}</span>
 								{#if item.badge}
 									<span
-										class="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
+										class="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none font-semibold text-primary-foreground"
 									>
 										{item.badge}
 									</span>

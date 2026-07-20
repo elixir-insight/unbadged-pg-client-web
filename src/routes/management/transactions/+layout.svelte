@@ -88,7 +88,7 @@
 	</div>
 
 	{#if !isDetailPage}
-		<nav class="border-border flex gap-1 border-b">
+		<nav class="flex gap-1 border-b border-border">
 			{#each tabs as tab (tab.path)}
 				<a
 					href={tab.path === '/management/transactions/collections'
@@ -97,7 +97,7 @@
 					class="relative px-3 pb-2 text-sm font-medium transition-colors {page.url.pathname.startsWith(
 						resolve(tab.path)
 					)
-						? 'text-foreground border-foreground -mb-px border-b-2'
+						? '-mb-px border-b-2 border-foreground text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 				>
 					{tab.label}

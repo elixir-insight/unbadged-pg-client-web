@@ -1,70 +1,96 @@
 <script lang="ts">
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
+	import { beforeNavigate, goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Button, Chip, Dropdown } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
-	import { buttonVariants } from '$lib/components/ui/button';
-	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import {
 		documentChoiceGroups,
 		fixedRequiredDocuments,
 		privateLimitedExtraDocuments,
-		type DocumentStatus,
 		type DocumentType,
-		type OrganizationDocument
+		type OrganizationDocument,
+		type OrganizationDocumentUpload
 	} from '$lib/data/mockData';
 	import {
 		cloneOrganization,
 		createChipSnippet,
 		getAdjacentFlowSteps,
-		previewPath,
-		todayIso
+		flowStepHref,
+		type FlowStepKey
 	} from '../../helpers';
+	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
-
-	type UploadableDocument = Pick<
-		OrganizationDocument,
-		'id' | 'fileName' | 'uploadedDate' | 'status'
-	> &
-		Partial<Pick<OrganizationDocument, 'documentType' | 'optional' | 'activationGate'>>;
+	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
+	import DocumentPreviewModal from './document-preview-modal.svelte';
+	import DocumentActionsMenu from './document-actions-menu.svelte';
+	import {
+		type DocumentUploadState,
+		documentStatusLabel,
+		documentStatusVariant,
+		getDocumentUploadState
+	} from './document-upload-state';
 
 	let { data } = $props();
 
+	type UploadableDocument = Pick<
+		OrganizationDocument,
+		'id' | 'fileName' | 'uploadedDate' | 'status' | 'previewUrl' | 'fileType'
+	> &
+		Partial<Pick<OrganizationDocument, 'documentType' | 'optional' | 'activationGate'>>;
+
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const isPrivateLimited = $derived(organization.kyb.businessType === 'Private Limited');
+	const isPrivateLimited = $derived(organization.kyb?.businessType === 'Private Limited');
+	const documentsLoadError = $derived(data.documentsLoadError);
 
-	let documents = $state(untrack(() => cloneOrganization(organization.documents)));
-	let directors = $state(untrack(() => cloneOrganization(organization.directors)));
+	let documents = $state(untrack(() => cloneOrganization(data.documents)));
+	let directors = $state(untrack(() => cloneOrganization(data.directors)));
 	let lastOrgId = $state(untrack(() => organization.id));
 	let documentError = $state('');
 	let documentErrorId = $state('');
 	let choiceSelections = $state<Record<string, DocumentType>>(
-		untrack(() => initialChoiceSelections(organization.documents))
+		untrack(() => initialChoiceSelections(data.documents))
 	);
-	let draftSaved = $state(false);
-	let savedClearTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+	let previewOpen = $state(false);
+	let previewTitle = $state('Document preview');
+	let previewUrl = $state('');
+	let previewFileType = $state<string | undefined>(undefined);
+	let uploadStates = $state<Record<string, DocumentUploadState>>({});
+	let retryFiles = $state<Record<string, File>>({});
+	let orgUploadForm = $state<HTMLFormElement | null>(null);
+	let orgUploadInput = $state<HTMLInputElement | null>(null);
+	let directorUploadForm = $state<HTMLFormElement | null>(null);
+	let directorUploadInput = $state<HTMLInputElement | null>(null);
+	let directorUploadDirectorId = $state<HTMLInputElement | null>(null);
+	let activeUploadDocumentId = $state('');
+	let navigating = $state(false);
+
+	untrack(() => {
+		data.organization.documents = cloneOrganization(data.documents);
+		data.organization.directors = cloneOrganization(data.directors);
+		if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
+	});
 
 	$effect(() => {
 		if (organization.id !== lastOrgId) {
-			documents = cloneOrganization(organization.documents);
-			directors = cloneOrganization(organization.directors);
-			choiceSelections = initialChoiceSelections(organization.documents);
+			documents = cloneOrganization(data.documents);
+			directors = cloneOrganization(data.directors);
+			choiceSelections = initialChoiceSelections(data.documents);
 			lastOrgId = organization.id;
 			documentError = '';
 			documentErrorId = '';
-			clearSavedConfirmation();
+			uploadStates = {};
+			retryFiles = {};
+			data.organization.documents = cloneOrganization(data.documents);
+			data.organization.directors = cloneOrganization(data.directors);
+			if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
 		}
 	});
 
-	$effect(() => {
-		return () => {
-			if (savedClearTimer) clearTimeout(savedClearTimer);
-		};
-	});
-
-	const adjacent = $derived(getAdjacentFlowSteps(organization.category, 'documents'));
+	const adjacent = $derived(getAdjacentFlowSteps('documents'));
 
 	const fixedDocs = $derived(
 		fixedRequiredDocuments.map((type) => ensureOrgDocument(type, documents))
@@ -74,22 +100,19 @@
 			? privateLimitedExtraDocuments.map((type) => ensureOrgDocument(type, documents))
 			: []
 	);
+	const organizationLogoDoc = $derived(ensureOrgDocument('Organization logo', documents));
 	const otherDocs = $derived(
-		documents.filter((document) => document.activationGate || document.optional)
+		documents.filter(
+			(document) =>
+				(document.activationGate || document.optional) &&
+				document.documentType !== 'Organization logo'
+		)
 	);
 
 	beforeNavigate(({ to }) => {
 		if (!to || to.route.id === '/management/organizations') return;
 		persist();
 	});
-
-	function clearSavedConfirmation() {
-		draftSaved = false;
-		if (savedClearTimer) {
-			clearTimeout(savedClearTimer);
-			savedClearTimer = null;
-		}
-	}
 
 	function initialChoiceSelections(docs: OrganizationDocument[]): Record<string, DocumentType> {
 		const selections: Record<string, DocumentType> = {};
@@ -116,69 +139,208 @@
 		};
 	}
 
-	function statusPillVariant(status: DocumentStatus): BadgeVariant {
-		if (status === 'Uploaded' || status === 'Approved') return 'success';
-		if (status === 'Rejected') return 'error';
-		return 'warning';
+	function assignFileToInput(input: HTMLInputElement, file: File, fieldName: string) {
+		const dataTransfer = new DataTransfer();
+		dataTransfer.items.add(file);
+		input.name = fieldName;
+		input.files = dataTransfer.files;
 	}
 
-	function isUploadedOrBetter(status: DocumentStatus): boolean {
-		return status === 'Uploaded' || status === 'In Review' || status === 'Approved';
+	const orgUploadEnhance: SubmitFunction = () => {
+		const documentId = activeUploadDocumentId;
+		documentError = '';
+		documentErrorId = '';
+		setUploadState(documentId, { phase: 'uploading', progress: null });
+
+		return async ({ result, update }) => {
+			if (result.type === 'failure') {
+				const message =
+					result.data &&
+					typeof result.data === 'object' &&
+					'message' in result.data &&
+					typeof result.data.message === 'string'
+						? result.data.message
+						: 'Upload failed';
+				setUploadState(documentId, { phase: 'error', message });
+				documentError = message;
+				documentErrorId = documentId;
+				toast.error('Upload failed', { description: message });
+				await update({ reset: false });
+				return;
+			}
+
+			if (result.type === 'error') {
+				const message = 'Upload failed unexpectedly. Please try again.';
+				setUploadState(documentId, { phase: 'error', message });
+				documentError = message;
+				documentErrorId = documentId;
+				toast.error('Upload failed', { description: message });
+				return;
+			}
+
+			if (result.type === 'success') {
+				const nextRetryFiles = { ...retryFiles };
+				delete nextRetryFiles[documentId];
+				retryFiles = nextRetryFiles;
+				clearUploadState(documentId);
+				persist();
+				await invalidate('org-documents');
+				await update({ reset: false });
+				await syncDocumentsFromLoad();
+				toast.success('Document uploaded successfully');
+				return;
+			}
+
+			await update({ reset: false });
+		};
+	};
+
+	const directorUploadEnhance: SubmitFunction = orgUploadEnhance;
+
+	function applyDirectorUpload(
+		directorId: string,
+		field: 'aadharDocument' | 'panDocument',
+		file: File
+	) {
+		if (!directorUploadForm || !directorUploadInput || !directorUploadDirectorId) return;
+
+		const fieldName = directorFormDataFieldName(field);
+		const documentId = directors.find((entry) => entry.id === directorId)?.[field].id ?? '';
+
+		retryFiles = { ...retryFiles, [documentId]: file };
+		activeUploadDocumentId = documentId;
+		directorUploadDirectorId.value = directorId;
+		assignFileToInput(directorUploadInput, file, fieldName);
+		directorUploadForm.requestSubmit();
+	}
+
+	function applyOrgUpload(document: OrganizationDocument, file: File) {
+		if (!orgUploadForm || !orgUploadInput) return;
+
+		const fieldName = formDataFieldName(document.documentType ?? 'document');
+		retryFiles = { ...retryFiles, [document.id]: file };
+		activeUploadDocumentId = document.id;
+		assignFileToInput(orgUploadInput, file, fieldName);
+		orgUploadForm.requestSubmit();
+	}
+
+	function setUploadState(documentId: string, state: DocumentUploadState) {
+		uploadStates = { ...uploadStates, [documentId]: state };
+	}
+
+	function clearUploadState(documentId: string) {
+		if (!(documentId in uploadStates)) return;
+		const next = { ...uploadStates };
+		delete next[documentId];
+		uploadStates = next;
+	}
+
+	function uploadStateFor(documentId: string): DocumentUploadState {
+		return getDocumentUploadState(uploadStates, documentId);
+	}
+
+	function retryDocumentUpload(
+		document: UploadableDocument,
+		onReplace: (file: File) => void | Promise<void>
+	) {
+		const file = retryFiles[document.id];
+		if (file) {
+			void onReplace(file);
+			return;
+		}
+		clearUploadState(document.id);
+	}
+
+	function openDocumentPreview(title: string, document: UploadableDocument) {
+		if (!document.previewUrl) return;
+		previewTitle = title;
+		previewUrl = document.previewUrl;
+		previewFileType = document.fileType;
+		previewOpen = true;
+	}
+
+	async function syncDocumentsFromLoad() {
+		documents = cloneOrganization(data.documents);
+		directors = cloneOrganization(data.directors);
+		choiceSelections = initialChoiceSelections(data.documents);
+		persist();
 	}
 
 	function persist() {
-		organization.documents = cloneOrganization(documents);
-		organization.directors = cloneOrganization(directors);
-		organization.kyb.directors = organization.directors;
+		data.organization.documents = cloneOrganization(documents);
+		data.organization.directors = cloneOrganization(directors);
+		if (data.organization.kyb) data.organization.kyb.directors = data.organization.directors;
 	}
 
-	function saveAsDraft() {
+	function navigateAfterSave(step: FlowStepKey) {
 		persist();
-		draftSaved = true;
-		if (savedClearTimer) clearTimeout(savedClearTimer);
-		savedClearTimer = setTimeout(() => {
-			draftSaved = false;
-			savedClearTimer = null;
-		}, 3000);
-	}
-
-	function navigateAfterSave(href: string) {
-		persist();
-		goto(resolve(href as '/'));
+		navigating = true;
+		goto(resolve(flowStepHref(orgId, step) as '/'));
 	}
 
 	function goNext() {
 		if (adjacent.next) {
-			navigateAfterSave(adjacent.next.href(orgId));
+			navigateAfterSave(adjacent.next.key);
 			return;
 		}
-		navigateAfterSave(previewPath(orgId));
+		navigateAfterSave('review');
 	}
 
-	function upsertOrgDocument(document: OrganizationDocument) {
-		const index = documents.findIndex((entry) => entry.id === document.id);
-		if (index === -1) {
-			documents = [...documents, document];
-			return;
-		}
-		documents = documents.map((entry, entryIndex) => (entryIndex === index ? document : entry));
+	function matchesDocument(left: OrganizationDocument, right: OrganizationDocument): boolean {
+		if (left.id === right.id) return true;
+		return Boolean(
+			left.documentType && right.documentType && left.documentType === right.documentType
+		);
 	}
 
-	function applyOrgUpload(document: OrganizationDocument, file: File) {
-		clearSavedConfirmation();
-		documentError = '';
-		documentErrorId = '';
-		upsertOrgDocument({
+	function resetDocument<T extends OrganizationDocumentUpload>(document: T): T {
+		return {
 			...document,
-			fileName: file.name,
-			uploadedDate: todayIso(),
-			status: 'Uploaded'
-		});
+			fileName: '',
+			uploadedDate: undefined,
+			previewUrl: undefined,
+			fileType: undefined,
+			status: 'Pending'
+		};
+	}
+
+	function deleteOrgDocument(document: OrganizationDocument) {
+		documents = documents.map((entry) =>
+			matchesDocument(entry, document) ? resetDocument(entry) : entry
+		);
+		clearUploadState(document.id);
+		const nextRetryFiles = { ...retryFiles };
+		delete nextRetryFiles[document.id];
+		retryFiles = nextRetryFiles;
 		persist();
+		toast.success('Document deleted');
+	}
+
+	function deleteDirectorDocument(directorId: string, field: 'aadharDocument' | 'panDocument') {
+		const director = directors.find((entry) => entry.id === directorId);
+		const documentId = director?.[field].id ?? '';
+
+		directors = directors.map((entry) =>
+			entry.id === directorId
+				? {
+						...entry,
+						[field]: resetDocument(entry[field])
+					}
+				: entry
+		);
+
+		if (documentId) {
+			clearUploadState(documentId);
+			const nextRetryFiles = { ...retryFiles };
+			delete nextRetryFiles[documentId];
+			retryFiles = nextRetryFiles;
+		}
+
+		persist();
+		toast.success('Document deleted');
 	}
 
 	function selectChoiceOption(groupKey: string, option: DocumentType) {
-		clearSavedConfirmation();
 		const group = documentChoiceGroups.find((entry) => entry.key === groupKey);
 		if (!group) return;
 
@@ -213,72 +375,49 @@
 		return ensureOrgDocument(type, documents);
 	}
 
-	function applyDirectorUpload(
-		directorId: string,
-		field: 'aadharDocument' | 'panDocument',
-		file: File
-	) {
-		clearSavedConfirmation();
-		documentError = '';
-		documentErrorId = '';
-		directors = directors.map((entry) =>
-			entry.id === directorId
-				? {
-						...entry,
-						[field]: {
-							...entry[field],
-							fileName: file.name,
-							uploadedDate: todayIso(),
-							status: 'Uploaded' as const
-						}
-					}
-				: entry
-		);
-		persist();
-	}
-
 	function choiceGroupOptions(groupKey: string): DropdownOption[] {
 		const group = documentChoiceGroups.find((entry) => entry.key === groupKey);
 		return (group?.options ?? []).map((option) => ({ value: option, label: option }));
 	}
-
-	function onFileInputChange(documentId: string, event: Event, onFile: (file: File) => void) {
-		const input = event.currentTarget as HTMLInputElement;
-		const file = input.files?.[0];
-		if (!file) {
-			documentError = 'Select a file before uploading.';
-			documentErrorId = documentId;
-			return;
-		}
-		onFile(file);
-		input.value = '';
-	}
 </script>
 
-{#snippet browseButton(document: UploadableDocument, onFile: (file: File) => void)}
-	<label class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'cursor-pointer')}>
-		<input
-			type="file"
-			class="sr-only"
-			onchange={(event) => onFileInputChange(document.id, event, onFile)}
-		/>
-		{isUploadedOrBetter(document.status) ? 'Replace' : 'Browse file'}
-	</label>
+{#snippet documentStatusChip(document: UploadableDocument)}
+	{@const uploadState = uploadStateFor(document.id)}
+	<Chip
+		variant={documentStatusVariant(document.status, uploadState)}
+		class="h-5 rounded-full px-2 text-xs font-medium"
+		children={createChipSnippet(documentStatusLabel(document.status, uploadState))}
+	/>
 {/snippet}
 
-{#snippet statusPill(status: DocumentStatus)}
-	<Chip
-		variant={statusPillVariant(status)}
-		class="h-5 rounded-full px-2 text-xs font-medium"
-		children={createChipSnippet(status)}
-	/>
+{#snippet uploadProgressBar(documentId: string)}
+	{@const uploadState = uploadStateFor(documentId)}
+	{#if uploadState.phase === 'uploading'}
+		<div
+			class="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted"
+			role="progressbar"
+			aria-valuemin="0"
+			aria-valuemax="100"
+			aria-valuenow={uploadState.progress ?? undefined}
+			aria-busy={uploadState.progress === null ? 'true' : undefined}
+		>
+			<div
+				class={cn(
+					'h-full rounded-full bg-primary',
+					uploadState.progress === null ? 'w-1/3 animate-pulse' : 'transition-[width] duration-150'
+				)}
+				style:width={uploadState.progress === null ? undefined : `${uploadState.progress}%`}
+			></div>
+		</div>
+	{/if}
 {/snippet}
 
 {#snippet documentRow(
 	document: UploadableDocument,
 	title: string,
 	required: boolean,
-	onFile: (file: File) => void
+	onReplace: (file: File) => void | Promise<void>,
+	onDelete: () => void
 )}
 	<div class="border-b border-border py-2.5">
 		<div class="flex items-center gap-3">
@@ -288,10 +427,18 @@
 				{/if}
 				{title}
 			</p>
-			{@render statusPill(document.status)}
-			{@render browseButton(document, onFile)}
+			{@render documentStatusChip(document)}
+			<DocumentActionsMenu
+				{document}
+				uploadState={uploadStateFor(document.id)}
+				onPreview={() => openDocumentPreview(title, document)}
+				{onReplace}
+				{onDelete}
+				onRetry={() => retryDocumentUpload(document, onReplace)}
+			/>
 		</div>
-		{#if documentError && documentErrorId === document.id}
+		{@render uploadProgressBar(document.id)}
+		{#if documentError && documentErrorId === document.id && uploadStateFor(document.id).phase !== 'error'}
 			<p class="mt-1.5 text-sm text-destructive">{documentError}</p>
 		{/if}
 	</div>
@@ -313,10 +460,18 @@
 				/>
 			</div>
 			<div class="min-w-0 flex-1" aria-hidden="true"></div>
-			{@render statusPill(document.status)}
-			{@render browseButton(document, (file) => applyOrgUpload(document, file))}
+			{@render documentStatusChip(document)}
+			<DocumentActionsMenu
+				{document}
+				uploadState={uploadStateFor(document.id)}
+				onPreview={() => openDocumentPreview(document.documentType ?? groupLabel, document)}
+				onReplace={(file) => applyOrgUpload(document, file)}
+				onDelete={() => deleteOrgDocument(document)}
+				onRetry={() => retryDocumentUpload(document, (file) => applyOrgUpload(document, file))}
+			/>
 		</div>
-		{#if documentError && documentErrorId === document.id}
+		{@render uploadProgressBar(document.id)}
+		{#if documentError && documentErrorId === document.id && uploadStateFor(document.id).phase !== 'error'}
 			<p class="mt-1.5 text-sm text-destructive">{documentError}</p>
 		{/if}
 	</div>
@@ -328,13 +483,34 @@
 		<p class="mt-1 text-sm text-muted-foreground">
 			Upload required documents and supporting files.
 		</p>
+		{#if documentsLoadError}
+			<p class="mt-2 text-sm text-muted-foreground">
+				Could not load uploaded documents: {documentsLoadError}
+			</p>
+		{/if}
 	</div>
+
+	{#if organizationLogoDoc}
+		<section class="space-y-1">
+			{@render documentRow(
+				organizationLogoDoc,
+				'Organization logo',
+				false,
+				(file) => applyOrgUpload(organizationLogoDoc, file),
+				() => deleteOrgDocument(organizationLogoDoc)
+			)}
+		</section>
+	{/if}
 
 	<section class="space-y-1">
 		<h3 class="pb-1 text-sm font-semibold">Required documents</h3>
 		{#each fixedDocs as document (document.id)}
-			{@render documentRow(document, document.documentType, true, (file) =>
-				applyOrgUpload(document, file)
+			{@render documentRow(
+				document,
+				document.documentType,
+				true,
+				(file) => applyOrgUpload(document, file),
+				() => deleteOrgDocument(document)
 			)}
 		{/each}
 	</section>
@@ -350,8 +526,12 @@
 		<section class="space-y-1">
 			<h3 class="pb-1 text-sm font-semibold">Private Limited documents</h3>
 			{#each privateLimitedDocs as document (document.id)}
-				{@render documentRow(document, document.documentType, true, (file) =>
-					applyOrgUpload(document, file)
+				{@render documentRow(
+					document,
+					document.documentType,
+					true,
+					(file) => applyOrgUpload(document, file),
+					() => deleteOrgDocument(document)
 				)}
 			{/each}
 		</section>
@@ -364,11 +544,19 @@
 				<h4 class="pb-1 text-sm font-medium text-muted-foreground">
 					{director.name || 'Director'} (Director)
 				</h4>
-				{@render documentRow(director.aadharDocument, 'Aadhar Card', false, (file) =>
-					applyDirectorUpload(director.id, 'aadharDocument', file)
+				{@render documentRow(
+					director.aadharDocument,
+					'Aadhar Card',
+					false,
+					(file) => applyDirectorUpload(director.id, 'aadharDocument', file),
+					() => deleteDirectorDocument(director.id, 'aadharDocument')
 				)}
-				{@render documentRow(director.panDocument, 'PAN Card', false, (file) =>
-					applyDirectorUpload(director.id, 'panDocument', file)
+				{@render documentRow(
+					director.panDocument,
+					'PAN Card',
+					false,
+					(file) => applyDirectorUpload(director.id, 'panDocument', file),
+					() => deleteDirectorDocument(director.id, 'panDocument')
 				)}
 			</div>
 		{/each}
@@ -376,10 +564,13 @@
 
 	{#if otherDocs.length > 0}
 		<section class="space-y-1">
-			<h3 class="pb-1 text-sm font-semibold">Activation & optional</h3>
 			{#each otherDocs as document (document.id)}
-				{@render documentRow(document, document.documentType, !document.optional, (file) =>
-					applyOrgUpload(document, file)
+				{@render documentRow(
+					document,
+					document.documentType,
+					!document.optional,
+					(file) => applyOrgUpload(document, file),
+					() => deleteOrgDocument(document)
 				)}
 			{/each}
 		</section>
@@ -388,13 +579,43 @@
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
 		<div class="flex flex-wrap items-center gap-3">
-			{#if draftSaved}
-				<span class="text-sm text-muted-foreground">Saved</span>
-			{/if}
-			<Button variant="outline" onclick={saveAsDraft}>Save as draft</Button>
-			<Button onclick={goNext}>
-				{adjacent.next?.key === 'review' || !adjacent.next ? 'Review & approve' : 'Next step'}
+			<Button onclick={goNext} disabled={navigating}>
+				{navigating
+					? 'Loading…'
+					: adjacent.next?.key === 'review' || !adjacent.next
+						? 'Review & approve'
+						: 'Next step'}
 			</Button>
 		</div>
 	</div>
 </div>
+
+<form
+	bind:this={orgUploadForm}
+	method="POST"
+	action="?/uploadOrgDocument"
+	enctype="multipart/form-data"
+	use:enhance={orgUploadEnhance}
+	class="hidden"
+>
+	<input bind:this={orgUploadInput} type="file" />
+</form>
+
+<form
+	bind:this={directorUploadForm}
+	method="POST"
+	action="?/uploadDirectorDocument"
+	enctype="multipart/form-data"
+	use:enhance={directorUploadEnhance}
+	class="hidden"
+>
+	<input bind:this={directorUploadDirectorId} type="hidden" name="directorId" value="" />
+	<input bind:this={directorUploadInput} type="file" />
+</form>
+
+<DocumentPreviewModal
+	bind:open={previewOpen}
+	title={previewTitle}
+	{previewUrl}
+	fileType={previewFileType}
+/>

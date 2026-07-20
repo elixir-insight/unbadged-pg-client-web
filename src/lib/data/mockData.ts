@@ -1,18 +1,15 @@
 export type OrganizationCategory = 'MERCHANT' | 'PARTNER';
-export type OrganizationStatus = 'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'REJECTED';
+export type OrganizationStatus =
+	'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
 export type OrganizationBusinessType =
-	| 'SOLE_PROPRIETORSHIP'
-	| 'PARTNERSHIP'
-	| 'LLP'
-	| 'PRIVATE_LIMITED';
+	'SOLE_PROPRIETORSHIP' | 'PARTNERSHIP' | 'LLP' | 'PRIVATE_LIMITED';
 export type KybVerificationStatus = 'Not Started' | 'IN_PROGRESS' | 'VERIFIED' | 'FAILED';
-export type BankAccountStatus = 'Active' | 'Inactive';
+export type BankAccountStatus = 'ACTIVE' | 'ON_HOLD' | 'INACTIVE' | 'BLOCKED' | 'CLOSED';
 export type DocumentStatus = 'Pending' | 'Uploaded' | 'In Review' | 'Approved' | 'Rejected';
-export type AccountType = 'Current';
+export type AccountType = 'SAVINGS' | 'CURRENT' | 'NODAL' | 'ESCROW' | 'FOREIGN_CURRENCY';
 export type DocumentType =
 	| 'GST certificate'
 	| 'Business PAN card'
-	| 'Proprietor photo with stamp'
 	| 'Cancelled cheque'
 	| 'Bank statement (last 3 months)'
 	| 'Rental agreement'
@@ -23,7 +20,8 @@ export type DocumentType =
 	| 'Business TAN'
 	| 'Article of Association (AOA)'
 	| 'Memorandum of Association (MOA)'
-	| 'Business agreement'
+	| 'UBO Declaration'
+	| 'Board Resolution for Authorized Signatory'
 	| 'Organization logo';
 
 export interface OrganizationAddress {
@@ -32,6 +30,7 @@ export interface OrganizationAddress {
 	city: string;
 	state: string;
 	pincode: string;
+	country: string;
 }
 
 export interface OrganizationPrimaryContact {
@@ -50,7 +49,14 @@ export interface OrganizationDocument {
 	status: DocumentStatus;
 	optional?: boolean;
 	activationGate?: boolean;
+	previewUrl?: string;
+	fileType?: string;
 }
+
+export type OrganizationDocumentUpload = Pick<
+	OrganizationDocument,
+	'id' | 'fileName' | 'uploadedDate' | 'status' | 'previewUrl' | 'fileType'
+>;
 
 export interface OrganizationDirector {
 	id: string;
@@ -58,9 +64,9 @@ export interface OrganizationDirector {
 	pan: string;
 	email: string;
 	phone: string;
-	designation: string;
-	aadharDocument: Pick<OrganizationDocument, 'id' | 'fileName' | 'uploadedDate' | 'status'>;
-	panDocument: Pick<OrganizationDocument, 'id' | 'fileName' | 'uploadedDate' | 'status'>;
+	aadhar: string;
+	aadharDocument: OrganizationDocumentUpload;
+	panDocument: OrganizationDocumentUpload;
 }
 
 export interface OrganizationKyb {
@@ -69,7 +75,13 @@ export interface OrganizationKyb {
 	cin: string;
 	tan: string;
 	gstin: string;
+	businessPan: string;
+	businessPhone: string;
+	industry: string;
+	organizationWebsite: string;
+	registeredYear: number | null;
 	registeredAddress: OrganizationAddress;
+	communicationAddress: OrganizationAddress;
 	primaryContact: OrganizationPrimaryContact;
 	directors: OrganizationDirector[];
 	verificationStatus: 'Not Started' | 'In Progress' | 'Verified' | 'Failed';
@@ -124,6 +136,20 @@ export interface OrganizationPayinConfiguration {
 	configured: false;
 }
 
+export interface OrganizationFeeSectionDraft {
+	slabs: import('$lib/fee-config/types').FeeSlabRow[];
+	effectiveFrom: string;
+	effectiveTo: string;
+}
+
+export interface OrganizationFeeConfigDraft {
+	methodConfigId: string;
+	charges: OrganizationFeeSectionDraft | null;
+	commission: OrganizationFeeSectionDraft | null;
+	partner: OrganizationFeeSectionDraft | null;
+	feeConfigId: string | null;
+}
+
 export interface Organization {
 	[key: string]: unknown;
 	id: string;
@@ -145,6 +171,8 @@ export interface Organization {
 	payoutConfiguration: OrganizationPayoutConfiguration;
 	payinConfiguration: OrganizationPayinConfiguration | null;
 	commissionRules: OrganizationCommissionRule[];
+	affiliateId?: string;
+	feeConfigDrafts: OrganizationFeeConfigDraft[];
 }
 
 const businessTypeLabelMap: Record<OrganizationBusinessType, OrganizationKyb['businessType']> = {
@@ -157,7 +185,8 @@ const businessTypeLabelMap: Record<OrganizationBusinessType, OrganizationKyb['bu
 export const fixedRequiredDocuments: DocumentType[] = [
 	'GST certificate',
 	'Business PAN card',
-	'Proprietor photo with stamp'
+	'UBO Declaration',
+	'Board Resolution for Authorized Signatory'
 ];
 
 export const documentChoiceGroups: {
@@ -221,13 +250,108 @@ function maskableNumber(seed: number): string {
 	return `0004${String(9100000000 + seed).slice(-10)}`;
 }
 
+function emptyAddress(): OrganizationAddress {
+	return { line1: '', line2: '', city: '', state: '', pincode: '', country: '' };
+}
+
+function emptyPayoutConfiguration(): OrganizationPayoutConfiguration {
+	return {
+		securityDeposit: '',
+		dailyTxnLimit: '',
+		txnAmountMin: '100',
+		txnAmountMax: '',
+		dailyDepositLimit: '',
+		bankPipeline: '',
+		allowedTransactionTypes: [],
+		virtualAccountsEnabled: false
+	};
+}
+
+function pendingDocuments(): OrganizationDocument[] {
+	return [
+		...fixedRequiredDocuments.map((documentType) => ({
+			id: documentType.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+			documentType,
+			fileName: '',
+			status: 'Pending' as const
+		})),
+		{
+			id: 'organization-logo',
+			documentType: 'Organization logo' as const,
+			fileName: '',
+			status: 'Pending' as const,
+			optional: true
+		}
+	];
+}
+
+/** Minimal org used when GET-by-id is unavailable but onboarding must continue. */
+export function createOrganizationShell(params: {
+	id: string;
+	name?: string;
+	businessType?: OrganizationBusinessType;
+	category?: OrganizationCategory;
+	serviceTypes?: OrganizationServiceType[];
+}): Organization {
+	const name = params.name?.trim() || params.id;
+	const businessType = params.businessType ?? 'PRIVATE_LIMITED';
+	const category = params.category ?? 'MERCHANT';
+	const serviceTypes = params.serviceTypes ?? ['Payouts'];
+	const address = emptyAddress();
+
+	return {
+		id: params.id,
+		name,
+		businessType,
+		category,
+		status: 'IN_PROGRESS',
+		kybStatus: 'Not Started',
+		createdAt: new Date().toISOString().slice(0, 10),
+		assignedAdmin: '',
+		serviceTypes,
+		kyb: {
+			legalCompanyName: name,
+			businessType: businessTypeLabelMap[businessType],
+			cin: '',
+			tan: '',
+			gstin: '',
+			businessPan: '',
+			businessPhone: '',
+			industry: '',
+			organizationWebsite: '',
+			registeredYear: null,
+			registeredAddress: address,
+			communicationAddress: { ...address },
+			primaryContact: {
+				name: '',
+				role: '',
+				email: '',
+				phone: '',
+				timezone: 'Asia/Kolkata'
+			},
+			directors: [],
+			verificationStatus: 'Not Started'
+		},
+		addressDetails: address,
+		directors: [],
+		bankAccounts: [],
+		documents: pendingDocuments(),
+		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
+		payoutConfiguration: emptyPayoutConfiguration(),
+		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
+		commissionRules: [],
+		feeConfigDrafts: []
+	};
+}
+
 function createAddress(seed: number): OrganizationAddress {
 	return {
 		line1: `${10 + seed} Business Park Road`,
 		line2: `Suite ${100 + seed}`,
 		city: pickFrom(cities, seed),
 		state: pickFrom(states, seed),
-		pincode: `${560000 + seed}`.slice(0, 6)
+		pincode: `${560000 + seed}`.slice(0, 6),
+		country: 'India'
 	};
 }
 
@@ -256,8 +380,8 @@ function createDirectors(
 			name: `${name.split(' ')[0]} Director ${index + 1}`,
 			pan: `ABCDE${seed + index}F`,
 			email: `director${index + 1}.${seed}@${name.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com`,
-			phone: `+91 97${String(10000000 + seed + index).slice(-8)}`,
-			designation: index === 0 ? 'Managing Director' : 'Director',
+			phone: `97${String(10000000 + seed + index).slice(-8)}`,
+			aadhar: `23456789012${index}`,
 			aadharDocument: createMissingDirectorDocument(`${id}-aadhar`, documentStatus, baseDate),
 			panDocument: createMissingDirectorDocument(`${id}-pan`, documentStatus, baseDate)
 		};
@@ -274,8 +398,8 @@ function createBankAccounts(seed: number, activeCount: number): OrganizationBank
 			ifscCode: `${bankName.slice(0, 4).toUpperCase()}0${1000 + seed + index}`,
 			bankName,
 			branch: `${pickFrom(cities, seed + index)} Main Branch`,
-			accountType: 'Current',
-			status: index < activeCount ? 'Active' : 'Inactive'
+			accountType: 'CURRENT',
+			status: index < activeCount ? 'ACTIVE' : 'INACTIVE'
 		};
 	});
 }
@@ -316,9 +440,6 @@ function createDocuments(
 
 	return [
 		...requiredDocs,
-		createOrgDocument('Business agreement', businessAgreementStatus, baseDate, {
-			activationGate: true
-		}),
 		createOrgDocument('Organization logo', logoStatus, baseDate, { optional: true })
 	];
 }
@@ -385,6 +506,8 @@ export function createOrganization(params: {
 	documentsComplete?: boolean;
 	businessAgreementReady?: boolean;
 	integrationComplete?: boolean;
+	affiliateId?: string;
+	feeConfigDrafts?: OrganizationFeeConfigDraft[];
 }): Organization {
 	const seed = Number(params.id.replace(/\D/g, '')) % 97;
 	const primaryContact = createPrimaryContact(params.name, seed);
@@ -411,7 +534,14 @@ export function createOrganization(params: {
 		params.documentsComplete ? 'Uploaded' : 'Pending'
 	);
 
-	const cinValue = params.businessType === 'PRIVATE_LIMITED' ? `U72900KA20${seed}PTC10${seed}` : '';
+	const panDigits = String(1000 + seed).slice(-4);
+	const businessPan = `ABCDE${panDigits}F`;
+	const gstin = `29ABCDE${panDigits}F1Z5`;
+	const cinValue =
+		params.businessType === 'PRIVATE_LIMITED'
+			? `U72900KA${2010 + (seed % 15)}PTC${String(100000 + seed).slice(-6)}`
+			: '';
+	const tanValue = `BLRR${String(10000 + seed).slice(-5)}A`;
 	const serviceTypes = params.serviceTypes ?? ['Payouts'];
 
 	return {
@@ -429,11 +559,15 @@ export function createOrganization(params: {
 			legalCompanyName: params.kybComplete ? `${params.name} Private Entity` : params.name,
 			businessType: kybBusinessType,
 			cin: params.kybComplete ? cinValue : '',
-			tan: params.kybComplete ? `BLR${seed}P${seed}` : '',
-			gstin: params.kybComplete ? `29ABCDE${seed}F1Z${seed % 9}` : '',
-			registeredAddress: params.kybComplete
-				? address
-				: { line1: '', line2: '', city: '', state: '', pincode: '' },
+			tan: params.kybComplete ? tanValue : '',
+			gstin: params.kybComplete ? gstin : '',
+			businessPan: params.kybComplete ? businessPan : '',
+			businessPhone: params.kybComplete ? `98${String(10000000 + seed).slice(-8)}` : '',
+			industry: params.kybComplete ? 'Technology' : '',
+			organizationWebsite: params.kybComplete ? `https://www.client${seed}.example.com` : '',
+			registeredYear: params.kybComplete ? 2010 + (seed % 15) : null,
+			registeredAddress: params.kybComplete ? address : emptyAddress(),
+			communicationAddress: params.kybComplete ? { ...address } : emptyAddress(),
 			primaryContact,
 			directors,
 			verificationStatus:
@@ -456,7 +590,9 @@ export function createOrganization(params: {
 				: null,
 		payoutConfiguration: createPayoutConfiguration(params.status === 'ACTIVE'),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
-		commissionRules: createCommissionRules(seed)
+		commissionRules: createCommissionRules(seed),
+		affiliateId: params.affiliateId ?? (params.category === 'MERCHANT' ? 'AFF-HD01' : undefined),
+		feeConfigDrafts: params.feeConfigDrafts ?? []
 	};
 }
 
@@ -531,7 +667,8 @@ export const organizations: Organization[] = [
 		kybComplete: true,
 		bankComplete: true,
 		documentsComplete: true,
-		integrationComplete: true
+		integrationComplete: true,
+		affiliateId: 'AFF-HD01'
 	}),
 	createOrganization({
 		id: 'ORG-1009',
@@ -653,6 +790,7 @@ export const organizations: Organization[] = [
 		bankComplete: true,
 		documentsComplete: true,
 		integrationComplete: true,
-		businessAgreementReady: true
+		businessAgreementReady: true,
+		affiliateId: 'AFF-IC01'
 	})
 ];

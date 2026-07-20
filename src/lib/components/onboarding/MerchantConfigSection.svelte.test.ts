@@ -7,6 +7,17 @@ import {
 	affiliatesByPipeline
 } from '../../../routes/management/organizations/create-organization/constants';
 
+const bankPipelinesByService = {
+	'Pay-Ins': availableBankPipelines.map((pipeline) => ({
+		value: pipeline.value,
+		label: pipeline.value
+	})),
+	Payouts: availableBankPipelines.map((pipeline) => ({
+		value: pipeline.value,
+		label: pipeline.value
+	}))
+};
+
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {
 		selectedServiceTypes: [] as string[],
@@ -14,7 +25,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
 		affiliateId: '',
 		errors: {} as Record<string, string>,
 		availableServiceTypes,
-		availableBankPipelines,
+		bankPipelinesByService,
 		affiliatesByPipeline,
 		onToggleService: vi.fn(),
 		onPipelineChange: vi.fn(),
@@ -91,6 +102,31 @@ describe('MerchantConfigSection', () => {
 		);
 
 		await expect.element(screen.getByText('Select a bank pipeline')).toBeVisible();
+	});
+
+	it('disables bank pipeline dropdown when no pipeline options are available', async () => {
+		const screen = render(
+			MerchantConfigSection,
+			baseProps({
+				selectedServiceTypes: ['Pay-Ins'],
+				bankPipelinesByService: { 'Pay-Ins': [], Payouts: [] }
+			})
+		);
+
+		await expect.element(screen.getByText('No bank pipelines available')).toBeVisible();
+	});
+
+	it('disables the affiliate dropdown when no affiliates are available', async () => {
+		const screen = render(
+			MerchantConfigSection,
+			baseProps({
+				selectedServiceTypes: ['Pay-Ins'],
+				servicePipelines: { 'Pay-Ins': 'HDFC Bank' },
+				affiliatesByPipeline: {}
+			})
+		);
+
+		await expect.element(screen.getByText('No affiliates available')).toBeVisible();
 	});
 
 	it('disables the affiliate dropdown until a bank pipeline is selected', async () => {

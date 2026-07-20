@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { User, Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
+	import { Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { cn } from '$lib/utils';
 
@@ -9,14 +10,22 @@
 		userRole,
 		userInitials,
 		vanNumber,
-		isCollapsed = false
+		isCollapsed = false,
+		settingsHref
 	}: {
 		userName: string;
 		userRole: string;
 		userInitials: string;
 		vanNumber?: string;
 		isCollapsed?: boolean;
+		settingsHref?: string;
 	} = $props();
+
+	function handleSettingsClick() {
+		if (settingsHref) {
+			goto(resolve(...([settingsHref] as Parameters<typeof resolve>)));
+		}
+	}
 </script>
 
 <div class="shrink-0 border-border p-2">
@@ -71,12 +80,7 @@
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
 
 			<DropdownMenu.Item
-				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-			>
-				<User class="h-4 w-4 shrink-0" />
-				Profile
-			</DropdownMenu.Item>
-			<DropdownMenu.Item
+				onclick={handleSettingsClick}
 				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
 			>
 				<Settings class="h-4 w-4 shrink-0" />

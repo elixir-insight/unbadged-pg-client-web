@@ -11,9 +11,9 @@
 		desc: string;
 	}
 
-	interface BankPipeline {
+	interface BankPipelineOption {
 		value: string;
-		logo: string;
+		label: string;
 	}
 
 	interface Affiliate {
@@ -27,10 +27,12 @@
 		affiliateId: string;
 		errors: Record<string, string>;
 		availableServiceTypes: ServiceType[];
-		availableBankPipelines: BankPipeline[];
+		/** Pipeline options keyed by service type value (e.g. Pay-Ins / Payouts). Value is bankPipelineCode. */
+		bankPipelinesByService: Record<string, BankPipelineOption[]>;
 		affiliatesByPipeline: Record<string, Affiliate[]>;
 		onToggleService: (value: string, checked: boolean) => void;
 		onPipelineChange: (serviceType: string) => void;
+		disabled?: boolean;
 	}
 
 	let {
@@ -39,10 +41,11 @@
 		affiliateId = $bindable(),
 		errors,
 		availableServiceTypes,
-		availableBankPipelines,
+		bankPipelinesByService,
 		affiliatesByPipeline,
 		onToggleService,
-		onPipelineChange
+		onPipelineChange,
+		disabled = false
 	}: Props = $props();
 
 	const activePipelines = $derived(
@@ -64,11 +67,17 @@
 	);
 
 	const affiliatePlaceholder = $derived(
-		activePipelines.length > 0
-			? 'Select Affiliate'
-			: pendingServiceLabel
+		activePipelines.length === 0
+			? pendingServiceLabel
 				? `Select a ${pendingServiceLabel} Bank Pipeline to continue`
 				: 'Select a Bank Pipeline to continue'
+			: affiliateOptions.length === 0
+				? 'No affiliates available'
+				: 'Select Affiliate'
+	);
+
+	const affiliateDisabled = $derived(
+		disabled || activePipelines.length === 0 || affiliateOptions.length === 0
 	);
 
 	function setPipeline(serviceType: string, pipeline: string) {
@@ -118,6 +127,8 @@
 					</div>
 
 					{#if isOn}
+						{@const pipelineOptions = bankPipelinesByService[svc.value] ?? []}
+						{@const pipelineEmpty = pipelineOptions.length === 0}
 						<div
 							class="flex flex-col gap-1.5 border-t border-primary/15 pt-3"
 							transition:slide={{ duration: 200, easing: cubicOut }}
@@ -128,11 +139,9 @@
 							<Dropdown
 								value={servicePipelines[svc.value] ?? ''}
 								onValueChange={(v) => setPipeline(svc.value, v)}
-								options={availableBankPipelines.map((b) => ({
-									value: b.value,
-									label: b.value
-								}))}
-								placeholder="Select Bank Pipeline"
+								options={pipelineOptions}
+								placeholder={pipelineEmpty ? 'No bank pipelines available' : 'Select Bank Pipeline'}
+								disabled={disabled || pipelineEmpty}
 								class={cn('w-full', errors[`bankPipeline_${svc.value}`] && 'border-destructive')}
 							/>
 							{#if errors[`bankPipeline_${svc.value}`]}
@@ -159,8 +168,9 @@
 		</label>
 
 		<Dropdown
+			name="affiliateId"
 			bind:value={affiliateId}
-			disabled={activePipelines.length === 0}
+			disabled={affiliateDisabled}
 			options={affiliateOptions.map((a) => ({ value: a.value, label: a.label }))}
 			placeholder={affiliatePlaceholder}
 			class="w-full"

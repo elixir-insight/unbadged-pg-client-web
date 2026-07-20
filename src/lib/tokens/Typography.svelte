@@ -46,7 +46,7 @@
 
 	<!-- Size scale -->
 	<section class="mb-12">
-		<h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">Type Scale</h2>
+		<h2 class="mb-4 text-xs font-semibold tracking-widest text-gray-400 uppercase">Type Scale</h2>
 		<div class="overflow-hidden rounded-xl border border-gray-100">
 			{#each sizeEntries as entry, i (entry.key)}
 				<div
@@ -87,7 +87,7 @@
 	<!-- Weights + Line heights side by side -->
 	<div class="grid grid-cols-2 gap-8">
 		<section>
-			<h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+			<h2 class="mb-4 text-xs font-semibold tracking-widest text-gray-400 uppercase">
 				Font Weights
 			</h2>
 			<div class="flex flex-col gap-3">
@@ -103,7 +103,7 @@
 		</section>
 
 		<section>
-			<h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+			<h2 class="mb-4 text-xs font-semibold tracking-widest text-gray-400 uppercase">
 				Line Heights
 			</h2>
 			<div class="flex flex-col gap-3">

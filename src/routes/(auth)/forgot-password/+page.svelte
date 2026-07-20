@@ -39,7 +39,7 @@
 
 <!-- Right Panel -->
 <main class="flex flex-1 items-center justify-center px-10">
-	<div class="w-full max-w-md flex flex-col gap-17">
+	<div class="flex w-full max-w-md flex-col gap-17">
 		<div class="">
 			<CompanyLogoLight width="200" class="h-auto" />
 		</div>

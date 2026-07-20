@@ -59,7 +59,7 @@
 					aria-pressed={isSelected}
 					onclick={() => selectAndContinue(type.value)}
 					class={cn(
-						'flex cursor-pointer flex-col items-center rounded-2xl border-2 bg-background p-6 text-center shadow-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+						'flex cursor-pointer flex-col items-center rounded-2xl border-2 bg-background p-6 text-center shadow-xs transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 						isSelected
 							? 'border-primary bg-primary/10 ring-1 ring-primary/20'
 							: 'border-border hover:border-primary/40 hover:bg-accent hover:shadow-sm'
