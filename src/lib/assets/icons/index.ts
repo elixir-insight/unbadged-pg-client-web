@@ -104,6 +104,7 @@ export { default as ScanLineIcon } from '@lucide/svelte/icons/scan-line';
 export { default as UserPlusIcon } from '@lucide/svelte/icons/user-plus';
 export { default as KeyIcon } from '@lucide/svelte/icons/key';
 export { default as ActivityIcon } from '@lucide/svelte/icons/activity';
+export { default as TriangleAlert } from '@lucide/svelte/icons/triangle-alert';
 export { default as CompanyLogoAlt } from './company-logo-alt.svelte';
 export { default as CompanyLogoDark } from './company-logo-dark.svelte';
 export { default as CompanyLogoLight } from './company-logo-light.svelte';

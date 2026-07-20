@@ -7,7 +7,7 @@
 		Button,
 		Dropdown,
 		Search,
-		StatCard,
+		FilterStatCard,
 		createUrlPagination
 	} from '$lib/components/reusable';
 	import type { StatCardTone } from '$lib/components/reusable';
@@ -272,7 +272,7 @@
 {#snippet collectionsTab()}
 	<div class="flex flex-col gap-6 pt-4">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			<StatCard
+			<FilterStatCard
 				label="Total Settlements"
 				value={currency.format(totalSettlementAmount)}
 				badgeText="All time"
@@ -281,7 +281,7 @@
 				selected={!pagination.status}
 				onclick={() => applyStatusFilter(null)}
 			/>
-			<StatCard
+			<FilterStatCard
 				label="Awaiting Settlements"
 				value={currency.format(pendingSettlementAmount)}
 				badgeText="Pending"
@@ -290,7 +290,7 @@
 				selected={pagination.status === 'pending'}
 				onclick={() => applyStatusFilter('pending')}
 			/>
-			<StatCard
+			<FilterStatCard
 				label="Last Settlement Amount"
 				value={lastSettlement ? currency.format(lastSettlement.netPayout) : '—'}
 				badgeText={lastSettlementBadge.text}
