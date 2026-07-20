@@ -7,10 +7,7 @@ import {
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
 import { organizationClient } from '$lib/server/domains/organization/client';
-import {
-	applyOrganizationDetails,
-	mapGetOrganizationResponse
-} from '$lib/server/domains/organization/mappers/from-api/get-organization';
+import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 
 export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
 	depends('org');
@@ -47,25 +44,8 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		orgId
 	);
 
-	const detailsResult = await organizationClient.getDetails(
-		fetch,
-		log,
-		tokens.accessToken,
-		tokens.gatewayToken,
-		orgId
-	);
-
 	if (result.ok) {
-		let organization = mapGetOrganizationResponse(result.data, orgId);
-
-		if (detailsResult.ok) {
-			const detailsOrganization = mapGetOrganizationResponse(detailsResult.data, orgId);
-			if (organization && detailsOrganization) {
-				organization = applyOrganizationDetails(organization, detailsOrganization);
-			} else if (detailsOrganization) {
-				organization = detailsOrganization;
-			}
-		}
+		const organization = mapGetOrganizationResponse(result.data, orgId);
 
 		if (organization) {
 			return {
@@ -82,22 +62,6 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 			allowShell: true,
 			loadError: 'Unexpected organization response shape'
 		};
-	}
-
-	if (detailsResult.ok) {
-		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
-		if (organization) {
-			return {
-				organization,
-				orgId,
-				allowShell: false,
-				loadError: null
-			};
-		}
-		log.warn(
-			{ orgId, upstream: detailsResult.data },
-			'GET organization details returned unmapped payload'
-		);
 	}
 
 	const status = result.error.kind === 'http' ? result.error.status : undefined;
