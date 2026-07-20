@@ -140,14 +140,15 @@
 		return match?.[1] ?? null;
 	}
 
-	const onEnhance: SubmitFunction = () => {
+	const onEnhance: SubmitFunction = ({ cancel }) => {
 		submitAttempted = true;
 		const validationError = validate();
 		if (validationError) {
 			toast.error(`Could not create ${selectedCategory ?? 'organization'}`, {
 				description: validationError
 			});
-			return ({ cancel }) => cancel();
+			cancel();
+			return;
 		}
 
 		submitting = true;
