@@ -36,7 +36,7 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		throw e;
 	}
 
-	const result = await organizationClient.get(
+	const detailsResult = await organizationClient.getDetails(
 		fetch,
 		log,
 		tokens.accessToken,
@@ -44,9 +44,8 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		orgId
 	);
 
-	if (result.ok) {
-		const organization = mapGetOrganizationResponse(result.data, orgId);
-
+	if (detailsResult.ok) {
+		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
 		if (organization) {
 			return {
 				organization,
@@ -55,33 +54,36 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 				loadError: null
 			};
 		}
-		log.warn({ orgId, upstream: result.data }, 'GET organization returned unmapped payload');
+		log.warn(
+			{ orgId, upstream: detailsResult.data },
+			'GET organization details returned unmapped payload'
+		);
 		return {
 			organization: mockOrganization,
 			orgId,
 			allowShell: true,
-			loadError: 'Unexpected organization response shape'
+			loadError: 'Unexpected organization details response shape'
 		};
 	}
 
-	const status = result.error.kind === 'http' ? result.error.status : undefined;
-	const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
+	const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
+	const exceptionCode = detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
 
 	log.warn(
 		{
 			orgId,
-			kind: result.error.kind,
+			kind: detailsResult.error.kind,
 			status,
 			exceptionCode,
-			message: result.error.message
+			message: detailsResult.error.message
 		},
-		'GET organization failed'
+		'GET organization details failed'
 	);
 
 	return {
 		organization: mockOrganization,
 		orgId,
 		allowShell: true,
-		loadError: result.error.message
+		loadError: detailsResult.error.message
 	};
 };

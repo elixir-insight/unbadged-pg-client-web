@@ -14,7 +14,7 @@ import {
 	type OrganizationServiceType
 } from '$lib/data/mockData';
 import { mapDirectors } from './directors';
-import type { GetOrganizationResponse } from '../../schema';
+import type { GetOrganizationDetailsResponse, GetOrganizationResponse } from '../../schema';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
 	if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -83,7 +83,9 @@ function pendingDocuments(): OrganizationDocument[] {
 	];
 }
 
-function unwrapData(response: GetOrganizationResponse): Record<string, unknown> | null {
+function unwrapData(
+	response: GetOrganizationResponse | GetOrganizationDetailsResponse
+): Record<string, unknown> | null {
 	const data = response.data;
 	if (Array.isArray(data)) {
 		return asRecord(data[0]);
@@ -305,7 +307,7 @@ function mapKyb(
 }
 
 export function mapGetOrganizationResponse(
-	response: GetOrganizationResponse,
+	response: GetOrganizationResponse | GetOrganizationDetailsResponse,
 	fallbackOrgId: string
 ): Organization | null {
 	const payload = unwrapData(response);
