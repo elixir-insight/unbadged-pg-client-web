@@ -1,21 +1,8 @@
 export type PaymentMethod = 'payins' | 'payouts';
 export type PaymentInstrument =
-	| 'CREDIT'
-	| 'DEBIT'
-	| 'NETBANKING'
-	| 'UPI'
-	| 'INTERNATIONAL CARD'
-	| 'RTGS'
-	| 'NEFT'
-	| 'IMPS';
+	'CREDIT' | 'DEBIT' | 'NETBANKING' | 'UPI' | 'INTERNATIONAL CARD' | 'RTGS' | 'NEFT' | 'IMPS';
 export type PaymentRails =
-	| 'default'
-	| 'VISA'
-	| 'MASTER'
-	| 'RUPAY'
-	| 'CORPORATE'
-	| 'AMEX'
-	| 'DINERS';
+	'default' | 'VISA' | 'MASTER' | 'RUPAY' | 'CORPORATE' | 'AMEX' | 'DINERS';
 
 export type FeeType = 'flat' | 'percentage';
 

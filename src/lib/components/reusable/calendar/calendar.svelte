@@ -78,7 +78,7 @@
 				!displayValue && 'text-muted-foreground'
 			)}
 		>
-			<Calendar class="size-4 shrink-0 text-muted-foreground w-(--bits-popover-anchor-width)" />
+			<Calendar class="size-4 w-(--bits-popover-anchor-width) shrink-0 text-muted-foreground" />
 			<span class="flex-1 truncate">{displayValue ?? placeholder}</span>
 		</button>
 		{#if displayValue && !disabled && !readonly}

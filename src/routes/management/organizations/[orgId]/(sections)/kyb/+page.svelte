@@ -371,7 +371,7 @@
 )}
 	{@const error = errorKey ? fieldErrors[errorKey] : undefined}
 	<label class="space-y-2">
-		<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+		<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
 		<Input
 			{type}
 			{value}
@@ -399,7 +399,7 @@
 )}
 	{@const error = errorKey ? fieldErrors[errorKey] : undefined}
 	<label class="space-y-2">
-		<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+		<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
 		<PhoneInput
 			{value}
 			{disabled}

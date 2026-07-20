@@ -45,15 +45,15 @@
 
 	$effect(() => {
 		if (page.url.pathname === resolve('/management/transactions')) {
-			gotoScopedPath('/management/transactions/collections/orders', scope);
+			gotoScopedPath('/management/transactions/collections/payments', scope);
 		}
 	});
 
 	function collectionsTabHref(): string {
-		if (page.url.pathname.includes('/collections/payments')) {
-			return scopedListHref('/management/transactions/collections/payments', scope);
+		if (page.url.pathname.includes('/collections/orders')) {
+			return scopedListHref('/management/transactions/collections/orders', scope);
 		}
-		return scopedListHref('/management/transactions/collections/orders', scope);
+		return scopedListHref('/management/transactions/collections/payments', scope);
 	}
 </script>
 
@@ -88,7 +88,7 @@
 	</div>
 
 	{#if !isDetailPage}
-		<nav class="border-border flex gap-1 border-b">
+		<nav class="flex gap-1 border-b border-border">
 			{#each tabs as tab (tab.path)}
 				<a
 					href={tab.path === '/management/transactions/collections'
@@ -97,7 +97,7 @@
 					class="relative px-3 pb-2 text-sm font-medium transition-colors {page.url.pathname.startsWith(
 						resolve(tab.path)
 					)
-						? 'text-foreground border-foreground -mb-px border-b-2'
+						? '-mb-px border-b-2 border-foreground text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 				>
 					{tab.label}

@@ -54,6 +54,7 @@
 	}
 
 	function goToPreview() {
+		createUserFormStore.normalizeEmail();
 		submitAttempted = true;
 		const validationError = firstValidationError(createUserFormStore.validationErrors);
 		if (validationError) {
@@ -65,7 +66,7 @@
 	}
 </script>
 
-<div class="space-y-6 w-full md:w-[75%] m-auto">
+<div class="m-auto w-full space-y-6 md:w-[75%]">
 	<div>
 		<h1 class="text-2xl font-bold text-foreground">Create User</h1>
 		<p class="mt-1 text-sm text-muted-foreground">Please enter the user's details below</p>
@@ -88,6 +89,7 @@
 						errors.email && 'border-destructive focus-visible:ring-destructive/30'
 					)}
 					bind:value={createUserFormStore.email}
+					onblur={() => createUserFormStore.normalizeEmail()}
 				/>
 				{#if errors.email}
 					<p class="text-xs text-destructive">{errors.email}</p>

@@ -1,16 +1,8 @@
 export type OrganizationCategory = 'MERCHANT' | 'PARTNER';
 export type OrganizationStatus =
-	| 'IN_PROGRESS'
-	| 'APPROVED'
-	| 'ACTIVE'
-	| 'ON_HOLD'
-	| 'FROZEN'
-	| 'REJECTED';
+	'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
 export type OrganizationBusinessType =
-	| 'SOLE_PROPRIETORSHIP'
-	| 'PARTNERSHIP'
-	| 'LLP'
-	| 'PRIVATE_LIMITED';
+	'SOLE_PROPRIETORSHIP' | 'PARTNERSHIP' | 'LLP' | 'PRIVATE_LIMITED';
 export type KybVerificationStatus = 'Not Started' | 'IN_PROGRESS' | 'VERIFIED' | 'FAILED';
 export type BankAccountStatus = 'ACTIVE' | 'ON_HOLD' | 'INACTIVE' | 'BLOCKED' | 'CLOSED';
 export type DocumentStatus = 'Pending' | 'Uploaded' | 'In Review' | 'Approved' | 'Rejected';

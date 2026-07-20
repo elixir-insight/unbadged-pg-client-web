@@ -20,7 +20,7 @@
 <div class="flex min-h-dvh items-center justify-center bg-background px-6 py-12">
 	<div class="relative w-full max-w-xl text-center">
 		<p
-			class="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 select-none text-[clamp(12rem,40vw,20rem)] leading-none font-bold text-accent-foreground/10"
+			class="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-[clamp(12rem,40vw,20rem)] leading-none font-bold text-accent-foreground/10 select-none"
 			aria-hidden="true"
 		>
 			{code}

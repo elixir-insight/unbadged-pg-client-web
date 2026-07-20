@@ -7,10 +7,7 @@ import {
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
 import { organizationClient } from '$lib/server/domains/organization/client';
-import {
-	applyOrganizationDetails,
-	mapGetOrganizationResponse
-} from '$lib/server/domains/organization/mappers/from-api/get-organization';
+import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 
 export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
 	depends('org');
@@ -39,14 +36,6 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		throw e;
 	}
 
-	const result = await organizationClient.get(
-		fetch,
-		log,
-		tokens.accessToken,
-		tokens.gatewayToken,
-		orgId
-	);
-
 	const detailsResult = await organizationClient.getDetails(
 		fetch,
 		log,
@@ -54,35 +43,6 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		tokens.gatewayToken,
 		orgId
 	);
-
-	if (result.ok) {
-		let organization = mapGetOrganizationResponse(result.data, orgId);
-
-		if (detailsResult.ok) {
-			const detailsOrganization = mapGetOrganizationResponse(detailsResult.data, orgId);
-			if (organization && detailsOrganization) {
-				organization = applyOrganizationDetails(organization, detailsOrganization);
-			} else if (detailsOrganization) {
-				organization = detailsOrganization;
-			}
-		}
-
-		if (organization) {
-			return {
-				organization,
-				orgId,
-				allowShell: false,
-				loadError: null
-			};
-		}
-		log.warn({ orgId, upstream: result.data }, 'GET organization returned unmapped payload');
-		return {
-			organization: mockOrganization,
-			orgId,
-			allowShell: true,
-			loadError: 'Unexpected organization response shape'
-		};
-	}
 
 	if (detailsResult.ok) {
 		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
@@ -98,26 +58,32 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 			{ orgId, upstream: detailsResult.data },
 			'GET organization details returned unmapped payload'
 		);
+		return {
+			organization: mockOrganization,
+			orgId,
+			allowShell: true,
+			loadError: 'Unexpected organization details response shape'
+		};
 	}
 
-	const status = result.error.kind === 'http' ? result.error.status : undefined;
-	const exceptionCode = result.error.kind === 'http' ? result.error.code : undefined;
+	const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
+	const exceptionCode = detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
 
 	log.warn(
 		{
 			orgId,
-			kind: result.error.kind,
+			kind: detailsResult.error.kind,
 			status,
 			exceptionCode,
-			message: result.error.message
+			message: detailsResult.error.message
 		},
-		'GET organization failed'
+		'GET organization details failed'
 	);
 
 	return {
 		organization: mockOrganization,
 		orgId,
 		allowShell: true,
-		loadError: result.error.message
+		loadError: detailsResult.error.message
 	};
 };

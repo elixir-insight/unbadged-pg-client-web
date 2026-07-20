@@ -18,7 +18,9 @@
 	onMount(() => {
 		theme.init();
 	});
-	const handleEnhance: SubmitFunction = () => {
+	const handleEnhance: SubmitFunction = ({ formData }) => {
+		email = email.trim().toLowerCase();
+		formData.set('userEmail', email);
 		submitting = true;
 		return async ({ result, update }) => {
 			submitting = false;
@@ -30,14 +32,14 @@
 				});
 			}
 			await update();
-			if (form?.userEmail !== undefined) email = form.userEmail;
+			if (form?.userEmail !== undefined) email = form.userEmail.trim().toLowerCase();
 		};
 	};
 </script>
 
 <!-- Right Panel -->
 <main class="flex flex-1 items-center justify-center px-10">
-	<div class="w-full max-w-md flex flex-col gap-17">
+	<div class="flex w-full max-w-md flex-col gap-17">
 		<div class="">
 			<CompanyLogoLight width="200" class="h-auto" />
 		</div>
@@ -59,12 +61,12 @@
 						id="userEmail"
 						name="userEmail"
 						// type="email"
-						placeholder="Enter email"
+						placeholder="name@company.com"
 						bind:value={email}
 						autocomplete="email"
 						aria-invalid={form?.emailError ? 'true' : undefined}
 						class="h-11 text-base!"
-						onblur={() => (email = email.trim())}
+						onblur={() => (email = email.trim().toLowerCase())}
 					/>
 					{#if form?.emailError}
 						<p class="text-sm text-destructive">{form.emailError}</p>

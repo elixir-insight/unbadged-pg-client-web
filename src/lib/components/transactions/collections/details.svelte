@@ -53,10 +53,10 @@
 
 <div class={cn('flex flex-col', flat ? 'gap-0' : 'gap-6')}>
 	{#each sections as section, sectionIndex (section.title)}
-		<div class={cn(flat && sectionIndex > 0 && 'border-t border-border pt-5 mt-5')}>
+		<div class={cn(flat && sectionIndex > 0 && 'mt-5 border-t border-border pt-5')}>
 			<p
 				class={cn(
-					'text-xs font-semibold uppercase tracking-widest text-muted-foreground/60',
+					'text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase',
 					flat ? 'mb-3' : 'mb-2'
 				)}
 			>
@@ -112,7 +112,7 @@
 									type="button"
 									onclick={() => copy(row.label, row.value)}
 									aria-label="Copy {row.label}"
-									class="flex shrink-0 size-5 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+									class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-muted-foreground"
 								>
 									{#if copiedKey === row.label}
 										<Check class="size-3 text-primary" />

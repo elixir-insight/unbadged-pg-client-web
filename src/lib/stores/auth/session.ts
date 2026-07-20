@@ -18,6 +18,7 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 		organizationId: token['custom:org_id'],
 		merchantName: token.preferred_username,
 		email: token.email,
+		userType: 'MEMBER',
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },
 		groups
 	};
@@ -36,6 +37,7 @@ export function parseMerchantSessionFromGateway(
 		organizationId: String(token.orgId),
 		merchantName: token.userName,
 		email: token.userEmail,
+		userType: token.userType,
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },
 		groups: accessGroups
 	};

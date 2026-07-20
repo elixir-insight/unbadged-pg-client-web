@@ -7,7 +7,6 @@ import {
 	GetOrganizationBankAccountsResponseSchema,
 	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
-	GetOrganizationResponseSchema,
 	GetOrganizationsTableResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationResponseSchema,
@@ -34,22 +33,6 @@ export const organizationClient = {
 			gatewayToken,
 			body,
 			schema: CreateOrganizationResponseSchema
-		}),
-
-	get: (
-		fetchFn: typeof fetch,
-		logger: Logger,
-		accessToken: string,
-		gatewayToken: string,
-		orgId: string
-	) =>
-		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}`, {
-			fetch: fetchFn,
-			logger,
-			method: 'GET',
-			accessToken,
-			gatewayToken,
-			schema: GetOrganizationResponseSchema
 		}),
 
 	getDetails: (

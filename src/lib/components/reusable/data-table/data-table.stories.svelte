@@ -27,7 +27,7 @@
 
 	const data = [
 		{ id: '1', name: 'Aarav Kapoor', email: 'aarav@example.com', role: 'Admin', status: 'Active' },
-		{ id: '2', name: 'Priya Sharma', email: 'priya@example.com', role: 'Editor', status: 'Active' },
+		{ id: '2', name: 'Priya Shetty', email: 'priya@example.com', role: 'Editor', status: 'Active' },
 		{
 			id: '3',
 			name: 'Rahul Mehta',

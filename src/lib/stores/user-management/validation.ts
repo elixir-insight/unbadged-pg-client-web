@@ -5,6 +5,7 @@ const userFormSchema = v.object({
 	email: v.pipe(
 		v.string(),
 		v.trim(),
+		v.toLowerCase(),
 		v.minLength(1, 'Email address is required'),
 		v.email('Enter a valid email address')
 	),

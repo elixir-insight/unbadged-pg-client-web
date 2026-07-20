@@ -36,58 +36,67 @@ export async function loadOrganizationDocuments(params: {
 }) {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
 
-	let tokens;
 	try {
-		tokens = await getValidSession(cookies, fetch, log);
-	} catch (e) {
-		if (e instanceof SessionInactiveError || e instanceof SessionError) {
-			return {
-				documentsLoadError: e.message,
-				documents: organizationBase.documents,
-				directors: organizationBase.directors
-			};
+		let tokens;
+		try {
+			tokens = await getValidSession(cookies, fetch, log);
+		} catch (e) {
+			if (e instanceof SessionInactiveError || e instanceof SessionError) {
+				return {
+					documentsLoadError: e.message,
+					documents: organizationBase.documents,
+					directors: organizationBase.directors
+				};
+			}
+			throw e;
 		}
-		throw e;
-	}
 
-	const result = await organizationClient.getDocuments(
-		fetch,
-		log,
-		tokens.accessToken,
-		tokens.gatewayToken,
-		orgId
-	);
-
-	let documents = organizationBase.documents;
-	let directors = organizationBase.directors;
-
-	if (!result.ok) {
-		log.warn(
-			{
-				orgId,
-				kind: result.error.kind,
-				message: result.error.message
-			},
-			'GET organization documents failed'
+		const result = await organizationClient.getDocuments(
+			fetch,
+			log,
+			tokens.accessToken,
+			tokens.gatewayToken,
+			orgId
 		);
-	} else {
-		const mapped = mapGetDocumentsResponse(result.data.data ?? [], organizationBase);
-		documents = mapped.documents;
-		directors = mapped.directors;
+
+		let documents = organizationBase.documents;
+		let directors = organizationBase.directors;
+
+		if (!result.ok) {
+			log.warn(
+				{
+					orgId,
+					kind: result.error.kind,
+					message: result.error.message
+				},
+				'GET organization documents failed'
+			);
+		} else {
+			const mapped = mapGetDocumentsResponse(result.data.data ?? [], organizationBase);
+			documents = mapped.documents;
+			directors = mapped.directors;
+		}
+
+		directors = await loadDirectorDocuments({
+			fetch,
+			log,
+			accessToken: tokens.accessToken,
+			gatewayToken: tokens.gatewayToken,
+			orgId,
+			directors
+		});
+
+		return {
+			documentsLoadError: result.ok ? null : result.error.message,
+			documents,
+			directors
+		};
+	} catch (error) {
+		log.error({ err: error, orgId }, 'load organization documents failed');
+		return {
+			documentsLoadError: 'Failed to load documents. Please refresh and try again.',
+			documents: organizationBase.documents,
+			directors: organizationBase.directors
+		};
 	}
-
-	directors = await loadDirectorDocuments({
-		fetch,
-		log,
-		accessToken: tokens.accessToken,
-		gatewayToken: tokens.gatewayToken,
-		orgId,
-		directors
-	});
-
-	return {
-		documentsLoadError: result.ok ? null : result.error.message,
-		documents,
-		directors
-	};
 }

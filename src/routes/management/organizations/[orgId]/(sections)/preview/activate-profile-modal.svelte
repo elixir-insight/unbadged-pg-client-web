@@ -119,7 +119,7 @@
 		<input type="hidden" name="category" value={category} />
 
 		<div class="space-y-2">
-			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 				Business certificate type
 			</p>
 			<Dropdown
@@ -135,7 +135,7 @@
 		</div>
 
 		<div class="space-y-2">
-			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 				Business certificate
 			</p>
 			<FileUpload bind:file={businessCertificateFile} disabled={activating} />
@@ -145,7 +145,7 @@
 		</div>
 
 		<div class="space-y-2">
-			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">API key</p>
+			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">API key</p>
 			<Input bind:value={apiKey} placeholder="Enter API key" disabled={activating} />
 			{#if fieldErrors.apiKey}
 				<p class="text-sm text-destructive">{fieldErrors.apiKey}</p>
@@ -153,7 +153,7 @@
 		</div>
 
 		<div class="space-y-2">
-			<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Salt key</p>
+			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Salt key</p>
 			<Input bind:value={saltKey} placeholder="Enter salt key" disabled={activating} />
 			{#if fieldErrors.saltKey}
 				<p class="text-sm text-destructive">{fieldErrors.saltKey}</p>

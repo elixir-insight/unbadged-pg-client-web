@@ -53,7 +53,7 @@
 <div
 	class={cn(
 		'flex h-9 items-center overflow-hidden rounded-md border border-input bg-background shadow-xs',
-		'transition-colors hover:border-primary/40 focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-ring/50',
+		'transition-colors focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-ring/50 hover:border-primary/40',
 		className
 	)}
 >
@@ -88,7 +88,7 @@
 		<PopoverTrigger
 			class="flex h-full cursor-pointer items-center gap-1.5 px-3 focus-visible:outline-none"
 		>
-			<span class="whitespace-nowrap text-sm text-muted-foreground">
+			<span class="text-sm whitespace-nowrap text-muted-foreground">
 				in <span class="font-medium text-foreground">{selectedField?.label ?? 'All'}</span>
 			</span>
 			<ChevronsUpDown class="size-3.5 shrink-0 text-muted-foreground" />
@@ -101,7 +101,7 @@
 					onclick={() => selectField(f)}
 					class={cn(
 						'flex w-full cursor-pointer items-center justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-						'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+						'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
 						field === f.value && 'bg-accent font-medium'
 					)}
 				>

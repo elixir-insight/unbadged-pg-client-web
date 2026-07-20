@@ -205,7 +205,7 @@
 			<Details sections={detailSections} flat linkQuery={scopeQuery} />
 			{#if payment.refunds?.length}
 				<div class="mt-5 border-t border-border pt-5">
-					<p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
+					<p class="mb-3 text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase">
 						Refund history
 					</p>
 					<PaymentRefundsTable refunds={payment.refunds} />

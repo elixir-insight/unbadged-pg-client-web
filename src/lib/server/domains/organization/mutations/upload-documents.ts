@@ -122,6 +122,10 @@ export async function uploadOrgDocumentsMutation(params: {
 	}
 
 	const remappedFormData = remapUploadFormData(params.formData);
+	if (params.log.isLevelEnabled('debug')) {
+		const fieldNames = [...remappedFormData.keys()];
+		params.log.debug({ orgId, fieldNames }, 'upload organization documents — multipart fields');
+	}
 	const result = await organizationClient.uploadDocuments(
 		params.fetch,
 		params.log,
@@ -132,6 +136,14 @@ export async function uploadOrgDocumentsMutation(params: {
 	);
 
 	if (!result.ok) {
+		params.log.warn(
+			{
+				orgId,
+				exceptionCode: result.error.kind === 'http' ? result.error.code : undefined,
+				message: result.error.message
+			},
+			'upload organization documents failed'
+		);
 		return upstreamErrorToFailure(result.error);
 	}
 
@@ -194,6 +206,16 @@ export async function uploadDirectorDocumentsMutation(params: {
 	);
 
 	if (!result.ok) {
+		params.log.warn(
+			{
+				orgId,
+				directorId,
+				fieldNames: [...params.formData.keys()],
+				exceptionCode: result.error.kind === 'http' ? result.error.code : undefined,
+				message: result.error.message
+			},
+			'upload director documents failed'
+		);
 		return upstreamErrorToFailure(result.error);
 	}
 

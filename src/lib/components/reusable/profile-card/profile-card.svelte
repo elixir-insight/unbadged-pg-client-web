@@ -1,22 +1,31 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { User, Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
+	import { Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { cn } from '$lib/utils';
 
 	let {
-		userName = 'Aarav Kapoor',
-		userRole = 'Admin',
-		userInitials = 'AK',
-		vanNumber = 'VAN-2024-00123',
-		isCollapsed = false
+		userName,
+		userRole,
+		userInitials,
+		vanNumber,
+		isCollapsed = false,
+		settingsHref
 	}: {
-		userName?: string;
-		userRole?: string;
-		userInitials?: string;
+		userName: string;
+		userRole: string;
+		userInitials: string;
 		vanNumber?: string;
 		isCollapsed?: boolean;
+		settingsHref?: string;
 	} = $props();
+
+	function handleSettingsClick() {
+		if (settingsHref) {
+			goto(resolve(...([settingsHref] as Parameters<typeof resolve>)));
+		}
+	}
 </script>
 
 <div class="shrink-0 border-border p-2">
@@ -58,10 +67,12 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-semibold text-foreground">{userName}</p>
 						<p class="truncate text-xs text-muted-foreground">{userRole}</p>
-						<div class="mt-0.5 flex items-center gap-1">
-							<Hash class="h-3 w-3 shrink-0 text-primary" />
-							<span class="font-mono text-xs font-medium text-primary">{vanNumber}</span>
-						</div>
+						{#if vanNumber}
+							<div class="mt-0.5 flex items-center gap-1">
+								<Hash class="h-3 w-3 shrink-0 text-primary" />
+								<span class="font-mono text-xs font-medium text-primary">{vanNumber}</span>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -69,12 +80,7 @@
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
 
 			<DropdownMenu.Item
-				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-			>
-				<User class="h-4 w-4 shrink-0" />
-				Profile
-			</DropdownMenu.Item>
-			<DropdownMenu.Item
+				onclick={handleSettingsClick}
 				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
 			>
 				<Settings class="h-4 w-4 shrink-0" />

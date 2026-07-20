@@ -1,6 +1,9 @@
-<script module>
+<script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import ProfileCard from './profile-card.svelte';
+
+	type ProfileCardProps = ComponentProps<typeof ProfileCard>;
 
 	const { Story } = defineMeta({
 		title: 'Reusable/ProfileCard',
@@ -25,7 +28,7 @@
 
 <!-- Expanded (default sidebar state) -->
 <Story name="Expanded" args={{ isCollapsed: false }}>
-	{#snippet template(args)}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-64 rounded-lg border border-border bg-background">
 			<ProfileCard {...args} />
 		</div>
@@ -34,7 +37,7 @@
 
 <!-- Collapsed (icon-only sidebar state) -->
 <Story name="Collapsed" args={{ isCollapsed: true }}>
-	{#snippet template(args)}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-14 rounded-lg border border-border bg-background">
 			<ProfileCard {...args} />
 		</div>
@@ -52,7 +55,7 @@
 		isCollapsed: false
 	}}
 >
-	{#snippet template(args)}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-64 rounded-lg border border-border bg-background">
 			<ProfileCard {...args} />
 		</div>

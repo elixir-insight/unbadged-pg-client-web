@@ -61,6 +61,7 @@ export interface MerchantSession {
 	organizationId: string;
 	merchantName: string;
 	email: string;
+	userType: string;
 	/** Filled by a separate services API later; temporarily both true for MERCHANT UX.*/
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
