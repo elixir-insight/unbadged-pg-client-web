@@ -7,22 +7,50 @@
 	import { RolesReportingPanel } from '$lib/components/user-management';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { firstValidationError } from '$lib/stores/user-management/validation';
-	import { fetchUsers } from '$lib/stores/user-management/users-api';
+	import { fetchAssignableRoles, fetchUserDirectory } from '$lib/stores/user-management/users-api';
+	import type { AssignableRole } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { cn } from '$lib/utils';
 
 	let managers = $state<UserItem[]>([]);
+	let roles = $state<AssignableRole[]>([]);
+	let rolesLoading = $state(false);
 	let submitAttempted = $state(false);
 
 	const errors = $derived(submitAttempted ? createUserFormStore.validationErrors : {});
 
 	onMount(() => {
 		loadManagers();
+		loadRoles();
 	});
 
 	async function loadManagers() {
-		const data = await fetchUsers({ status: 'Active' });
-		managers = data.items;
+		try {
+			const directory = await fetchUserDirectory();
+			managers = directory.map((user) => ({
+				id: user.id,
+				name: user.name,
+				email: '',
+				employeeId: '',
+				roles: [],
+				status: 'Active' as const
+			}));
+		} catch {
+			toast.error('Could not load reporting managers');
+			managers = [];
+		}
+	}
+
+	async function loadRoles() {
+		rolesLoading = true;
+		try {
+			roles = await fetchAssignableRoles();
+		} catch {
+			toast.error('Could not load roles');
+			roles = [];
+		} finally {
+			rolesLoading = false;
+		}
 	}
 
 	function goToPreview() {
@@ -147,7 +175,7 @@
 		</div>
 	</div>
 
-	<RolesReportingPanel {managers} {errors} />
+	<RolesReportingPanel {managers} {roles} {rolesLoading} {errors} />
 
 	<div class="flex justify-end gap-2">
 		<Button variant="outline" onclick={() => createUserFormStore.clear()}>Clear</Button>

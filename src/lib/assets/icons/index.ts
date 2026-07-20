@@ -87,7 +87,6 @@ export { default as TableIcon } from '@lucide/svelte/icons/table';
 export { default as RowsIcon } from '@lucide/svelte/icons/rows-3';
 export { default as DollarSign } from '@lucide/svelte/icons/dollar-sign';
 export { default as Percent } from '@lucide/svelte/icons/percent';
-
 // create org
 export { default as ClipboardListIcon } from '@lucide/svelte/icons/clipboard-list';
 export { default as FileCheck2Icon } from '@lucide/svelte/icons/file-check-2';
@@ -115,6 +114,7 @@ export { default as Copy } from '@lucide/svelte/icons/copy';
 export { default as Fingerprint } from '@lucide/svelte/icons/fingerprint';
 export { default as X } from '@lucide/svelte/icons/x';
 export { default as Check } from '@lucide/svelte/icons/check';
+export { default as Minus } from '@lucide/svelte/icons/minus';
 export { default as AlignJustify } from '@lucide/svelte/icons/align-justify';
 export { default as LayoutGrid } from '@lucide/svelte/icons/layout-grid';
 export { default as Sparkles } from '@lucide/svelte/icons/sparkles';
@@ -132,7 +132,8 @@ export { default as Upload } from '@lucide/svelte/icons/upload';
 export { default as Home } from '@lucide/svelte/icons/home';
 export { default as Paperclip } from '@lucide/svelte/icons/paperclip';
 export { default as UploadCloud } from '@lucide/svelte/icons/cloud-upload';
-export { default as Undo } from '@lucide/svelte/icons/undo-2';
 export { default as UserManagement } from '@lucide/svelte/icons/user-key';
 export { default as Clock } from '@lucide/svelte/icons/clock';
 export { default as AlertTriangle } from '@lucide/svelte/icons/alert-triangle';
+export { default as Undo } from '@lucide/svelte/icons/undo-2';
+export { default as Mail } from '@lucide/svelte/icons/mail';

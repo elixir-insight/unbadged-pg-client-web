@@ -8,6 +8,7 @@
 		PermKey,
 		PermissionsState
 	} from '$lib/stores/role-management/role-management';
+	import type { PermissionOption } from '$lib/stores/role-management/permissions-mapper';
 	import { Shield } from '$lib/assets/icons';
 
 	let {
@@ -17,6 +18,7 @@
 		permKeys,
 		permLabels,
 		description,
+		optionsByModule,
 		allSelected = false,
 		onToggle,
 		onToggleAll
@@ -27,6 +29,8 @@
 		permissions: PermissionsState;
 		permKeys: PermKey[];
 		permLabels: Record<string, string>;
+		/** When provided, only API-available permissions are shown per module. */
+		optionsByModule?: Record<string, PermissionOption[]>;
 		allSelected?: boolean;
 		onToggle: (moduleId: string, key: PermKey) => void;
 		onToggleAll?: () => void;
@@ -37,14 +41,43 @@
 		(activeModuleId ? modules.find((m) => m.id === activeModuleId) : undefined) ?? modules[0]
 	);
 
+	type DisplayOption = {
+		key: PermKey;
+		label: string;
+	};
+
+	let activeOptions = $derived.by((): DisplayOption[] => {
+		if (!activeModule) return [];
+
+		if (optionsByModule) {
+			const apiOptions = optionsByModule[activeModule.id] ?? [];
+			const rows: DisplayOption[] = apiOptions.map((o) => ({
+				key: o.key,
+				label: o.label
+			}));
+			if (apiOptions.length > 0) {
+				rows.push({ key: 'fullAccess', label: permLabels.fullAccess ?? 'Full access' });
+			}
+			return rows;
+		}
+
+		return permKeys.map((key) => ({
+			key,
+			label: permLabels[key] ?? key
+		}));
+	});
+
 	function moduleCount(moduleId: string): number {
 		const perms = permissions[moduleId];
 		if (!perms) return 0;
-		return permKeys.filter((k) => perms[k]).length;
+		if (optionsByModule) {
+			const options = optionsByModule[moduleId] ?? [];
+			return options.filter((o) => perms[o.key]).length;
+		}
+		return permKeys.filter((k) => k !== 'fullAccess' && perms[k]).length;
 	}
 </script>
 
-<!-- <div class="glow-border rounded-xl bg-[#f0f6ff] p-1.5 dark:bg-[#1a2540]"> -->
 <div class="rounded-xl border border-border bg-card shadow">
 	<!-- Card header -->
 	<div class="flex items-center justify-between border-b border-border px-5 py-4">
@@ -59,12 +92,13 @@
 	</div>
 
 	<!-- Two-panel body -->
-	<div class="flex" style="height: 420px;">
+	<div class="flex h-96">
 		<!-- Left: module list -->
 		<div class="w-70 shrink-0 overflow-y-auto border-r border-border">
 			{#each modules as mod (mod.id)}
 				{@const count = moduleCount(mod.id)}
 				<button
+					type="button"
 					class={cn(
 						'flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition-colors hover:bg-accent/60',
 						activeModule.id === mod.id
@@ -104,26 +138,23 @@
 
 				<!-- Permission rows -->
 				<div class="flex flex-col gap-2">
-					{#each permKeys as key (key)}
-						<div
-							class="flex cursor-pointer items-center justify-between rounded-lg border-2 border-border/60 px-4 py-3 transition-all hover:border-primary hover:bg-accent/40 focus-visible:border-primary focus-visible:outline-none"
-							role="button"
-							tabindex="0"
-							onclick={() => onToggle(activeModule.id, key)}
-							onkeydown={(e) => e.key === 'Enter' && onToggle(activeModule.id, key)}
+					{#each activeOptions as option (option.key)}
+						<button
+							type="button"
+							class="flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border-2 border-border/60 px-4 py-3 text-left transition-all hover:border-primary hover:bg-accent/40 focus-visible:border-primary focus-visible:outline-none"
+							onclick={() => onToggle(activeModule.id, option.key)}
 						>
 							<div class="flex items-center gap-2.5 text-sm text-foreground">
-								<Shield class="w-3.5" />
-								{permLabels[key] ?? key}
+								<Shield class="w-3.5 shrink-0" />
+								{option.label}
 							</div>
-							<div class="pointer-events-none">
-								<Checkbox checked={permissions[activeModule.id]?.[key] ?? false} />
+							<div class="pointer-events-none shrink-0">
+								<Checkbox checked={permissions[activeModule.id]?.[option.key] ?? false} />
 							</div>
-						</div>
+						</button>
 					{/each}
 				</div>
 			{/if}
 		</div>
 	</div>
 </div>
-<!-- </div> -->

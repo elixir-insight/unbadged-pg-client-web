@@ -1,7 +1,6 @@
 import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
-	ClipboardCheck,
 	Building2,
 	Users,
 	ShieldCheck,
@@ -22,10 +21,7 @@ export const managementNav: NavGroup[] = [
 	},
 	{
 		title: 'Organization',
-		items: [
-			{ title: 'Onboarding', href: '/management/onboarding', icon: ClipboardCheck },
-			{ title: 'Organizations', href: '/management/organizations', icon: Building2 }
-		]
+		items: [{ title: 'Organizations', href: '/management/organizations', icon: Building2 }]
 	},
 	{
 		title: 'Access Control',
@@ -71,7 +67,33 @@ export const managementNav: NavGroup[] = [
 		items: [
 			{ title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
 			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
-			{ title: 'Transactions', href: '/management/transactions', icon: ArrowLeftRight },
+			{
+				title: 'Transactions',
+				href: '/management/transactions',
+				icon: ArrowLeftRight,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/transactions\/collections$/,
+						title: 'Collections'
+					},
+					{
+						matcher: /^\/management\/transactions\/disbursements$/,
+						title: 'Disbursements'
+					},
+					{
+						matcher: /^\/management\/transactions\/collections\/orders\/[^/]+$/,
+						title: 'Order Details'
+					},
+					{
+						matcher: /^\/management\/transactions\/collections\/payments\/[^/]+$/,
+						title: 'Payment Details'
+					},
+					{
+						matcher: /^\/management\/transactions\/disbursements\/[^/]+$/,
+						title: 'Transaction Details'
+					}
+				]
+			},
 			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
 			{
 				title: 'Settlements',

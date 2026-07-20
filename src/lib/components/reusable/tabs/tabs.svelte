@@ -18,6 +18,7 @@
 		variant = 'default' as TabsListVariant,
 		orientation = 'horizontal' as 'horizontal' | 'vertical',
 		class: className,
+		onValueChange,
 		...restProps
 	}: {
 		tabs: TabItem[];
@@ -25,6 +26,7 @@
 		variant?: TabsListVariant;
 		orientation?: 'horizontal' | 'vertical';
 		class?: string;
+		onValueChange?: (value: string) => void;
 	} = $props();
 
 	$effect.pre(() => {
@@ -34,7 +36,7 @@
 	});
 </script>
 
-<UITabs.Tabs bind:value {orientation} class={cn(className)} {...restProps}>
+<UITabs.Tabs bind:value {orientation} {onValueChange} class={cn(className)} {...restProps}>
 	<UITabs.TabsList {variant}>
 		{#each tabs as tab (tab.value)}
 			<UITabs.TabsTrigger value={tab.value} disabled={tab.disabled}>

@@ -9,6 +9,9 @@ frontend:
         - npm ci
     build:
       commands:
+        - env | grep -E '^API_BASE_URL=' >> .env
+        - echo "----- .env file contents -----"
+        - cat .env
         - npm run build
   artifacts:
     baseDirectory: build

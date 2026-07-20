@@ -1,91 +1,124 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import * as v from 'valibot';
+import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
+import { CreateOrgRoleBodySchema } from '$lib/server/domains/members/schema';
 import type { RoleItem } from '$lib/stores/role-management/role-management';
 
-const MOCK_ROLES: RoleItem[] = [
-	{
-		roleId: 199,
-		roleName: 'QA_LEAD',
-		roleAssignedCount: 4,
-		defaultRole: false,
-		description: 'QA Lead drives the testing strategy and mentors QA analysts'
-	},
-	{
-		roleId: 166,
-		roleName: 'DELIVERY_MANAGER',
-		roleAssignedCount: 6,
-		defaultRole: false,
-		description:
-			'Delivery Manager oversees project delivery timelines, coordinates between engineering and business teams'
-	},
-	{
-		roleId: 133,
-		roleName: 'BUSINESS_DEVELOPMENT_LEAD',
-		roleAssignedCount: 0,
-		defaultRole: false,
-		description: 'Business Development Lead identifies growth opportunities.'
-	},
-	{
-		roleId: 100,
-		roleName: 'HEAD_OF_GLOBAL_PARTNERSHIPS',
-		roleAssignedCount: 2,
-		defaultRole: false,
-		description: 'Head of Global Partnerships leads the international partner strategy.'
-	},
-	{
-		roleId: 67,
-		roleName: 'ONBOARDING_TEAM_LEAD',
-		roleAssignedCount: 1,
-		defaultRole: false,
-		description: 'Onboarding Team Lead manages the onboarding process and approves new accounts.'
-	},
-	{
-		roleId: 34,
-		roleName: 'QUALITY_ANALYST',
-		roleAssignedCount: 1,
-		defaultRole: false,
-		description:
-			'A Quality Analyst ensures software quality by testing applications, identifying bugs and validating requirements.'
-	},
-	{
-		roleId: 32,
-		roleName: 'ADMIN',
-		roleAssignedCount: 3,
-		defaultRole: false,
-		description:
-			'Admin has full access to all modules including user management, billing, and system configuration.'
-	},
-	{
-		roleId: 31,
-		roleName: 'QA_MANAGER',
-		roleAssignedCount: 2,
-		defaultRole: false,
-		description:
-			'QA Manager oversees quality assurance workflows, manages QA teams and reviews test plans'
-	},
-	{
-		roleId: 30,
-		roleName: 'TESTER',
-		roleAssignedCount: 6,
-		defaultRole: false,
-		description:
-			'Tester is responsible for executing test cases, logging defects, and verifying fixes. '
-	},
-	{
-		roleId: 7,
-		roleName: 'ORGANIZATION_WALLET_MANAGEMENT_READ_ONLY',
-		roleAssignedCount: 4,
-		defaultRole: true,
-		description:
-			'Read-only access to organization wallet balances, transaction history, and activity logs.'
+async function requireSession(
+	cookies: Parameters<typeof getValidSession>[0],
+	fetchFn: typeof fetch,
+	logger: Parameters<typeof getValidSession>[2]
+) {
+	try {
+		return await getValidSession(cookies, fetchFn, logger);
+	} catch (e) {
+		if (e instanceof SessionError) {
+			error(401, { message: 'Unauthorized' });
+		}
+		throw e;
 	}
-];
+}
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
 	const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
-	await new Promise((r) => setTimeout(r, 400));
-	const items = query
-		? MOCK_ROLES.filter((r) => r.roleName.toLowerCase().includes(query))
-		: MOCK_ROLES;
-	return json({ items });
+	// Upstream roles list uses 0-based page indexing.
+	const page = Math.max(0, Number(url.searchParams.get('page') ?? 0) || 0);
+	const limit = Math.max(1, Number(url.searchParams.get('limit') ?? 100) || 100);
+
+	const result = await membersClient.listOrgRoles(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		{ page, limit },
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	const items: RoleItem[] = (result.data?.data ?? []).filter((role) =>
+		query ? role.roleName.toLowerCase().includes(query) : true
+	);
+
+	return json({
+		items,
+		pagination: result.data?.pagination ?? { total: 0, page: 0, limit: 0 },
+		message: result.data?.message ?? '',
+		statusCode: result.data?.statusCode ?? 200
+	});
+};
+
+export const POST: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		error(400, { message: 'Invalid JSON body' });
+	}
+
+	const parsed = v.safeParse(CreateOrgRoleBodySchema, body);
+	if (!parsed.success) {
+		error(400, { message: 'Invalid create role payload' });
+	}
+
+	const result = await membersClient.createOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		parsed.output,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json(
+		{
+			message: result.data?.message ?? 'Role created successfully',
+			statusCode: result.data?.statusCode ?? 201,
+			data: result.data?.data ?? []
+		},
+		{ status: 201 }
+	);
 };

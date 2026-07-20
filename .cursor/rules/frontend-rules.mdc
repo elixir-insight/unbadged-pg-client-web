@@ -46,7 +46,7 @@ If unsure about any API or syntax, check the official docs first before generati
 - Use Tailwind CSS ONLY.
 - Use existing Design Tokens ONLY for colors.
 - NEVER hardcode raw values like `#3b82f6`, `16px`, or inline styles like `style="border-radius: 8px"`.
-- ALWAYS use Tailwind utility classes like `rounded-lg`, `p-4`, `text-sm` for spacing, radius, and typography.
+- Always use Tailwind utility classes like `rounded-lg`, `p-4`, `text-sm` for spacing, radius, and typography.
 - For colors ONLY, use existing Design Tokens — NEVER use `bg-blue-500` or any color class directly.
 - NEVER modify or create Design Tokens without approval.
 - If the user asks to hardcode a value, REFUSE and ask which Design Token to use instead.

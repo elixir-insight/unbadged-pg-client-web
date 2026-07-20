@@ -6,7 +6,7 @@ const validBase = {
 	firstName: 'Jane',
 	employeeId: 'EMP-001',
 	mobileNumber: '9876543210',
-	selectedRoles: ['Admin'],
+	selectedRoles: [{ roleId: 2, roleName: 'MGMT_FULL_ACCESS', displayName: 'Mgmt Full Access' }],
 	reportingManagerId: 'manager-1'
 };
 

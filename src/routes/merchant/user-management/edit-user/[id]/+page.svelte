@@ -2,16 +2,24 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button, Input } from '$lib/components/reusable';
-	import { RolesReportingPanel } from '$lib/components/user-management';
+	import { RolesReportingPanel, UserFormSkeleton } from '$lib/components/user-management';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { firstValidationError } from '$lib/stores/user-management/validation';
-	import { fetchUserById, fetchUsers } from '$lib/stores/user-management/users-api';
+	import {
+		fetchAssignableRoles,
+		fetchUserById,
+		fetchUserDirectory
+	} from '$lib/stores/user-management/users-api';
+	import type { AssignableRole } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { cn } from '$lib/utils';
 
 	let managers = $state<UserItem[]>([]);
+	let roles = $state<AssignableRole[]>([]);
+	let rolesLoading = $state(false);
 	let loading = $state(true);
 	let submitAttempted = $state(false);
 
@@ -26,28 +34,37 @@
 			return;
 		}
 
-		if (createUserFormStore.isEditMode && createUserFormStore.userId === id) {
-			loading = false;
-			loadManagers(id);
-			return;
-		}
+		// untrack: loadForEdit updates these fields; tracking them re-ran this effect
+		// and duplicated directory/roles fetches.
+		const skipUserFetch = untrack(
+			() => createUserFormStore.isEditMode && createUserFormStore.userId === id
+		);
 
 		let cancelled = false;
-		loading = true;
+		loading = !skipUserFetch;
 
-		fetchUserById(id)
-			.then((detail) => {
-				if (cancelled) return;
-				if (!detail) {
-					goto(resolve('/merchant/user-management'));
-					return;
+		void (async () => {
+			try {
+				if (!skipUserFetch) {
+					const detail = await fetchUserById(id);
+					if (cancelled) return;
+					if (!detail) {
+						goto(resolve('/merchant/user-management'));
+						return;
+					}
+					createUserFormStore.loadForEdit(detail);
 				}
-				createUserFormStore.loadForEdit(detail);
-				loadManagers(id);
-			})
-			.finally(() => {
-				if (!cancelled) loading = false;
-			});
+
+				if (cancelled) return;
+				loading = false;
+				await Promise.all([loadManagers(id), loadRoles({ commitSnapshot: !skipUserFetch })]);
+			} catch {
+				if (!cancelled) {
+					loading = false;
+					toast.error('Could not load user');
+				}
+			}
+		})();
 
 		return () => {
 			cancelled = true;
@@ -55,8 +72,38 @@
 	});
 
 	async function loadManagers(currentUserId: string) {
-		const data = await fetchUsers({ status: 'Active', limit: 100 });
-		managers = data.items.filter((manager) => manager.id !== currentUserId);
+		try {
+			const directory = await fetchUserDirectory();
+			managers = directory
+				.filter((user) => user.id !== currentUserId)
+				.map((user) => ({
+					id: user.id,
+					name: user.name,
+					email: '',
+					employeeId: '',
+					roles: [],
+					status: 'Active' as const
+				}));
+		} catch {
+			toast.error('Could not load reporting managers');
+			managers = [];
+		}
+	}
+
+	async function loadRoles(options: { commitSnapshot?: boolean } = {}) {
+		rolesLoading = true;
+		try {
+			roles = await fetchAssignableRoles();
+			createUserFormStore.syncRolesFromAssignable(roles);
+			if (options.commitSnapshot) {
+				createUserFormStore.commitSnapshot();
+			}
+		} catch {
+			toast.error('Could not load roles');
+			roles = [];
+		} finally {
+			rolesLoading = false;
+		}
 	}
 
 	function goToPreview() {
@@ -73,7 +120,7 @@
 </script>
 
 {#if loading}
-	<p class="py-12 text-center text-sm text-muted-foreground">Loading user details…</p>
+	<UserFormSkeleton />
 {:else}
 	<div class="m-auto w-full space-y-6 md:w-[75%]">
 		<div class="flex flex-wrap items-start justify-between gap-4">
@@ -187,7 +234,7 @@
 			</div>
 		</div>
 
-		<RolesReportingPanel {managers} {errors} />
+		<RolesReportingPanel {managers} {roles} {rolesLoading} {errors} />
 
 		<div class="flex justify-end gap-2">
 			<Button variant="outline" onclick={() => createUserFormStore.restore()}>Reset</Button>

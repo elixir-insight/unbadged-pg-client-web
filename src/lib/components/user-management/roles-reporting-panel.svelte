@@ -4,15 +4,19 @@
 	import { Search } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import { Shield, ShieldCheck, User } from '$lib/assets/icons';
-	import { ASSIGNABLE_ROLES } from '$lib/stores/user-management/assignable-roles';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
+	import type { AssignableRole } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 
 	let {
 		managers = [] as UserItem[],
+		roles = [] as AssignableRole[],
+		rolesLoading = false,
 		errors = {} as Record<string, string>
 	}: {
 		managers?: UserItem[];
+		roles?: AssignableRole[];
+		rolesLoading?: boolean;
 		errors?: Record<string, string>;
 	} = $props();
 
@@ -46,6 +50,14 @@
 			manager.email
 		);
 	}
+
+	function toggleRole(role: AssignableRole) {
+		createUserFormStore.toggleRole({
+			roleId: role.roleId,
+			roleName: role.roleName,
+			displayName: role.displayName
+		});
+	}
 </script>
 
 <div class="rounded-xl border border-border bg-card shadow">
@@ -54,7 +66,7 @@
 		<p class="mt-1 text-xs text-muted-foreground">{statusSummary}</p>
 	</div>
 
-	<div class="flex" style="height: 420px;">
+	<div class="flex h-[420px]">
 		<div class="w-56 shrink-0 overflow-y-auto border-r border-border">
 			<button
 				type="button"
@@ -108,23 +120,29 @@
 					</p>
 				</div>
 
-				<div class="flex flex-col gap-2">
-					{#each ASSIGNABLE_ROLES as role (role)}
-						<button
-							type="button"
-							class="flex cursor-pointer items-center justify-between rounded-lg border-2 border-border/60 px-4 py-3 text-left transition-all hover:border-primary hover:bg-accent/40 focus-visible:border-primary focus-visible:outline-none"
-							onclick={() => createUserFormStore.toggleRole(role)}
-						>
-							<div class="flex min-w-0 items-center gap-2.5 text-sm text-foreground">
-								<ShieldCheck class="h-3.5 w-3.5 shrink-0" />
-								<span class="truncate">{role}</span>
-							</div>
-							<div class="pointer-events-none shrink-0">
-								<Checkbox checked={createUserFormStore.selectedRoles.includes(role)} />
-							</div>
-						</button>
-					{/each}
-				</div>
+				{#if rolesLoading}
+					<p class="py-8 text-center text-sm text-muted-foreground">Loading roles…</p>
+				{:else if roles.length === 0}
+					<p class="py-8 text-center text-sm text-muted-foreground">No roles available.</p>
+				{:else}
+					<div class="flex flex-col gap-2">
+						{#each roles as role (role.roleId)}
+							<button
+								type="button"
+								class="flex cursor-pointer items-center justify-between rounded-lg border-2 border-border/60 px-4 py-3 text-left transition-all hover:border-primary hover:bg-accent/40 focus-visible:border-primary focus-visible:outline-none"
+								onclick={() => toggleRole(role)}
+							>
+								<div class="flex min-w-0 items-center gap-2.5 text-sm text-foreground">
+									<ShieldCheck class="h-3.5 w-3.5 shrink-0" />
+									<span class="truncate">{role.displayName}</span>
+								</div>
+								<div class="pointer-events-none shrink-0">
+									<Checkbox checked={createUserFormStore.isRoleSelected(role.roleId)} />
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
 				{#if errors.selectedRoles}
 					<p class="mt-3 text-xs text-destructive">{errors.selectedRoles}</p>
 				{/if}
@@ -157,9 +175,11 @@
 						>
 							<div class="min-w-0">
 								<p class="truncate text-sm font-medium text-foreground">{manager.name}</p>
-								<p class="truncate text-xs text-muted-foreground">
-									{manager.employeeId} · {manager.email}
-								</p>
+								{#if manager.employeeId || manager.email}
+									<p class="truncate text-xs text-muted-foreground">
+										{[manager.employeeId, manager.email].filter(Boolean).join(' · ')}
+									</p>
+								{/if}
 							</div>
 							<div class="pointer-events-none shrink-0">
 								<Checkbox checked={createUserFormStore.reportingManagerId === manager.id} />
