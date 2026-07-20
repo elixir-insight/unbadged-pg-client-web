@@ -5,7 +5,9 @@ import {
 	getOrderStatsForDate,
 	getSettlementDetail,
 	getSettlementsForDate,
-	parseSettlementId
+	getSettlementsForMerchant,
+	parseSettlementId,
+	SETTLEMENT_HISTORY_DAYS
 } from './mock-data';
 
 const DATE = '2026-07-08';
@@ -83,6 +85,20 @@ describe('getSettlementDetail', () => {
 				expect(t.netAmount).toBeGreaterThanOrEqual(0);
 			}
 		}
+	});
+});
+
+describe('getSettlementsForMerchant', () => {
+	it('returns one settlement per day for the selected merchant', () => {
+		const settlements = getSettlementsForMerchant('MER01');
+		expect(settlements).toHaveLength(SETTLEMENT_HISTORY_DAYS);
+		expect(settlements.every((s) => s.merchantId === 'MER01')).toBe(true);
+	});
+
+	it('sorts newest settlement dates first', () => {
+		const settlements = getSettlementsForMerchant('MER01');
+		const dates = settlements.map((s) => s.settlementDate);
+		expect(dates).toEqual([...dates].sort((a, b) => b.localeCompare(a)));
 	});
 });
 

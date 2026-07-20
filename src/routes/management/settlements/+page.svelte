@@ -1,14 +1,16 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve -- tab hrefs append query params after resolve() */
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
 		Table,
 		Button,
-		FilterCards,
+		Dropdown,
 		Search,
-		Tabs,
+		StatCard,
 		createUrlPagination
 	} from '$lib/components/reusable';
+	import type { StatCardTone } from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -17,7 +19,12 @@
 	import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date';
 	import { RefreshCw, X } from '$lib/assets/icons';
 	import { debounce } from '$lib/utils/debounce';
-	import { useOrderStats, useSettlementsList } from './use-settlements-list.svelte';
+	import { useSettlementsList } from './use-settlements-list.svelte';
+	import {
+		getCurrentSettlementMerchantId,
+		getSettlementMerchantOptions,
+		setSettlementMerchant
+	} from './settlement-scope.svelte';
 	import SettlementStatusBadge from './settlement-status-badge.svelte';
 	import SettlementDatePicker from './settlement-date-picker.svelte';
 	import StatePanel from './state-panel.svelte';
@@ -25,17 +32,13 @@
 
 	// ── URL-derived filters — date/status/search/tab all live in query params
 	// so a refresh or shared link reproduces the exact same view, and the
-	// detail page can hand them straight back on "Back". No `date` param at
-	// all means "not yet interacted with" and defaults to yesterday; the
-	// sentinel `date=none` means the user explicitly cleared it. ─────────────
-	function yesterdayIso(): string {
-		return today(getLocalTimeZone()).subtract({ days: 1 }).toString();
-	}
-
+	// detail page can hand them straight back on "Back". With a merchant
+	// selected, no `date` param means "all recent settlements" for that
+	// merchant; an explicit date narrows to that day. `date=none` is kept
+	// as a cleared-state sentinel for chip removal. ─────────────────────────
 	const dateParam = $derived.by(() => {
 		const raw = page.url.searchParams.get('date');
-		if (raw === null) return yesterdayIso();
-		if (raw === 'none') return '';
+		if (!raw || raw === 'none') return '';
 		return raw;
 	});
 	const selectedDate = $derived<DateValue | undefined>(
@@ -44,6 +47,24 @@
 	const tabParam = $derived<SettlementTab>(
 		page.url.searchParams.get('tab') === 'disbursements' ? 'disbursements' : 'collections'
 	);
+
+	const tabs = [
+		{ value: 'collections', label: 'Collections' },
+		{ value: 'disbursements', label: 'Disbursements' }
+	] as const;
+
+	function tabHref(tab: (typeof tabs)[number]['value']): string {
+		const searchParams = new SvelteURLSearchParams(page.url.searchParams);
+		if (tab === 'collections') {
+			searchParams.delete('tab');
+		} else {
+			searchParams.set('tab', tab);
+		}
+		searchParams.delete('skip');
+		const qs = searchParams.toString();
+		const base = resolve('/management/settlements');
+		return (qs ? `${base}?${qs}` : base) as '/management/settlements';
+	}
 
 	function updateParams(updates: Record<string, string | null>, replace = true) {
 		const url = new SvelteURL(page.url.toString());
@@ -63,15 +84,20 @@
 		updateParams({ date: value.toString(), skip: null });
 	}
 
-	function handleTabChange(value: string) {
-		updateParams({ tab: value === 'collections' ? null : value, skip: null });
-	}
-
 	// ── Data — order-status counts and money totals are fetched separately
 	// (orders/transactions service vs. settlement service) so either can be
 	// swapped for a real API independently of the other. ───────────────────────
-	const list = useSettlementsList(() => dateParam);
-	const orderStats = useOrderStats(() => dateParam);
+	const merchantId = $derived(getCurrentSettlementMerchantId());
+	const merchantOptions = getSettlementMerchantOptions();
+	const list = useSettlementsList(
+		() => dateParam,
+		() => merchantId
+	);
+
+	const statusOptions = [
+		{ value: 'completed', label: 'Completed' },
+		{ value: 'pending', label: 'Pending' }
+	];
 
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
@@ -103,39 +129,14 @@
 		debouncedSearch(value);
 	}
 
-	// "Total Orders", "Successful", and "Pending" have a real settlement-status
-	// equivalent — a successful order is one whose settlement has gone through
-	// (status: 'completed'), so their counts come from the settlements
-	// themselves, not the order-service stat, and clicking maps onto the same
-	// status values shown in the table's Status column. "Created"/"Failed"
-	// orders never reach the settlement pipeline at all, so they keep the
-	// order-level count and always filter to zero rows (explained below).
-	const totalSettlementCount = $derived(list.items.length);
-	const completedSettlementCount = $derived(
-		list.items.filter((item) => item.status === 'completed').length
-	);
-	const pendingSettlementCount = $derived(
-		list.items.filter((item) => item.status === 'pending').length
-	);
+	function onStatusDropdownChange(value: string) {
+		pagination.setStatus(value);
+		pagination.setPage(1);
+	}
 
-	const CARD_STATUS: Record<string, string> = {
-		'Total Orders': '',
-		Successful: 'completed',
-		Pending: 'pending',
-		Created: 'created',
-		Failed: 'failed'
-	};
-	const STATUS_CARD: Record<string, string> = {
-		completed: 'Successful',
-		pending: 'Pending',
-		created: 'Created',
-		failed: 'Failed'
-	};
-
-	let selectedOrderCard = $derived(STATUS_CARD[pagination.status] ?? 'Total Orders');
-
-	function selectOrderCard(label: string) {
-		pagination.setStatus(CARD_STATUS[label] ?? '');
+	function applyStatusFilter(status: SettlementStatus | null) {
+		pagination.setStatus(status ?? '');
+		pagination.setPage(1);
 	}
 
 	function removeFilter(key: 'date' | 'status' | 'search') {
@@ -151,29 +152,43 @@
 		updateParams({ date: 'none', status: null, search: null, skip: null });
 	}
 
+	const totalSettlementCount = $derived(list.items.length);
+	const pendingSettlementCount = $derived(
+		list.items.filter((item) => item.status === 'pending').length
+	);
+	const totalSettlementAmount = $derived(
+		list.items.reduce((sum, item) => sum + item.saleAmount, 0)
+	);
+	const pendingSettlementAmount = $derived(
+		list.items
+			.filter((item) => item.status === 'pending')
+			.reduce((sum, item) => sum + item.saleAmount, 0)
+	);
+	const lastSettlement = $derived.by(() => {
+		if (list.items.length === 0) return null;
+		return [...list.items].sort((a, b) => b.settlementDate.localeCompare(a.settlementDate))[0];
+	});
+	const lastSettlementBadge: { text: string; variant: StatCardTone } = $derived(
+		!lastSettlement
+			? { text: '—', variant: 'brand' }
+			: lastSettlement.status === 'completed'
+				? { text: 'Completed', variant: 'success' }
+				: { text: 'Pending', variant: 'warning' }
+	);
+
 	const activeFilters = $derived.by(() => {
 		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
 		if (selectedDate) {
 			filters.push({ key: 'date', label: 'Date', value: dateLabel });
 		}
 		if (pagination.status) {
-			const label = pagination.status.charAt(0).toUpperCase() + pagination.status.slice(1);
-			filters.push({ key: 'status', label: 'Status', value: label });
+			const opt = statusOptions.find((o) => o.value === pagination.status);
+			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
 		}
 		if (pagination.search) {
-			filters.push({ key: 'search', label: 'Merchant', value: pagination.search });
+			filters.push({ key: 'search', label: 'Settlement ID', value: pagination.search });
 		}
 		return filters;
-	});
-
-	// "created"/"failed" are order statuses with no settlement-status
-	// counterpart (those orders never reach the settlement pipeline), so
-	// filtering by one of them always yields zero rows below.
-	const orderOnlyStatusLabel = $derived.by(() => {
-		if (pagination.status !== 'created' && pagination.status !== 'failed') {
-			return null;
-		}
-		return pagination.status.charAt(0).toUpperCase() + pagination.status.slice(1);
 	});
 
 	const filteredData = $derived.by(() => {
@@ -183,7 +198,7 @@
 		}
 		if (pagination.search) {
 			const query = pagination.search.toLowerCase();
-			result = result.filter((r) => r.merchantName.toLowerCase().includes(query));
+			result = result.filter((r) => r.settlementId.toLowerCase().includes(query));
 		}
 		return result;
 	});
@@ -236,7 +251,8 @@
 	// reads these prefixed params back out to restore this view.
 	function goToDetail(row: SettlementDisplayRow) {
 		const params = new SvelteURLSearchParams();
-		params.set('date', dateParam);
+		if (dateParam) params.set('date', dateParam);
+		params.set('merchantId', merchantId);
 		if (pagination.status) params.set('list_status', pagination.status);
 		if (pagination.search) params.set('list_search', pagination.search);
 		if (pagination.skip) params.set('list_skip', String(pagination.skip));
@@ -255,53 +271,72 @@
 
 {#snippet collectionsTab()}
 	<div class="flex flex-col gap-6 pt-4">
-		<!-- Order-level summary, filtered down to the three cards that map onto
-		     a real settlement status: "Total Orders" (clear filter), "Successful"
-		     (a successful order is a settlement that's gone through — status:
-		     'completed'), and "Pending" (status: 'pending'). Each shows the
-		     matching settlement-side count, not the order-service one, so the
-		     card number always equals the rows clicking it reveals. "Created"/
-		     "Failed" orders never reach the settlement pipeline at all, so
-		     there's no card for them here — see orderOnlyStatusLabel below for
-		     the defensive empty state if one is still reached via a direct URL
-		     (e.g. an old bookmarked link). -->
-		{#if orderStats.error}
-			<StatePanel
-				title="Couldn't load order stats"
-				description={orderStats.error}
-				actionLabel="Retry"
-				onAction={orderStats.retry}
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<StatCard
+				label="Total Settlements"
+				value={currency.format(totalSettlementAmount)}
+				badgeText="All time"
+				badgeVariant="brand"
+				subText="{totalSettlementCount} settlements · across all statuses"
+				selected={!pagination.status}
+				onclick={() => applyStatusFilter(null)}
 			/>
-		{:else}
-			<FilterCards
-				loading={orderStats.loading}
-				skeletonCount={3}
-				cards={[
-					{ label: 'Total Orders', count: totalSettlementCount },
-					{ label: 'Successful', count: completedSettlementCount },
-					{ label: 'Pending', count: pendingSettlementCount }
-				]}
-				bind:selected={selectedOrderCard}
-				onselect={selectOrderCard}
-				class="grid-cols-1 sm:grid-cols-3"
+			<StatCard
+				label="Awaiting Settlements"
+				value={currency.format(pendingSettlementAmount)}
+				badgeText="Pending"
+				badgeVariant="warning"
+				subText="{pendingSettlementCount} settlements currently pending"
+				selected={pagination.status === 'pending'}
+				onclick={() => applyStatusFilter('pending')}
 			/>
-		{/if}
+			<StatCard
+				label="Last Settlement Amount"
+				value={lastSettlement ? currency.format(lastSettlement.netPayout) : '—'}
+				badgeText={lastSettlementBadge.text}
+				badgeVariant={lastSettlementBadge.variant}
+				subText={lastSettlement
+					? `Settlement ${lastSettlement.settlementId}`
+					: 'No settlements yet'}
+			/>
+		</div>
 
 		<!-- Filter bar -->
 		<div class="flex flex-col gap-3">
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div class="flex flex-wrap items-center gap-2">
-					<SettlementDatePicker
-						value={selectedDate}
-						maxValue={today(getLocalTimeZone())}
-						onChange={setDate}
+			<div class="flex flex-wrap items-center gap-2">
+				<div class="w-full sm:w-50">
+					<Dropdown
+						value={merchantId}
+						placeholder="Merchant"
+						disabled={false}
+						bordered={false}
+						search={true}
+						options={merchantOptions}
+						onValueChange={(value) => setSettlementMerchant(value)}
 					/>
 				</div>
-				<div class="w-full max-w-xs">
+				<SettlementDatePicker
+					value={selectedDate}
+					maxValue={today(getLocalTimeZone())}
+					placeholder="Filter by date"
+					onChange={setDate}
+				/>
+				<div class="w-full sm:w-50">
+					<Dropdown
+						value={pagination.status || undefined}
+						placeholder="Status"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={statusOptions}
+						onValueChange={onStatusDropdownChange}
+					/>
+				</div>
+				<div class="w-full min-w-0 sm:max-w-xs sm:ml-auto">
 					<Search
 						value={searchInput}
 						oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
-						placeholder="Search merchant…"
+						placeholder="Search settlement ID…"
 						variant="bordered"
 					/>
 				</div>
@@ -338,8 +373,7 @@
 		<div class="rounded-lg border border-border bg-card shadow-2xl">
 			<div class="flex items-center justify-between gap-2 p-4">
 				<span class="text-sm text-muted-foreground">
-					{#if !selectedDate}Select a date to view settlements{:else if list.loading}Loading
-						settlements…{:else}{showingText}{/if}
+					{#if list.loading}Loading settlements…{:else}{showingText}{/if}
 				</span>
 				<div class="flex items-center gap-2">
 					<Button variant="outline" onclick={list.retry}>
@@ -348,12 +382,7 @@
 				</div>
 			</div>
 
-			{#if !selectedDate}
-				<StatePanel
-					title="No date selected"
-					description="Choose a settlement date above to view collections."
-				/>
-			{:else if list.error}
+			{#if list.error}
 				<StatePanel
 					title="Couldn't load settlements"
 					description={list.error}
@@ -361,17 +390,23 @@
 					onAction={list.retry}
 				/>
 			{:else if !list.loading && filteredData.length === 0}
-				{#if orderOnlyStatusLabel}
+				{#if selectedDate}
 					<StatePanel
-						title="No settlements for {orderOnlyStatusLabel} orders"
-						description="'{orderOnlyStatusLabel}' is an order status, not a settlement status — settlements are only ever Completed or Pending, so this filter can't match a settlement row. Clear it to see settlements again."
+						title="No settlements for {dateLabel}"
+						description="Try picking a different date, clearing the status filter, or adjusting your search."
+					/>
+				{:else if pagination.status}
+					<StatePanel
+						title="No {statusOptions.find((o) => o.value === pagination.status)?.label ??
+							pagination.status} settlements"
+						description="Try a different status or clear the current filters."
 						actionLabel="Clear filter"
 						onAction={() => pagination.setStatus('')}
 					/>
 				{:else}
 					<StatePanel
-						title="No settlements for {dateLabel}"
-						description="Try picking a different date, or clear the current filters."
+						title="No settlements for this merchant"
+						description="Try clearing the current filters or selecting a different merchant."
 					/>
 				{/if}
 			{:else}
@@ -385,7 +420,6 @@
 					loading={list.loading}
 					skeletonRows={8}
 					onRowClick={goToDetail}
-					isRowClickable={(row) => row.status === 'completed'}
 					getRowAriaLabel={rowAriaLabel}
 				/>
 			{/if}
@@ -402,13 +436,23 @@
 	</div>
 {/snippet}
 
-<div class="space-y-6">
-	<Tabs
-		tabs={[
-			{ value: 'collections', label: 'Collections', content: collectionsTab },
-			{ value: 'disbursements', label: 'Disbursements', content: disbursementsTab }
-		]}
-		value={tabParam}
-		onValueChange={handleTabChange}
-	/>
+<div class="flex flex-col gap-4">
+	<nav class="border-border flex gap-1 border-b">
+		{#each tabs as tab (tab.value)}
+			<a
+				href={tabHref(tab.value)}
+				class="relative px-3 pb-2 text-sm font-medium transition-colors {tabParam === tab.value
+					? 'text-foreground border-foreground -mb-px border-b-2'
+					: 'text-muted-foreground hover:text-foreground'}"
+			>
+				{tab.label}
+			</a>
+		{/each}
+	</nav>
+
+	{#if tabParam === 'collections'}
+		{@render collectionsTab()}
+	{:else}
+		{@render disbursementsTab()}
+	{/if}
 </div>

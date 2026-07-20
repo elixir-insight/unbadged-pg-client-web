@@ -35,6 +35,10 @@
 		const params = new SvelteURLSearchParams();
 		const date = page.url.searchParams.get('date');
 		if (date) params.set('date', date);
+		const merchant = page.url.searchParams.get('merchantId');
+		if (merchant) params.set('merchantId', merchant);
+		const tab = page.url.searchParams.get('tab');
+		if (tab) params.set('tab', tab);
 		const listStatus = page.url.searchParams.get('list_status');
 		if (listStatus) params.set('status', listStatus);
 		const listSearch = page.url.searchParams.get('list_search');
@@ -250,6 +254,18 @@
 		},
 		{ accessorKey: 'paymentMode', header: 'Payment Mode' }
 	];
+
+	function goToTransaction(row: TransactionDisplayRow) {
+		goto(
+			resolve('/management/transactions/collections/payments/[txnId]', {
+				txnId: row.transactionId
+			})
+		);
+	}
+
+	function rowAriaLabel(row: TransactionDisplayRow): string {
+		return `View transaction ${row.transactionId}`;
+	}
 </script>
 
 <div class="flex flex-col gap-6">
@@ -426,6 +442,8 @@
 					pageNumber={pagination.currentPage}
 					totalPages={pagination.pageCount}
 					setPageNumber={pagination.setPage}
+					onRowClick={goToTransaction}
+					getRowAriaLabel={rowAriaLabel}
 					variant="borderless"
 				/>
 			{/if}

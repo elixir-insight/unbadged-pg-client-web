@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { flushSync } from 'svelte';
 import { useSettlementsList, useOrderStats, useMoneySummary } from './use-settlements-list.svelte';
+import { getDefaultSettlementMerchantId } from './mock-data';
 import { waitFor } from './test-utils';
 
 const DATE = '2026-07-08';
+const MERCHANT_ID = getDefaultSettlementMerchantId();
 
 describe('useSettlementsList', () => {
 	it('starts loading, then resolves one settlement row per merchant', async () => {
 		let hook!: ReturnType<typeof useSettlementsList>;
 		const cleanup = $effect.root(() => {
-			hook = useSettlementsList(() => DATE);
+			hook = useSettlementsList(
+				() => DATE,
+				() => MERCHANT_ID
+			);
 		});
 		flushSync();
 
@@ -19,8 +24,8 @@ describe('useSettlementsList', () => {
 		await waitFor(() => !hook.loading);
 
 		expect(hook.error).toBeNull();
-		expect(hook.items.length).toBeGreaterThan(0);
-		expect(new Set(hook.items.map((i) => i.merchantId)).size).toBe(hook.items.length);
+		expect(hook.items.length).toBe(1);
+		expect(hook.items[0]?.merchantId).toBe(MERCHANT_ID);
 
 		cleanup();
 	});
@@ -29,7 +34,10 @@ describe('useSettlementsList', () => {
 		let dateValue = $state(DATE);
 		let hook!: ReturnType<typeof useSettlementsList>;
 		const cleanup = $effect.root(() => {
-			hook = useSettlementsList(() => dateValue);
+			hook = useSettlementsList(
+				() => dateValue,
+				() => MERCHANT_ID
+			);
 		});
 		flushSync();
 
@@ -51,7 +59,10 @@ describe('useSettlementsList', () => {
 	it('retry() re-fetches the same date', async () => {
 		let hook!: ReturnType<typeof useSettlementsList>;
 		const cleanup = $effect.root(() => {
-			hook = useSettlementsList(() => DATE);
+			hook = useSettlementsList(
+				() => DATE,
+				() => MERCHANT_ID
+			);
 		});
 		flushSync();
 
@@ -66,13 +77,35 @@ describe('useSettlementsList', () => {
 
 		cleanup();
 	});
+
+	it('loads all recent settlements when no date is selected', async () => {
+		let hook!: ReturnType<typeof useSettlementsList>;
+		const cleanup = $effect.root(() => {
+			hook = useSettlementsList(
+				() => '',
+				() => MERCHANT_ID
+			);
+		});
+		flushSync();
+
+		await waitFor(() => !hook.loading);
+
+		expect(hook.error).toBeNull();
+		expect(hook.items.length).toBeGreaterThan(1);
+		expect(hook.items.every((item) => item.merchantId === MERCHANT_ID)).toBe(true);
+
+		cleanup();
+	});
 });
 
 describe('useOrderStats', () => {
 	it('resolves order-status counts that sum to the total', async () => {
 		let hook!: ReturnType<typeof useOrderStats>;
 		const cleanup = $effect.root(() => {
-			hook = useOrderStats(() => DATE);
+			hook = useOrderStats(
+				() => DATE,
+				() => MERCHANT_ID
+			);
 		});
 		flushSync();
 
@@ -92,7 +125,10 @@ describe('useMoneySummary', () => {
 	it('resolves money-level aggregates', async () => {
 		let hook!: ReturnType<typeof useMoneySummary>;
 		const cleanup = $effect.root(() => {
-			hook = useMoneySummary(() => DATE);
+			hook = useMoneySummary(
+				() => DATE,
+				() => MERCHANT_ID
+			);
 		});
 		flushSync();
 

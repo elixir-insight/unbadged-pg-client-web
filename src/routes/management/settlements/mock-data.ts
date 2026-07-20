@@ -7,6 +7,7 @@ import type {
 	SettlementStatus,
 	TransactionType
 } from './types';
+import { getLocalTimeZone, today } from '@internationalized/date';
 
 // ── Deterministic mock data generator ───────────────────────────────────────
 // Every settlement is derived from a seed built out of (merchantId, date), so
@@ -19,7 +20,7 @@ import type {
 //   - detail transactions: Omniware `getsettlementdetails` (transaction_id,
 //     order_id, gross_transaction_amount, tdr_amount, amount_reimbursed)
 
-const MERCHANTS: { id: string; code: string; name: string }[] = [
+export const SETTLEMENT_MERCHANTS: { id: string; code: string; name: string }[] = [
 	{ id: 'MER01', code: 'MER01', name: 'Meridian Retail Pvt Ltd' },
 	{ id: 'MER02', code: 'MER02', name: 'Solaris Home & Living' },
 	{ id: 'MER03', code: 'MER03', name: 'Vantage Electronics' },
@@ -30,6 +31,26 @@ const MERCHANTS: { id: string; code: string; name: string }[] = [
 	{ id: 'MER08', code: 'MER08', name: 'Orbit Mobility Services' },
 	{ id: 'MER09', code: 'MER09', name: 'Harborlight Books & Stationery' }
 ];
+
+const MERCHANTS = SETTLEMENT_MERCHANTS;
+
+/** How many daily settlement cycles to include in the merchant-wide list view. */
+export const SETTLEMENT_HISTORY_DAYS = 30;
+
+export function getSettlementMerchantOptions(): { value: string; label: string }[] {
+	return SETTLEMENT_MERCHANTS.map((merchant) => ({
+		value: merchant.id,
+		label: merchant.name
+	}));
+}
+
+export function getDefaultSettlementMerchantId(): string {
+	return SETTLEMENT_MERCHANTS[0]?.id ?? '';
+}
+
+export function isValidSettlementMerchantId(merchantId: string): boolean {
+	return SETTLEMENT_MERCHANTS.some((merchant) => merchant.id === merchantId);
+}
 
 const PAYMENT_MODES = ['UPI', 'Net Banking', 'Credit Card', 'Debit Card', 'Wallet'];
 
@@ -120,27 +141,71 @@ function orderCountForMerchant(merchantId: string, date: string): number {
 	return 5 + Math.floor(rng() * 55);
 }
 
+function orderStatsForMerchant(merchantId: string, date: string): OrderStats {
+	const orderCount = orderCountForMerchant(merchantId, date);
+	const rng = rngFromSeed(`orderstats:${merchantId}:${date}`);
+	const failed = Math.round(orderCount * (0.01 + rng() * 0.02));
+	const pending = Math.round(orderCount * (0.02 + rng() * 0.03));
+	const created = Math.round(orderCount * (0.01 + rng() * 0.02));
+	const successful = orderCount - failed - pending - created;
+
+	return {
+		orders: orderCount,
+		successful: Math.max(0, successful),
+		pending,
+		created,
+		failed
+	};
+}
+
+function buildSettlementListItem(
+	merchant: (typeof MERCHANTS)[number],
+	date: string
+): SettlementListItem {
+	const rng = rngFromSeed(`status:${merchant.id}:${date}`);
+	const status = statusForSeed(rng);
+	const orderCount = orderCountForMerchant(merchant.id, date);
+	const transactions = buildTransactions(merchant.id, date, orderCount);
+	const { saleAmount, deductions, netPayout } = summarizeTransactions(transactions);
+
+	return {
+		merchantId: merchant.id,
+		merchantName: merchant.name,
+		settlementId: buildSettlementId(merchant.code, date),
+		settlementDate: date,
+		saleAmount,
+		deductions,
+		netPayout,
+		status,
+		bankReference: status === 'completed' ? `UTR${merchant.code}${date.replace(/-/g, '')}` : null
+	};
+}
+
+function settlementHistoryDates(count = SETTLEMENT_HISTORY_DAYS): string[] {
+	const end = today(getLocalTimeZone());
+	return Array.from({ length: count }, (_, index) => end.subtract({ days: index }).toString());
+}
+
 /** TODO: replace with real API — Omniware `getsettlements` for the given date. */
 export function getSettlementsForDate(date: string): SettlementListItem[] {
-	return MERCHANTS.map((merchant) => {
-		const rng = rngFromSeed(`status:${merchant.id}:${date}`);
-		const status = statusForSeed(rng);
-		const orderCount = orderCountForMerchant(merchant.id, date);
-		const transactions = buildTransactions(merchant.id, date, orderCount);
-		const { saleAmount, deductions, netPayout } = summarizeTransactions(transactions);
+	return MERCHANTS.map((merchant) => buildSettlementListItem(merchant, date));
+}
 
-		return {
-			merchantId: merchant.id,
-			merchantName: merchant.name,
-			settlementId: buildSettlementId(merchant.code, date),
-			settlementDate: date,
-			saleAmount,
-			deductions,
-			netPayout,
-			status,
-			bankReference: status === 'completed' ? `UTR${merchant.code}${date.replace(/-/g, '')}` : null
-		} satisfies SettlementListItem;
-	});
+export function getSettlementsForDateAndMerchant(
+	date: string,
+	merchantId: string
+): SettlementListItem[] {
+	return getSettlementsForDate(date).filter((item) => item.merchantId === merchantId);
+}
+
+/** All recent settlement cycles for one merchant — default list view when no date is picked. */
+export function getSettlementsForMerchant(merchantId: string): SettlementListItem[] {
+	const merchant = MERCHANTS.find((m) => m.id === merchantId);
+	if (!merchant) return [];
+
+	return settlementHistoryDates()
+		.map((date) => buildSettlementListItem(merchant, date))
+		.sort((a, b) => b.settlementDate.localeCompare(a.settlementDate));
 }
 
 /**
@@ -153,19 +218,33 @@ export function getSettlementsForDate(date: string): SettlementListItem[] {
 export function getOrderStatsForDate(date: string): OrderStats {
 	return MERCHANTS.reduce<OrderStats>(
 		(acc, merchant) => {
-			const orderCount = orderCountForMerchant(merchant.id, date);
-			const rng = rngFromSeed(`orderstats:${merchant.id}:${date}`);
-			const failed = Math.round(orderCount * (0.01 + rng() * 0.02));
-			const pending = Math.round(orderCount * (0.02 + rng() * 0.03));
-			const created = Math.round(orderCount * (0.01 + rng() * 0.02));
-			const successful = orderCount - failed - pending - created;
-
+			const merchantStats = orderStatsForMerchant(merchant.id, date);
 			return {
-				orders: acc.orders + orderCount,
-				successful: acc.successful + Math.max(0, successful),
-				pending: acc.pending + pending,
-				created: acc.created + created,
-				failed: acc.failed + failed
+				orders: acc.orders + merchantStats.orders,
+				successful: acc.successful + merchantStats.successful,
+				pending: acc.pending + merchantStats.pending,
+				created: acc.created + merchantStats.created,
+				failed: acc.failed + merchantStats.failed
+			};
+		},
+		{ orders: 0, successful: 0, pending: 0, created: 0, failed: 0 }
+	);
+}
+
+export function getOrderStatsForDateAndMerchant(date: string, merchantId: string): OrderStats {
+	return orderStatsForMerchant(merchantId, date);
+}
+
+export function getOrderStatsForMerchant(merchantId: string): OrderStats {
+	return settlementHistoryDates().reduce<OrderStats>(
+		(acc, date) => {
+			const day = orderStatsForMerchant(merchantId, date);
+			return {
+				orders: acc.orders + day.orders,
+				successful: acc.successful + day.successful,
+				pending: acc.pending + day.pending,
+				created: acc.created + day.created,
+				failed: acc.failed + day.failed
 			};
 		},
 		{ orders: 0, successful: 0, pending: 0, created: 0, failed: 0 }

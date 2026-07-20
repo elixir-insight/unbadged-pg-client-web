@@ -1,4 +1,9 @@
-import { getMoneySummaryForDate, getOrderStatsForDate, getSettlementsForDate } from './mock-data';
+import {
+	getOrderStatsForDateAndMerchant,
+	getOrderStatsForMerchant,
+	getSettlementsForDateAndMerchant,
+	getSettlementsForMerchant
+} from './mock-data';
 import type { OrderStats, SettlementListItem, SettlementMoneySummary } from './types';
 
 // Simulated network latency so loading/error/retry states are exercisable
@@ -9,11 +14,15 @@ function simulateFetch<T>(getValue: () => T): Promise<T> {
 	return new Promise((resolve) => setTimeout(() => resolve(getValue()), MOCK_LATENCY_MS));
 }
 
+function round2(value: number): number {
+	return Math.round(value * 100) / 100;
+}
+
 /**
  * Settlement rows for the selected day.
  * TODO: replace with real API — Omniware `getsettlements`.
  */
-export function useSettlementsList(date: () => string) {
+export function useSettlementsList(date: () => string, merchantId: () => string) {
 	let items = $state<SettlementListItem[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -22,7 +31,8 @@ export function useSettlementsList(date: () => string) {
 	async function load() {
 		const id = ++requestId;
 		const currentDate = date();
-		if (!currentDate) {
+		const currentMerchantId = merchantId();
+		if (!currentMerchantId) {
 			items = [];
 			loading = false;
 			error = null;
@@ -31,7 +41,11 @@ export function useSettlementsList(date: () => string) {
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getSettlementsForDate(currentDate));
+			const result = await simulateFetch(() =>
+				currentDate
+					? getSettlementsForDateAndMerchant(currentDate, currentMerchantId)
+					: getSettlementsForMerchant(currentMerchantId)
+			);
 			if (id !== requestId) return;
 			items = result;
 		} catch {
@@ -44,6 +58,7 @@ export function useSettlementsList(date: () => string) {
 
 	$effect(() => {
 		date();
+		merchantId();
 		load();
 	});
 
@@ -68,7 +83,7 @@ export function useSettlementsList(date: () => string) {
  * real API independently.
  * TODO: replace with real API — internal orders/transactions service.
  */
-export function useOrderStats(date: () => string) {
+export function useOrderStats(date: () => string, merchantId: () => string) {
 	let stats = $state<OrderStats | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -77,7 +92,8 @@ export function useOrderStats(date: () => string) {
 	async function load() {
 		const id = ++requestId;
 		const currentDate = date();
-		if (!currentDate) {
+		const currentMerchantId = merchantId();
+		if (!currentMerchantId) {
 			stats = null;
 			loading = false;
 			error = null;
@@ -86,7 +102,11 @@ export function useOrderStats(date: () => string) {
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getOrderStatsForDate(currentDate));
+			const result = await simulateFetch(() =>
+				currentDate
+					? getOrderStatsForDateAndMerchant(currentDate, currentMerchantId)
+					: getOrderStatsForMerchant(currentMerchantId)
+			);
 			if (id !== requestId) return;
 			stats = result;
 		} catch {
@@ -99,6 +119,7 @@ export function useOrderStats(date: () => string) {
 
 	$effect(() => {
 		date();
+		merchantId();
 		load();
 	});
 
@@ -121,7 +142,7 @@ export function useOrderStats(date: () => string) {
  * order-status counts above.
  * TODO: replace with real API — Omniware `getsettlements` aggregate/summary.
  */
-export function useMoneySummary(date: () => string) {
+export function useMoneySummary(date: () => string, merchantId: () => string) {
 	let summary = $state<SettlementMoneySummary | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -130,7 +151,8 @@ export function useMoneySummary(date: () => string) {
 	async function load() {
 		const id = ++requestId;
 		const currentDate = date();
-		if (!currentDate) {
+		const currentMerchantId = merchantId();
+		if (!currentMerchantId) {
 			summary = null;
 			loading = false;
 			error = null;
@@ -139,7 +161,20 @@ export function useMoneySummary(date: () => string) {
 		loading = true;
 		error = null;
 		try {
-			const result = await simulateFetch(() => getMoneySummaryForDate(currentDate));
+			const result = await simulateFetch(() => {
+				const settlements = currentDate
+					? getSettlementsForDateAndMerchant(currentDate, currentMerchantId)
+					: getSettlementsForMerchant(currentMerchantId);
+				return settlements.reduce<SettlementMoneySummary>(
+					(acc, s) => ({
+						totalSaleAmount: round2(acc.totalSaleAmount + s.saleAmount),
+						totalDeductions: round2(acc.totalDeductions + s.deductions),
+						netSettled: round2(acc.netSettled + (s.status === 'completed' ? s.netPayout : 0)),
+						merchantsPending: acc.merchantsPending + (s.status === 'pending' ? 1 : 0)
+					}),
+					{ totalSaleAmount: 0, totalDeductions: 0, netSettled: 0, merchantsPending: 0 }
+				);
+			});
 			if (id !== requestId) return;
 			summary = result;
 		} catch {
@@ -152,6 +187,7 @@ export function useMoneySummary(date: () => string) {
 
 	$effect(() => {
 		date();
+		merchantId();
 		load();
 	});
 
