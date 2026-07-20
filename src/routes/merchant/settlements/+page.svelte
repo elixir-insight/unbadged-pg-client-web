@@ -14,7 +14,7 @@
 		EmptyState,
 		createUrlPagination
 	} from '$lib/components/reusable';
-	import type { StatCardTone } from '$lib/components/reusable';
+	import type { StatCardBadge } from '$lib/components/reusable';
 	import UtrCell from '$lib/components/settlements/utr-cell.svelte';
 	import OndemandPanel from './ondemand-panel.svelte';
 	import type { DateRange } from 'bits-ui';
@@ -217,14 +217,14 @@
 		return [...mockData].sort((a, b) => b._dateMs - a._dateMs)[0];
 	});
 
-	const lastSettlementBadge: { text: string; variant: StatCardTone } = $derived(
+	const lastSettlementBadge: StatCardBadge = $derived(
 		!lastSettlement
-			? { text: '—', variant: 'brand' }
+			? { label: '—', variant: 'default' }
 			: lastSettlement.status === 'settled'
-				? { text: 'Settled', variant: 'success' }
+				? { label: 'Settled', variant: 'success' }
 				: lastSettlement.status === 'processing'
-					? { text: 'Processing', variant: 'warning' }
-					: { text: 'Failed', variant: 'danger' }
+					? { label: 'Processing', variant: 'warning' }
+					: { label: 'Failed', variant: 'error' }
 	);
 
 	// Filters + search combine with AND logic, applied client-side against the
@@ -431,23 +431,20 @@
 			<StatCard
 				label="Total Settlements"
 				value={currency.format(cardAmounts['All Settlements'] ?? 0)}
-				badgeText="All time"
-				badgeVariant="brand"
-				subText="{cardCounts['All Settlements'] ?? 0} settlements · across all statuses"
+				badge={{ label: 'All time', variant: 'default' }}
+				subtext="{cardCounts['All Settlements'] ?? 0} settlements · across all statuses"
 			/>
 			<StatCard
 				label="Awaiting Settlements"
 				value={currency.format(cardAmounts['Processing'] ?? 0)}
-				badgeText="Processing"
-				badgeVariant="warning"
-				subText="{cardCounts['Processing'] ?? 0} settlements currently being processed"
+				badge={{ label: 'Processing', variant: 'warning' }}
+				subtext="{cardCounts['Processing'] ?? 0} settlements currently being processed"
 			/>
 			<StatCard
 				label="Last Settlement Amount"
 				value={lastSettlement ? currency.format(lastSettlement.netAmount) : '—'}
-				badgeText={lastSettlementBadge.text}
-				badgeVariant={lastSettlementBadge.variant}
-				subText={lastSettlement ? `Settlement ${lastSettlement.id}` : 'No settlements yet'}
+				badge={lastSettlementBadge}
+				subtext={lastSettlement ? `Settlement ${lastSettlement.id}` : 'No settlements yet'}
 			/>
 		</div>
 	{:else}
