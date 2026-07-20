@@ -125,12 +125,12 @@ function mapCategory(value: string): OrganizationCategory {
 
 function mapStatus(value: string): OrganizationStatus {
 	const normalized = value.trim().toUpperCase().replace(/\s+/g, '_');
-	if (normalized === 'FROZEN') return 'ON_HOLD';
 	if (
 		normalized === 'IN_PROGRESS' ||
 		normalized === 'APPROVED' ||
 		normalized === 'ACTIVE' ||
 		normalized === 'ON_HOLD' ||
+		normalized === 'FROZEN' ||
 		normalized === 'REJECTED'
 	) {
 		return normalized;

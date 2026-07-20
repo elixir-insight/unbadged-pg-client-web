@@ -6,7 +6,7 @@
 	import { untrack } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
-	import { Button, Checkbox, Input } from '$lib/components/reusable';
+	import { Button, Checkbox, Input, PhoneInput } from '$lib/components/reusable';
 	import { Pencil, Plus, Trash2 } from '$lib/assets/icons';
 	import { createMissingDirectorDocument } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
@@ -390,6 +390,32 @@
 	</label>
 {/snippet}
 
+{#snippet phoneField(
+	label: string,
+	value: string,
+	onChange: (value: string) => void,
+	errorKey = '',
+	disabled = false
+)}
+	{@const error = errorKey ? fieldErrors[errorKey] : undefined}
+	<label class="space-y-2">
+		<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+		<PhoneInput
+			{value}
+			{disabled}
+			invalid={Boolean(error)}
+			aria-invalid={error ? 'true' : undefined}
+			onValueChange={(next) => {
+				if (errorKey) clearFieldError(errorKey);
+				onChange(next);
+			}}
+		/>
+		{#if error}
+			<p class="text-xs text-destructive">{error}</p>
+		{/if}
+	</label>
+{/snippet}
+
 <form
 	method="POST"
 	action="?/saveSection"
@@ -423,15 +449,13 @@
 				},
 				'businessPan'
 			)}
-			{@render textField(
+			{@render phoneField(
 				'Business phone',
 				editableKyb.businessPhone,
 				(value) => {
 					editableKyb = { ...editableKyb, businessPhone: value };
 				},
-				'businessPhone',
-				'',
-				'tel'
+				'businessPhone'
 			)}
 			{@render textField(
 				'Industry',
@@ -677,13 +701,11 @@
 										'',
 										'email'
 									)}
-									{@render textField(
+									{@render phoneField(
 										'Phone',
 										director.phone,
 										(value) => updateDirector(director.id, 'phone', value),
-										`directors.${index}.phone`,
-										'',
-										'tel'
+										`directors.${index}.phone`
 									)}
 								</div>
 							{:else}

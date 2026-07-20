@@ -4,7 +4,7 @@
 	import { cn } from '$lib/utils';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { Button, Input, Dropdown } from '$lib/components/reusable';
+	import { Button, Input, Dropdown, PhoneInput } from '$lib/components/reusable';
 	import MerchantConfigSection from './MerchantConfigSection.svelte';
 
 	type ClientType = 'Merchant' | 'Partner';
@@ -135,16 +135,14 @@
 					<label class="text-sm font-medium" for="org-phone">
 						Mobile Number <span class="text-destructive">*</span>
 					</label>
-					<Input
+					<PhoneInput
 						id="org-phone"
 						name="orgPhone"
-						type="tel"
 						bind:value={orgPhone}
 						oninput={onFieldInput}
-						placeholder="Enter Mobile Number"
 						required
 						disabled={submitting}
-						class={cn(errors.orgPhone && 'border-destructive focus-visible:ring-destructive/30')}
+						invalid={Boolean(errors.orgPhone)}
 					/>
 					{#if errors.orgPhone}
 						<p class="text-xs text-destructive" in:fly={{ y: -4, duration: 160 }}>

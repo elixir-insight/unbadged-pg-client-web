@@ -17,6 +17,7 @@ const TABLE_STATUSES: OrganizationStatus[] = [
 	'APPROVED',
 	'ACTIVE',
 	'ON_HOLD',
+	'FROZEN',
 	'REJECTED'
 ];
 
@@ -44,6 +45,7 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 		APPROVED: 0,
 		ACTIVE: 0,
 		ON_HOLD: 0,
+		FROZEN: 0,
 		REJECTED: 0
 	};
 }

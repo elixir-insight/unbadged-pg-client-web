@@ -58,6 +58,7 @@ describe('mapOrganizationsTableResponse', () => {
 			APPROVED: 2,
 			ACTIVE: 1,
 			ON_HOLD: 0,
+			FROZEN: 0,
 			REJECTED: 0
 		});
 	});

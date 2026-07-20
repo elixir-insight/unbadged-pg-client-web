@@ -7,9 +7,10 @@
 	import {
 		formatLabel,
 		flowStepHref,
-		getCurrentFlowStepKey,
-		getFlowSteps,
+		getCurrentFlowNavStepKey,
+		getFlowNavSteps,
 		isOrgOnboardingSectionPath,
+		isPostOnboardingStatus,
 		type FlowStep
 	} from '../helpers';
 
@@ -21,12 +22,10 @@
 	beforeNavigate(({ from, to }) => {
 		if (!from || !to) return;
 
-		const leavingSection = isOrgOnboardingSectionPath(from.url.pathname);
-		const enteringSection = isOrgOnboardingSectionPath(to.url.pathname);
-		// Only show the overlay when switching sections (pathname), not KYB sub-steps (?step=).
 		const sectionChanged = from.url.pathname !== to.url.pathname;
+		const enteringSection = isOrgOnboardingSectionPath(to.url.pathname);
 
-		if (leavingSection && enteringSection && sectionChanged) {
+		if (sectionChanged && enteringSection) {
 			sectionLoading = true;
 			return () => {
 				sectionLoading = false;
@@ -46,9 +45,13 @@
 
 	const orgId = $derived(organization.id);
 
-	const flowSteps = $derived(getFlowSteps());
+	const isPostOnboarding = $derived(isPostOnboardingStatus(organization.status));
 
-	const currentStepKey = $derived(getCurrentFlowStepKey(page.url.pathname, page.url.searchParams));
+	const flowSteps = $derived(getFlowNavSteps(organization.status));
+
+	const currentStepKey = $derived(
+		getCurrentFlowNavStepKey(page.url.pathname, page.url.searchParams, organization.status)
+	);
 
 	function resolveStepHref(step: FlowStep, organizationId: string) {
 		return resolve(flowStepHref(organizationId, step.key) as '/');
@@ -64,7 +67,10 @@
 			</p>
 		</header>
 
-		<nav aria-label="Onboarding steps" class="flex gap-0.5 rounded-lg bg-muted p-1">
+		<nav
+			aria-label={isPostOnboarding ? 'Profile sections' : 'Onboarding steps'}
+			class="flex gap-0.5 rounded-lg bg-muted p-1"
+		>
 			{#each flowSteps as step (step.key)}
 				{@const isActive = step.key === currentStepKey}
 				{@const stepHref = resolveStepHref(step, orgId)}

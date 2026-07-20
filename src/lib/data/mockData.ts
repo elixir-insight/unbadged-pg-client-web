@@ -1,5 +1,11 @@
 export type OrganizationCategory = 'MERCHANT' | 'PARTNER';
-export type OrganizationStatus = 'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'REJECTED';
+export type OrganizationStatus =
+	| 'IN_PROGRESS'
+	| 'APPROVED'
+	| 'ACTIVE'
+	| 'ON_HOLD'
+	| 'FROZEN'
+	| 'REJECTED';
 export type OrganizationBusinessType =
 	| 'SOLE_PROPRIETORSHIP'
 	| 'PARTNERSHIP'

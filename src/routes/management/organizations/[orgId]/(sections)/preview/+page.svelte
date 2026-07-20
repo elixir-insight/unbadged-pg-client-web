@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto, invalidate } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, invalidate } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import type { ResolvedPathname } from '$app/types';
@@ -16,11 +16,20 @@
 		documentsComplete,
 		kybComplete
 	} from '../../completeness';
-	import { createChipSnippet, formatRegisteredAddress, maskAccountNumber } from '../../helpers';
+	import {
+		createChipSnippet,
+		formatRegisteredAddress,
+		isPreviewNavigation,
+		isPreviewSectionParamChange,
+		maskAccountNumber
+	} from '../../helpers';
 	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
 	import { hasDocumentPreview } from '../documents/document-preview';
 	import ActivateProfileModal from './activate-profile-modal.svelte';
+	import { getContext } from 'svelte';
+	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';
+	import { MessageSquareWarning } from '$lib/assets/icons';
 
 	type PreviewSection = 'kyb' | 'bank' | 'documents';
 
@@ -39,9 +48,29 @@
 	let previewFileType = $state<string | undefined>(undefined);
 	let approving = $state(false);
 	let activateOpen = $state(false);
+	let previewTabLoading = $state(false);
+
+	const orgLayout = getContext<OrgLayoutContext>(ORG_LAYOUT_CONTEXT_KEY);
+
+	beforeNavigate(({ from, to }) => {
+		if (!from || !to) return;
+
+		if (isPreviewSectionParamChange(from.url, to.url)) {
+			previewTabLoading = true;
+			return () => {
+				previewTabLoading = false;
+			};
+		}
+	});
+
+	afterNavigate(() => {
+		previewTabLoading = false;
+	});
 
 	const isApproved = $derived(organization.status === 'APPROVED');
 	const isActive = $derived(organization.status === 'ACTIVE');
+	const isOnHold = $derived(organization.status === 'ON_HOLD');
+	const isFrozen = $derived(organization.status === 'FROZEN');
 
 	const reviewOrganization = $derived.by(() => {
 		const org = data.organization;
@@ -89,8 +118,9 @@
 	}
 
 	function navigatePreviewSection(section: PreviewSection) {
-		if (section === activeSection) return;
+		if (section === activeSection || previewTabLoading) return;
 
+		previewTabLoading = true;
 		goto(previewSectionHref(section, orgId), {
 			replaceState: true,
 			noScroll: true,
@@ -101,14 +131,11 @@
 
 	const isPreviewLoading = $derived.by(() => {
 		const nav = navigating;
-		if (!nav?.to) return false;
-
-		const toPath = nav.to.url.pathname;
-		if (!toPath.includes('/preview')) return false;
-
-		const fromPath = nav.from?.url.pathname ?? '';
-		return fromPath !== toPath;
+		if (!nav?.to || !nav.from) return false;
+		return isPreviewNavigation(nav.from.url, nav.to.url);
 	});
+
+	const showPreviewContentLoading = $derived(previewTabLoading || isPreviewLoading);
 
 	const continueEditingHref = $derived.by(() => {
 		if (activeSection === 'bank') {
@@ -185,22 +212,25 @@
 			{@const isActive = section.key === activeSection}
 			<button
 				type="button"
+				disabled={showPreviewContentLoading}
 				onclick={() => navigatePreviewSection(section.key)}
 				class={cn(
 					'flex flex-1 items-center justify-center rounded-lg px-2 py-1.5 text-sm transition-colors',
 					isActive
 						? 'bg-primary font-medium text-primary-foreground'
-						: 'text-muted-foreground hover:text-foreground'
+						: 'text-muted-foreground hover:text-foreground',
+					showPreviewContentLoading && 'pointer-events-none opacity-60'
 				)}
 				aria-current={isActive ? 'true' : undefined}
+				aria-disabled={showPreviewContentLoading}
 			>
 				{section.label}
 			</button>
 		{/each}
 	</nav>
 
-	{#if isPreviewLoading}
-		<div class="space-y-4" role="status" aria-live="polite" aria-label="Loading review section">
+	{#if showPreviewContentLoading}
+		<div class="space-y-4" role="status" aria-live="polite" aria-label="Loading profile overview">
 			<Skeleton class="h-4 w-40" />
 			<div class="grid gap-4 md:grid-cols-2">
 				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
@@ -210,6 +240,7 @@
 					</div>
 				{/each}
 			</div>
+			<p class="text-sm text-muted-foreground">Loading profile overview…</p>
 		</div>
 	{:else if activeSection === 'kyb'}
 		<div class="space-y-6">
@@ -325,8 +356,35 @@
 		{#if isActive}
 			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
-				<Button variant="outline" href="/management/organizations">Back to organizations</Button>
+				<div class="flex flex-wrap gap-2">
+					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
+				</div>
+				<Button variant="destructive" onclick={() => orgLayout.openPutOnHold()}>
+					<MessageSquareWarning class="size-4" />
+					Put on hold
+				</Button>
+			</div>
+		{:else if isOnHold}
+			<p class="mb-4 text-sm text-muted-foreground">
+				This organization is on hold. Freeze it to record a remark, or reactivate from the banner
+				above.
+			</p>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex flex-wrap gap-2">
+					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
+				</div>
+				<Button variant="destructive" onclick={() => orgLayout.openFreeze()}>Freeze</Button>
+			</div>
+		{:else if isFrozen}
+			<p class="mb-4 text-sm text-muted-foreground">This organization is frozen.</p>
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex flex-wrap gap-2">
+					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
+				</div>
+				<Button variant="outline" onclick={() => orgLayout.openReactivate()}>Reactivate</Button>
 			</div>
 		{:else if isApproved}
 			<p class="mb-4 text-sm text-muted-foreground">

@@ -39,6 +39,7 @@
 		APPROVED: 'success',
 		ACTIVE: 'info',
 		ON_HOLD: 'secondary',
+		FROZEN: 'secondary',
 		REJECTED: 'destructive'
 	};
 
@@ -47,6 +48,7 @@
 		'APPROVED',
 		'ACTIVE',
 		'ON_HOLD',
+		'FROZEN',
 		'REJECTED'
 	];
 
@@ -150,6 +152,7 @@
 		{ label: formatLabel('APPROVED'), count: statusCounts.APPROVED },
 		{ label: formatLabel('ACTIVE'), count: statusCounts.ACTIVE },
 		{ label: formatLabel('ON_HOLD'), count: statusCounts.ON_HOLD },
+		{ label: formatLabel('FROZEN'), count: statusCounts.FROZEN },
 		{ label: formatLabel('REJECTED'), count: statusCounts.REJECTED }
 	]);
 
@@ -305,6 +308,14 @@
 					>
 						<Eye class="size-3.5" />
 						Preview
+					</Button>
+				{:else if selectedOrg.status === 'APPROVED' || selectedOrg.status === 'ACTIVE' || selectedOrg.status === 'FROZEN'}
+					<Button
+						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
+					>
+						<Eye class="size-3.5" />
+						Profile overview
 					</Button>
 				{:else}
 					<Button

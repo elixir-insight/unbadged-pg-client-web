@@ -114,8 +114,6 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		'GET organization failed'
 	);
 
-	// Upstream GET route is often missing (ERR_MISC_URL_NOT_FOUND_M01). Allow
-	// client seed / shell so create → redirect and onboarding still work.
 	return {
 		organization: mockOrganization,
 		orgId,

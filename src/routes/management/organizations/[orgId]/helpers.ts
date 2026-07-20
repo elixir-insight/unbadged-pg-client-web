@@ -1,5 +1,6 @@
 import { createRawSnippet } from 'svelte';
 import type { BadgeVariant } from '$lib/components/ui/badge';
+import type { OrganizationStatus } from '$lib/data/mockData';
 
 const ACRONYMS = new Set(['LLP', 'KYB', 'CIN', 'TAN', 'GSTIN', 'IFSC', 'URL', 'IP']);
 
@@ -42,6 +43,53 @@ export function getFlowSteps(): FlowStep[] {
 	});
 
 	return steps;
+}
+
+const POST_ONBOARDING_STATUSES = new Set<OrganizationStatus>(['APPROVED', 'ACTIVE', 'FROZEN']);
+
+export function isPostOnboardingStatus(status: OrganizationStatus): boolean {
+	return POST_ONBOARDING_STATUSES.has(status);
+}
+
+export function getPostOnboardingSteps(): FlowStep[] {
+	return [
+		{
+			key: 'review',
+			label: 'Profile overview',
+			href: (orgId) => previewPath(orgId)
+		},
+		{ key: 'legal', label: 'KYB', href: (orgId) => kybHref(orgId) },
+		{
+			key: 'bank',
+			label: 'Bank',
+			href: (orgId) => `/management/organizations/${orgId}/bank`
+		},
+		{
+			key: 'documents',
+			label: 'Documents',
+			href: (orgId) => `/management/organizations/${orgId}/documents`
+		}
+	];
+}
+
+export function getFlowNavSteps(status: OrganizationStatus): FlowStep[] {
+	return isPostOnboardingStatus(status) ? getPostOnboardingSteps() : getFlowSteps();
+}
+
+export function getCurrentFlowNavStepKey(
+	pathname: string,
+	searchParams: URLSearchParams,
+	status: OrganizationStatus
+): FlowStepKey {
+	const key = getCurrentFlowStepKey(pathname, searchParams);
+	if (isPostOnboardingStatus(status) && KYB_STEP_KEYS.has(key)) {
+		return 'legal';
+	}
+	return key;
+}
+
+export function defaultOrganizationLandingPath(orgId: string, status: OrganizationStatus): string {
+	return isPostOnboardingStatus(status) ? previewPath(orgId) : kybHref(orgId);
 }
 
 export function getCurrentFlowStepKey(
@@ -98,6 +146,22 @@ export function isPreviewSubSectionNavigation(from: URL | undefined, to: URL | u
 	if (!from || !to) return false;
 	if (from.pathname !== to.pathname) return false;
 	return PREVIEW_SECTION_PATH.test(from.pathname);
+}
+
+export function isPreviewSectionParamChange(from: URL | undefined, to: URL | undefined): boolean {
+	if (!isPreviewSubSectionNavigation(from, to)) return false;
+	const fromSection = from?.searchParams.get('section') ?? 'kyb';
+	const toSection = to?.searchParams.get('section') ?? 'kyb';
+	return fromSection !== toSection;
+}
+
+/** True when navigation targets preview (new route or tab change). */
+export function isPreviewNavigation(from: URL | undefined, to: URL | undefined): boolean {
+	if (!to) return false;
+	if (!PREVIEW_SECTION_PATH.test(to.pathname)) return false;
+	if (!from) return true;
+	if (from.pathname !== to.pathname) return true;
+	return isPreviewSectionParamChange(from, to);
 }
 
 /** Internal path for a flow step. Wrap with resolve() at navigation call sites. */

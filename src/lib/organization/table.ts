@@ -16,6 +16,7 @@ export interface OrganizationTableStatusCounts {
 	APPROVED: number;
 	ACTIVE: number;
 	ON_HOLD: number;
+	FROZEN: number;
 	REJECTED: number;
 }
 

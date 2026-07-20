@@ -16,7 +16,7 @@
 	import LivePreviewPanel from '../../components/fee-config/LivePreviewPanel.svelte';
 	import OpenDecisionsCard from '../../components/fee-config/OpenDecisionsCard.svelte';
 	import PaymentPathCard from '../../components/fee-config/PaymentPathCard.svelte';
-	import { getFlowSteps } from '../../helpers';
+	import { defaultOrganizationLandingPath } from '../../helpers';
 
 	let { data } = $props();
 
@@ -58,7 +58,9 @@
 	const methodConfigId = $derived(resolveMethodConfigId(pathSelection));
 	const pathReady = $derived(methodConfigId !== null);
 
-	const cancelHref = $derived(getFlowSteps()[0].href(organization.id) as ResolvedPathname);
+	const cancelHref = $derived(
+		defaultOrganizationLandingPath(organization.id, organization.status) as ResolvedPathname
+	);
 
 	function cloneSlabs(slabs: FeeSlabRow[]): FeeSlabRow[] {
 		return slabs.map((slab) => ({ ...slab }));
