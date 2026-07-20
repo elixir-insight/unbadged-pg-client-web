@@ -6,16 +6,16 @@
 	import { cn } from '$lib/utils';
 
 	let {
-		userName,
-		userRole,
-		userInitials,
+		userName = '',
+		userRole = '',
+		userInitials = '',
 		vanNumber,
 		isCollapsed = false,
 		settingsHref
 	}: {
-		userName: string;
-		userRole: string;
-		userInitials: string;
+		userName?: string;
+		userRole?: string;
+		userInitials?: string;
 		vanNumber?: string;
 		isCollapsed?: boolean;
 		settingsHref?: string;
