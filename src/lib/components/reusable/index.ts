@@ -6,6 +6,7 @@ export { default as Button } from './button/button.svelte';
 export { default as Chip } from './chip/chip.svelte';
 export { default as Drawer } from './drawer/drawer.svelte';
 export { default as Dropdown } from './dropdown/dropdown.svelte';
+export { default as EmptyState } from './empty-state/empty-state.svelte';
 export type { DropdownGroup, DropdownOption } from './dropdown/dropdown.svelte';
 export { default as Table } from './data-table/data-table.svelte';
 export type { Preset as DateRangePreset } from './range-calendar/range-calendar.svelte';

@@ -29,7 +29,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	const url = buildUrl(path, opts.query);
 	const method = opts.method ?? 'GET';
 	const callId = crypto.randomUUID().slice(0, 8);
-	const log = opts.logger.child({ callId, method, path });
+	const log = opts.logger.child({ callId, method, path, url });
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 	const start = Date.now();
@@ -43,7 +43,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		headers['X-Gateway-Token'] = gatewayToken;
 	}
 
-	log.debug({ headers }, 'outbound request');
+	log.info({ url }, `outbound request → ${url}`);
 
 	try {
 		const res = await opts.fetch(url, {
