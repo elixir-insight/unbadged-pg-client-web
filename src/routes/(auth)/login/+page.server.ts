@@ -9,7 +9,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
-import { clearAuthCookies } from '$lib/server/domains/auth/session';
+import { clearAuthCookies, storePasswordChallenge } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
 import type { AccessTokenPayload } from '$lib/stores/auth/types';
@@ -66,7 +66,7 @@ export const actions = {
 			log.warn({ ip, issues: parsed.issues }, 'sign-in rejected — invalid request body');
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid email or password format',
-				userEmail: raw.userEmail,
+				userEmail: raw.userEmail.trim(),
 				requiresForce: false
 			});
 		}
@@ -82,6 +82,15 @@ export const actions = {
 		});
 
 		if (!result.ok) {
+			// Temporary password — stash the challenge in an httpOnly cookie and
+			// send the user to set a new password.
+			if ('requiresPasswordChange' in result) {
+				storePasswordChallenge(cookies, {
+					userEmail: result.userEmail,
+					challengeSession: result.challengeSession
+				});
+				redirect(303, '/reset-temporary-password');
+			}
 			return fail(result.status, {
 				message: result.message,
 				userEmail: parsed.output.userEmail,

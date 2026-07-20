@@ -3,8 +3,6 @@ import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
-type ApiFetchBody = FormData | Record<string, unknown> | null;
-
 export async function apiFetch<TSchema extends v.GenericSchema>(
 	path: string,
 	opts: {
@@ -14,8 +12,8 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		accessToken?: string;
 		gatewayToken?: string;
 		skipAuth?: boolean;
-		method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-		body?: ApiFetchBody;
+		method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+		body?: unknown;
 		query?: Record<string, string | number | undefined>;
 		extraHeaders?: Record<string, string>;
 	}
@@ -31,18 +29,15 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	const url = buildUrl(path, opts.query);
 	const method = opts.method ?? 'GET';
 	const callId = crypto.randomUUID().slice(0, 8);
-	const log = opts.logger.child({ callId, method, path, url });
+	const log = opts.logger.child({ callId, method, path });
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 	const start = Date.now();
 
-	const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
 	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
 		...opts.extraHeaders
 	};
-	if (!isFormData) {
-		headers['Content-Type'] = 'application/json';
-	}
 	if (!opts.skipAuth && accessToken && gatewayToken) {
 		headers.Authorization = `Bearer ${accessToken}`;
 		headers['X-Gateway-Token'] = gatewayToken;
@@ -51,16 +46,10 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	log.debug({ headers }, 'outbound request');
 
 	try {
-		const body: BodyInit | undefined = isFormData
-			? (opts.body as FormData)
-			: opts.body
-				? JSON.stringify(opts.body)
-				: undefined;
-
 		const res = await opts.fetch(url, {
 			method,
 			headers,
-			body,
+			body: opts.body ? JSON.stringify(opts.body) : undefined,
 			signal: controller.signal
 		});
 		const json: unknown = await res.json().catch(() => null);
@@ -89,7 +78,10 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 					kind: 'http',
 					status,
 					code: errorBody?.exceptionCode,
-					message: errorBody?.message ?? `Request failed (${status})`
+					message: errorBody?.message ?? `Request failed (${status})`,
+					// Some business "errors" still carry usable data (e.g. the
+					// password-change challenge on sign-in) — keep it for callers.
+					body: json
 				} satisfies ApiError
 			};
 		}

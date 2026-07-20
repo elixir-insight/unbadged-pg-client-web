@@ -1,6 +1,6 @@
 export type MerchantService = 'payin' | 'payout';
 
-/** Portal apps driven by access-token `cognito:groups`. Payin/payout are separate. */
+/**  Portal apps driven by access-token cognito:groups. Payin/payout are separate. */
 export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
 
 export type PortalHomePath = '/merchant' | '/partner' | '/management';
@@ -27,7 +27,7 @@ export interface CognitoIdToken {
 	event_id: string;
 }
 
-/** Cognito access token — source of portal `cognito:groups`. */
+/** Cognito access token — source of portal cognito:groups. */
 export interface AccessTokenPayload {
 	sub: string;
 	username: string;
@@ -61,7 +61,7 @@ export interface MerchantSession {
 	organizationId: string;
 	merchantName: string;
 	email: string;
-	/** Filled by a separate services API later; temporarily both true for MERCHANT UX. */
+	/** Filled by a separate services API later; temporarily both true for MERCHANT UX.*/
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
 }

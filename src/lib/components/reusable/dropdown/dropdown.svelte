@@ -106,46 +106,52 @@
 			/>
 		</PopoverTrigger>
 
-		<PopoverContent align="start" sideOffset={4} class="w-(--bits-popover-anchor-width) p-0">
+		<PopoverContent
+			align="start"
+			sideOffset={4}
+			class="min-w-(--bits-popover-anchor-width) w-max max-w-80 p-0"
+		>
 			<!-- Search input -->
-			<div class="flex items-center gap-2 border-b border-white/20 px-2.5 py-2">
+			<div class="flex items-center gap-2 border-b border-border px-2.5 py-2">
 				<Search class="size-3.5 shrink-0 text-muted-foreground" />
 				<input
 					type="text"
 					bind:value={query}
 					placeholder="Search"
-					class="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+					class="w-full bg-transparent text-left text-sm outline-none placeholder:text-muted-foreground"
 				/>
 			</div>
 
 			<!-- Filtered options -->
 			<div class="max-h-60 overflow-y-auto scroll-py-1 py-1">
 				{#if filtered.length === 0}
-					<p class="px-3 py-4 text-center text-sm text-muted-foreground">No results found.</p>
+					<p class="px-3 py-4 text-left text-sm text-muted-foreground">No results found.</p>
 				{:else}
 					{#each filtered as opt, i (isGroup(opt) ? `g:${opt.group}` : `f:${(opt as DropdownOption).value}`)}
 						{#if isGroup(opt)}
 							{#if i > 0}
-								<div class="my-1 border-t border-white/10"></div>
+								<div class="my-1 border-t border-border"></div>
 							{/if}
-							<p class="px-2.5 py-1 text-xs font-medium text-muted-foreground">{opt.group}</p>
+							<p class="px-2.5 py-1 text-left text-xs font-medium text-muted-foreground">
+								{opt.group}
+							</p>
 							{#each opt.items as item (item.value)}
 								<button
 									type="button"
 									disabled={item.disabled}
 									onclick={() => pick(item)}
 									class={cn(
-										'flex w-full items-center gap-2 justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors ',
+										'flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors',
 										'hover:bg-accent cursor-pointer',
 										'disabled:cursor-not-allowed disabled:opacity-50',
 										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-										value === item.value && 'font-medium bg-accent'
+										value === item.value && 'bg-accent font-medium'
 									)}
 								>
-									{item.label}
+									<span class="min-w-0 flex-1 text-left leading-snug">{item.label}</span>
 									<Check
 										class={cn(
-											'size-3.5 shrink-0 transition-opacity',
+											'mt-0.5 size-3.5 shrink-0 transition-opacity',
 											value === item.value ? 'opacity-100' : 'opacity-0'
 										)}
 									/>
@@ -158,17 +164,17 @@
 								disabled={flat.disabled}
 								onclick={() => pick(flat)}
 								class={cn(
-									'flex w-full items-center gap-2 justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+									'flex w-full items-start gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors',
 									'hover:bg-accent cursor-pointer',
 									'disabled:cursor-not-allowed disabled:opacity-50',
 									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-									value === flat.value && 'font-medium bg-accent'
+									value === flat.value && 'bg-accent font-medium'
 								)}
 							>
-								{flat.label}
+								<span class="min-w-0 flex-1 text-left leading-snug">{flat.label}</span>
 								<Check
 									class={cn(
-										'size-3.5 shrink-0 transition-opacity',
+										'mt-0.5 size-3.5 shrink-0 transition-opacity',
 										value === flat.value ? 'opacity-100' : 'opacity-0'
 									)}
 								/>
