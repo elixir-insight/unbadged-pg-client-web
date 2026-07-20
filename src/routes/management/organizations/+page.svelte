@@ -339,7 +339,7 @@
 				>
 					<Building2 class="size-4 shrink-0 text-muted-foreground" />
 					<div class="min-w-0">
-						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Business Type
 						</p>
 						<p class="text-sm font-medium">{formatLabel(selectedOrg.businessType)}</p>
@@ -350,7 +350,7 @@
 				>
 					<Layers class="size-4 shrink-0 text-muted-foreground" />
 					<div class="min-w-0">
-						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Category
 						</p>
 						<p class="text-sm font-medium">{formatLabel(selectedOrg.category)}</p>
@@ -361,7 +361,7 @@
 				>
 					<BadgeCheck class="size-4 shrink-0 text-muted-foreground" />
 					<div class="min-w-0">
-						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Profile Status
 						</p>
 						<p class="text-sm font-medium">{formatLabel(selectedOrg.status)}</p>
@@ -372,7 +372,7 @@
 				>
 					<Calendar class="size-4 shrink-0 text-muted-foreground" />
 					<div class="min-w-0">
-						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Created At
 						</p>
 						<p class="text-sm font-medium">{selectedOrg.createdAt}</p>

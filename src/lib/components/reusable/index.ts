@@ -34,6 +34,8 @@ export { default as Search } from './search/search.svelte';
 export { default as Sidebar } from './sidebar/sidebar.svelte';
 export { default as StatCard } from './stat-card/stat-card.svelte';
 export type { StatCardBadge } from './stat-card/stat-card.svelte';
+export { default as FilterStatCard } from './stat-card/filter-stat-card.svelte';
+export type { StatCardTone } from './stat-card/filter-stat-card.svelte';
 export { default as Switch } from './switch/switch.svelte';
 export { default as Tabs } from './tabs/tabs.svelte';
 export type { TabItem } from './tabs/tabs.svelte';

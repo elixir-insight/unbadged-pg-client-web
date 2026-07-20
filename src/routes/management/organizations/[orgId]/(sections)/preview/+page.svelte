@@ -201,7 +201,7 @@
 
 {#snippet readOnlyField(label: string, value: string)}
 	<div class="space-y-1">
-		<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
 		<p class="text-sm">{value || '—'}</p>
 	</div>
 {/snippet}
@@ -261,7 +261,7 @@
 				{@render readOnlyField('KYB Verification Status', organization.kyb.verificationStatus)}
 			</div>
 			<div class="space-y-1">
-				<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Registered Address
 				</p>
 				<p class="text-sm whitespace-pre-line">
@@ -269,7 +269,7 @@
 				</p>
 			</div>
 			<div class="space-y-1">
-				<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Communication Address
 				</p>
 				<p class="text-sm whitespace-pre-line">
@@ -277,7 +277,7 @@
 				</p>
 			</div>
 			<div class="space-y-3">
-				<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Directors</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Directors</p>
 				{#if reviewDirectors.length === 0}
 					<p class="text-sm text-muted-foreground">No directors added.</p>
 				{:else}

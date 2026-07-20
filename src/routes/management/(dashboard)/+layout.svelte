@@ -55,7 +55,7 @@
 
 		<!-- px/-mx cancel out (preserves alignment with the header above) while still giving card
 		     box-shadows room to render before overflow-y-auto's clip edge cuts them off -->
-		<div class="min-h-0 flex-1 overflow-y-auto -mx-3 px-3 pt-1 pb-3">
+		<div class="-mx-3 min-h-0 flex-1 overflow-y-auto px-3 pt-1 pb-3">
 			<Tabs.Content value={activeTab} class="h-full min-h-0">
 				{@render children()}
 			</Tabs.Content>

@@ -96,7 +96,7 @@
 	<PopoverTrigger
 		class={cn(
 			'flex h-9 cursor-pointer items-center rounded-md border border-input bg-background shadow-xs',
-			'transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring/50',
+			'transition-colors hover:border-primary/40 focus:ring-1 focus:ring-ring/50 focus:outline-none',
 			className
 		)}
 	>

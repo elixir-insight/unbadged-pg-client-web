@@ -140,7 +140,7 @@
 									></span>
 									{name}
 								</span>
-								<span class="font-medium tabular-nums text-foreground">
+								<span class="font-medium text-foreground tabular-nums">
 									{formatValue(itemValue as number)}
 								</span>
 							</div>

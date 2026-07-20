@@ -51,8 +51,7 @@
 			status: 'pending'
 		},
 		{ name: 'Sophia Lee', method: 'UPI', time: 'Yesterday', amount: '₹3,400', status: 'success' },
-		{ name: 'David Miller', method: 'Card', time: 'Yesterday', amount: '₹2,900', status: 'failed' },
-		{ name: 'Priya Nair', method: 'UPI', time: 'Yesterday', amount: '₹9,150', status: 'success' }
+		{ name: 'David Miller', method: 'Card', time: 'Yesterday', amount: '₹2,900', status: 'failed' }
 	];
 </script>
 

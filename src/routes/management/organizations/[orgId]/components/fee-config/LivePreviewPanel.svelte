@@ -39,7 +39,7 @@
 	</div>
 
 	<div class="space-y-5 p-5">
-		<p class="font-mono text-sm tabular-nums text-primary">{pathBreadcrumb}</p>
+		<p class="font-mono text-sm text-primary tabular-nums">{pathBreadcrumb}</p>
 
 		<label class="block space-y-2">
 			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -58,7 +58,7 @@
 				<div>
 					<p class="text-foreground">Gross amount</p>
 				</div>
-				<p class="font-mono tabular-nums text-foreground">{formatCurrency(preview.grossAmount)}</p>
+				<p class="font-mono text-foreground tabular-nums">{formatCurrency(preview.grossAmount)}</p>
 			</li>
 			<li class="flex items-start justify-between gap-3">
 				<div>
@@ -67,7 +67,7 @@
 						<p class="text-xs text-muted-foreground">{preview.gatewayFee.rateLabel}</p>
 					{/if}
 				</div>
-				<p class="font-mono tabular-nums text-destructive">
+				<p class="font-mono text-destructive tabular-nums">
 					{preview.gatewayFee ? `−${formatCurrency(preview.gatewayFee.amount)}` : '—'}
 				</p>
 			</li>
@@ -78,7 +78,7 @@
 						<p class="text-xs text-muted-foreground">{preview.commissionFee.rateLabel}</p>
 					{/if}
 				</div>
-				<p class="font-mono tabular-nums text-destructive">
+				<p class="font-mono text-destructive tabular-nums">
 					{preview.commissionFee ? `−${formatCurrency(preview.commissionFee.amount)}` : '—'}
 				</p>
 			</li>
@@ -89,7 +89,7 @@
 						<p class="text-xs text-muted-foreground">{preview.partnerFee.rateLabel}</p>
 					{/if}
 				</div>
-				<p class="font-mono tabular-nums text-destructive">
+				<p class="font-mono text-destructive tabular-nums">
 					{preview.partnerFee ? `−${formatCurrency(preview.partnerFee.amount)}` : '—'}
 				</p>
 			</li>
@@ -97,7 +97,7 @@
 
 		<div class="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
 			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Net amount</p>
-			<p class="mt-1 font-mono text-2xl font-semibold tabular-nums text-primary">
+			<p class="mt-1 font-mono text-2xl font-semibold text-primary tabular-nums">
 				{formatCurrency(preview.netAmount)}
 			</p>
 			<p class="mt-1 text-xs text-muted-foreground">

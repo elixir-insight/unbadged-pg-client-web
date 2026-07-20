@@ -155,7 +155,7 @@
 						type="button"
 						variant="destructive"
 						size="icon-sm"
-						class="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+						class="opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
 						aria-label="Remove slab row {index + 1}"
 						onclick={() => removeSlabRow(slab.id)}
 					>

@@ -259,7 +259,7 @@
 	</div>
 
 	<!-- Payouts table -->
-	<div class="border-border rounded-lg border bg-background shadow-sm">
+	<div class="rounded-lg border border-border bg-background shadow-sm">
 		<div class="flex items-center justify-between gap-2 p-4">
 			<span class="text-sm text-muted-foreground">{showingText}</span>
 			<div class="flex items-center gap-2">

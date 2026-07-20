@@ -34,7 +34,7 @@
 				<label
 					for={checkboxId}
 					class={cn(
-						'cursor-pointer text-sm font-medium leading-none',
+						'cursor-pointer text-sm leading-none font-medium',
 						disabled && 'cursor-not-allowed opacity-50'
 					)}
 				>
@@ -42,7 +42,7 @@
 				</label>
 			{/if}
 			{#if description}
-				<p class="text-muted-foreground text-sm">{description}</p>
+				<p class="text-sm text-muted-foreground">{description}</p>
 			{/if}
 		</div>
 	</div>

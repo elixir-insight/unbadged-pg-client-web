@@ -1,1 +1,1 @@
-<p class="text-muted-foreground text-sm">Coming soon.</p>
+<p class="text-sm text-muted-foreground">Coming soon.</p>

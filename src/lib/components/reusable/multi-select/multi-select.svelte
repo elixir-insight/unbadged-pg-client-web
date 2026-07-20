@@ -88,7 +88,7 @@
 						onclick={() => toggle(opt.value)}
 						class={cn(
 							'flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-							'hover:bg-accent cursor-pointer ',
+							'cursor-pointer hover:bg-accent ',
 							'disabled:cursor-not-allowed disabled:opacity-50',
 							'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none'
 						)}

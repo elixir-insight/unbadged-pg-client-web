@@ -1,12 +1,14 @@
 <script lang="ts">
 	import * as Drawer from '$lib/components/ui/drawer';
 	import type { Snippet } from 'svelte';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		open?: boolean;
 		title?: string;
 		description?: string;
 		direction?: 'bottom' | 'top' | 'left' | 'right';
+		scrollable?: boolean;
 		trigger?: Snippet;
 		children?: Snippet;
 		footer?: Snippet;
@@ -17,6 +19,7 @@
 		title,
 		description,
 		direction = 'bottom',
+		scrollable = true,
 		trigger,
 		children,
 		footer
@@ -41,7 +44,7 @@
 			</Drawer.Header>
 		{/if}
 		{#if children}
-			<div class="overflow-auto px-4 pb-2">
+			<div class={cn('px-4 pb-2', scrollable ? 'overflow-auto' : 'overflow-visible')}>
 				{@render children()}
 			</div>
 		{/if}

@@ -110,7 +110,7 @@
 												></span>
 												{name}
 											</span>
-											<span class="font-mono font-medium tabular-nums text-foreground">
+											<span class="font-mono font-medium text-foreground tabular-nums">
 												{value}%
 											</span>
 										</div>
@@ -143,7 +143,7 @@
 					>
 					<span
 						class={cn(
-							'font-bold tabular-nums text-foreground',
+							'font-bold text-foreground tabular-nums',
 							chartType === 'radial' ? 'text-lg' : 'text-sm'
 						)}>{formatValue(total)}</span
 					>
@@ -159,11 +159,11 @@
 							aria-hidden="true"
 						></span>
 						<span class="min-w-0 truncate text-sm text-muted-foreground">{item.label}</span>
-						<span class="shrink-0 pl-3 font-semibold text-sm tabular-nums text-foreground"
+						<span class="shrink-0 pl-3 text-sm font-semibold text-foreground tabular-nums"
 							>{item.percentage}%</span
 						>
 						{#if showAmount}
-							<span class="shrink-0 text-muted-foreground text-sm tabular-nums"
+							<span class="shrink-0 text-sm text-muted-foreground tabular-nums"
 								>({formatValue(item.amount)})</span
 							>
 						{/if}

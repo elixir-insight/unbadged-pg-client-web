@@ -258,10 +258,10 @@
 		{/if}
 	</div>
 
-	<div class="border-border overflow-hidden rounded-lg border bg-background shadow-sm">
+	<div class="overflow-hidden rounded-lg border border-border bg-background shadow-sm">
 		<CollectionsTabs basePath="/management/transactions/collections" {scopeQuery} />
 
-		<div class="border-t border-border p-4 flex gap-2 justify-between items-center">
+		<div class="flex items-center justify-between gap-2 border-t border-border p-4">
 			<span class="text-sm text-muted-foreground">{showingText}</span>
 			<Button variant="outline">
 				<RefreshCw />
