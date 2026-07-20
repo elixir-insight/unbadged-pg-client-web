@@ -89,16 +89,16 @@ export async function fetchUserDirectory(portal?: UsersApiPortal): Promise<Direc
 	const res = await fetch(withPortal('/api/users/directory', portal));
 	if (!res.ok) throw new Error('Failed to fetch user directory');
 
-	const raw: { items: DirectoryUser[] } = await res.json();
-	return raw.items;
+	const raw: { items?: DirectoryUser[] } = await res.json();
+	return raw?.items ?? [];
 }
 
 export async function fetchAssignableRoles(portal?: UsersApiPortal): Promise<AssignableRole[]> {
 	const res = await fetch(withPortal('/api/roles?page=0&limit=100', portal));
 	if (!res.ok) throw new Error('Failed to fetch roles');
 
-	const raw: { items: RoleItem[] } = await res.json();
-	return raw.items.map((role) => ({
+	const raw: { items?: RoleItem[] } = await res.json();
+	return (raw?.items ?? []).map((role) => ({
 		...role,
 		displayName: formatRoleDisplayName(role.roleName)
 	}));
@@ -120,17 +120,17 @@ export async function createUser(
 	} = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to create user');
+		throw new Error(raw?.message ?? 'Failed to create user');
 	}
 
-	const memberId = raw.data?.[0]?.memberId;
+	const memberId = raw?.data?.[0]?.memberId;
 	if (memberId === undefined) {
 		throw new Error('Unexpected create user response');
 	}
 
 	return {
 		memberId,
-		message: raw.message ?? 'Member created successfully'
+		message: raw?.message ?? 'Member created successfully'
 	};
 }
 
@@ -148,11 +148,11 @@ export async function updateUser(
 	const raw: { message?: string } = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to update user');
+		throw new Error(raw?.message ?? 'Failed to update user');
 	}
 
 	return {
-		message: raw.message ?? 'Member updated successfully'
+		message: raw?.message ?? 'Member updated successfully'
 	};
 }
 
@@ -171,10 +171,10 @@ export async function deleteUser(
 	const raw: { message?: string } = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to delete user');
+		throw new Error(raw?.message ?? 'Failed to delete user');
 	}
 
 	return {
-		message: raw.message ?? 'Member deleted successfully'
+		message: raw?.message ?? 'Member deleted successfully'
 	};
 }

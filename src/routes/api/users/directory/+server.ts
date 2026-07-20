@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 	}
 
 	return json({
-		items: result.data.data.map((user) => ({
+		items: (result.data?.data ?? []).map((user) => ({
 			id: String(user.id),
 			name: user.userName
 		}))

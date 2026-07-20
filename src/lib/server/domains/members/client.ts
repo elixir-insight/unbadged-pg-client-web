@@ -2,14 +2,21 @@ import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
 	CreateMemberResponseSchema,
+	CreateOrgRoleResponseSchema,
 	DeleteMemberResponseSchema,
+	DeleteOrgRoleResponseSchema,
 	MemberDetailResponseSchema,
 	MembersListResponseSchema,
+	OrgRoleDetailResponseSchema,
 	OrgRolesListResponseSchema,
+	PermissionsCatalogResponseSchema,
 	UpdateMemberResponseSchema,
+	UpdateOrgRoleResponseSchema,
 	UserDirectoryListResponseSchema,
 	type CreateMemberBody,
-	type UpdateMemberBody
+	type CreateOrgRoleBody,
+	type UpdateMemberBody,
+	type UpdateOrgRoleBody
 } from './schema';
 import { type MembersApiPortal, membersBasePath } from './portal';
 
@@ -84,6 +91,85 @@ export const membersClient = {
 			schema: OrgRolesListResponseSchema
 		}),
 
+	/** GET /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	getOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'GET',
+			schema: OrgRoleDetailResponseSchema
+		}),
+
+	/** POST /api/v1/{portal}/organizations/{orgId}/roles */
+	createOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		body: CreateOrgRoleBody,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'POST',
+			body,
+			schema: CreateOrgRoleResponseSchema
+		}),
+
+	/** PATCH /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	updateOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		body: UpdateOrgRoleBody,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'PATCH',
+			body,
+			schema: UpdateOrgRoleResponseSchema
+		}),
+
+	/** DELETE /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	deleteOrgRole: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: number,
+		roleId: number,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'DELETE',
+			schema: DeleteOrgRoleResponseSchema
+		}),
+
 	listUsers: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -103,6 +189,23 @@ export const membersClient = {
 				limit: query.limit ?? 1000
 			},
 			schema: UserDirectoryListResponseSchema
+		}),
+
+	/** GET /api/v1/{portal}/permissions — RBAC permission catalog for role management */
+	listPermissions: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		portal: MembersApiPortal = 'management'
+	) =>
+		apiFetch(`${membersBasePath(portal)}/permissions`, {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'GET',
+			schema: PermissionsCatalogResponseSchema
 		}),
 
 	create: (
