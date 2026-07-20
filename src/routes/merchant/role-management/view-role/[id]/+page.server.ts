@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	if (!permsRes.ok) error(permsRes.status, 'Failed to load permissions');
 
 	const role: RoleDetail = await roleRes.json();
-	const permsBody: { modules: ApiPermissionModule[] } = await permsRes.json();
+	const permsBody: { modules?: ApiPermissionModule[] } = await permsRes.json();
 
 	return {
 		role,

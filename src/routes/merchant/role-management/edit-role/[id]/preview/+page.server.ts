@@ -8,6 +8,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		error(res.status, 'Failed to load permissions');
 	}
 
-	const body: { modules: ApiPermissionModule[] } = await res.json();
+	const body: { modules?: ApiPermissionModule[] } = await res.json();
 	return { permissionModules: body?.modules ?? [] };
 };

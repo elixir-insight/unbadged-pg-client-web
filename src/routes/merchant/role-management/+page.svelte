@@ -14,6 +14,8 @@
 	]);
 	const hasActiveFilters = $derived(activeFilters.length > 0);
 
+	// searchInput is derived from the URL so back/forward navigation restores it.
+	// It can also be overridden locally for immediate keystroke feedback.
 	let searchInput = $derived(pagination.search);
 
 	let roles = $state<RoleItem[]>([]);
@@ -25,11 +27,11 @@
 	async function loadRoles(reset = false, q = '') {
 		if (!reset && (loading || !hasMore)) return;
 		loading = true;
-		const params = new URLSearchParams({ q });
+		const params = new URLSearchParams({ q, portal: 'merchant' });
 
 		try {
 			const res = await fetch(`/api/roles?${params}`);
-			const data: { items: RoleItem[] } = await res.json();
+			const data: { items?: RoleItem[] } = await res.json();
 
 			// Single-shot list for now — BFF returns the filtered page; appending the same
 			// response would duplicate cards and loop while the sentinel stays visible.
@@ -40,6 +42,8 @@
 		}
 	}
 
+	// Reload whenever the URL search param changes (covers initial load,
+	// debounced typing, and back/forward navigation).
 	$effect(() => {
 		const q = pagination.search;
 		hasMore = true;
@@ -86,6 +90,7 @@
 </script>
 
 <div class="space-y-6">
+	<!-- Page header -->
 	<div>
 		<h1 class="text-2xl font-bold text-foreground">Roles & Permissions</h1>
 		<p class="mt-1 text-sm text-muted-foreground">
@@ -93,6 +98,7 @@
 		</p>
 	</div>
 
+	<!-- Toolbar -->
 	<div class="flex items-center justify-between gap-3">
 		<Search
 			value={searchInput}
@@ -130,7 +136,9 @@
 		</div>
 	{/if}
 
+	<!-- Grid -->
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		<!-- Create New Role card -->
 		<button
 			type="button"
 			class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
@@ -169,5 +177,6 @@
 		</div>
 	{/if}
 
+	<!-- Infinite scroll sentinel -->
 	<div bind:this={sentinel} class="h-1"></div>
 </div>

@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { Chip } from '$lib/components/reusable/index';
+	import { Chip, Modal, Tooltip } from '$lib/components/reusable/index';
 	import { Avatar } from '$lib/components/reusable';
 	import { AccessPreviewTable } from '$lib/components/role-management';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import type { PermissionsState } from '$lib/stores/role-management/role-management';
 	import {
 		mapPermissionsCatalog,
+		collectSelectedPermissionIds,
 		buildGrantedPreviewStatuses
 	} from '$lib/stores/role-management/permissions-mapper';
+	import { deleteRole } from '$lib/stores/role-management/roles-api';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
@@ -18,6 +21,9 @@
 
 	const { role } = $derived(data);
 	const catalog = $derived(mapPermissionsCatalog(data?.permissionModules));
+
+	let deleteOpen = $state(false);
+	let deleting = $state(false);
 
 	const grantedIds = $derived(new Set((role?.permissions ?? []).map((p) => p.id)));
 
@@ -44,6 +50,17 @@
 	);
 
 	const isDefaultRole = $derived(role?.roleInfo?.defaultRole ?? false);
+	const hasAssignedUsers = $derived((role?.users?.length ?? 0) > 0);
+
+	const editDisabledReason = $derived(isDefaultRole ? 'Default roles cannot be edited.' : null);
+
+	const deleteDisabledReason = $derived(
+		isDefaultRole
+			? 'Default roles cannot be deleted.'
+			: hasAssignedUsers
+				? 'Remove all assigned users before deleting this role.'
+				: null
+	);
 
 	const description = $derived(role?.roleInfo?.description ?? '');
 
@@ -77,7 +94,8 @@
 			role?.roleInfo?.roleId ?? 0,
 			role?.roleInfo?.roleName ?? '',
 			description,
-			perms
+			perms,
+			collectSelectedPermissionIds(perms, catalog.optionsByModule)
 		);
 		goto(
 			resolve('/merchant/role-management/edit-role/[id]', {
@@ -85,9 +103,31 @@
 			})
 		);
 	}
+
+	async function confirmDelete() {
+		if (deleting || deleteDisabledReason) return;
+
+		const roleId = role?.roleInfo?.roleId;
+		if (roleId == null) return;
+
+		deleting = true;
+		try {
+			const result = await deleteRole(roleId, 'merchant');
+			toast.success(result.message);
+			deleteOpen = false;
+			goto(resolve('/merchant/role-management'));
+		} catch (e) {
+			toast.error('Could not delete role', {
+				description: e instanceof Error ? e.message : 'Something went wrong'
+			});
+		} finally {
+			deleting = false;
+		}
+	}
 </script>
 
 <div class="m-auto w-full space-y-6 md:w-[75%]">
+	<!-- Page header -->
 	<div class="flex flex-wrap items-start justify-between gap-4">
 		<div>
 			<div class="mb-1 flex flex-wrap items-center gap-2">
@@ -101,29 +141,44 @@
 					{isDefaultRole ? 'Default' : 'Custom'}
 				</Chip>
 			</div>
-			<div class="flex items-center gap-1.5 text-sm text-muted-foreground">
-				<Users class="h-4 w-4" />
-				<span>{role?.users?.length ?? 0} assigned</span>
-			</div>
+			<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+				<Users class="h-3.5 w-3.5" />
+				{role?.roleInfo?.roleAssignedCount ?? 0} users assigned
+			</p>
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={handleEdit} disabled={isDefaultRole}>
-				<Pencil class="h-4 w-4" />
-				Edit role
-			</Button>
-			<Button
-				variant="destructive"
-				size="sm"
-				onclick={() => {}}
-				disabled={isDefaultRole || (role?.users?.length ?? 0) > 0}
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			{#if editDisabledReason}
+				<Tooltip content={editDisabledReason}>
+					<Button variant="outline" size="sm" disabled>
+						<Pencil class="h-4 w-4" />
+						Edit role
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="outline" size="sm" onclick={handleEdit}>
+					<Pencil class="h-4 w-4" />
+					Edit role
+				</Button>
+			{/if}
+
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" size="sm" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" size="sm" onclick={() => (deleteOpen = true)}>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</Button>
+			{/if}
 		</div>
 	</div>
 
+	<!-- Role detail -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">
 		<h2 class="mb-4 text-sm font-semibold text-foreground">Role Description</h2>
 		<div class="min-h-24 rounded-lg border border-border bg-background/50 p-4">
@@ -133,8 +188,10 @@
 		</div>
 	</div>
 
+	<!-- Access & permissions -->
 	<AccessPreviewTable {modules} />
 
+	<!-- Assigned users -->
 	<div class="rounded-xl border border-border bg-card p-5 shadow">
 		<div class="mb-4">
 			<h2 class="text-sm font-semibold text-foreground">Assigned users</h2>
@@ -143,7 +200,7 @@
 
 		<div class="divide-y divide-border">
 			{#each role?.users ?? [] as user (user.email)}
-				<div class="flex items-center justify-between py-3">
+				<div class="flex items-center justify-between gap-3 py-3">
 					<div class="flex items-center gap-3">
 						<Avatar name={user?.userName} size="default" shape="circle" />
 						<span class="text-sm text-foreground">{user?.userName}</span>
@@ -154,3 +211,30 @@
 		</div>
 	</div>
 </div>
+
+<Modal
+	bind:open={deleteOpen}
+	title="Delete role"
+	description="Are you sure you want to delete {displayName}? This action cannot be undone."
+>
+	{#snippet footer()}
+		<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+			<Button
+				variant="outline"
+				class="w-full sm:w-auto"
+				disabled={deleting}
+				onclick={() => (deleteOpen = false)}
+			>
+				Cancel
+			</Button>
+			<Button
+				variant="destructive"
+				class="w-full sm:w-auto"
+				disabled={deleting}
+				onclick={confirmDelete}
+			>
+				{deleting ? 'Deleting…' : 'Delete role'}
+			</Button>
+		</div>
+	{/snippet}
+</Modal>
