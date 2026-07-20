@@ -6,7 +6,7 @@ export const PaginationSchema = v.object({
 	limit: v.number()
 });
 
-/** List item from GET /api/v1/management/member */
+/** List item from GET /api/v1/{management|merchant}/member */
 export const MemberListItemSchema = v.object({
 	id: v.number(),
 	userName: v.string(),
@@ -25,7 +25,7 @@ export const MemberListItemSchema = v.object({
 });
 
 /**
- * Detail item from GET /api/v1/management/member/{memberId}.
+ * Detail item from GET /api/v1/{management|merchant}/member/{memberId}.
  * Active vs Invited payloads can omit or null some fields — keep this permissive.
  */
 export const MemberDetailItemSchema = v.object({
@@ -60,7 +60,7 @@ export const MemberDetailResponseSchema = v.object({
 	data: v.array(MemberDetailItemSchema)
 });
 
-/** Role from GET /api/v1/management/organizations/{orgId}/roles */
+/** Role from GET /api/v1/{management|merchant}/organizations/{orgId}/roles */
 export const OrgRoleItemSchema = v.object({
 	roleId: v.number(),
 	roleName: v.string(),
@@ -108,7 +108,7 @@ export const UpdateMemberResponseSchema = v.object({
 
 export const DeleteMemberResponseSchema = UpdateMemberResponseSchema;
 
-/** Lightweight user from GET /api/v1/management/user/list — for reporting-to lookup */
+/** Lightweight user from GET /api/v1/{management|merchant}/user/list — for reporting-to lookup */
 export const UserDirectoryItemSchema = v.object({
 	id: v.number(),
 	userName: v.string()

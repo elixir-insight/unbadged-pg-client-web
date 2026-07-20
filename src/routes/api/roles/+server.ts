@@ -2,9 +2,10 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import type { RoleItem } from '$lib/stores/role-management/role-management';
 
-export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
 	let tokens;
 	try {
 		tokens = await getValidSession(cookies, fetch, locals.logger);
@@ -20,6 +21,12 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 		error(401, { message: 'Organization not found in session' });
 	}
 
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
 	const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
 	// Upstream roles list uses 0-based page indexing.
 	const page = Math.max(0, Number(url.searchParams.get('page') ?? 0) || 0);
@@ -31,7 +38,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 		tokens.accessToken,
 		tokens.gatewayToken,
 		orgId,
-		{ page, limit }
+		{ page, limit },
+		portal
 	);
 
 	if (!result.ok) {
