@@ -28,25 +28,9 @@
 	});
 </script>
 
-<!-- Expanded (default sidebar state) -->
-<Story name="Expanded" args={{ ...defaultArgs, isCollapsed: false }}>
-	{#snippet template(args: ProfileCardProps)}
-		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
-		</div>
-	{/snippet}
-</Story>
-
-<!-- Collapsed (icon-only sidebar state) -->
-<Story name="Collapsed" args={{ ...defaultArgs, isCollapsed: true }}>
-	{#snippet template(args: ProfileCardProps)}
-		<div class="w-14 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
-		</div>
-	{/snippet}
-</Story>
-
-<!-- Custom user -->
+<!-- No custom templates: avoids Storybook args union vs ComponentProps type errors in svelte-check -->
+<Story name="Expanded" args={{ ...defaultArgs, isCollapsed: false }} />
+<Story name="Collapsed" args={{ ...defaultArgs, isCollapsed: true }} />
 <Story
 	name="Custom User"
 	args={{
@@ -57,10 +41,4 @@
 		vanNumber: 'VAN-2024-00456',
 		isCollapsed: false
 	}}
->
-	{#snippet template(args: ProfileCardProps)}
-		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
-		</div>
-	{/snippet}
-</Story>
+/>
