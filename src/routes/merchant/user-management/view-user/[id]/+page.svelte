@@ -4,7 +4,6 @@
 	import { Button, Chip, Modal, Tooltip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import {
-		ArrowLeft,
 		Hash,
 		IdCardIcon,
 		MailIcon,
@@ -42,10 +41,6 @@
 			? 'This user has people reporting to them. Reassign those users before deleting.'
 			: null
 	);
-
-	function backToUsers() {
-		goto(resolve('/merchant/user-management'));
-	}
 
 	function handleEdit() {
 		createUserFormStore.loadForEdit(user);
@@ -120,10 +115,6 @@
 			<h1 class="text-2xl font-bold text-foreground">User Details</h1>
 			<p class="mt-1 text-sm text-muted-foreground">View and manage user information.</p>
 		</div>
-		<Button variant="outline" class="gap-2" onclick={backToUsers}>
-			<ArrowLeft class="h-4 w-4" />
-			Back
-		</Button>
 	</div>
 
 	<div class="space-y-6 rounded-xl border p-8 shadow">
