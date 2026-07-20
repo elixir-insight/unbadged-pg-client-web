@@ -7,7 +7,7 @@ const iconCount = Object.keys(IconExports).filter((name) => !name.startsWith('Co
 const meta = {
 	title: 'Design Tokens / Icons',
 	component: Icons,
-	tags: ['autodocs'],
+	tags: ['autodocs', '!test'],
 	parameters: {
 		layout: 'fullscreen',
 		docs: {

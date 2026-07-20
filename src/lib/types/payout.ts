@@ -23,6 +23,10 @@ export type PayoutResponseType = {
 
 export interface PayoutRow extends PayoutTableTypes, Record<string, unknown> {
 	_dateMs: number;
+	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 }
 
 export type PayoutTransactionStatus = 'success' | 'pending' | 'failed';
@@ -71,6 +75,9 @@ export interface PayoutDetail {
 	gatewayGst: string;
 	netDebited: string;
 	orgId: string;
+	vanId: string;
+	vanNumber: string;
+	merchantName: string;
 	crn: string;
 	utr: string;
 	bankPipelineCode: string;
