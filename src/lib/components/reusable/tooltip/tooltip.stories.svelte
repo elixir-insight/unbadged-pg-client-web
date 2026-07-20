@@ -1,6 +1,9 @@
-<script module>
+<script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Tooltip from './tooltip.svelte';
+
+	type TooltipProps = ComponentProps<typeof Tooltip>;
 
 	const { Story } = defineMeta({
 		title: 'Reusable/Tooltip',
@@ -33,7 +36,7 @@
 
 <!-- Without Icon — text trigger -->
 <Story name="Without Icon" args={{ content: 'This is a tooltip', side: 'top' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args}>
 				<Button variant="outline">Hover me</Button>
@@ -44,7 +47,7 @@
 
 <!-- With Icon — icon-only trigger -->
 <Story name="With Icon" args={{ content: 'More information about this field', side: 'top' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>
@@ -53,7 +56,7 @@
 
 <!-- Help Icon -->
 <Story name="Help Icon" args={{ content: 'Click here if you need assistance', side: 'top' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={HelpCircleIcon} />
 		</div>
@@ -62,7 +65,7 @@
 
 <!-- Warning Icon -->
 <Story name="Warning Icon" args={{ content: 'This action cannot be undone', side: 'top' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={AlertCircleIcon} />
 		</div>
@@ -71,7 +74,7 @@
 
 <!-- Side — Top -->
 <Story name="Side Top" args={{ content: 'Appears above', side: 'top' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>
@@ -80,7 +83,7 @@
 
 <!-- Side — Bottom -->
 <Story name="Side Bottom" args={{ content: 'Appears below', side: 'bottom' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>
@@ -89,7 +92,7 @@
 
 <!-- Side — Left -->
 <Story name="Side Left" args={{ content: 'Appears to the left', side: 'left' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>
@@ -98,7 +101,7 @@
 
 <!-- Side — Right -->
 <Story name="Side Right" args={{ content: 'Appears to the right', side: 'right' }}>
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>
@@ -110,7 +113,7 @@
 	name="With Delay"
 	args={{ content: 'Delayed tooltip (500ms)', side: 'top', delayDuration: 500 }}
 >
-	{#snippet template(args)}
+	{#snippet template(args: TooltipProps)}
 		<div class="flex h-24 items-center justify-center">
 			<Tooltip {...args} icon={InfoIcon} />
 		</div>

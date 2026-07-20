@@ -48,14 +48,14 @@
 				<label
 					for={`radio-${option.value}`}
 					class={cn(
-						'cursor-pointer text-sm font-medium leading-none',
+						'cursor-pointer text-sm leading-none font-medium',
 						isDisabled && 'cursor-not-allowed opacity-50'
 					)}
 				>
 					{option.label}
 				</label>
 				{#if option.description}
-					<p class="text-muted-foreground text-sm">{option.description}</p>
+					<p class="text-sm text-muted-foreground">{option.description}</p>
 				{/if}
 			</div>
 		</div>

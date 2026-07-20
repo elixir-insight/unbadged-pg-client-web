@@ -59,7 +59,7 @@
 	<div class="mb-6 flex items-center gap-3">
 		<div class="relative" style="flex: 1 1 200px; max-width: 300px;">
 			<svg
-				class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+				class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
 				style="color: var(--muted-foreground);"
 				width="14"
 				height="14"
@@ -76,7 +76,7 @@
 				placeholder="Search icons…"
 				value={effectiveSearch}
 				oninput={handleSearchInput}
-				class="w-full rounded-lg border py-2 pl-8 pr-3 text-sm outline-none transition"
+				class="w-full rounded-lg border py-2 pr-3 pl-8 text-sm transition outline-none"
 				style="border-color: var(--border); background-color: var(--card); color: var(--foreground);"
 				aria-label="Search icons"
 			/>

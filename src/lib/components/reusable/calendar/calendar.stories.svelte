@@ -25,7 +25,7 @@
 <!-- Default (empty, single month) -->
 <Story name="Default" args={{ placeholder: 'Select date range' }}>
 	{#snippet template(args)}
-		<div class="w-72 h-90">
+		<div class="h-90 w-72">
 			<Calendar {...args} />
 		</div>
 	{/snippet}
@@ -34,7 +34,7 @@
 <!-- With label -->
 <Story name="With Label" args={{ label: 'Date Range', placeholder: 'Pick a range…' }}>
 	{#snippet template(args)}
-		<div class="w-72 h-90">
+		<div class="h-90 w-72">
 			<Calendar {...args} />
 		</div>
 	{/snippet}
@@ -43,7 +43,7 @@
 <!-- Two months -->
 <Story name="Two Months" args={{ label: 'Period', numberOfMonths: 2 }}>
 	{#snippet template(args)}
-		<div class="w-72 h-90">
+		<div class="h-90 w-72">
 			<Calendar {...args} />
 		</div>
 	{/snippet}
@@ -52,7 +52,7 @@
 <!-- Disabled -->
 <Story name="Disabled" args={{ label: 'Date Range', disabled: true }}>
 	{#snippet template(args)}
-		<div class="w-72 h-90">
+		<div class="h-90 w-72">
 			<Calendar {...args} />
 		</div>
 	{/snippet}
@@ -61,7 +61,7 @@
 <!-- Read-only -->
 <Story name="Read Only" args={{ label: 'Date Range', readonly: true }}>
 	{#snippet template(args)}
-		<div class="w-72 h-90">
+		<div class="h-90 w-72">
 			<Calendar {...args} />
 		</div>
 	{/snippet}

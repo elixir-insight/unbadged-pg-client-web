@@ -61,7 +61,7 @@
 	</div>
 {:else if credential}
 	<div
-		class="flex flex-col gap-3 border-t border-border/40 px-4 py-4 sm:px-5 sm:flex-row sm:items-start sm:justify-between"
+		class="flex flex-col gap-3 border-t border-border/40 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5"
 	>
 		<div class="min-w-0">
 			<h3 class="text-sm font-semibold text-foreground">API Credential</h3>

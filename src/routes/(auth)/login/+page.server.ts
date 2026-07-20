@@ -9,7 +9,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
-import { clearAuthCookies } from '$lib/server/domains/auth/session';
+import { clearAuthCookies, storePasswordChallenge } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
 import type { AccessTokenPayload } from '$lib/stores/auth/types';
@@ -55,7 +55,6 @@ export const actions = {
 		const log = locals.logger;
 		const ip = getClientAddress();
 		const formData = await request.formData();
-
 		const raw = {
 			userEmail: String(formData.get('userEmail') ?? ''),
 			password: String(formData.get('password') ?? ''),
@@ -83,6 +82,15 @@ export const actions = {
 		});
 
 		if (!result.ok) {
+			// Temporary password — stash the challenge in an httpOnly cookie and
+			// send the user to set a new password.
+			if ('requiresPasswordChange' in result) {
+				storePasswordChallenge(cookies, {
+					userEmail: result.userEmail,
+					challengeSession: result.challengeSession
+				});
+				redirect(303, '/reset-temporary-password');
+			}
 			return fail(result.status, {
 				message: result.message,
 				userEmail: parsed.output.userEmail,

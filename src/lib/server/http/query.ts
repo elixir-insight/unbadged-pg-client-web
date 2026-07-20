@@ -4,7 +4,9 @@ export function buildUrl(
 	path: string,
 	query?: Record<string, string | number | boolean | string[] | undefined>
 ): string {
-	const url = new URL(path, API_BASE_URL);
+	const base = API_BASE_URL.replace(/\/+$/, '');
+	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	const url = new URL(`${base}${normalizedPath}`);
 	if (query) {
 		for (const [key, value] of Object.entries(query)) {
 			if (value === undefined || value === null || value === '') continue;
