@@ -194,4 +194,6 @@ export interface PayinDetail {
 	accountNumber: string;
 	ifsc: string;
 	transactionTimeline: PayinTimelineEntry[];
+	/** Settlement this transaction was paid out in — null while still unsettled. */
+	settlementId?: string | null;
 }

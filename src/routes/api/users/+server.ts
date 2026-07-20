@@ -5,6 +5,7 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import { CreateMemberBodySchema, type MemberListItem } from '$lib/server/domains/members/schema';
 import type { ApiUsersListResponse } from '$lib/stores/user-management/api-types';
 import { mapStatusFilterToEnabled } from '$lib/stores/user-management/user-mapper';
@@ -26,7 +27,7 @@ function filterMembers(
 	return members.filter((member) => {
 		if (enabledFilter !== undefined && member.enabled !== enabledFilter) return false;
 
-		if (roleFilterKey && !member.roles.some((r) => roleKey(String(r)) === roleFilterKey))
+		if (roleFilterKey && !(member.roles ?? []).some((r) => roleKey(String(r)) === roleFilterKey))
 			return false;
 
 		if (!search) return true;
@@ -51,14 +52,19 @@ async function requireSession(cookies: Cookies, fetchFn: typeof fetch, logger: L
 	}
 }
 
-export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 
 	if (userId) {
 		const memberId = Number(userId);
-		const log = locals.logger.child({ action: 'view-user', memberId: userId });
+		const log = locals.logger.child({ action: 'view-user', memberId: userId, portal });
 
 		if (!Number.isFinite(memberId)) {
 			log.warn('invalid user id');
@@ -72,7 +78,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			log,
 			tokens.accessToken,
 			tokens.gatewayToken,
-			memberId
+			memberId,
+			portal
 		);
 
 		if (!result.ok) {
@@ -92,7 +99,7 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			error(502, { message: result.error.message });
 		}
 
-		const member = result.data.data[0];
+		const member = result.data?.data?.[0];
 		if (!member) {
 			log.warn('member detail response had empty data[]');
 			error(404, { message: 'User not found' });
@@ -106,26 +113,73 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 				enabled: member.enabled,
 				status: member.enabled ? 'Active' : 'Invited',
 				supervisorId: member.supervisorId,
-				roles: member.roles,
+				roles: member.roles ?? [],
 				orgId: member.orgId
 			},
 			'member detail fetched (Active and Invited both resolve reporting-to the same way)'
 		);
 
-		// Enrich from members list: reporting-to name + count of direct reports
-		// (supervisors with reports cannot be deleted).
+		// Detail API returns role IDs; resolve to role names for the UI.
+		const orgId = Number(locals.merchantSession?.organizationId ?? member.orgId);
+		let resolvedRoles: Array<string | number> = member.roles ?? [];
+
+		if (Number.isFinite(orgId) && resolvedRoles.some((r) => typeof r === 'number')) {
+			const rolesResult = await membersClient.listOrgRoles(
+				fetch,
+				log,
+				tokens.accessToken,
+				tokens.gatewayToken,
+				orgId,
+				{ page: 0, limit: 1000 },
+				portal
+			);
+
+			if (rolesResult.ok) {
+				const nameById = new Map(
+					(rolesResult.data?.data ?? []).map((role) => [role.roleId, role.roleName] as const)
+				);
+				resolvedRoles = resolvedRoles.map((role) => {
+					if (typeof role !== 'number') return role;
+					return nameById.get(role) ?? `ROLE_${role}`;
+				});
+				log.info({ roles: resolvedRoles }, 'member role IDs resolved to role names');
+			} else {
+				log.warn(
+					{
+						errorKind: rolesResult.error.kind,
+						message: rolesResult.error.message
+					},
+					'org roles fetch failed — role IDs may not display as names'
+				);
+			}
+		}
+
+		// Enrich reporting-to + count of direct reports.
+		// Picker uses user/list IDs; detail only returns supervisorId — resolve name from
+		// members first, then fall back to user directory (same source as the picker).
 		let reportingTo:
 			| { id: number; name: string; employeeId?: string; userEmail?: string }
 			| undefined;
 		let assignedUsersCount = 0;
 
-		const membersList = await membersClient.list(
-			fetch,
-			log,
-			tokens.accessToken,
-			tokens.gatewayToken,
-			{ page: 1, limit: 1000 }
-		);
+		const [membersList, directoryList] = await Promise.all([
+			membersClient.list(
+				fetch,
+				log,
+				tokens.accessToken,
+				tokens.gatewayToken,
+				{ page: 1, limit: 1000 },
+				portal
+			),
+			membersClient.listUsers(
+				fetch,
+				log,
+				tokens.accessToken,
+				tokens.gatewayToken,
+				{ page: 0, limit: 1000 },
+				portal
+			)
+		]);
 
 		if (!membersList.ok) {
 			log.warn(
@@ -133,23 +187,20 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 					errorKind: membersList.error.kind,
 					message: membersList.error.message
 				},
-				'members list fetch failed — reporting-to and assignedUsersCount may be empty'
+				'members list fetch failed — assignedUsersCount may be empty'
 			);
-			return json({
-				...result.data,
-				data: [{ ...member, assignedUsersCount }]
-			});
+		} else {
+			const members = membersList.data?.data ?? [];
+			assignedUsersCount = members.filter(
+				(item) => item.supervisorId != null && Number(item.supervisorId) === Number(memberId)
+			).length;
 		}
-
-		assignedUsersCount = membersList.data.data.filter(
-			(item) => item.supervisorId != null && Number(item.supervisorId) === Number(memberId)
-		).length;
 
 		const supervisorId = member.supervisorId ?? null;
 		if (supervisorId != null) {
-			const supervisor = membersList.data.data.find(
-				(item) => Number(item.id) === Number(supervisorId)
-			);
+			const members = membersList.ok ? (membersList.data?.data ?? []) : [];
+			const supervisor = members.find((item) => Number(item.id) === Number(supervisorId));
+
 			if (supervisor) {
 				reportingTo = {
 					id: supervisor.id,
@@ -158,16 +209,40 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 					userEmail: supervisor.userEmail
 				};
 			} else {
-				log.warn(
-					{ supervisorId },
-					'supervisor not found in members list — reporting-to will be empty'
-				);
+				const directory = directoryList.ok ? (directoryList.data?.data ?? []) : [];
+				const fromDirectory = directory.find((user) => Number(user.id) === Number(supervisorId));
+				if (fromDirectory) {
+					reportingTo = {
+						id: fromDirectory.id,
+						name: fromDirectory.userName
+					};
+					log.info(
+						{ supervisorId, name: fromDirectory.userName },
+						'reporting-to resolved from user directory'
+					);
+				} else {
+					log.warn(
+						{
+							supervisorId,
+							membersOk: membersList.ok,
+							directoryOk: directoryList.ok
+						},
+						'supervisor not found in members list or user directory — reporting-to will be empty'
+					);
+				}
 			}
 		} else {
 			log.warn(
 				{ supervisorId: member.supervisorId, enabled: member.enabled },
 				'no supervisorId on member — reporting-to will be empty'
 			);
+		}
+
+		if (!membersList.ok && !reportingTo) {
+			return json({
+				...(result.data ?? {}),
+				data: [{ ...member, roles: resolvedRoles, assignedUsersCount }]
+			});
 		}
 
 		log.info(
@@ -180,10 +255,11 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 		);
 
 		return json({
-			...result.data,
+			...(result.data ?? {}),
 			data: [
 				{
 					...member,
+					roles: resolvedRoles,
 					...(reportingTo ? { reportingTo } : {}),
 					assignedUsersCount
 				}
@@ -208,7 +284,8 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 			// When filters are applied, load a larger page and filter locally until
 			// the upstream API supports search/status/role query params.
 			limit: hasFilters ? Math.max(limit, 1000) : limit
-		}
+		},
+		portal
 	);
 
 	if (!result.ok) {
@@ -219,16 +296,16 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 	}
 
 	if (!hasFilters) {
-		return json(result.data);
+		return json(result.data ?? {});
 	}
 
-	const filtered = filterMembers(result.data.data, search, status, role);
+	const filtered = filterMembers(result.data?.data ?? [], search, status, role);
 	const start = (page - 1) * limit;
 	const paginated = filtered.slice(start, start + limit);
 
 	const response: ApiUsersListResponse = {
-		statusCode: result.data.statusCode,
-		message: result.data.message,
+		statusCode: result.data?.statusCode ?? 200,
+		message: result.data?.message ?? '',
 		data: paginated as ApiUsersListResponse['data'],
 		pagination: {
 			total: filtered.length,
@@ -240,8 +317,13 @@ export const GET: RequestHandler = async ({ url, cookies, fetch, locals }) => {
 	return json(response);
 };
 
-export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) => {
+export const POST: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	let body: unknown;
 	try {
@@ -260,7 +342,8 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) 
 		locals.logger,
 		tokens.accessToken,
 		tokens.gatewayToken,
-		parsed.output
+		parsed.output,
+		portal
 	);
 
 	if (!result.ok) {
@@ -270,11 +353,16 @@ export const POST: RequestHandler = async ({ request, cookies, fetch, locals }) 
 		error(502, { message: result.error.message });
 	}
 
-	return json(result.data, { status: 201 });
+	return json(result.data ?? {}, { status: 201 });
 };
 
 export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 	const memberId = Number(userId);
@@ -300,7 +388,8 @@ export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals
 		tokens.accessToken,
 		tokens.gatewayToken,
 		memberId,
-		parsed.output
+		parsed.output,
+		portal
 	);
 
 	if (!result.ok) {
@@ -310,11 +399,16 @@ export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals
 		error(502, { message: result.error.message });
 	}
 
-	return json(result.data);
+	return json(result.data ?? {});
 };
 
-export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) => {
+export const DELETE: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
 
 	const userId = url.searchParams.get('userId');
 	const memberId = Number(userId);
@@ -327,7 +421,8 @@ export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) =>
 		locals.logger,
 		tokens.accessToken,
 		tokens.gatewayToken,
-		memberId
+		memberId,
+		portal
 	);
 
 	if (!result.ok) {
@@ -337,5 +432,5 @@ export const DELETE: RequestHandler = async ({ url, cookies, fetch, locals }) =>
 		error(502, { message: result.error.message });
 	}
 
-	return json(result.data);
+	return json(result.data ?? {});
 };

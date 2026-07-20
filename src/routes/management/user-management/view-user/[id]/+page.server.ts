@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ params, fetch, locals }) => {
 
 	log.info('loading user detail for view page');
 
-	const res = await fetch(`/api/users?userId=${encodeURIComponent(memberId)}`);
+	const res = await fetch(`/api/users?userId=${encodeURIComponent(memberId)}&portal=management`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => null);
 		log.warn(

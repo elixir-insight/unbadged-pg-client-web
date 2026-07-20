@@ -8,8 +8,8 @@ import type {
 import type { UserItem, UserStatus, UsersListResponse } from './user-management';
 
 /**
- * Detail API returns role IDs; list returns SCREAMING_SNAKE names.
- * Map known IDs → canonical names (extend as more roles are confirmed).
+ * Detail API historically returned role IDs; list returns SCREAMING_SNAKE names.
+ * Prefer resolving IDs in the BFF. Keep a small fallback map for known IDs only.
  */
 const ROLE_ID_TO_NAME: Record<number, string> = {
 	2: 'MGMT_FULL_ACCESS'
@@ -32,10 +32,15 @@ export function formatRoleDisplayName(value: string): string {
 
 function resolveRoleRawName(role: ApiUserRole): string {
 	if (typeof role === 'string') return role;
-	if (typeof role === 'number') return ROLE_ID_TO_NAME[role] ?? '';
+	if (typeof role === 'number') {
+		// Never drop unknown IDs — otherwise multi-role users appear to have fewer roles.
+		return ROLE_ID_TO_NAME[role] ?? `ROLE_${role}`;
+	}
 	if (role.roleName) return role.roleName;
 	if (role.name) return role.name;
-	if (role.roleId !== undefined) return ROLE_ID_TO_NAME[role.roleId] ?? '';
+	if (role.roleId !== undefined) {
+		return ROLE_ID_TO_NAME[role.roleId] ?? `ROLE_${role.roleId}`;
+	}
 	return '';
 }
 
@@ -83,7 +88,7 @@ export function mapApiListUser(user: ApiUserListItem): UserItem {
 		name: user.userName,
 		email: user.userEmail,
 		employeeId: user.employeeId ?? '',
-		roles: mapRoles(user.roles),
+		roles: mapRoles(user?.roles),
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber)
 	};
@@ -95,7 +100,7 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 		name: user.userName,
 		email: user.userEmail,
 		employeeId: user.employeeId ?? '',
-		roles: mapRoles(user.roles),
+		roles: mapRoles(user?.roles),
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber),
 		reportingManager: mapReportingManager(user.reportingTo),
@@ -104,23 +109,23 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 }
 
 export function mapUsersListResponse(response: ApiUsersListResponse): UsersListResponse {
-	const items = response.data.map(mapApiListUser);
+	const items = (response?.data ?? []).map(mapApiListUser);
 	return {
 		items,
 		meta: {
-			total: response.pagination.total,
+			total: response?.pagination?.total ?? 0,
 			roles: getUniqueRoles(items)
 		}
 	};
 }
 
 export function mapUserDetailResponse(response: ApiUserDetailResponse): UserItem | null {
-	const user = response.data[0];
+	const user = response?.data?.[0];
 	return user ? mapApiDetailUser(user) : null;
 }
 
 export function getUniqueRoles(users: UserItem[]): string[] {
-	return Array.from(new Set(users.flatMap((user) => user.roles))).sort((a, b) =>
+	return Array.from(new Set(users.flatMap((user) => user?.roles ?? []))).sort((a, b) =>
 		a.localeCompare(b)
 	);
 }
