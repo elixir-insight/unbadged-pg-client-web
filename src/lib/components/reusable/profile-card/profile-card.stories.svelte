@@ -5,6 +5,14 @@
 
 	type ProfileCardProps = ComponentProps<typeof ProfileCard>;
 
+	const defaultArgs = {
+		userName: 'Aarav Kapoor',
+		userRole: 'Admin',
+		userInitials: 'AK',
+		vanNumber: 'VAN-2024-00123',
+		isCollapsed: false
+	} satisfies ProfileCardProps;
+
 	const { Story } = defineMeta({
 		title: 'Reusable/ProfileCard',
 		component: ProfileCard,
@@ -16,30 +24,26 @@
 			vanNumber: { control: 'text' },
 			isCollapsed: { control: 'boolean', description: 'Show icon-only collapsed state' }
 		},
-		args: {
-			userName: 'Aarav Kapoor',
-			userRole: 'Admin',
-			userInitials: 'AK',
-			vanNumber: 'VAN-2024-00123',
-			isCollapsed: false
-		}
+		args: defaultArgs
 	});
 </script>
 
 <!-- Expanded (default sidebar state) -->
-<Story name="Expanded" args={{ isCollapsed: false }}>
-	{#snippet template(args: ProfileCardProps)}
+<Story name="Expanded" args={{ ...defaultArgs, isCollapsed: false }}>
+	{#snippet template(args)}
+		{@const props = args as ProfileCardProps}
 		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
+			<ProfileCard {...props} />
 		</div>
 	{/snippet}
 </Story>
 
 <!-- Collapsed (icon-only sidebar state) -->
-<Story name="Collapsed" args={{ isCollapsed: true }}>
-	{#snippet template(args: ProfileCardProps)}
+<Story name="Collapsed" args={{ ...defaultArgs, isCollapsed: true }}>
+	{#snippet template(args)}
+		{@const props = args as ProfileCardProps}
 		<div class="w-14 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
+			<ProfileCard {...props} />
 		</div>
 	{/snippet}
 </Story>
@@ -48,6 +52,7 @@
 <Story
 	name="Custom User"
 	args={{
+		...defaultArgs,
 		userName: 'Priya Sharma',
 		userRole: 'Finance Manager',
 		userInitials: 'PS',
@@ -55,9 +60,10 @@
 		isCollapsed: false
 	}}
 >
-	{#snippet template(args: ProfileCardProps)}
+	{#snippet template(args)}
+		{@const props = args as ProfileCardProps}
 		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...args} />
+			<ProfileCard {...props} />
 		</div>
 	{/snippet}
 </Story>
