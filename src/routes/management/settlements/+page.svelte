@@ -12,30 +12,22 @@
 	} from '$lib/components/reusable';
 	import type { StatCardTone } from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date';
 	import { RefreshCw, X } from '$lib/assets/icons';
 	import { debounce } from '$lib/utils/debounce';
-	import { useSettlementsList } from './use-settlements-list.svelte';
-	import {
-		getCurrentSettlementMerchantId,
-		getSettlementMerchantOptions,
-		setSettlementMerchant
-	} from './settlement-scope.svelte';
+	import { getCurrentSettlementMerchantId } from './settlement-scope.svelte';
 	import SettlementStatusBadge from './settlement-status-badge.svelte';
 	import SettlementDatePicker from './settlement-date-picker.svelte';
 	import StatePanel from './state-panel.svelte';
 	import type { SettlementStatus, SettlementTab } from './types';
+	import type { PageData } from './$types';
 
-	// ── URL-derived filters — date/status/search/tab all live in query params
-	// so a refresh or shared link reproduces the exact same view, and the
-	// detail page can hand them straight back on "Back". With a merchant
-	// selected, no `date` param means "all recent settlements" for that
-	// merchant; an explicit date narrows to that day. `date=none` is kept
-	// as a cleared-state sentinel for chip removal. ─────────────────────────
+	let { data }: { data: PageData } = $props();
+
 	const dateParam = $derived.by(() => {
 		const raw = page.url.searchParams.get('date');
 		if (!raw || raw === 'none') return '';
@@ -84,19 +76,12 @@
 		updateParams({ date: value.toString(), skip: null });
 	}
 
-	// ── Data — order-status counts and money totals are fetched separately
-	// (orders/transactions service vs. settlement service) so either can be
-	// swapped for a real API independently of the other. ───────────────────────
 	const merchantId = $derived(getCurrentSettlementMerchantId());
-	const merchantOptions = getSettlementMerchantOptions();
-	const list = useSettlementsList(
-		() => dateParam,
-		() => merchantId
-	);
 
 	const statusOptions = [
 		{ value: 'completed', label: 'Completed' },
-		{ value: 'pending', label: 'Pending' }
+		{ value: 'pending', label: 'Pending' },
+		{ value: 'failed', label: 'Failed' }
 	];
 
 	const currency = new Intl.NumberFormat('en-IN', {
@@ -113,12 +98,17 @@
 		selectedDate ? dateFormatter.format(selectedDate.toDate(getLocalTimeZone())) : ''
 	);
 
-	const pagination = createUrlPagination({ defaultLimit: 8, total: () => filteredData.length });
+	const pagination = createUrlPagination({
+		defaultLimit: 10,
+		total: () => data.pagination.total
+	});
 
-	// searchInput is derived from the URL so back/forward navigation restores
-	// it, and can be overridden locally for immediate keystroke feedback while
-	// the URL update itself is debounced.
 	let searchInput = $derived(pagination.search);
+	let refreshing = $state(false);
+
+	$effect(() => {
+		searchInput = pagination.search;
+	});
 
 	const debouncedSearch = debounce((value: string) => {
 		pagination.setSearch(value);
@@ -131,12 +121,10 @@
 
 	function onStatusDropdownChange(value: string) {
 		pagination.setStatus(value);
-		pagination.setPage(1);
 	}
 
 	function applyStatusFilter(status: SettlementStatus | null) {
 		pagination.setStatus(status ?? '');
-		pagination.setPage(1);
 	}
 
 	function removeFilter(key: 'date' | 'status' | 'search') {
@@ -146,34 +134,40 @@
 	}
 
 	function clearAllFilters() {
-		// A single atomic navigate — calling setDate/setStatus/setSearch
-		// separately would race, since each reads page.url before the other's
-		// goto() has resolved and can clobber it.
 		updateParams({ date: 'none', status: null, search: null, skip: null });
 	}
 
-	const totalSettlementCount = $derived(list.items.length);
-	const pendingSettlementCount = $derived(
-		list.items.filter((item) => item.status === 'pending').length
-	);
-	const totalSettlementAmount = $derived(
-		list.items.reduce((sum, item) => sum + item.saleAmount, 0)
-	);
-	const pendingSettlementAmount = $derived(
-		list.items
+	async function refreshList() {
+		refreshing = true;
+		try {
+			await invalidate('management-settlements:list');
+		} finally {
+			refreshing = false;
+		}
+	}
+
+	const filteredTotal = $derived(data.pagination.total);
+	const pageSaleTotal = $derived(data.settlements.reduce((sum, item) => sum + item.saleAmount, 0));
+	const pagePendingSaleTotal = $derived(
+		data.settlements
 			.filter((item) => item.status === 'pending')
 			.reduce((sum, item) => sum + item.saleAmount, 0)
 	);
+
 	const lastSettlement = $derived.by(() => {
-		if (list.items.length === 0) return null;
-		return [...list.items].sort((a, b) => b.settlementDate.localeCompare(a.settlementDate))[0];
+		if (data.settlements.length === 0) return null;
+		return [...data.settlements].sort((a, b) =>
+			b.settlementDate.localeCompare(a.settlementDate)
+		)[0];
 	});
 	const lastSettlementBadge: { text: string; variant: StatCardTone } = $derived(
 		!lastSettlement
 			? { text: '—', variant: 'brand' }
 			: lastSettlement.status === 'completed'
 				? { text: 'Completed', variant: 'success' }
-				: { text: 'Pending', variant: 'warning' }
+				: lastSettlement.status === 'failed'
+					? { text: 'Failed', variant: 'error' }
+					: { text: 'Pending', variant: 'warning' }
 	);
 
 	const activeFilters = $derived.by(() => {
@@ -191,22 +185,9 @@
 		return filters;
 	});
 
-	const filteredData = $derived.by(() => {
-		let result = list.items;
-		if (pagination.status) {
-			result = result.filter((r) => r.status === pagination.status);
-		}
-		if (pagination.search) {
-			const query = pagination.search.toLowerCase();
-			result = result.filter((r) => r.settlementId.toLowerCase().includes(query));
-		}
-		return result;
-	});
-
-	const pagedData = $derived(
-		filteredData.slice(pagination.skip, pagination.skip + pagination.limit)
+	const showingText = $derived(
+		data.listError ? 'Unable to load settlements' : `${pagination.showingText} settlements`
 	);
-	const showingText = $derived(`${pagination.showingText} settlements`);
 
 	interface SettlementDisplayRow extends Record<string, unknown> {
 		merchantId: string;
@@ -219,7 +200,7 @@
 	}
 
 	const displayRows = $derived<SettlementDisplayRow[]>(
-		pagedData.map((r) => ({
+		data.settlements.map((r) => ({
 			merchantId: r.merchantId,
 			merchantName: r.merchantName,
 			settlementId: r.settlementId,
@@ -244,11 +225,6 @@
 		}
 	];
 
-	// The detail page has its own URL-driven pagination for its transaction
-	// table (skip/limit/search/status). Forward this list's filter state
-	// under a `list_` prefix instead of the bare param names, so the two
-	// pages' query params never collide — the detail page's Back button
-	// reads these prefixed params back out to restore this view.
 	function goToDetail(row: SettlementDisplayRow) {
 		const params = new SvelteURLSearchParams();
 		if (dateParam) params.set('date', dateParam);
@@ -274,19 +250,21 @@
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<FilterStatCard
 				label="Total Settlements"
-				value={currency.format(totalSettlementAmount)}
+				value={currency.format(pageSaleTotal)}
 				badgeText="All time"
 				badgeVariant="brand"
-				subText="{totalSettlementCount} settlements · across all statuses"
+				subText="{!pagination.status
+					? filteredTotal
+					: data.settlements.length} settlements · current view"
 				selected={!pagination.status}
 				onclick={() => applyStatusFilter(null)}
 			/>
 			<FilterStatCard
 				label="Awaiting Settlements"
-				value={currency.format(pendingSettlementAmount)}
+				value={currency.format(pagePendingSaleTotal)}
 				badgeText="Pending"
 				badgeVariant="warning"
-				subText="{pendingSettlementCount} settlements currently pending"
+				subText="{pagination.status === 'pending' ? filteredTotal : '—'} pending in current filter"
 				selected={pagination.status === 'pending'}
 				onclick={() => applyStatusFilter('pending')}
 			/>
@@ -304,17 +282,6 @@
 		<!-- Filter bar -->
 		<div class="flex flex-col gap-3">
 			<div class="flex flex-wrap items-center gap-2">
-				<div class="w-full sm:w-50">
-					<Dropdown
-						value={merchantId}
-						placeholder="Merchant"
-						disabled={false}
-						bordered={false}
-						search={true}
-						options={merchantOptions}
-						onValueChange={(value) => setSettlementMerchant(value)}
-					/>
-				</div>
 				<SettlementDatePicker
 					value={selectedDate}
 					maxValue={today(getLocalTimeZone())}
@@ -372,24 +339,27 @@
 		<!-- Table -->
 		<div class="rounded-lg border border-border bg-card shadow-2xl">
 			<div class="flex items-center justify-between gap-2 p-4">
-				<span class="text-sm text-muted-foreground">
-					{#if list.loading}Loading settlements…{:else}{showingText}{/if}
-				</span>
+				<span class="text-sm text-muted-foreground">{showingText}</span>
 				<div class="flex items-center gap-2">
-					<Button variant="outline" onclick={list.retry}>
-						<RefreshCw />
+					<Button
+						variant="outline"
+						onclick={refreshList}
+						disabled={refreshing}
+						aria-label="Refresh settlements"
+					>
+						<RefreshCw class={refreshing ? 'animate-spin' : undefined} />
 					</Button>
 				</div>
 			</div>
 
-			{#if list.error}
+			{#if data.listError}
 				<StatePanel
 					title="Couldn't load settlements"
-					description={list.error}
+					description={data.listError}
 					actionLabel="Retry"
-					onAction={list.retry}
+					onAction={refreshList}
 				/>
-			{:else if !list.loading && filteredData.length === 0}
+			{:else if data.settlements.length === 0}
 				{#if selectedDate}
 					<StatePanel
 						title="No settlements for {dateLabel}"
@@ -417,8 +387,6 @@
 					totalPages={pagination.pageCount}
 					setPageNumber={pagination.setPage}
 					variant="borderless"
-					loading={list.loading}
-					skeletonRows={8}
 					onRowClick={goToDetail}
 					getRowAriaLabel={rowAriaLabel}
 				/>
