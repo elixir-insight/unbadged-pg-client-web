@@ -5,7 +5,7 @@ import {
 	availableServiceTypes,
 	availableBankPipelines,
 	affiliatesByPipeline
-} from '../../../routes/management/onboarding/create-organization/constants';
+} from '../../../routes/management/organizations/create-organization/constants';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {

@@ -42,6 +42,7 @@ export function createUrlPagination({
 	const status = $derived(page.url.searchParams.get('status') ?? '');
 	const statuses = $derived(status ? status.split(',').filter(Boolean) : []);
 	const type = $derived(page.url.searchParams.get('type') ?? '');
+	const role = $derived(page.url.searchParams.get('role') ?? '');
 	const currentPage = $derived(Math.ceil(skip / limit) + 1);
 	const pageCount = $derived(Math.max(1, Math.ceil(total() / limit)));
 	const showingText = $derived.by(() => {
@@ -91,6 +92,9 @@ export function createUrlPagination({
 		get type() {
 			return type;
 		},
+		get role() {
+			return role;
+		},
 		get currentPage() {
 			return currentPage;
 		},
@@ -137,23 +141,13 @@ export function createUrlPagination({
 		setType(value: string) {
 			navigate({ type: value || null, skip: null }, true);
 		},
-		/**
-		 * Atomically update multiple filter fields at once (e.g. status + type
-		 * together). Calling the individual setters back-to-back races — each
-		 * reads `page.url` before the other's `goto()` resolves, so the second
-		 * call can clobber the first. Use this instead whenever more than one
-		 * field needs to change together.
-		 */
-		setFilters(updates: { search?: string; status?: string; type?: string }) {
-			const nav: Record<string, string | null> = { skip: '0' };
-			if ('search' in updates) nav.search = updates.search || null;
-			if ('status' in updates) nav.status = updates.status || null;
-			if ('type' in updates) nav.type = updates.type || null;
-			navigate(nav, true);
+		/** Update role filter and reset to page 1 (replaces history). */
+		setRole(value: string) {
+			navigate({ role: value || null, skip: '0' }, true);
 		},
-		/** Clear all filters (search, status, type) and reset pagination (replaces history). */
+		/** Clear all filters (search, status, type, role) and reset pagination (replaces history). */
 		clearAllFilters() {
-			navigate({ search: null, status: null, type: null, skip: null }, true);
+			navigate({ search: null, status: null, type: null, role: null, skip: null }, true);
 		}
 	};
 }

@@ -1,6 +1,9 @@
-<script module>
+<script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Radio from './radio.svelte';
+
+	type RadioProps = ComponentProps<typeof Radio>;
 
 	const { Story } = defineMeta({
 		title: 'Reusable/Radio',
@@ -30,28 +33,28 @@
 
 <!-- Default -->
 <Story name="Default">
-	{#snippet template(args)}
+	{#snippet template(args: RadioProps)}
 		<Radio {...args} />
 	{/snippet}
 </Story>
 
 <!-- Pre-selected -->
 <Story name="Pre-selected" args={{ value: 'option-2' }}>
-	{#snippet template(args)}
+	{#snippet template(args: RadioProps)}
 		<Radio {...args} />
 	{/snippet}
 </Story>
 
 <!-- Horizontal -->
 <Story name="Horizontal" args={{ orientation: 'horizontal', value: 'option-1' }}>
-	{#snippet template(args)}
+	{#snippet template(args: RadioProps)}
 		<Radio {...args} />
 	{/snippet}
 </Story>
 
 <!-- Disabled Group -->
 <Story name="Disabled" args={{ disabled: true, value: 'option-1' }}>
-	{#snippet template(args)}
+	{#snippet template(args: RadioProps)}
 		<Radio {...args} />
 	{/snippet}
 </Story>

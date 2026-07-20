@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { Chip } from '$lib/components/ui/badge';
 	import type { BadgeVariant } from '$lib/components/ui/badge/badge.svelte';
+	import type { SettlementStatus } from '$lib/types/settlement';
 
-	let { status }: { status: string } = $props();
+	let { status }: { status: SettlementStatus } = $props();
 
 	const variant: BadgeVariant = $derived(
-		status === 'success' ? 'success' : status === 'reject' ? 'error' : 'warning'
+		status === 'settled' ? 'success' : status === 'failed' ? 'error' : 'warning'
 	);
 	const label = $derived(
-		status === 'success' ? 'Success' : status === 'reject' ? 'Reject' : 'In Review'
+		status === 'settled' ? 'Settled' : status === 'failed' ? 'Failed' : 'Processing'
 	);
 </script>
 

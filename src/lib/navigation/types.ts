@@ -1,3 +1,4 @@
+//navigation/types.ts
 import type { Component } from 'svelte';
 
 export type AppId = 'merchant' | 'management' | 'partner';

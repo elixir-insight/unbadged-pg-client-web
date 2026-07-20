@@ -22,13 +22,20 @@
 
 <UITooltip.TooltipProvider {delayDuration}>
 	<UITooltip.Tooltip>
-		<UITooltip.TooltipTrigger class={cn('cursor-default', className)}>
-			{#if IconComponent}
+		{#if IconComponent}
+			<UITooltip.TooltipTrigger class={cn('cursor-default', className)}>
 				<IconComponent class="size-4 text-muted-foreground" />
-			{:else if children}
-				{@render children()}
-			{/if}
-		</UITooltip.TooltipTrigger>
+			</UITooltip.TooltipTrigger>
+		{:else if children}
+			<!-- Render as a span so wrapping a disabled <button> stays valid HTML and stays hoverable. -->
+			<UITooltip.TooltipTrigger>
+				{#snippet child({ props })}
+					<span {...props} class={cn('inline-flex', className)}>
+						{@render children()}
+					</span>
+				{/snippet}
+			</UITooltip.TooltipTrigger>
+		{/if}
 		<UITooltip.TooltipContent {side}>
 			{content}
 		</UITooltip.TooltipContent>
