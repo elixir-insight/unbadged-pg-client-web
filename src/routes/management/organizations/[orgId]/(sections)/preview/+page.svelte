@@ -326,9 +326,7 @@
 			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
-				<Button variant="outline" href={resolve('/management/organizations')}>
-					Back to organizations
-				</Button>
+				<Button variant="outline" href="/management/organizations">Back to organizations</Button>
 			</div>
 		{:else if isApproved}
 			<p class="mb-4 text-sm text-muted-foreground">
