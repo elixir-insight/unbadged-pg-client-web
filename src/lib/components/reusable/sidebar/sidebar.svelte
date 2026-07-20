@@ -48,7 +48,7 @@
 							: 'Disbursements',
 					userInitials: merchantSession.session.merchantName.slice(0, 2).toUpperCase(),
 					vanNumber: merchantSession.session.organizationId,
-					profileHref: '/merchant/profile'
+					settingsHref: '/merchant/settings'
 				}
 			: {}
 	);
