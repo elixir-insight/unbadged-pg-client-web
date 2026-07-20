@@ -34,7 +34,7 @@
 		{ label: 'Payments', filter: null },
 		{ label: 'Successful', filter: 'success' },
 		{ label: 'Pending', filter: 'pending' },
-		{ label: 'Refunded', filter: 'refunded' },
+		{ label: 'Refunds', filter: 'refunded' },
 		{ label: 'Failed', filter: 'failed' }
 	];
 

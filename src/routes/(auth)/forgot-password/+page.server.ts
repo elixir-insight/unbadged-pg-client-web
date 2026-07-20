@@ -14,7 +14,7 @@ export const actions: Actions = {
 		if (!parsed.success) {
 			return fail(400, {
 				emailError: parsed.issues[0]?.message ?? 'Invalid email.',
-				userEmail
+				userEmail: userEmail.toLowerCase()
 			});
 		}
 

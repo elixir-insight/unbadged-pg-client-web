@@ -7,6 +7,6 @@ export function load() {
 	const scope = getDefaultScope();
 	throw redirect(
 		303,
-		`${resolve('/management/transactions/collections/orders')}${scopeQueryString(scope)}`
+		`${resolve('/management/transactions/collections/payments')}${scopeQueryString(scope)}`
 	);
 }

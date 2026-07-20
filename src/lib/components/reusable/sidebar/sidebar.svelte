@@ -7,6 +7,7 @@
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import ProfileCard from '../profile-card/profile-card.svelte';
 	import { CompanyLogoLight, X } from '$lib/assets/icons';
 
@@ -38,18 +39,14 @@
 	);
 
 	const profileProps = $derived(
-		app === 'merchant' && merchantSession.session
+		merchantSession.session?.merchantName
 			? {
 					userName: merchantSession.session.merchantName,
-					userRole: merchantSession.hasBothServices()
-						? 'Collections & Disbursements'
-						: merchantSession.hasPayinAccess()
-							? 'Collections'
-							: 'Disbursements',
-					userInitials: merchantSession.session.merchantName.slice(0, 2).toUpperCase(),
-					vanNumber: merchantSession.session.organizationId
+					userRole: formatUserType(merchantSession.session.userType ?? ''),
+					userInitials: getUserInitials(merchantSession.session.merchantName),
+					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {})
 				}
-			: {}
+			: null
 	);
 
 	const rootRoutes: Record<AppId, string> = {
@@ -150,5 +147,7 @@
 	</nav>
 
 	<!-- Profile card -->
-	<ProfileCard {...profileProps} />
+	{#if profileProps}
+		<ProfileCard {...profileProps} />
+	{/if}
 </aside>

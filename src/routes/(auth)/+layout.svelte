@@ -71,8 +71,10 @@
 		/>
 	</div>
 
-	<!-- Right Panel — page content -->
-	<div class="relative flex min-h-0 w-full flex-1 flex-col bg-background lg:w-1/2">
+	<!-- Right Panel — page content (locked to viewport; no page scroll) -->
+	<div
+		class="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-background lg:w-1/2"
+	>
 		{@render children()}
 	</div>
 </div>

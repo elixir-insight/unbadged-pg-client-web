@@ -67,7 +67,7 @@ export const actions = {
 			log.warn({ ip, issues: parsed.issues }, 'sign-in rejected — invalid request body');
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid email or password format',
-				userEmail: raw.userEmail.trim(),
+				userEmail: raw.userEmail.trim().toLowerCase(),
 				requiresForce: false
 			});
 		}

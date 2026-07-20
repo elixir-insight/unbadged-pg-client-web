@@ -30,8 +30,8 @@
 	});
 
 	const tabs = $derived([
-		{ label: 'Orders', href: ordersHref },
-		{ label: 'Payments', href: paymentsHref }
+		{ label: 'Payments', href: paymentsHref },
+		{ label: 'Orders', href: ordersHref }
 	]);
 </script>
 

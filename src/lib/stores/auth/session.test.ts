@@ -51,6 +51,7 @@ describe('parseMerchantSessionFromGateway', () => {
 		expect(session.organizationId).toBe('10002');
 		expect(session.merchantName).toBe('Elixir Pay');
 		expect(session.email).toBe('admin@elixirpay.com');
+		expect(session.userType).toBe('ROOT');
 	});
 
 	it('uses portal groups from the access token only', () => {

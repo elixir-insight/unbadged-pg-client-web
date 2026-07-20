@@ -18,7 +18,9 @@
 	onMount(() => {
 		theme.init();
 	});
-	const handleEnhance: SubmitFunction = () => {
+	const handleEnhance: SubmitFunction = ({ formData }) => {
+		email = email.trim().toLowerCase();
+		formData.set('userEmail', email);
 		submitting = true;
 		return async ({ result, update }) => {
 			submitting = false;
@@ -30,7 +32,7 @@
 				});
 			}
 			await update();
-			if (form?.userEmail !== undefined) email = form.userEmail;
+			if (form?.userEmail !== undefined) email = form.userEmail.trim().toLowerCase();
 		};
 	};
 </script>
@@ -59,12 +61,12 @@
 						id="userEmail"
 						name="userEmail"
 						// type="email"
-						placeholder="Enter email"
+						placeholder="name@company.com"
 						bind:value={email}
 						autocomplete="email"
 						aria-invalid={form?.emailError ? 'true' : undefined}
 						class="h-11 text-base!"
-						onblur={() => (email = email.trim())}
+						onblur={() => (email = email.trim().toLowerCase())}
 					/>
 					{#if form?.emailError}
 						<p class="text-sm text-destructive">{form.emailError}</p>

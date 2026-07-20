@@ -81,7 +81,7 @@ export const CreateMemberBodySchema = v.object({
 	phoneNumber: v.string(),
 	reportingTo: v.number(),
 	roles: v.array(v.number()),
-	userEmail: v.string(),
+	userEmail: v.pipe(v.string(), v.trim(), v.toLowerCase()),
 	userName: v.string()
 });
 

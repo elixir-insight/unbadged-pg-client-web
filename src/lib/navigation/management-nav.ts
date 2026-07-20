@@ -4,7 +4,7 @@ import {
 	Building2,
 	Users,
 	ShieldCheck,
-	Wallet,
+	// Wallet,
 	Send,
 	ArrowLeftRight,
 	TrendingUp,
@@ -65,7 +65,7 @@ export const managementNav: NavGroup[] = [
 	{
 		title: 'Financial Operations',
 		items: [
-			{ title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
+			// { title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
 			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
 			{
 				title: 'Transactions',

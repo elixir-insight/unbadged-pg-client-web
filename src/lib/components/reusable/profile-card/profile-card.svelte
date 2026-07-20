@@ -5,15 +5,15 @@
 	import { cn } from '$lib/utils';
 
 	let {
-		userName = 'Aarav Kapoor',
-		userRole = 'Admin',
-		userInitials = 'AK',
-		vanNumber = 'VAN-2024-00123',
+		userName,
+		userRole,
+		userInitials,
+		vanNumber,
 		isCollapsed = false
 	}: {
-		userName?: string;
-		userRole?: string;
-		userInitials?: string;
+		userName: string;
+		userRole: string;
+		userInitials: string;
 		vanNumber?: string;
 		isCollapsed?: boolean;
 	} = $props();
@@ -58,10 +58,12 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-semibold text-foreground">{userName}</p>
 						<p class="truncate text-xs text-muted-foreground">{userRole}</p>
-						<div class="mt-0.5 flex items-center gap-1">
-							<Hash class="h-3 w-3 shrink-0 text-primary" />
-							<span class="font-mono text-xs font-medium text-primary">{vanNumber}</span>
-						</div>
+						{#if vanNumber}
+							<div class="mt-0.5 flex items-center gap-1">
+								<Hash class="h-3 w-3 shrink-0 text-primary" />
+								<span class="font-mono text-xs font-medium text-primary">{vanNumber}</span>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>

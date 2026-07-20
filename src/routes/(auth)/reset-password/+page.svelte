@@ -191,7 +191,7 @@
 							<Input
 								id="password"
 								type={showPassword ? 'text' : 'password'}
-								placeholder="Enter password"
+								placeholder="Enter Password"
 								bind:value={password}
 								autocomplete="new-password"
 								aria-invalid={passwordError ? 'true' : undefined}

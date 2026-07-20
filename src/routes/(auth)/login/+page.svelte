@@ -21,7 +21,7 @@
 	let sessionNoticeKind = $state<'error' | 'success'>('error');
 
 	$effect(() => {
-		if (form?.userEmail) email = form.userEmail.trim();
+		if (form?.userEmail) email = form.userEmail.trim().toLowerCase();
 		// Only open when the action explicitly flagged the session-already-exists case.
 		forceConfirmOpen = form?.requiresForce === true;
 	});
@@ -46,7 +46,7 @@
 	});
 
 	function trimCredentials() {
-		email = email.trim();
+		email = email.trim().toLowerCase();
 		password = password.trim();
 	}
 
@@ -68,19 +68,17 @@
 	};
 </script>
 
-<main class="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 sm:px-8 lg:px-10">
-	<!--
-				my-auto + shrink-0 centers the form when space allows without flex-shrinking
-				children (which turned the Login button into a thin blue bar).
-			-->
-	<div class="mx-auto my-auto w-full max-w-md shrink-0 py-8 sm:py-10">
-		<div class="flex w-full flex-col gap-10 sm:gap-14">
+<main class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 sm:px-8 lg:px-10">
+	<!-- Flexible spacers center the form and collapse on short viewports so nothing scrolls. -->
+	<div class="min-h-0 flex-1" aria-hidden="true"></div>
+	<div class="mx-auto w-full max-w-md shrink-0 py-2 sm:py-4">
+		<div class="flex w-full flex-col gap-6 sm:gap-8 [@media(max-height:700px)]:gap-4">
 			<div>
-				<CompanyLogoLight width="160" class="h-auto w-40 sm:w-50" />
+				<CompanyLogoLight width="160" class="h-auto w-36 sm:w-40" />
 			</div>
 
-			<div class="flex flex-col gap-8 sm:gap-10">
-				<div class="flex flex-col gap-2">
+			<div class="flex flex-col gap-5 sm:gap-6 [@media(max-height:700px)]:gap-4">
+				<div class="flex flex-col gap-1.5 sm:gap-2">
 					<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">Sign in</h1>
 					<p class="text-sm text-gray-700 sm:text-base">
 						Enter your login details to access your dashboard
@@ -102,10 +100,10 @@
 					<p class="text-sm text-destructive" role="alert">{form.message}</p>
 				{/if}
 
-				<form method="POST" class="flex flex-col gap-5 sm:gap-6" use:enhance={onEnhance}>
+				<form method="POST" class="flex flex-col gap-4 sm:gap-5" use:enhance={onEnhance}>
 					<input type="hidden" name="force" value="false" />
 
-					<div class="flex flex-col gap-2 sm:gap-3">
+					<div class="flex flex-col gap-2">
 						<label class="text-base font-normal text-gray-700 sm:text-lg" for="email">
 							Email
 						</label>
@@ -113,17 +111,17 @@
 							id="email"
 							name="userEmail"
 							type="email"
-							placeholder="Enter the email"
+							placeholder="name@company.com"
 							bind:value={email}
 							autocomplete="email"
 							required
 							disabled={submitting}
 							class="h-11 text-base!"
-							onblur={() => (email = email.trim())}
+							onblur={() => (email = email.trim().toLowerCase())}
 						/>
 					</div>
 
-					<div class="flex flex-col gap-2 sm:gap-3">
+					<div class="flex flex-col gap-2">
 						<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
 							Password
 						</label>
@@ -132,7 +130,7 @@
 								id="password"
 								name="password"
 								type={showPassword ? 'text' : 'password'}
-								placeholder="Enter the password"
+								placeholder="Enter Password"
 								bind:value={password}
 								autocomplete="current-password"
 								required
@@ -175,9 +173,12 @@
 			</div>
 		</div>
 	</div>
+	<div class="min-h-0 flex-1" aria-hidden="true"></div>
 </main>
 
-<footer class="shrink-0 flex flex-col gap-15 bg-background px-5 py-5 text-center sm:px-8 lg:px-10">
+<footer
+	class="flex shrink-0 flex-col gap-4 bg-background px-5 py-4 text-center sm:gap-6 sm:px-8 lg:px-10"
+>
 	<p class="text-xs text-muted-foreground sm:text-sm">
 		<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
 			Terms and Conditions
@@ -187,7 +188,7 @@
 			Privacy Policy
 		</a>
 	</p>
-	<p class="mt-3 text-xs text-muted-foreground sm:text-sm">
+	<p class="text-xs text-muted-foreground sm:text-sm">
 		© 2026 ElixirPay • Secure Payment Gateway Platform
 	</p>
 </footer>
@@ -195,7 +196,7 @@
 <Modal
 	bind:open={forceConfirmOpen}
 	title="Session already active"
-	description="Another session for this account is already signed in. Continue here? This will sign out the other session."
+	description="You are already signed in on another device or browser. Signing in here will sign you out of your current session. Do you wish to continue?"
 >
 	{#snippet footer()}
 		<form
