@@ -30,20 +30,18 @@
 
 <!-- Expanded (default sidebar state) -->
 <Story name="Expanded" args={{ ...defaultArgs, isCollapsed: false }}>
-	{#snippet template(args)}
-		{@const props = args as ProfileCardProps}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...props} />
+			<ProfileCard {...args} />
 		</div>
 	{/snippet}
 </Story>
 
 <!-- Collapsed (icon-only sidebar state) -->
 <Story name="Collapsed" args={{ ...defaultArgs, isCollapsed: true }}>
-	{#snippet template(args)}
-		{@const props = args as ProfileCardProps}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-14 rounded-lg border border-border bg-background">
-			<ProfileCard {...props} />
+			<ProfileCard {...args} />
 		</div>
 	{/snippet}
 </Story>
@@ -60,10 +58,9 @@
 		isCollapsed: false
 	}}
 >
-	{#snippet template(args)}
-		{@const props = args as ProfileCardProps}
+	{#snippet template(args: ProfileCardProps)}
 		<div class="w-64 rounded-lg border border-border bg-background">
-			<ProfileCard {...props} />
+			<ProfileCard {...args} />
 		</div>
 	{/snippet}
 </Story>
