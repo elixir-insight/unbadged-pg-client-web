@@ -1,7 +1,7 @@
 /** Raw role shape — list may return names; detail returns role IDs */
 export type ApiUserRole = string | number | { roleId?: number; roleName?: string; name?: string };
 
-/** List item from GET /api/v1/management/member */
+/** List item from GET /api/v1/{management|merchant}/member */
 export interface ApiUserListItem {
 	id: number;
 	userName: string;
@@ -19,7 +19,7 @@ export interface ApiUserListItem {
 	updatedAt?: string | null;
 }
 
-/** Detail item from GET /api/v1/management/member/{memberId} */
+/** Detail item from GET /api/v1/{management|merchant}/member/{memberId} */
 export interface ApiUserDetailItem {
 	id: number;
 	userName: string;
@@ -37,7 +37,7 @@ export interface ApiUserDetailItem {
 	updatedAt?: string | null;
 	createdBy?: number | null;
 	updatedBy?: number | null;
-	/** Enriched from GET /api/v1/management/user/list via supervisorId */
+	/** Enriched from members list via supervisorId */
 	reportingTo?: {
 		id: number;
 		name: string;

@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import type { ApiUserDetailResponse, ApiUsersListResponse } from './api-types';
 import { formatRoleDisplayName, mapUserDetailResponse, mapUsersListResponse } from './user-mapper';
 import type { UserItem, UsersListResponse } from './user-management';
@@ -28,6 +29,22 @@ export type AssignableRole = RoleItem & {
 	displayName: string;
 };
 
+export type UsersApiPortal = 'management' | 'merchant';
+
+/** Infer portal from the current browser path; SSR callers should pass portal explicitly. */
+export function resolveUsersApiPortal(portal?: UsersApiPortal): UsersApiPortal {
+	if (portal) return portal;
+	if (browser && window.location.pathname.startsWith('/merchant')) return 'merchant';
+	if (browser && window.location.pathname.startsWith('/management')) return 'management';
+	return 'management';
+}
+
+function withPortal(path: string, portal?: UsersApiPortal): string {
+	const resolved = resolveUsersApiPortal(portal);
+	const sep = path.includes('?') ? '&' : '?';
+	return `${path}${sep}portal=${resolved}`;
+}
+
 export async function fetchUsers(params: {
 	search?: string;
 	status?: string;
@@ -35,6 +52,7 @@ export async function fetchUsers(params: {
 	/** 1-based page number matching the upstream API */
 	page?: number;
 	limit?: number;
+	portal?: UsersApiPortal;
 }): Promise<UsersListResponse> {
 	const query = new URLSearchParams();
 
@@ -44,15 +62,18 @@ export async function fetchUsers(params: {
 	if (params.page !== undefined) query.set('page', String(params.page));
 	if (params.limit !== undefined) query.set('limit', String(params.limit));
 
-	const res = await fetch(`/api/users?${query}`);
+	const res = await fetch(withPortal(`/api/users?${query}`, params.portal));
 	if (!res.ok) throw new Error('Failed to fetch users');
 
 	const raw: ApiUsersListResponse = await res.json();
 	return mapUsersListResponse(raw);
 }
 
-export async function fetchUserById(userId: string): Promise<UserItem | null> {
-	const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`);
+export async function fetchUserById(
+	userId: string,
+	portal?: UsersApiPortal
+): Promise<UserItem | null> {
+	const res = await fetch(withPortal(`/api/users?userId=${encodeURIComponent(userId)}`, portal));
 	if (!res.ok) throw new Error('Failed to fetch user');
 
 	const raw: ApiUserDetailResponse = await res.json();
@@ -64,27 +85,30 @@ export type DirectoryUser = {
 	name: string;
 };
 
-export async function fetchUserDirectory(): Promise<DirectoryUser[]> {
-	const res = await fetch('/api/users/directory');
+export async function fetchUserDirectory(portal?: UsersApiPortal): Promise<DirectoryUser[]> {
+	const res = await fetch(withPortal('/api/users/directory', portal));
 	if (!res.ok) throw new Error('Failed to fetch user directory');
 
-	const raw: { items: DirectoryUser[] } = await res.json();
-	return raw.items;
+	const raw: { items?: DirectoryUser[] } = await res.json();
+	return raw?.items ?? [];
 }
 
-export async function fetchAssignableRoles(): Promise<AssignableRole[]> {
-	const res = await fetch('/api/roles?page=0&limit=100');
+export async function fetchAssignableRoles(portal?: UsersApiPortal): Promise<AssignableRole[]> {
+	const res = await fetch(withPortal('/api/roles?page=0&limit=100', portal));
 	if (!res.ok) throw new Error('Failed to fetch roles');
 
-	const raw: { items: RoleItem[] } = await res.json();
-	return raw.items.map((role) => ({
+	const raw: { items?: RoleItem[] } = await res.json();
+	return (raw?.items ?? []).map((role) => ({
 		...role,
 		displayName: formatRoleDisplayName(role.roleName)
 	}));
 }
 
-export async function createUser(payload: CreateUserPayload): Promise<CreateUserResult> {
-	const res = await fetch('/api/users', {
+export async function createUser(
+	payload: CreateUserPayload,
+	portal?: UsersApiPortal
+): Promise<CreateUserResult> {
+	const res = await fetch(withPortal('/api/users', portal), {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload)
@@ -96,25 +120,26 @@ export async function createUser(payload: CreateUserPayload): Promise<CreateUser
 	} = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to create user');
+		throw new Error(raw?.message ?? 'Failed to create user');
 	}
 
-	const memberId = raw.data?.[0]?.memberId;
+	const memberId = raw?.data?.[0]?.memberId;
 	if (memberId === undefined) {
 		throw new Error('Unexpected create user response');
 	}
 
 	return {
 		memberId,
-		message: raw.message ?? 'Member created successfully'
+		message: raw?.message ?? 'Member created successfully'
 	};
 }
 
 export async function updateUser(
 	userId: string,
-	payload: UpdateUserPayload
+	payload: UpdateUserPayload,
+	portal?: UsersApiPortal
 ): Promise<UpdateUserResult> {
-	const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+	const res = await fetch(withPortal(`/api/users?userId=${encodeURIComponent(userId)}`, portal), {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload)
@@ -123,11 +148,11 @@ export async function updateUser(
 	const raw: { message?: string } = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to update user');
+		throw new Error(raw?.message ?? 'Failed to update user');
 	}
 
 	return {
-		message: raw.message ?? 'Member updated successfully'
+		message: raw?.message ?? 'Member updated successfully'
 	};
 }
 
@@ -135,18 +160,21 @@ export type DeleteUserResult = {
 	message: string;
 };
 
-export async function deleteUser(userId: string): Promise<DeleteUserResult> {
-	const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+export async function deleteUser(
+	userId: string,
+	portal?: UsersApiPortal
+): Promise<DeleteUserResult> {
+	const res = await fetch(withPortal(`/api/users?userId=${encodeURIComponent(userId)}`, portal), {
 		method: 'DELETE'
 	});
 
 	const raw: { message?: string } = await res.json().catch(() => ({}));
 
 	if (!res.ok) {
-		throw new Error(raw.message ?? 'Failed to delete user');
+		throw new Error(raw?.message ?? 'Failed to delete user');
 	}
 
 	return {
-		message: raw.message ?? 'Member deleted successfully'
+		message: raw?.message ?? 'Member deleted successfully'
 	};
 }

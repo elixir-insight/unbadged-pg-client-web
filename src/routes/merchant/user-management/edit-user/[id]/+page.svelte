@@ -5,7 +5,7 @@
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button, Input } from '$lib/components/reusable';
-	import { RolesReportingPanel } from '$lib/components/user-management';
+	import { RolesReportingPanel, UserFormSkeleton } from '$lib/components/user-management';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { firstValidationError } from '$lib/stores/user-management/validation';
 	import {
@@ -120,7 +120,7 @@
 </script>
 
 {#if loading}
-	<p class="py-12 text-center text-sm text-muted-foreground">Loading user details…</p>
+	<UserFormSkeleton />
 {:else}
 	<div class="m-auto w-full space-y-6 md:w-[75%]">
 		<div class="flex flex-wrap items-start justify-between gap-4">
