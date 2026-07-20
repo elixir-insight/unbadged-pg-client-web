@@ -46,7 +46,8 @@ export interface AccessTokenPayload {
 export interface GatewayTokenPayload {
 	orgId: number;
 	userId: number;
-	userName: string;
+	/** Backend may return null for ROOT / incomplete profiles. */
+	userName: string | null;
 	userEmail: string;
 	userType: string;
 	iss: string;

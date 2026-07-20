@@ -73,7 +73,8 @@ export const OrgRolesListResponseSchema = v.object({
 	statusCode: v.number(),
 	message: v.string(),
 	data: v.array(OrgRoleItemSchema),
-	pagination: PaginationSchema
+	/** Upstream omits pagination when the list is empty. */
+	pagination: v.optional(PaginationSchema)
 });
 
 export const CreateMemberBodySchema = v.object({

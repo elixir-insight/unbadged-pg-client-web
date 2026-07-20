@@ -24,6 +24,23 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 	};
 }
 
+/** Display name when gateway `userName` is null/blank — prefer email local-part. */
+export function resolveMerchantDisplayName(
+	userName: string | null | undefined,
+	userEmail: string | null | undefined
+): string {
+	const name = userName?.trim();
+	if (name) return name;
+
+	const email = userEmail?.trim();
+	if (email) {
+		const localPart = email.split('@')[0]?.trim();
+		if (localPart) return localPart;
+	}
+
+	return 'User';
+}
+
 /**
  * Live path — identity from gateway token, portal groups from access token.
  * Payin/payout come from a separate API later.
@@ -35,7 +52,7 @@ export function parseMerchantSessionFromGateway(
 	return {
 		userId: String(token.userId),
 		organizationId: String(token.orgId),
-		merchantName: token.userName,
+		merchantName: resolveMerchantDisplayName(token.userName, token.userEmail),
 		email: token.userEmail,
 		userType: token.userType,
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },

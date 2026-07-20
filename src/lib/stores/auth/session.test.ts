@@ -59,4 +59,21 @@ describe('parseMerchantSessionFromGateway', () => {
 		expect(session.permissions).toEqual({ payin: true, payout: true });
 		expect(session.groups).toEqual(['MANAGEMENT']);
 	});
+
+	it('falls back to email local-part when userName is null', () => {
+		const session = parseMerchantSessionFromGateway(
+			gatewayToken({ userName: null, userEmail: 'Abdullah.a@elixirpay.in' }),
+			['MERCHANT']
+		);
+		expect(session.merchantName).toBe('Abdullah.a');
+		expect(session.email).toBe('Abdullah.a@elixirpay.in');
+	});
+
+	it('falls back to User when userName and email are blank', () => {
+		const session = parseMerchantSessionFromGateway(
+			gatewayToken({ userName: null, userEmail: '' }),
+			['MERCHANT']
+		);
+		expect(session.merchantName).toBe('User');
+	});
 });
