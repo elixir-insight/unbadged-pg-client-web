@@ -52,7 +52,7 @@
 						class={cn(
 							'flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium',
 							status === 'current' && 'border-primary bg-primary text-primary-foreground',
-							status === 'complete' && 'border-success bg-success-bg text-success',
+							status === 'complete' && 'bg-success-bg border-success text-success',
 							status === 'upcoming' && 'border-border bg-muted text-muted-foreground'
 						)}
 						aria-hidden="true"
@@ -65,7 +65,7 @@
 					</span>
 
 					<div class={cn('min-w-0', horizontal && 'hidden sm:block')}>
-						<p class="text-sm font-medium leading-none">{step.label}</p>
+						<p class="text-sm leading-none font-medium">{step.label}</p>
 						<p class="mt-1 text-xs text-muted-foreground">{step.sublabel}</p>
 					</div>
 

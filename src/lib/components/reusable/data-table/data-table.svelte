@@ -85,7 +85,7 @@
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row
 					class={cn(
-						'table-header-premium h-11 border-y border-border rounded-lg',
+						'table-header-premium h-11 rounded-lg border-y border-border',
 						variant === 'borderless' && 'border-b-0'
 					)}
 				>

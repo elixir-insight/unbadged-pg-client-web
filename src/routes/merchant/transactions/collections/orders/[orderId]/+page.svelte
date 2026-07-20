@@ -73,7 +73,7 @@
 			<Details sections={detailSections} flat />
 			{#if payments.length > 0}
 				<div class="mt-5 border-t border-border pt-5">
-					<p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
+					<p class="mb-3 text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase">
 						Related payments
 					</p>
 					<RelatedPaymentsTable

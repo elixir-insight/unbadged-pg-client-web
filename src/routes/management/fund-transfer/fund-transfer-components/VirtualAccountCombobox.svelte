@@ -118,7 +118,7 @@
 								onmousedown={(event) => event.preventDefault()}
 								onclick={() => handleSelect(account)}
 							>
-								<span class="text-sm font-medium leading-snug">{account.name}</span>
+								<span class="text-sm leading-snug font-medium">{account.name}</span>
 								<span class="mt-0.5 text-xs text-muted-foreground">
 									{maskAccountNumber(account.accountNumber)} · {account.type}
 								</span>

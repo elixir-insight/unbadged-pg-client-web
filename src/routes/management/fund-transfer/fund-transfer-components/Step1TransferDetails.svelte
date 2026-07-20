@@ -21,7 +21,7 @@
 					<Wallet class="size-4" />
 				</span>
 				<div class="min-w-0">
-					<p class="font-medium leading-none">Source virtual account</p>
+					<p class="leading-none font-medium">Source virtual account</p>
 					<p class="mt-1.5 text-sm text-muted-foreground">
 						Choose the account to debit for this payout.
 					</p>

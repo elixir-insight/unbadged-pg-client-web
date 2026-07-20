@@ -332,7 +332,7 @@
 						onValueChange={onStatusDropdownChange}
 					/>
 				</div>
-				<div class="w-full min-w-0 sm:max-w-xs sm:ml-auto">
+				<div class="w-full min-w-0 sm:ml-auto sm:max-w-xs">
 					<Search
 						value={searchInput}
 						oninput={(e) => handleSearchInput((e.currentTarget as HTMLInputElement).value)}
@@ -437,12 +437,12 @@
 {/snippet}
 
 <div class="flex flex-col gap-4">
-	<nav class="border-border flex gap-1 border-b">
+	<nav class="flex gap-1 border-b border-border">
 		{#each tabs as tab (tab.value)}
 			<a
 				href={tabHref(tab.value)}
 				class="relative px-3 pb-2 text-sm font-medium transition-colors {tabParam === tab.value
-					? 'text-foreground border-foreground -mb-px border-b-2'
+					? '-mb-px border-b-2 border-foreground text-foreground'
 					: 'text-muted-foreground hover:text-foreground'}"
 			>
 				{tab.label}
