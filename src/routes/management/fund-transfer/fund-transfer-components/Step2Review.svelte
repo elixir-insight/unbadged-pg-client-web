@@ -69,7 +69,7 @@
 		By proceeding, you confirm this transfer complies with your organisation's payout policy and
 		that beneficiary details have been verified.
 	</div>
-	<div class="rounded-lg bg-warning-bg px-4 py-3 text-sm text-warning-foreground">
+	<div class="bg-warning-bg rounded-lg px-4 py-3 text-sm text-warning-foreground">
 		An OTP will be sent to your registered mobile and email. Do not share the code with anyone.
 	</div>
 

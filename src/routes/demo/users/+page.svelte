@@ -84,7 +84,7 @@
 
 	<!-- URL debug strip (dev aid — remove in production) -->
 	<div
-		class="rounded-md border border-dashed border-border/40 bg-muted/20 px-3 py-2 text-xs text-muted-foreground/60 font-mono"
+		class="rounded-md border border-dashed border-border/40 bg-muted/20 px-3 py-2 font-mono text-xs text-muted-foreground/60"
 	>
 		skip={pagination.search ? 0 : pagination.skip} &nbsp; limit={pagination.limit} &nbsp; page={pagination.search
 			? 1

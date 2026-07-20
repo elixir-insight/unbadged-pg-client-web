@@ -28,7 +28,7 @@
 		<ActiveStep />
 	</section>
 
-	<aside class="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start">
+	<aside class="order-1 lg:sticky lg:top-0 lg:order-2 lg:self-start">
 		<Card.Root class="shadow-sm">
 			<Card.Content class="p-4 sm:p-6">
 				<StepSidebar

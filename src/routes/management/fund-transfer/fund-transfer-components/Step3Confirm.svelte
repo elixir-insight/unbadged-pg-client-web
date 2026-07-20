@@ -99,7 +99,7 @@
 					<div class="w-full space-y-2">
 						<div class="flex items-center justify-between text-xs text-muted-foreground">
 							<span>Code expires in</span>
-							<span class="font-medium tabular-nums text-foreground">{store.formatCountdown()}</span
+							<span class="font-medium text-foreground tabular-nums">{store.formatCountdown()}</span
 							>
 						</div>
 						<Progress value={store.otpProgressValue} />

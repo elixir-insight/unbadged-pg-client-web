@@ -6,7 +6,10 @@
 
 <button
 	type="button"
-	onclick={onOpen}
+	onclick={(event) => {
+		event.stopPropagation();
+		onOpen();
+	}}
 	aria-label="View fee breakdown for {orderId}"
 	class="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 >

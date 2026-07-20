@@ -41,7 +41,7 @@
 			<span
 				class={cn(
 					'relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border',
-					step.state === 'done' && 'border-success bg-success-bg text-success',
+					step.state === 'done' && 'bg-success-bg border-success text-success',
 					step.state === 'active' && 'border-primary bg-accent text-accent-foreground',
 					step.state === 'failed' && 'border-destructive bg-destructive/10 text-destructive',
 					step.state === 'pending' && 'border-border bg-muted text-muted-foreground'

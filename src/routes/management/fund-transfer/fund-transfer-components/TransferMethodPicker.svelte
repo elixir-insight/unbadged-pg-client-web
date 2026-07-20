@@ -27,8 +27,8 @@
 			role="radio"
 			aria-checked={selected}
 			class={cn(
-				'flex min-h-28 flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors sm:min-h-0 sm:p-3',
-				'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+				'flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors',
+				'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
 				selected
 					? 'border-primary bg-accent text-accent-foreground'
 					: 'border-border bg-card hover:bg-muted'

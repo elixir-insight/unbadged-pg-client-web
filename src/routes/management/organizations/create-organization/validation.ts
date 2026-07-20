@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import type { ClientType } from './constants';
+import { normalizeIndianMobilePhone } from '$lib/validation/organization-kyb';
 
 const orgSchema = v.object({
 	orgName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization name is required')),
@@ -7,10 +8,8 @@ const orgSchema = v.object({
 		v.string(),
 		v.trim(),
 		v.minLength(1, 'Mobile number is required'),
-		v.check(
-			(val) => /^[6-9]\d{9}$/.test(val.replace(/\D/g, '')),
-			'Enter a valid 10-digit Indian mobile number'
-		)
+		v.transform(normalizeIndianMobilePhone),
+		v.check((val) => /^[6-9]\d{9}$/.test(val), 'Enter a valid 10-digit Indian mobile number')
 	),
 	orgEmail: v.pipe(
 		v.string(),

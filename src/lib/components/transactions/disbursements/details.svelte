@@ -31,7 +31,7 @@
 <div class="flex flex-col gap-6">
 	{#each sections as section (section.title)}
 		<div>
-			<p class="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
+			<p class="mb-2 text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase">
 				{section.title}
 			</p>
 
@@ -71,7 +71,7 @@
 									type="button"
 									onclick={() => copy(row.label, row.value)}
 									aria-label="Copy {row.label}"
-									class="flex shrink-0 size-5 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+									class="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-muted-foreground"
 								>
 									{#if copiedKey === row.label}
 										<Check class="size-3 text-primary" />

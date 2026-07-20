@@ -1,129 +1,215 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { Button, Checkbox } from '$lib/components/reusable';
-	import { AlertCircle, CheckCircle2, Circle, ThumbsUp } from '$lib/assets/icons';
-	import type {
-		OrganizationCommissionRule,
-		OrganizationPayoutConfiguration
-	} from '$lib/data/mockData';
-	import { activationDocumentReady, merchantActivationValid } from '../../completeness';
-	import { cloneOrganization } from '../../helpers';
-	import PayoutConfigCards from '../../components/PayoutConfigCards.svelte';
+	import type { ResolvedPathname } from '$app/types';
+	import { Button } from '$lib/components/reusable';
+	import { AlertCircle } from '$lib/assets/icons';
+	import type { OrganizationFeeConfigDraft } from '$lib/data/mockData';
+	import {
+		createCommissionDefaultSlabs,
+		createDefaultSlabRows,
+		createPartnerDefaultSlabs,
+		defaultPaymentPathSelection,
+		resolveMethodConfigId,
+		validateSlabs
+	} from '$lib/fee-config';
+	import type { FeeSectionDraft, FeeSlabRow, PaymentPathSelection } from '$lib/fee-config/types';
+	import FeeSectionCard from '../../components/fee-config/FeeSectionCard.svelte';
+	import LivePreviewPanel from '../../components/fee-config/LivePreviewPanel.svelte';
+	import OpenDecisionsCard from '../../components/fee-config/OpenDecisionsCard.svelte';
+	import PaymentPathCard from '../../components/fee-config/PaymentPathCard.svelte';
+	import { defaultOrganizationLandingPath } from '../../helpers';
 
 	let { data } = $props();
 
 	const organization = $derived(data.organization);
-	const orgId = $derived(organization.id);
 
-	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
-	let commissionDraft = $state(cloneOrganization(data.organization.commissionRules));
-	// svelte-ignore state_referenced_locally (draft is a one-time snapshot, manually resynced below when organization.id changes)
-	let payoutDraft = $state(cloneOrganization(data.organization.payoutConfiguration));
-	let agreementConfirmed = $state(false);
-	// svelte-ignore state_referenced_locally (one-time snapshot used to detect subsequent org changes)
-	let lastOrgId = $state(data.organization.id);
+	let pathSelection = $state<PaymentPathSelection>(defaultPaymentPathSelection());
+	let chargesSlabs = $state<FeeSlabRow[]>(createDefaultSlabRows());
+	let commissionSlabs = $state<FeeSlabRow[]>(createCommissionDefaultSlabs());
+	let partnerSlabs = $state<FeeSlabRow[]>(createPartnerDefaultSlabs());
+	let chargesEffectiveFrom = $state(new Date().toISOString().slice(0, 10));
+	let chargesEffectiveTo = $state('');
+	let commissionEffectiveFrom = $state(new Date().toISOString().slice(0, 10));
+	let commissionEffectiveTo = $state('');
+	let partnerEffectiveFrom = $state(new Date().toISOString().slice(0, 10));
+	let partnerEffectiveTo = $state('');
+	let testGrossAmount = $state('50000');
+	let lastOrgId = $state('');
+
+	let chargesValidation = $state<ReturnType<typeof validateSlabs>>({
+		valid: true,
+		errors: [],
+		rowErrors: {}
+	});
+	let commissionValidation = $state<ReturnType<typeof validateSlabs>>({
+		valid: true,
+		errors: [],
+		rowErrors: {}
+	});
+	let partnerValidation = $state<ReturnType<typeof validateSlabs>>({
+		valid: true,
+		errors: [],
+		rowErrors: {}
+	});
+
+	let chargesSaved = $state(false);
+	let commissionSaved = $state(false);
+	let partnerSaved = $state(false);
+
+	const methodConfigId = $derived(resolveMethodConfigId(pathSelection));
+	const pathReady = $derived(methodConfigId !== null);
+
+	const cancelHref = $derived(
+		defaultOrganizationLandingPath(organization.id, organization.status) as ResolvedPathname
+	);
+
+	function cloneSlabs(slabs: FeeSlabRow[]): FeeSlabRow[] {
+		return slabs.map((slab) => ({ ...slab }));
+	}
+
+	function sectionDraft(
+		slabs: FeeSlabRow[],
+		effectiveFrom: string,
+		effectiveTo: string
+	): FeeSectionDraft {
+		return {
+			slabs: cloneSlabs(slabs),
+			effectiveFrom,
+			effectiveTo
+		};
+	}
+
+	function loadDraftForPath(configId: string | null) {
+		if (!configId) return;
+		const existing = organization.feeConfigDrafts.find(
+			(draft) => draft.methodConfigId === configId
+		);
+		if (!existing) {
+			chargesSlabs = createDefaultSlabRows();
+			commissionSlabs = createCommissionDefaultSlabs();
+			partnerSlabs = createPartnerDefaultSlabs();
+			chargesEffectiveFrom = new Date().toISOString().slice(0, 10);
+			commissionEffectiveFrom = new Date().toISOString().slice(0, 10);
+			partnerEffectiveFrom = new Date().toISOString().slice(0, 10);
+			chargesEffectiveTo = '';
+			commissionEffectiveTo = '';
+			partnerEffectiveTo = '';
+			return;
+		}
+
+		if (existing.charges) {
+			chargesSlabs = cloneSlabs(existing.charges.slabs);
+			chargesEffectiveFrom = existing.charges.effectiveFrom;
+			chargesEffectiveTo = existing.charges.effectiveTo;
+		}
+		if (existing.commission) {
+			commissionSlabs = cloneSlabs(existing.commission.slabs);
+			commissionEffectiveFrom = existing.commission.effectiveFrom;
+			commissionEffectiveTo = existing.commission.effectiveTo;
+		}
+		if (existing.partner) {
+			partnerSlabs = cloneSlabs(existing.partner.slabs);
+			partnerEffectiveFrom = existing.partner.effectiveFrom;
+			partnerEffectiveTo = existing.partner.effectiveTo;
+		}
+	}
+
+	function upsertDraft(nextDraft: OrganizationFeeConfigDraft) {
+		const index = organization.feeConfigDrafts.findIndex(
+			(draft) => draft.methodConfigId === nextDraft.methodConfigId
+		);
+		if (index >= 0) {
+			organization.feeConfigDrafts[index] = nextDraft;
+			return;
+		}
+		organization.feeConfigDrafts = [...organization.feeConfigDrafts, nextDraft];
+	}
+
+	function getCurrentDraft(): OrganizationFeeConfigDraft | null {
+		if (!methodConfigId) return null;
+		return (
+			organization.feeConfigDrafts.find((draft) => draft.methodConfigId === methodConfigId) ?? {
+				methodConfigId,
+				charges: null,
+				commission: null,
+				partner: null,
+				feeConfigId: null
+			}
+		);
+	}
+
+	function saveCharges() {
+		if (!methodConfigId) return;
+		const validation = validateSlabs(chargesSlabs);
+		chargesValidation = validation;
+		if (!validation.valid) return;
+
+		const current = getCurrentDraft();
+		if (!current) return;
+		const feeConfigId = current.feeConfigId ?? `fc-${methodConfigId}-${Date.now()}`;
+		upsertDraft({
+			...current,
+			feeConfigId,
+			charges: sectionDraft(chargesSlabs, chargesEffectiveFrom, chargesEffectiveTo)
+		});
+		chargesSaved = true;
+		setTimeout(() => {
+			chargesSaved = false;
+		}, 3000);
+	}
+
+	function saveCommission() {
+		if (!methodConfigId) return;
+		const validation = validateSlabs(commissionSlabs);
+		commissionValidation = validation;
+		if (!validation.valid) return;
+
+		const current = getCurrentDraft();
+		if (!current) return;
+		upsertDraft({
+			...current,
+			commission: sectionDraft(commissionSlabs, commissionEffectiveFrom, commissionEffectiveTo)
+		});
+		commissionSaved = true;
+		setTimeout(() => {
+			commissionSaved = false;
+		}, 3000);
+	}
+
+	function savePartner() {
+		if (!methodConfigId) return;
+		const validation = validateSlabs(partnerSlabs);
+		partnerValidation = validation;
+		if (!validation.valid) return;
+
+		const current = getCurrentDraft();
+		if (!current) return;
+		upsertDraft({
+			...current,
+			partner: sectionDraft(partnerSlabs, partnerEffectiveFrom, partnerEffectiveTo)
+		});
+		partnerSaved = true;
+		setTimeout(() => {
+			partnerSaved = false;
+		}, 3000);
+	}
 
 	$effect(() => {
+		if (!lastOrgId) {
+			lastOrgId = organization.id;
+			return;
+		}
 		if (organization.id !== lastOrgId) {
-			commissionDraft = cloneOrganization(organization.commissionRules);
-			payoutDraft = cloneOrganization(organization.payoutConfiguration);
-			agreementConfirmed = false;
+			pathSelection = defaultPaymentPathSelection();
+			chargesSlabs = createDefaultSlabRows();
+			commissionSlabs = createCommissionDefaultSlabs();
+			partnerSlabs = createPartnerDefaultSlabs();
 			lastOrgId = organization.id;
 		}
 	});
 
-	const limitsConfigured = $derived(
-		Boolean(
-			payoutDraft.securityDeposit &&
-			payoutDraft.dailyTxnLimit &&
-			payoutDraft.txnAmountMin &&
-			payoutDraft.txnAmountMax &&
-			payoutDraft.dailyDepositLimit &&
-			payoutDraft.bankPipeline
-		)
-	);
-
-	const methodsConfigured = $derived(payoutDraft.allowedTransactionTypes.length > 0);
-
-	const commissionConfigured = $derived(
-		commissionDraft.length >= 2 &&
-			commissionDraft.every(
-				(rule) => rule.baseAmount && rule.method && rule.gatewayFee && rule.partnerFee
-			)
-	);
-
-	const agreementDone = $derived(agreementConfirmed && activationDocumentReady(organization));
-
-	const selectedMethodLabels = $derived(
-		payoutDraft.allowedTransactionTypes.map((method) => method.transactionType).join(', ')
-	);
-
-	const canActivate = $derived(
-		merchantActivationValid(
-			{
-				...organization,
-				payoutConfiguration: payoutDraft,
-				commissionRules: commissionDraft
-			},
-			agreementConfirmed
-		)
-	);
-
-	const checklist = $derived([
-		{
-			key: 'limits',
-			title: 'Limits',
-			done: limitsConfigured,
-			detail: 'Daily & per-transaction limits configured'
-		},
-		{
-			key: 'methods',
-			title: 'Payment Methods',
-			done: methodsConfigured,
-			detail: selectedMethodLabels || 'Select at least one payout method'
-		},
-		{
-			key: 'commission',
-			title: 'Commission Rules',
-			done: commissionConfigured,
-			detail: `Slabs: ${commissionDraft.length}`
-		},
-		{
-			key: 'agreement',
-			title: 'Business Agreement',
-			done: agreementDone,
-			detail: 'Review and accept terms'
-		}
-	]);
-
-	function formatAmount(value: string): string {
-		const numeric = Number(value);
-		if (!value || Number.isNaN(numeric)) return value || '—';
-		return numeric.toLocaleString('en-IN');
-	}
-
-	function slabRangeLabel(index: number): string {
-		const current = commissionDraft[index]?.baseAmount ?? '';
-		const next = commissionDraft[index + 1]?.baseAmount;
-		if (!current) return '—';
-		if (!next) return `${formatAmount(current)}+`;
-		return `${formatAmount(current)} – ${formatAmount(next)}`;
-	}
-
-	function methodLabel(method: OrganizationCommissionRule['method']): string {
-		return method === 'PERCENTAGE' ? 'Percentage' : 'Flat';
-	}
-
-	function activateMerchant() {
-		if (!canActivate) return;
-		const nextPayout: OrganizationPayoutConfiguration = cloneOrganization(payoutDraft);
-		nextPayout.virtualAccountsEnabled = true;
-		organization.payoutConfiguration = nextPayout;
-		organization.commissionRules = cloneOrganization(commissionDraft);
-		organization.status = 'ACTIVE';
-		goto(resolve('/management/organizations/[orgId]/manage', { orgId }));
-	}
+	$effect(() => {
+		loadDraftForPath(methodConfigId);
+	});
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -132,108 +218,76 @@
 		role="status"
 	>
 		<AlertCircle class="size-3.5 shrink-0" aria-hidden="true" />
-		<p>This organization is not yet active — complete all sections to activate.</p>
+		<p>This organization is not yet active — configure fees before activation.</p>
 	</div>
 
 	<header>
-		<h1 class="text-lg font-semibold text-foreground">Activate merchant</h1>
-		<p class="mt-1 text-sm text-muted-foreground">
-			Configure payout limits, methods, and commission before activating this organization.
-		</p>
+		<h1 class="text-lg font-semibold text-foreground">Fee Configuration</h1>
 	</header>
 
-	<div class="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
+	<div class="grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
 		<div class="space-y-4">
-			<PayoutConfigCards bind:payoutDraft bind:commissionDraft />
+			<PaymentPathCard bind:selection={pathSelection} />
 
-			<section class="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-				<div class="border-b border-border px-5 py-4">
-					<h2 class="text-sm font-semibold text-card-foreground">Business Agreement</h2>
-					<p class="mt-1 text-sm text-muted-foreground">
-						Review and accept the merchant terms before activation.
-					</p>
-				</div>
-				<div class="p-5">
-					<div class="flex items-start gap-3">
-						<Checkbox id="merchant-agreement-confirm" bind:checked={agreementConfirmed} />
-						<label for="merchant-agreement-confirm" class="text-sm leading-relaxed text-foreground">
-							I confirm that the merchant details are accurate and I accept the
-							<button type="button" class="font-medium text-primary underline underline-offset-2">
-								Merchant Agreement
-							</button>
-							and
-							<button type="button" class="font-medium text-primary underline underline-offset-2">
-								Platform Terms of Service
-							</button>
-							.
-						</label>
-					</div>
-					{#if agreementConfirmed && !activationDocumentReady(organization)}
-						<p class="mt-3 text-sm text-muted-foreground" role="status">
-							Upload the Business Agreement document in Documents before activation can complete.
-						</p>
-					{/if}
-				</div>
-			</section>
+			<FeeSectionCard
+				title="Charges"
+				subtitle="Gateway / aggregator fees — pipeline-level, applies to all organizations."
+				disabled={!pathReady}
+				placeholder="Resolve a payment path before configuring charges."
+				bind:slabs={chargesSlabs}
+				bind:effectiveFrom={chargesEffectiveFrom}
+				bind:effectiveTo={chargesEffectiveTo}
+				rowErrors={chargesValidation.rowErrors}
+				validationErrors={chargesValidation.errors}
+				saveLabel="Save charges"
+				saved={chargesSaved}
+				onSave={saveCharges}
+			/>
+
+			<FeeSectionCard
+				title="Commission"
+				subtitle="Pipeline fee elixir pay earns — negotiated per organization."
+				disabled={!pathReady}
+				placeholder="Select a payment path to configure commission."
+				bind:slabs={commissionSlabs}
+				bind:effectiveFrom={commissionEffectiveFrom}
+				bind:effectiveTo={commissionEffectiveTo}
+				rowErrors={commissionValidation.rowErrors}
+				validationErrors={commissionValidation.errors}
+				saveLabel="Save commission"
+				saved={commissionSaved}
+				onSave={saveCommission}
+			/>
+
+			<FeeSectionCard
+				title="Partner fee"
+				subtitle="Cut paid to the organization's referring reseller/partner."
+				disabled={!pathReady}
+				placeholder="Select a payment path to configure partner fee."
+				bind:slabs={partnerSlabs}
+				bind:effectiveFrom={partnerEffectiveFrom}
+				bind:effectiveTo={partnerEffectiveTo}
+				rowErrors={partnerValidation.rowErrors}
+				validationErrors={partnerValidation.errors}
+				saveLabel="Save partner fee"
+				saved={partnerSaved}
+				onSave={savePartner}
+			/>
 
 			<div class="flex justify-start">
-				<Button variant="ghost" href={`/management/organizations/${orgId}/kyb`}>Cancel</Button>
+				<Button variant="ghost" href={cancelHref}>Cancel</Button>
 			</div>
 		</div>
 
-		<aside
-			class="overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:sticky lg:top-6"
-		>
-			<div class="border-b border-border px-5 py-4">
-				<h2 class="text-sm font-semibold text-card-foreground">Activation Checklist</h2>
-				<p class="mt-1 text-xs text-muted-foreground">All sections must be complete</p>
-			</div>
-			<div class="p-5">
-				<ul class="space-y-4">
-					{#each checklist as item (item.key)}
-						<li class="flex items-start gap-3">
-							{#if item.done}
-								<CheckCircle2 class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-							{:else}
-								<Circle class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-							{/if}
-							<div class="min-w-0">
-								<p class="text-sm font-medium text-foreground">{item.title}</p>
-								<p class="text-xs text-muted-foreground">{item.detail}</p>
-							</div>
-						</li>
-					{/each}
-				</ul>
-
-				<div class="mt-5 rounded-lg border border-border bg-muted/20 p-3">
-					<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-						Commission Rules
-					</p>
-					<p class="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-						{commissionDraft.length}
-						<span class="text-sm font-normal text-muted-foreground">slabs</span>
-					</p>
-					<ul class="mt-3 space-y-1.5">
-						{#each commissionDraft as rule, index (rule.id)}
-							<li class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-								<span>{slabRangeLabel(index)}</span>
-								<span>{methodLabel(rule.method)}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-
-				<div class="mt-5">
-					{#if canActivate}
-						<Button class="w-full" onclick={activateMerchant}>
-							<ThumbsUp class="size-4" />
-							Activate merchant
-						</Button>
-					{:else}
-						<Button class="w-full" disabled variant="secondary">Complete all sections</Button>
-					{/if}
-				</div>
-			</div>
+		<aside class="space-y-4 lg:sticky lg:top-6">
+			<LivePreviewPanel
+				selection={pathSelection}
+				bind:testGrossAmount
+				{chargesSlabs}
+				{commissionSlabs}
+				{partnerSlabs}
+			/>
+			<OpenDecisionsCard />
 		</aside>
 	</div>
 </div>

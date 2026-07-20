@@ -24,12 +24,7 @@ import FileText from '@lucide/svelte/icons/file-text';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type VirtualAccountType =
-	| 'Corporate'
-	| 'Payroll'
-	| 'Vendor'
-	| 'Expense'
-	| 'Collections'
-	| 'Treasury';
+	'Corporate' | 'Payroll' | 'Vendor' | 'Expense' | 'Collections' | 'Treasury';
 
 export interface VirtualAccount {
 	id: string;

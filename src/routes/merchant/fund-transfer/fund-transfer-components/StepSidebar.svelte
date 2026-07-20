@@ -67,7 +67,7 @@
 					<div class={cn('min-w-0', horizontal && 'hidden sm:block')}>
 						<p
 							class={cn(
-								'text-sm font-medium leading-none',
+								'text-sm leading-none font-medium',
 								status === 'complete' && 'text-accent-foreground',
 								status === 'current' && 'text-accent-foreground'
 							)}

@@ -219,7 +219,7 @@
 							<p class="truncate text-sm font-medium text-foreground">{selectedFile.name}</p>
 							<p class="text-sm text-muted-foreground">Uploading file...</p>
 						</div>
-						<p class="text-sm font-medium tabular-nums text-foreground">{uploadProgress}%</p>
+						<p class="text-sm font-medium text-foreground tabular-nums">{uploadProgress}%</p>
 					</div>
 					<Progress value={uploadProgress} max={100} />
 				</div>

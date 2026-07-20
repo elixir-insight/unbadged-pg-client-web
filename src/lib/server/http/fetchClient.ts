@@ -34,22 +34,32 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 	const timeout = setTimeout(() => controller.abort(), 15_000);
 	const start = Date.now();
 
+	const isFormDataBody = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+
 	const headers: Record<string, string> = {
-		'Content-Type': 'application/json',
 		...opts.extraHeaders
 	};
+	if (!isFormDataBody) {
+		headers['Content-Type'] = 'application/json';
+	}
 	if (!opts.skipAuth && accessToken && gatewayToken) {
 		headers.Authorization = `Bearer ${accessToken}`;
 		headers['X-Gateway-Token'] = gatewayToken;
 	}
 
-	log.debug({ headers }, 'outbound request');
+	log.debug({ headers, multipart: isFormDataBody }, 'outbound request');
 
 	try {
+		const requestBody: BodyInit | undefined = isFormDataBody
+			? (opts.body as FormData)
+			: opts.body
+				? JSON.stringify(opts.body)
+				: undefined;
+
 		const res = await opts.fetch(url, {
 			method,
 			headers,
-			body: opts.body ? JSON.stringify(opts.body) : undefined,
+			body: requestBody,
 			signal: controller.signal
 		});
 		const json: unknown = await res.json().catch(() => null);
@@ -63,14 +73,16 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		// Upstream sometimes returns business errors with 2xx (e.g. sign-in session exists → 202).
 		if (!res.ok || errorBody?.exceptionCode) {
 			const status = errorBody?.statusCode ?? res.status;
+			const errorMessage = errorBody?.message ?? `Request failed (${status})`;
 			log.warn(
 				{
 					status,
 					httpStatus: res.status,
 					exceptionCode: errorBody?.exceptionCode,
+					message: errorMessage,
 					durationMs
 				},
-				'request failed'
+				`request failed — ${errorMessage}`
 			);
 			return {
 				ok: false,
@@ -78,7 +90,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 					kind: 'http',
 					status,
 					code: errorBody?.exceptionCode,
-					message: errorBody?.message ?? `Request failed (${status})`,
+					message: errorMessage,
 					// Some business "errors" still carry usable data (e.g. the
 					// password-change challenge on sign-in) — keep it for callers.
 					body: json
