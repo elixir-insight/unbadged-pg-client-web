@@ -49,7 +49,7 @@
 	size="sm"
 	class={cn('flex h-full min-h-0 flex-col data-[size=sm]:gap-3 data-[size=sm]:py-3', className)}
 >
-	<div class="flex justify-between gap-2 flex-col sm:flex-row items-center py-2 px-4">
+	<div class="flex flex-col items-center justify-between gap-2 px-4 py-2 sm:flex-row">
 		<h1 class="text-sm font-semibold">{title}</h1>
 		<span class="text-xs">{description}</span>
 	</div>
@@ -114,7 +114,7 @@
 									></span>
 									{name}
 								</span>
-								<span class="font-medium tabular-nums text-foreground">
+								<span class="font-medium text-foreground tabular-nums">
 									{formatValue(itemValue as number)}
 								</span>
 							</div>

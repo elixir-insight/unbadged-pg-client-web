@@ -299,7 +299,7 @@
 		/>
 		<div class="grid gap-4 md:grid-cols-2">
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
 					>Account Holder Name</span
 				>
 				<Input
@@ -321,7 +321,7 @@
 				{/if}
 			</label>
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
 					>Account Number</span
 				>
 				<Input
@@ -343,7 +343,7 @@
 				{/if}
 			</label>
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
 					>IFSC Code</span
 				>
 				<Input
@@ -365,7 +365,7 @@
 				{/if}
 			</label>
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Branch</span
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Branch</span
 				>
 				<Input
 					name="branch"
@@ -384,7 +384,7 @@
 				{/if}
 			</label>
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
 					>Account type</span
 				>
 				<Dropdown
@@ -404,7 +404,7 @@
 				{/if}
 			</label>
 			<label class="space-y-2">
-				<span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</span
+				<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Status</span
 				>
 				<Dropdown
 					name="status"

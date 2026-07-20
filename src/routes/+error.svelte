@@ -2,20 +2,17 @@
 	import { page } from '$app/state';
 	import { ErrorPage } from '$lib/components/reusable';
 	import { resolvePortalHome } from '$lib/stores/auth/portal';
-	import type { LayoutData } from './$types';
-
-	let { data }: { data: LayoutData } = $props();
 
 	const status = $derived(page.status);
 	const isNotFound = $derived(status === 404);
 	const isUnauthorized = $derived(status === 401);
 
-	const homeHref = $derived(
-		data.session?.groups?.length ? resolvePortalHome(data.session.groups) : '/login'
-	);
+	const session = $derived(page.data?.session);
+
+	const homeHref = $derived(session?.groups?.length ? resolvePortalHome(session.groups) : '/login');
 
 	const action = $derived(
-		isUnauthorized && !data.session?.groups?.length
+		isUnauthorized && !session?.groups?.length
 			? { label: 'Log in', href: '/login' }
 			: { label: 'Go to home', href: homeHref }
 	);

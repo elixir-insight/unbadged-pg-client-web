@@ -40,9 +40,7 @@ export type ParsedDirectorDocumentField = {
 };
 
 export type ParsedDocumentField =
-	| ParsedOrganizationDocumentField
-	| ParsedDirectorDocumentField
-	| null;
+	ParsedOrganizationDocumentField | ParsedDirectorDocumentField | null;
 
 /** Parses upstream `fileName` values returned by GET documents. */
 export function parseDocumentFileName(fileName: string): ParsedDocumentField {

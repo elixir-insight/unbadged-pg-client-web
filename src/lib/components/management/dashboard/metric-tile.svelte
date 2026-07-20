@@ -50,7 +50,7 @@
 	>
 		<div class="flex items-start justify-between gap-2">
 			<div class="flex items-center gap-1">
-				<p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
 				{#if info}
 					<Tooltip content={info}>
 						<Info class="size-3 text-muted-foreground/60" aria-hidden="true" />
@@ -66,8 +66,8 @@
 		</div>
 
 		<div>
-			<p class="text-xl font-bold tracking-tight tabular-nums text-foreground mt-3">{value}</p>
-			<div class=" flex flex-wrap items-center gap-1 text-[12px] mt-1">
+			<p class="mt-3 text-xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
+			<div class=" mt-1 flex flex-wrap items-center gap-1 text-[12px]">
 				{#if highlight}
 					<span class="font-semibold text-primary">{highlight}</span>
 				{:else if trend}
@@ -118,7 +118,7 @@
 			</div>
 		</div>
 
-		<p class="text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+		<p class="text-2xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
 
 		<div class="flex flex-wrap items-center gap-1.5 text-xs">
 			{#if highlight}
@@ -176,7 +176,7 @@
 
 		<div>
 			<p class="text-xs font-medium text-muted-foreground">{label}</p>
-			<p class="mt-1 text-xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+			<p class="mt-1 text-xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
 		</div>
 
 		<p class="text-[11px] text-muted-foreground">{subtitle}</p>

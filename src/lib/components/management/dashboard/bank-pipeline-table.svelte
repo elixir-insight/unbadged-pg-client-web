@@ -94,19 +94,19 @@
 				{#each rows as row (row.pipelineId)}
 					<Table.Row>
 						<Table.Cell class="py-2 font-medium text-primary">{row.pipelineId}</Table.Cell>
-						<Table.Cell class="py-2 text-right font-medium tabular-nums text-foreground">
+						<Table.Cell class="py-2 text-right font-medium text-foreground tabular-nums">
 							{formatValue(row.processedVolume)}
 						</Table.Cell>
-						<Table.Cell class="py-2 text-right font-semibold tabular-nums text-foreground">
+						<Table.Cell class="py-2 text-right font-semibold text-foreground tabular-nums">
 							{row.successRate.toFixed(1)}%
 						</Table.Cell>
-						<Table.Cell class="py-2 text-right tabular-nums text-muted-foreground">
+						<Table.Cell class="py-2 text-right text-muted-foreground tabular-nums">
 							{row.cbRatioActual.toFixed(2)} / {row.cbRatioThreshold.toFixed(2)}
 						</Table.Cell>
-						<Table.Cell class="py-2 text-right tabular-nums text-muted-foreground">
+						<Table.Cell class="py-2 text-right text-muted-foreground tabular-nums">
 							{row.avgTat.toFixed(1)}%
 						</Table.Cell>
-						<Table.Cell class="py-2 text-right tabular-nums text-muted-foreground">
+						<Table.Cell class="py-2 text-right text-muted-foreground tabular-nums">
 							{row.turnaround}
 						</Table.Cell>
 						<Table.Cell class="py-2 text-right">

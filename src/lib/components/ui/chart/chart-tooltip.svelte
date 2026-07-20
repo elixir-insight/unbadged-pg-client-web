@@ -32,7 +32,8 @@
 		labelKey?: string;
 		hideIndicator?: boolean;
 		labelClassName?: string;
-		labelFormatter?: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+		labelFormatter?:
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			((value: any, payload: TooltipPayload[]) => string | number | Snippet) | null;
 		formatter?: Snippet<
 			[
@@ -106,7 +107,7 @@
 	<div
 		bind:this={ref}
 		class={cn(
-			'border-border/50 bg-background grid min-w-[9rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl',
+			'grid min-w-[9rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl',
 			className
 		)}
 		{...restProps}
@@ -126,7 +127,7 @@
 				{@const indicatorColor = color || item.config?.color || item.color}
 				<div
 					class={cn(
-						'[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:size-2.5',
+						'flex w-full flex-wrap items-stretch gap-2 [&>svg]:size-2.5 [&>svg]:text-muted-foreground',
 						indicator === 'dot' && 'items-center'
 					)}
 				>
@@ -167,7 +168,7 @@
 								</span>
 							</div>
 							{#if item.value !== undefined}
-								<span class="text-foreground font-medium tabular-nums">
+								<span class="font-medium text-foreground tabular-nums">
 									{item.value.toLocaleString()}
 								</span>
 							{/if}

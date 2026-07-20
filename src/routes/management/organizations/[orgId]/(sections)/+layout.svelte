@@ -59,7 +59,7 @@
 </script>
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 sm:px-8">
-	<div class="rounded-xl shadow-sm border border-border bg-card px-6 py-5">
+	<div class="rounded-xl border border-border bg-card px-6 py-5 shadow-sm">
 		<header class="mb-5">
 			<h1 class="text-lg font-medium">{organization.name}</h1>
 			<p class="mt-1 text-sm text-muted-foreground">
@@ -79,7 +79,7 @@
 					aria-disabled={sectionLoading}
 					tabindex={sectionLoading ? -1 : undefined}
 					class={cn(
-						'flex min-w-0 flex-1 items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-lg px-2 py-1.5 text-sm transition-colors',
+						'flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg px-2 py-1.5 text-sm text-ellipsis whitespace-nowrap transition-colors',
 						isActive
 							? 'bg-primary font-medium text-primary-foreground'
 							: 'text-muted-foreground hover:text-foreground',
@@ -93,7 +93,7 @@
 		</nav>
 	</div>
 
-	<div class="relative min-h-112 rounded-xl shadow-sm border border-border bg-card px-6 py-5">
+	<div class="relative min-h-112 rounded-xl border border-border bg-card px-6 py-5 shadow-sm">
 		{#if sectionLoading}
 			<div
 				class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-xl bg-card/90 backdrop-blur-[1px]"

@@ -171,7 +171,7 @@
 						type="button"
 						onclick={() => (activeTab = 'updates')}
 						class={cn(
-							'-mb-px px-1 pb-3 pt-3.5 text-sm font-medium transition-colors',
+							'-mb-px px-1 pt-3.5 pb-3 text-sm font-medium transition-colors',
 							activeTab === 'updates'
 								? 'border-b-2 border-primary text-primary'
 								: 'text-muted-foreground hover:text-foreground'
@@ -183,7 +183,7 @@
 						type="button"
 						onclick={() => (activeTab = 'details')}
 						class={cn(
-							'-mb-px ml-4 px-1 pb-3 pt-3.5 text-sm font-medium transition-colors',
+							'-mb-px ml-4 px-1 pt-3.5 pb-3 text-sm font-medium transition-colors',
 							activeTab === 'details'
 								? 'border-b-2 border-primary text-primary'
 								: 'text-muted-foreground hover:text-foreground'

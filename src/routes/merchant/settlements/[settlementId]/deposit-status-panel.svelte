@@ -80,7 +80,7 @@
 
 			<div class="rounded-lg border border-border p-4">
 				<p class="text-xs text-muted-foreground">UTR</p>
-				<p class="text-sm italic text-muted-foreground">Assigned after processing</p>
+				<p class="text-sm text-muted-foreground italic">Assigned after processing</p>
 			</div>
 
 			<p class="text-xs text-muted-foreground">
