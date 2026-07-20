@@ -19,6 +19,7 @@
 		orientation = 'horizontal' as 'horizontal' | 'vertical',
 		triggerClass,
 		class: className,
+		onValueChange,
 		...restProps
 	}: {
 		tabs: TabItem[];
@@ -27,6 +28,7 @@
 		orientation?: 'horizontal' | 'vertical';
 		triggerClass?: string;
 		class?: string;
+		onValueChange?: (value: string) => void;
 	} = $props();
 
 	$effect.pre(() => {
@@ -36,7 +38,7 @@
 	});
 </script>
 
-<UITabs.Tabs bind:value {orientation} class={cn(className)} {...restProps}>
+<UITabs.Tabs bind:value {orientation} {onValueChange} class={cn(className)} {...restProps}>
 	<UITabs.TabsList {variant}>
 		{#each tabs as tab (tab.value)}
 			<UITabs.TabsTrigger value={tab.value} disabled={tab.disabled} class={triggerClass}>

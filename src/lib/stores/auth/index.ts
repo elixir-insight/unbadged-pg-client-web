@@ -1,3 +1,17 @@
 export { merchantSession, createSessionStore } from './session.svelte';
-export { parseMerchantSession } from './session';
-export type { CognitoIdToken, MerchantSession, MerchantService } from './types';
+export { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
+export {
+	canAccessPortalPath,
+	isPortalGroup,
+	normalizePortalGroups,
+	resolvePortalHome
+} from './portal';
+export type {
+	CognitoIdToken,
+	AccessTokenPayload,
+	GatewayTokenPayload,
+	MerchantSession,
+	MerchantService,
+	PortalGroup,
+	PortalHomePath
+} from './types';

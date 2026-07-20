@@ -6,6 +6,6 @@
 
 <h1 class="text-2xl font-semibold">Management</h1>
 <p class="mt-2 text-muted-foreground">Select a section from the navigation above.</p>
-<Button onclick={() => goto(resolve('/management/onboarding/create-organization'))}
+<Button onclick={() => goto(resolve('/management/organizations/create-organization'))}
 	>Create Organization</Button
 >

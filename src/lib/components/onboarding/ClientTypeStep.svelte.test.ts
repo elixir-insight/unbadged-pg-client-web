@@ -15,13 +15,13 @@ const clientTypes = [
 	}
 ] as const;
 
-function renderStep(
+async function renderStep(
 	overrides: {
 		selectedCategory?: 'Merchant' | 'Partner' | null;
 		onNext?: () => void;
 	} = {}
 ) {
-	return render(ClientTypeStep, {
+	return await render(ClientTypeStep, {
 		selectedCategory: null,
 		onNext: () => {},
 		...overrides
@@ -30,13 +30,13 @@ function renderStep(
 
 describe('ClientTypeStep', () => {
 	it('renders the category selection heading', async () => {
-		const screen = renderStep();
+		const screen = await renderStep();
 
 		await expect.element(screen.getByText('What category would you like to choose?')).toBeVisible();
 	});
 
 	it('renders every category title', async () => {
-		const screen = renderStep();
+		const screen = await renderStep();
 
 		for (const type of clientTypes) {
 			await expect.element(screen.getByText(type.title, { exact: true })).toBeVisible();
@@ -44,7 +44,7 @@ describe('ClientTypeStep', () => {
 	});
 
 	it('renders category images from static assets', async () => {
-		const screen = renderStep();
+		const screen = await renderStep();
 
 		for (const type of clientTypes) {
 			const image = screen.container.querySelector(`img[src="${type.image}"]`);
@@ -53,24 +53,24 @@ describe('ClientTypeStep', () => {
 	});
 
 	it('does not render a Continue button', async () => {
-		const screen = renderStep();
+		const screen = await renderStep();
 
 		expect(screen.container.textContent).not.toContain('Continue');
 	});
 
 	it('calls onNext when a category card is clicked', async () => {
 		const onNext = vi.fn();
-		const screen = renderStep({ onNext });
-		const buttons = screen.container.querySelectorAll('button[type="button"]');
+		const screen = await renderStep({ onNext });
 
-		expect(buttons.length).toBe(2);
-		await buttons[1].click();
+		const partnerButton = screen.getByRole('button', { name: /Partner/ });
+		await expect.element(partnerButton).toBeVisible();
+		(partnerButton.element() as HTMLButtonElement).click();
 
 		expect(onNext).toHaveBeenCalledOnce();
 	});
 
 	it('marks the selected category card as pressed', async () => {
-		const screen = renderStep({ selectedCategory: 'Merchant' });
+		const screen = await renderStep({ selectedCategory: 'Merchant' });
 
 		await expect
 			.element(screen.getByRole('button', { name: /Merchant/ }))
