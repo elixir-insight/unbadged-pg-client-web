@@ -7,7 +7,7 @@
 
 	let { children } = $props();
 
-	const isErrorPage = $derived(page.status >= 400);
+	const isErrorPage = $derived(page.error != null);
 
 	const PAYIN_ROUTES = [
 		'/merchant/disputes',
