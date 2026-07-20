@@ -16,8 +16,10 @@
 	]);
 
 	const isDetailPage = $derived(
-		page.url.pathname.startsWith(resolve('/merchant/transactions/collections') + '/') ||
-			page.url.pathname.startsWith(resolve('/merchant/transactions/disbursements') + '/')
+		/\/collections\/orders\/[^/]+$/.test(page.url.pathname) ||
+			/\/collections\/payments\/[^/]+$/.test(page.url.pathname) ||
+			(page.url.pathname.startsWith(resolve('/merchant/transactions/disbursements') + '/') &&
+				page.url.pathname !== resolve('/merchant/transactions/disbursements'))
 	);
 
 	$effect(() => {

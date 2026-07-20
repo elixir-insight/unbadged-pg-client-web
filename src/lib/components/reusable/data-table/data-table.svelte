@@ -132,7 +132,7 @@
 				{#each table.getRowModel().rows as row (row.id)}
 					<Table.Row
 						class={cn(
-							'tr-shine border-b border-border/40',
+							'group tr-shine border-b border-border/40',
 							onRowClick && [
 								'cursor-pointer',
 								'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset'

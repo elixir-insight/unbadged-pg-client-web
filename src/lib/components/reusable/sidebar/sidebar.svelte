@@ -91,7 +91,7 @@
 >
 	<!-- Sidebar header -->
 	<div
-		class="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border mt-4.5 px-3"
+		class="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border mt-4 px-3"
 	>
 		<div class="flex min-w-0 items-center gap-2">
 			<CompanyLogoLight class=" shrink-0" />
@@ -108,7 +108,7 @@
 	</div>
 
 	<!-- Navigation groups -->
-	<nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Main navigation">
+	<nav class="flex-1 overflow-y-auto px-2 py-6" aria-label="Main navigation">
 		{#each visibleNavGroups as group (group.title)}
 			<div class="mt-3 first:mt-0">
 				<p class="mb-1 px-2 text-xs tracking-wider text-muted-foreground">

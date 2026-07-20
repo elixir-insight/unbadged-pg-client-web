@@ -14,7 +14,7 @@
 	import { getLocalTimeZone } from '@internationalized/date';
 	import { payoutMockData } from '$lib/data/payout-mock';
 	import type { PayoutRow } from '$lib/types/payout';
-	import StatusBadge from './status-badge.svelte';
+	import { DisbursementStatusBadge } from '$lib/components/transactions/disbursements';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
@@ -57,7 +57,7 @@
 		{
 			accessorKey: 'transactionStatus',
 			header: 'Status',
-			cell: (info) => renderComponent(StatusBadge, { status: info.getValue<string>() })
+			cell: (info) => renderComponent(DisbursementStatusBadge, { status: info.getValue<string>() })
 		}
 	];
 

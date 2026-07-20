@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { User, Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
+	import { Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { cn } from '$lib/utils';
 
@@ -10,22 +9,22 @@
 		userRole = 'Admin',
 		userInitials = 'AK',
 		vanNumber = 'VAN-2024-00123',
-		isCollapsed = false,
-		profileHref
+		isCollapsed = false
+		// profileHref
 	}: {
 		userName?: string;
 		userRole?: string;
 		userInitials?: string;
 		vanNumber?: string;
 		isCollapsed?: boolean;
-		profileHref?: string;
+		// profileHref?: string;
 	} = $props();
 
-	function handleProfileClick() {
-		if (profileHref) {
-			goto(resolve(...([profileHref] as Parameters<typeof resolve>)));
-		}
-	}
+	// function handleProfileClick() {
+	// 	if (profileHref) {
+	// 		goto(resolve(...([profileHref] as Parameters<typeof resolve>)));
+	// 	}
+	// }
 </script>
 
 <div class="shrink-0 border-border p-2">
@@ -77,13 +76,13 @@
 
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
 
-			<DropdownMenu.Item
+			<!-- <DropdownMenu.Item
 				onclick={handleProfileClick}
 				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
 			>
 				<User class="h-4 w-4 shrink-0" />
 				Profile
-			</DropdownMenu.Item>
+			</DropdownMenu.Item> -->
 			<DropdownMenu.Item
 				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
 			>
@@ -91,12 +90,16 @@
 				Settings
 			</DropdownMenu.Item>
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
-			<DropdownMenu.Item
-				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
-			>
-				<LogOut class="h-4 w-4 shrink-0" />
-				Sign out
-			</DropdownMenu.Item>
+
+			<form method="POST" action={resolve('/logout')}>
+				<button
+					type="submit"
+					class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
+				>
+					<LogOut class="h-4 w-4 shrink-0" />
+					Sign out
+				</button>
+			</form>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>
