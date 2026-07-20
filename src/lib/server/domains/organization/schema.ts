@@ -197,45 +197,6 @@ export const GetOrganizationBankAccountsResponseSchema = v.object({
 	data: v.optional(v.array(OrganizationBankAccountRecordSchema))
 });
 
-export const OrganizationDetailsDirectorRecordSchema = v.object({
-	id: v.optional(v.union([v.number(), v.string()])),
-	name: v.optional(v.string()),
-	pan: v.optional(v.string()),
-	email: v.optional(v.string()),
-	phoneNumber: v.optional(v.string()),
-	aadhar: v.optional(v.string())
-});
-
-export const OrganizationDetailsAddressSchema = v.object({
-	address: v.optional(v.string()),
-	city: v.optional(v.string()),
-	country: v.optional(v.string()),
-	pinCode: v.optional(v.string()),
-	state: v.optional(v.string())
-});
-
-export const OrganizationDetailsRecordSchema = v.object({
-	orgId: v.optional(v.string()),
-	legalCompanyName: v.optional(v.string()),
-	businessType: v.optional(v.string()),
-	profileType: v.optional(v.string()),
-	profileStatus: v.optional(v.string()),
-	phoneNumber: v.optional(v.string()),
-	email: v.optional(v.string()),
-	businessPhone: v.optional(v.string()),
-	cin: v.optional(v.string()),
-	orgPan: v.optional(v.string()),
-	orgTan: v.optional(v.string()),
-	gstNumber: v.optional(v.string()),
-	industry: v.optional(v.string()),
-	organizationWebsite: v.optional(v.string()),
-	registeredYear: v.optional(v.number()),
-	communicationAddress: v.optional(v.string()),
-	serviceTypes: v.optional(v.array(v.string())),
-	address: v.optional(OrganizationDetailsAddressSchema),
-	directors: v.optional(v.array(OrganizationDetailsDirectorRecordSchema))
-});
-
 /**
  * GET organization envelope — payload shape varies; map in mappers/from-api/get-organization.ts.
  * Pagination is ignored when present.
@@ -244,15 +205,6 @@ export const GetOrganizationResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),
 	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
-});
-
-/** GET organization details — KYB fields and directors; map in mappers/from-api/get-organization.ts. */
-export const GetOrganizationDetailsResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
-	data: v.optional(
-		v.union([v.array(OrganizationDetailsRecordSchema), OrganizationDetailsRecordSchema, v.null()])
-	)
 });
 
 export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationRequestSchema>;
@@ -285,10 +237,6 @@ export type GetOrganizationBankAccountsResponse = v.InferOutput<
 	typeof GetOrganizationBankAccountsResponseSchema
 >;
 export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;
-export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
-export type GetOrganizationDetailsResponse = v.InferOutput<
-	typeof GetOrganizationDetailsResponseSchema
->;
 
 export const OrganizationTableProfileStatusSchema = v.picklist([
 	'IN_PROGRESS',

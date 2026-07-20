@@ -358,22 +358,3 @@ export function mapGetOrganizationResponse(
 		feeConfigDrafts: []
 	};
 }
-
-/** Overlay KYB fields and directors from GET /details onto a base organization record. */
-export function applyOrganizationDetails(base: Organization, details: Organization): Organization {
-	return {
-		...base,
-		name: details.name || base.name,
-		businessType: details.businessType || base.businessType,
-		category: details.category || base.category,
-		status: details.status || base.status,
-		serviceTypes: details.serviceTypes.length > 0 ? details.serviceTypes : base.serviceTypes,
-		addressDetails: details.addressDetails,
-		directors: details.directors,
-		kyb: {
-			...base.kyb,
-			...details.kyb,
-			directors: details.directors
-		}
-	};
-}

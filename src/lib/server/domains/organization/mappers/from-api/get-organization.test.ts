@@ -144,7 +144,7 @@ describe('mapGetOrganizationResponse', () => {
 		expect(organization?.kyb.directors).toHaveLength(1);
 	});
 
-	it('maps GET /details payload fields including directors', () => {
+	it('maps organization payload with kyb address and directors', () => {
 		const organization = mapGetOrganizationResponse(
 			{
 				statusCode: 200,
