@@ -40,9 +40,11 @@ export default defineConfig({
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
+					testTimeout: 60000,
 					browser: {
 						enabled: true,
 						provider: playwright(),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium',
@@ -74,12 +76,13 @@ export default defineConfig({
 				],
 				test: {
 					name: 'storybook',
-					testTimeout: 30000,
+					testTimeout: 60000,
 					fileParallelism: false,
 					browser: {
 						enabled: true,
 						headless: true,
 						provider: playwright({}),
+						connectTimeout: 120000,
 						instances: [
 							{
 								browser: 'chromium'

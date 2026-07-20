@@ -40,6 +40,7 @@ export function createUrlPagination({
 	const limit = $derived(Number(page.url.searchParams.get('limit')) || defaultLimit);
 	const search = $derived(page.url.searchParams.get('search') ?? '');
 	const status = $derived(page.url.searchParams.get('status') ?? '');
+	const statuses = $derived(status ? status.split(',').filter(Boolean) : []);
 	const type = $derived(page.url.searchParams.get('type') ?? '');
 	const role = $derived(page.url.searchParams.get('role') ?? '');
 	const currentPage = $derived(Math.ceil(skip / limit) + 1);
@@ -84,6 +85,10 @@ export function createUrlPagination({
 		get status() {
 			return status;
 		},
+		/** Same as `status`, split on commas — for multi-select filters. */
+		get statuses() {
+			return statuses;
+		},
 		get type() {
 			return type;
 		},
@@ -127,6 +132,10 @@ export function createUrlPagination({
 		/** Update status filter and reset to page 1 (replaces history). */
 		setStatus(value: string) {
 			navigate({ status: value || null, skip: '0' }, true);
+		},
+		/** Same as `setStatus`, for multi-select filters — joins values with a comma. */
+		setStatuses(values: string[]) {
+			navigate({ status: values.length ? values.join(',') : null, skip: '0' }, true);
 		},
 		/** Update type filter and reset to page 1 (replaces history). */
 		setType(value: string) {
