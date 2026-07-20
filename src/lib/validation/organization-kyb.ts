@@ -32,7 +32,7 @@ export const businessPanSchema = v.pipe(
 	v.string(),
 	v.trim(),
 	v.minLength(1, 'Business PAN is required'),
-	v.transform(normalizeId),
+	v.transform(normalizePanInput),
 	v.check((val) => PAN_PATTERN.test(val), 'Enter a valid PAN (e.g. ABCDE1234F)')
 );
 

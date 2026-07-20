@@ -1,13 +1,13 @@
 import * as v from 'valibot';
 import type { Logger } from 'pino';
 import { organizationClient } from '$lib/server/domains/organization/client';
-import { extractBankAccountId } from '$lib/server/domains/organization/extract-bank-id';
+import { extractBankAccountId } from '$lib/server/domains/organization/utils/extract-bank-id';
 import {
 	AddBankFormBodySchema,
 	buildAddOrganizationBankRequest,
 	buildUpdateOrganizationBankRequest,
 	type AddBankFormBody
-} from '$lib/server/domains/organization/map-bank-request';
+} from '$lib/server/domains/organization/mappers/to-api/bank-account';
 import { isSessionFailure, requireSession } from './session';
 import { mutationFailure, upstreamErrorToFailure, type MutationResult } from './types';
 

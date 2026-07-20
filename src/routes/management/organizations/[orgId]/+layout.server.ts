@@ -10,7 +10,7 @@ import { organizationClient } from '$lib/server/domains/organization/client';
 import {
 	applyOrganizationDetails,
 	mapGetOrganizationResponse
-} from '$lib/server/domains/organization/map-get-response';
+} from '$lib/server/domains/organization/mappers/from-api/get-organization';
 
 export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
 	depends('org');

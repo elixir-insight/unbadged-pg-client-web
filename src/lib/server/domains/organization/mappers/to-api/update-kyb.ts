@@ -1,6 +1,9 @@
 import * as v from 'valibot';
-import { UpdateOrganizationKybRequestSchema, type UpdateOrganizationKybRequest } from './schema';
-import { toE164IndianPhone } from './map-request';
+import {
+	UpdateOrganizationKybRequestSchema,
+	type UpdateOrganizationKybRequest
+} from '../../schema';
+import { toE164IndianPhone } from './create-organization';
 import {
 	aadharSchema,
 	addressSchema,

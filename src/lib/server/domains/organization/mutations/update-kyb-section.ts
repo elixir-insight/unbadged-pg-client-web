@@ -5,7 +5,7 @@ import {
 	buildUpdateOrganizationSectionRequest,
 	UpdateOrganizationSectionFormBodySchema,
 	type UpdateOrganizationSectionFormBody
-} from '$lib/server/domains/organization/map-update-request';
+} from '$lib/server/domains/organization/mappers/to-api/update-kyb';
 import { isSessionFailure, requireSession, type SessionTokens } from './session';
 import { mutationFailure, upstreamErrorToFailure, type MutationResult } from './types';
 

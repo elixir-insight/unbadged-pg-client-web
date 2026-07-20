@@ -4,9 +4,9 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
-import { organizationClient } from '$lib/server/domains/organization/client';
-import { loadDirectorDocuments } from '$lib/server/domains/organization/load-director-documents';
-import { mapGetDocumentsResponse } from '$lib/server/domains/organization/map-get-documents-response';
+import { organizationClient } from '../client';
+import { loadDirectorDocuments } from './director-documents';
+import { mapGetDocumentsResponse } from '../mappers/from-api/get-documents';
 import type { Logger } from 'pino';
 
 export function resolveOrganizationBase(

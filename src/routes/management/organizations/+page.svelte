@@ -22,20 +22,22 @@
 		Eye,
 		Building2,
 		Layers,
-		User,
 		Calendar,
 		BadgeCheck,
 		ArrowRight,
-		Pencil,
 		X
 	} from '$lib/assets/icons';
-	import { organizations, type Organization, type OrganizationStatus } from '$lib/data/mockData';
+	import type { OrganizationStatus } from '$lib/data/mockData';
+	import type { OrganizationTableRow } from '$lib/organization/table';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { debounce } from '$lib/utils/debounce';
+
+	let { data } = $props();
+
 	const statusVariantMap: Record<OrganizationStatus, BadgeVariant> = {
 		IN_PROGRESS: 'alert',
 		APPROVED: 'success',
-		ACTIVE: 'success',
+		ACTIVE: 'info',
 		ON_HOLD: 'secondary',
 		REJECTED: 'destructive'
 	};
@@ -80,22 +82,15 @@
 		});
 	}
 
-	let selectedOrg = $state<Organization | null>(null);
+	let selectedOrg = $state<OrganizationTableRow | null>(null);
 	let drawerOpen = $state(false);
-
-	const businessTypeOptions = [
-		{ value: 'PARTNERSHIP', label: 'Partnership' },
-		{ value: 'PRIVATE_LIMITED', label: 'Private Limited' },
-		{ value: 'LLP', label: 'LLP' },
-		{ value: 'SOLE_PROPRIETORSHIP', label: 'Sole Proprietorship' }
-	];
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
 		{ value: 'PARTNER', label: 'Partner' }
 	];
 
-	const columns: ColumnDef<Organization>[] = [
+	const columns: ColumnDef<OrganizationTableRow>[] = [
 		{
 			accessorKey: 'name',
 			header: 'Organization'
@@ -103,12 +98,12 @@
 		{
 			accessorKey: 'businessType',
 			header: 'Business Type',
-			cell: ({ row }) => formatLabel(row.original.businessType as string)
+			cell: ({ row }) => formatLabel(row.original.businessType)
 		},
 		{
 			accessorKey: 'category',
 			header: 'Category',
-			cell: ({ row }) => formatLabel(row.original.category as string)
+			cell: ({ row }) => formatLabel(row.original.category)
 		},
 		{
 			accessorKey: 'createdAt',
@@ -118,7 +113,7 @@
 			accessorKey: 'status',
 			header: 'Status',
 			cell: ({ row }) => {
-				const status = row.original.status as OrganizationStatus;
+				const status = row.original.status;
 				const variant = statusVariantMap[status] ?? 'secondary';
 				const children = createRawSnippet(() => ({ render: () => formatLabel(status) }));
 				return renderComponent(Chip, { variant, children });
@@ -127,11 +122,15 @@
 	];
 
 	const categoryFilter = $derived(getParam('category'));
-	const allOrganizations = organizations;
+	const organizations = $derived(data.organizations);
+	const statusCounts = $derived(data.statusCounts);
+	const tableError = $derived(data.tableError);
 
-	const pagination = createUrlPagination({ defaultLimit: 5, total: () => filtered.length });
+	const pagination = createUrlPagination({
+		defaultLimit: 5,
+		total: () => data.pagination.total
+	});
 	const searchInput = $derived(pagination.search);
-	const businessTypeDropdown = $derived(pagination.type);
 	const categoryDropdown = $derived(categoryFilter);
 	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 300);
 
@@ -143,43 +142,15 @@
 		setUrlState({ category: value || null, skip: null }, true);
 	}
 
-	const filtered = $derived(
-		allOrganizations
-			.filter((organization) => !pagination.status || organization.status === pagination.status)
-			.filter((organization) => !pagination.type || organization.businessType === pagination.type)
-			.filter((organization) => !categoryFilter || organization.category === categoryFilter)
-			.filter((organization) =>
-				organization.name.toLowerCase().includes(pagination.search.toLowerCase())
-			)
-	);
-
-	const pagedData = $derived(filtered.slice(pagination.skip, pagination.skip + pagination.limit));
-
-	const inProgressCount = $derived(
-		allOrganizations.filter((organization) => organization.status === 'IN_PROGRESS').length
-	);
-	const approvedCount = $derived(
-		allOrganizations.filter((organization) => organization.status === 'APPROVED').length
-	);
-	const activeCount = $derived(
-		allOrganizations.filter((organization) => organization.status === 'ACTIVE').length
-	);
-	const onHoldCount = $derived(
-		allOrganizations.filter((organization) => organization.status === 'ON_HOLD').length
-	);
-	const rejectedCount = $derived(
-		allOrganizations.filter((organization) => organization.status === 'REJECTED').length
-	);
-
 	const selectedFilter = $derived(pagination.status ? formatLabel(pagination.status) : 'All');
 
 	const filterCards: FilterCard[] = $derived([
-		{ label: 'All', count: allOrganizations.length },
-		{ label: formatLabel('IN_PROGRESS'), count: inProgressCount },
-		{ label: formatLabel('APPROVED'), count: approvedCount },
-		{ label: formatLabel('ACTIVE'), count: activeCount },
-		{ label: formatLabel('ON_HOLD'), count: onHoldCount },
-		{ label: formatLabel('REJECTED'), count: rejectedCount }
+		{ label: 'All', count: statusCounts.all },
+		{ label: formatLabel('IN_PROGRESS'), count: statusCounts.IN_PROGRESS },
+		{ label: formatLabel('APPROVED'), count: statusCounts.APPROVED },
+		{ label: formatLabel('ACTIVE'), count: statusCounts.ACTIVE },
+		{ label: formatLabel('ON_HOLD'), count: statusCounts.ON_HOLD },
+		{ label: formatLabel('REJECTED'), count: statusCounts.REJECTED }
 	]);
 
 	function onFilterSelect(label: string) {
@@ -190,14 +161,6 @@
 	const activeFilters = $derived([
 		...(pagination.status
 			? [{ key: 'status', label: `Status: ${formatLabel(pagination.status)}` }]
-			: []),
-		...(pagination.type
-			? [
-					{
-						key: 'type',
-						label: `Type: ${businessTypeOptions.find((option) => option.value === pagination.type)?.label ?? pagination.type}`
-					}
-				]
 			: []),
 		...(categoryFilter
 			? [
@@ -214,22 +177,30 @@
 
 	function removeFilter(key: string) {
 		if (key === 'status') pagination.setStatus('');
-		else if (key === 'type') pagination.setType('');
 		else if (key === 'category') setCategory('');
 		else if (key === 'search') pagination.setSearch('');
 	}
 
 	function clearFilters() {
-		setUrlState({ search: null, status: null, type: null, category: null, skip: null }, true);
+		setUrlState({ search: null, status: null, category: null, skip: null }, true);
 	}
 
-	function openOrgDrawer(org: Organization) {
+	function openOrgDrawer(org: OrganizationTableRow) {
 		selectedOrg = org;
 		drawerOpen = true;
 	}
 </script>
 
 <div class="space-y-5">
+	{#if tableError}
+		<div
+			class="section-appear flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+		>
+			<AlertCircle class="size-4 shrink-0" />
+			<p>{tableError}</p>
+		</div>
+	{/if}
+
 	<div class="section-appear grid gap-4 sm:grid-cols-4 sm:items-stretch">
 		<FilterCards
 			cards={filterCards}
@@ -250,12 +221,6 @@
 				placeholder="Search organizations"
 			/>
 		</div>
-		<Dropdown
-			value={businessTypeDropdown}
-			onValueChange={(value) => pagination.setType(value)}
-			options={businessTypeOptions}
-			class="w-full sm:w-44"
-		/>
 		<Dropdown
 			value={categoryDropdown}
 			onValueChange={(value) => setCategory(value)}
@@ -305,7 +270,7 @@
 			</Button>
 		</div>
 		<Table
-			data={pagedData}
+			data={organizations}
 			{columns}
 			variant="default"
 			pageNumber={pagination.currentPage}
@@ -327,39 +292,23 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						href={`/management/organizations/${selectedOrg.id}`}
+						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
 						Continue Editing
 					</Button>
 					<Button
-						href={`/management/organizations/${selectedOrg.id}/preview`}
+						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
 						<Eye class="size-3.5" />
 						Preview
 					</Button>
-				{:else if selectedOrg.status === 'ACTIVE'}
-					<Button
-						href={`/management/organizations/${selectedOrg.id}/manage`}
-						class="flex-1 gap-1.5"
-					>
-						<Pencil class="size-3.5" />
-						Manage
-					</Button>
-					<Button
-						href={`/management/organizations/${selectedOrg.id}`}
-						variant="outline"
-						class="flex-1 gap-1.5"
-					>
-						<Eye class="size-3.5" />
-						View Details
-					</Button>
 				{:else}
 					<Button
-						href={`/management/organizations/${selectedOrg.id}`}
+						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -382,7 +331,7 @@
 						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
 							Business Type
 						</p>
-						<p class="text-sm font-medium">{selectedOrg.businessType}</p>
+						<p class="text-sm font-medium">{formatLabel(selectedOrg.businessType)}</p>
 					</div>
 				</div>
 				<div
@@ -393,7 +342,7 @@
 						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
 							Category
 						</p>
-						<p class="text-sm font-medium">{selectedOrg.category}</p>
+						<p class="text-sm font-medium">{formatLabel(selectedOrg.category)}</p>
 					</div>
 				</div>
 				<div
@@ -402,20 +351,9 @@
 					<BadgeCheck class="size-4 shrink-0 text-muted-foreground" />
 					<div class="min-w-0">
 						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-							KYB Status
+							Profile Status
 						</p>
-						<p class="text-sm font-medium">{selectedOrg.kybStatus}</p>
-					</div>
-				</div>
-				<div
-					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
-				>
-					<User class="size-4 shrink-0 text-muted-foreground" />
-					<div class="min-w-0">
-						<p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-							Assigned Admin
-						</p>
-						<p class="text-sm font-medium">{selectedOrg.assignedAdmin}</p>
+						<p class="text-sm font-medium">{formatLabel(selectedOrg.status)}</p>
 					</div>
 				</div>
 				<div
@@ -430,15 +368,6 @@
 					</div>
 				</div>
 			</div>
-
-			{#if selectedOrg.resubmitted}
-				<div
-					class="flex items-center gap-2 rounded-xl border border-amber-200/30 bg-amber-50/40 px-4 py-3 text-amber-700 dark:border-amber-800/30 dark:bg-amber-950/30 dark:text-amber-400"
-				>
-					<AlertCircle class="size-4 shrink-0" />
-					<p class="text-sm font-medium">Resubmitted for review</p>
-				</div>
-			{/if}
 		</div>
 	{/if}
 </Drawer>

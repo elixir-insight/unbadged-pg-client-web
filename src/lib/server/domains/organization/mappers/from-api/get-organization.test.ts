@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapGetOrganizationResponse } from './map-get-response';
+import { mapGetOrganizationResponse } from './get-organization';
 
 describe('mapGetOrganizationResponse', () => {
 	it('maps a create-style payload into an Organization', () => {

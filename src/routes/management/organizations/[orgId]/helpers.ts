@@ -82,6 +82,24 @@ export function isOrgOnboardingSectionPath(pathname: string): boolean {
 	return ORG_ONBOARDING_SECTION_PATH.test(pathname);
 }
 
+const KYB_SECTION_PATH = /^\/management\/organizations\/[^/]+\/kyb(?:\/|$)/;
+
+/** True when navigating within the KYB page (legal / address / directors sub-steps). */
+export function isKybSubStepNavigation(from: URL | undefined, to: URL | undefined): boolean {
+	if (!from || !to) return false;
+	if (from.pathname !== to.pathname) return false;
+	return KYB_SECTION_PATH.test(from.pathname);
+}
+
+const PREVIEW_SECTION_PATH = /^\/management\/organizations\/[^/]+\/preview(?:\/|$)/;
+
+/** True when navigating within the Review page (KYB / bank / documents sub-sections). */
+export function isPreviewSubSectionNavigation(from: URL | undefined, to: URL | undefined): boolean {
+	if (!from || !to) return false;
+	if (from.pathname !== to.pathname) return false;
+	return PREVIEW_SECTION_PATH.test(from.pathname);
+}
+
 /** Internal path for a flow step. Wrap with resolve() at navigation call sites. */
 export function flowStepHref(orgId: string, step: FlowStepKey): string {
 	const kybBase = `/management/organizations/${orgId}/kyb`;

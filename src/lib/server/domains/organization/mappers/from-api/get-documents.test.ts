@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOrganizationShell } from '$lib/data/mockData';
-import {
-	mapDirectorDocumentsResponse,
-	mapGetDocumentsResponse
-} from './map-get-documents-response';
-import type { OrganizationDocumentRecord } from './schema';
+import { mapDirectorDocumentsResponse, mapGetDocumentsResponse } from './get-documents';
+import type { OrganizationDocumentRecord } from '../../schema';
 
 function record(
 	overrides: Partial<OrganizationDocumentRecord> & Pick<OrganizationDocumentRecord, 'fileName'>

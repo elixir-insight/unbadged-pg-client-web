@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import {
 	loadOrganizationDocuments,
 	resolveOrganizationBase
-} from '$lib/server/domains/organization/load-documents';
+} from '$lib/server/domains/organization/loaders/documents';
 import {
 	uploadDirectorDocumentsMutation,
 	uploadOrgDocumentsMutation

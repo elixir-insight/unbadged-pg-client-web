@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapBankAccounts } from './map-get-response';
+import { mapBankAccounts } from './get-organization';
 
 describe('mapBankAccounts', () => {
 	it('maps upstream bank account records into OrganizationBankAccount', () => {

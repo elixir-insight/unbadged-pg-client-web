@@ -1,5 +1,6 @@
 import type { Logger } from 'pino';
 import { validateOrganizationActivation } from '$lib/validation/organization-activation';
+import { updateOrganizationStatusMutation } from './update-status';
 import { mutationFailure, type MutationResult } from './types';
 
 export type ActivateProfileSuccess = {
@@ -7,7 +8,9 @@ export type ActivateProfileSuccess = {
 };
 
 export async function activateProfileMutation(params: {
+	fetch: typeof fetch;
 	log: Logger;
+	cookies: Parameters<typeof updateOrganizationStatusMutation>[0]['cookies'];
 	orgId: string;
 	category: string;
 	formData: FormData;
@@ -34,11 +37,23 @@ export async function activateProfileMutation(params: {
 		return mutationFailure(400, firstError);
 	}
 
-	// TODO: wire upstream API
-	// 1. Upload business certificate via POST .../documents (field from formDataFieldName)
-	// 2. Call activate/credentials endpoint with apiKey + saltKey
+	// TODO: upload business certificate and persist gateway credentials when upstream endpoints exist.
+	const statusResult = await updateOrganizationStatusMutation({
+		fetch: params.fetch,
+		log: params.log,
+		cookies: params.cookies,
+		orgId,
+		body: {
+			profileStatus: 'ACTIVE',
+			remarks: 'Profile activated'
+		}
+	});
 
-	params.log.info({ orgId, category: params.category }, 'mock activate profile success');
+	if (!statusResult.ok) {
+		return statusResult;
+	}
+
+	params.log.info({ orgId, category: params.category }, 'organization profile activated');
 
 	const redirectPath =
 		params.category === 'PARTNER'

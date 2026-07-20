@@ -67,11 +67,17 @@
 	);
 
 	const affiliatePlaceholder = $derived(
-		activePipelines.length > 0
-			? 'Select Affiliate'
-			: pendingServiceLabel
+		activePipelines.length === 0
+			? pendingServiceLabel
 				? `Select a ${pendingServiceLabel} Bank Pipeline to continue`
 				: 'Select a Bank Pipeline to continue'
+			: affiliateOptions.length === 0
+				? 'No affiliates available'
+				: 'Select Affiliate'
+	);
+
+	const affiliateDisabled = $derived(
+		disabled || activePipelines.length === 0 || affiliateOptions.length === 0
 	);
 
 	function setPipeline(serviceType: string, pipeline: string) {
@@ -121,6 +127,8 @@
 					</div>
 
 					{#if isOn}
+						{@const pipelineOptions = bankPipelinesByService[svc.value] ?? []}
+						{@const pipelineEmpty = pipelineOptions.length === 0}
 						<div
 							class="flex flex-col gap-1.5 border-t border-primary/15 pt-3"
 							transition:slide={{ duration: 200, easing: cubicOut }}
@@ -131,8 +139,9 @@
 							<Dropdown
 								value={servicePipelines[svc.value] ?? ''}
 								onValueChange={(v) => setPipeline(svc.value, v)}
-								options={bankPipelinesByService[svc.value] ?? []}
-								placeholder="Select Bank Pipeline"
+								options={pipelineOptions}
+								placeholder={pipelineEmpty ? 'No bank pipelines available' : 'Select Bank Pipeline'}
+								disabled={disabled || pipelineEmpty}
 								class={cn('w-full', errors[`bankPipeline_${svc.value}`] && 'border-destructive')}
 							/>
 							{#if errors[`bankPipeline_${svc.value}`]}
@@ -161,7 +170,7 @@
 		<Dropdown
 			name="affiliateId"
 			bind:value={affiliateId}
-			disabled={disabled || activePipelines.length === 0}
+			disabled={affiliateDisabled}
 			options={affiliateOptions.map((a) => ({ value: a.value, label: a.label }))}
 			placeholder={affiliatePlaceholder}
 			class="w-full"

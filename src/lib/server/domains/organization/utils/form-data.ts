@@ -1,7 +1,10 @@
 import * as v from 'valibot';
-import { CreateOrganizationFormBodySchema, type CreateOrganizationFormBody } from './map-request';
-import { UpdateOrganizationSectionFormBodySchema } from './map-update-request';
-import { AddBankFormBodySchema, type AddBankFormBody } from './map-bank-request';
+import {
+	CreateOrganizationFormBodySchema,
+	type CreateOrganizationFormBody
+} from '../mappers/to-api/create-organization';
+import { UpdateOrganizationSectionFormBodySchema } from '../mappers/to-api/update-kyb';
+import { AddBankFormBodySchema, type AddBankFormBody } from '../mappers/to-api/bank-account';
 
 function readString(formData: FormData, key: string): string {
 	return String(formData.get(key) ?? '');

@@ -4,8 +4,11 @@ import type {
 	OrganizationDirector,
 	OrganizationDocument
 } from '$lib/data/mockData';
-import { parseDocumentFileName, type DirectorDocumentField } from './document-field-names';
-import type { OrganizationDirectorDocumentRecord, OrganizationDocumentRecord } from './schema';
+import {
+	parseDocumentFileName,
+	type DirectorDocumentField
+} from '../../utils/document-field-names';
+import type { OrganizationDirectorDocumentRecord, OrganizationDocumentRecord } from '../../schema';
 
 function asString(value: unknown, fallback = ''): string {
 	if (typeof value === 'string') return value.trim();

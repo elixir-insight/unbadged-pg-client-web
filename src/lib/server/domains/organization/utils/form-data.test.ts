@@ -3,7 +3,7 @@ import {
 	parseBankAccountFormData,
 	parseCreateOrganizationFormData,
 	parseUpdateKybSectionFormData
-} from '$lib/server/domains/organization/form-data';
+} from '$lib/server/domains/organization/utils/form-data';
 import { remapUploadFormData } from '$lib/server/domains/organization/mutations/upload-documents';
 
 describe('parseCreateOrganizationFormData', () => {

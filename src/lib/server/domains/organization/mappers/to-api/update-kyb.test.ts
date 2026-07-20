@@ -4,7 +4,7 @@ import {
 	buildUpdateOrganizationKybRequest,
 	buildUpdateOrganizationSectionRequest,
 	UpdateOrganizationFormBodySchema
-} from './map-update-request';
+} from './update-kyb';
 
 const validFormBody = {
 	businessType: 'Partnership',

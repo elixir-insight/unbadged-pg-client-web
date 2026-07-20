@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/form-data';
+import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/utils/form-data';
 import { updateKybSectionMutation } from '$lib/server/domains/organization/mutations/update-kyb-section';
 
 export const actions = {

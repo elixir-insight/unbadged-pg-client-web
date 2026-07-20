@@ -13,8 +13,8 @@ import {
 	type OrganizationStatus,
 	type OrganizationServiceType
 } from '$lib/data/mockData';
-import { mapDirectors } from './map-directors';
-import type { GetOrganizationResponse } from './schema';
+import { mapDirectors } from './directors';
+import type { GetOrganizationResponse } from '../../schema';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
 	if (value && typeof value === 'object' && !Array.isArray(value)) {

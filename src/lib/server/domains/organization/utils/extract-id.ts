@@ -1,4 +1,4 @@
-import type { CreateOrganizationResponse } from './schema';
+import type { CreateOrganizationResponse } from '../schema';
 
 type CreatedOrgData = {
 	orgId?: string;

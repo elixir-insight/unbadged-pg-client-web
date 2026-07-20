@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidate } from '$app/navigation';
-	import { page } from '$app/state';
+	import { goto, invalidate } from '$app/navigation';
+	import { navigating, page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import type { ResolvedPathname } from '$app/types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
 	import { BadgeCheck, ZapIcon } from '$lib/assets/icons';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { cn } from '$lib/utils';
 	import {
 		allSectionsComplete,
@@ -28,6 +29,10 @@
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
 	const reviewDocuments = $derived(data.documents ?? organization.documents);
+	const reviewDirectors = $derived(data.directors ?? organization.directors);
+	const reviewBankAccounts = $derived(data.bankAccounts ?? organization.bankAccounts);
+	const documentsLoadError = $derived(data.documentsLoadError);
+	const bankAccountsLoadError = $derived(data.bankAccountsLoadError);
 	let previewOpen = $state(false);
 	let previewTitle = $state('Document preview');
 	let previewUrl = $state('');
@@ -37,17 +42,18 @@
 
 	const isApproved = $derived(organization.status === 'APPROVED');
 	const isActive = $derived(organization.status === 'ACTIVE');
-	const manageHref = $derived(resolve('/management/organizations/[orgId]/manage', { orgId }));
 
 	const reviewOrganization = $derived.by(() => {
 		const org = data.organization;
 		const documents = data.documents ?? org.documents;
 		const directors = data.directors ?? org.directors;
+		const bankAccounts = data.bankAccounts ?? org.bankAccounts;
 
 		return {
 			...org,
 			documents,
 			directors,
+			bankAccounts,
 			kyb: {
 				...org.kyb,
 				directors
@@ -81,6 +87,28 @@
 		const base = resolve(`/management/organizations/${organizationId}/preview`);
 		return section === 'kyb' ? base : (`${base}?section=${section}` as ResolvedPathname);
 	}
+
+	function navigatePreviewSection(section: PreviewSection) {
+		if (section === activeSection) return;
+
+		goto(previewSectionHref(section, orgId), {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true,
+			invalidateAll: false
+		});
+	}
+
+	const isPreviewLoading = $derived.by(() => {
+		const nav = navigating;
+		if (!nav?.to) return false;
+
+		const toPath = nav.to.url.pathname;
+		if (!toPath.includes('/preview')) return false;
+
+		const fromPath = nav.from?.url.pathname ?? '';
+		return fromPath !== toPath;
+	});
 
 	const continueEditingHref = $derived.by(() => {
 		if (activeSection === 'bank') {
@@ -121,7 +149,11 @@
 				toast.success('Profile approved', {
 					description: 'All onboarding sections complete. Activate when ready.'
 				});
-				await invalidate('org');
+				await Promise.all([
+					invalidate('org'),
+					invalidate('org-documents'),
+					invalidate('org-bank-accounts')
+				]);
 			}
 
 			await update({ reset: false });
@@ -151,9 +183,9 @@
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
 			{@const isActive = section.key === activeSection}
-			{@const sectionHref = previewSectionHref(section.key, orgId)}
-			<a
-				href={sectionHref}
+			<button
+				type="button"
+				onclick={() => navigatePreviewSection(section.key)}
 				class={cn(
 					'flex flex-1 items-center justify-center rounded-lg px-2 py-1.5 text-sm transition-colors',
 					isActive
@@ -163,11 +195,23 @@
 				aria-current={isActive ? 'true' : undefined}
 			>
 				{section.label}
-			</a>
+			</button>
 		{/each}
 	</nav>
 
-	{#if activeSection === 'kyb'}
+	{#if isPreviewLoading}
+		<div class="space-y-4" role="status" aria-live="polite" aria-label="Loading review section">
+			<Skeleton class="h-4 w-40" />
+			<div class="grid gap-4 md:grid-cols-2">
+				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
+					<div class="space-y-2">
+						<Skeleton class="h-3 w-24" />
+						<Skeleton class="h-4 w-full" />
+					</div>
+				{/each}
+			</div>
+		</div>
+	{:else if activeSection === 'kyb'}
 		<div class="space-y-6">
 			<div class="grid gap-4 md:grid-cols-2">
 				{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
@@ -203,10 +247,10 @@
 			</div>
 			<div class="space-y-3">
 				<p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Directors</p>
-				{#if organization.directors.length === 0}
+				{#if reviewDirectors.length === 0}
 					<p class="text-sm text-muted-foreground">No directors added.</p>
 				{:else}
-					{#each organization.directors as director (director.id)}
+					{#each reviewDirectors as director (director.id)}
 						<p class="text-sm">
 							{director.name || 'Unnamed'} — PAN {director.pan || '—'} — Aadhar {director.aadhar ||
 								'—'}
@@ -217,10 +261,14 @@
 		</div>
 	{:else if activeSection === 'bank'}
 		<div class="space-y-4">
-			{#if organization.bankAccounts.length === 0}
+			{#if bankAccountsLoadError}
+				<p class="text-sm text-destructive">
+					Could not load bank accounts: {bankAccountsLoadError}
+				</p>
+			{:else if reviewBankAccounts.length === 0}
 				<p class="text-sm text-muted-foreground">No bank accounts added.</p>
 			{:else}
-				{#each organization.bankAccounts as account (account.id)}
+				{#each reviewBankAccounts as account (account.id)}
 					<div class="rounded-xl border border-border/60 p-4">
 						<div class="mb-3 flex flex-wrap items-center gap-2">
 							<p class="text-sm font-medium">{account.accountHolderName || 'Unnamed account'}</p>
@@ -241,6 +289,11 @@
 		</div>
 	{:else if activeSection === 'documents'}
 		<div class="space-y-3">
+			{#if documentsLoadError}
+				<p class="text-sm text-destructive">
+					Could not load documents: {documentsLoadError}
+				</p>
+			{/if}
 			{#each reviewDocuments as document (document.id)}
 				<div
 					class="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
@@ -270,12 +323,12 @@
 
 	<div class="border-t border-border/60 pt-4">
 		{#if isActive}
-			<p class="mb-4 text-sm text-muted-foreground">
-				This organization is active. Open manage to view operational settings.
-			</p>
+			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
-				<Button href={manageHref}>Go to manage</Button>
+				<Button variant="outline" href={resolve('/management/organizations')}>
+					Back to organizations
+				</Button>
 			</div>
 		{:else if isApproved}
 			<p class="mb-4 text-sm text-muted-foreground">

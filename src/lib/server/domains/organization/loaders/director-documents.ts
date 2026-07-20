@@ -1,6 +1,6 @@
 import type { OrganizationDirector } from '$lib/data/mockData';
-import { organizationClient } from '$lib/server/domains/organization/client';
-import { mapDirectorDocumentsResponse } from '$lib/server/domains/organization/map-get-documents-response';
+import { organizationClient } from '../client';
+import { mapDirectorDocumentsResponse } from '../mappers/from-api/get-documents';
 import type { Logger } from 'pino';
 
 export async function loadDirectorDocuments(params: {

@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { AddOrganizationBankRequestSchema, type AddOrganizationBankRequest } from './schema';
+import { AddOrganizationBankRequestSchema, type AddOrganizationBankRequest } from '../../schema';
 import { AddBankFormBodySchema, type AddBankFormBody } from '$lib/validation/organization-bank';
 
 export { AddBankFormBodySchema };

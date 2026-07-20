@@ -8,6 +8,7 @@ import {
 	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
 	GetOrganizationResponseSchema,
+	GetOrganizationsTableResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationResponseSchema,
 	UpdateOrganizationStatusResponseSchema,
@@ -233,5 +234,34 @@ export const organizationClient = {
 			gatewayToken,
 			body,
 			schema: UpdateOrganizationStatusResponseSchema
+		}),
+
+	listTable: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		query: {
+			search?: string;
+			status?: string;
+			category?: string;
+			page?: number;
+			limit?: number;
+		}
+	) =>
+		apiFetch('/api/v1/management/organizations/table', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				search: query.search,
+				status: query.status,
+				category: query.category,
+				page: query.page,
+				limit: query.limit
+			},
+			schema: GetOrganizationsTableResponseSchema
 		})
 };

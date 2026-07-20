@@ -1,10 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import {
-	loadOrganizationBankAccounts,
-	resolveOrganizationBase
-} from '$lib/server/domains/organization/load-bank-accounts';
-import { parseBankAccountFormData } from '$lib/server/domains/organization/form-data';
+import { loadOrganizationBankAccounts } from '$lib/server/domains/organization/loaders/bank-accounts';
+import { resolveOrganizationBase } from '$lib/server/domains/organization/loaders/documents';
+import { parseBankAccountFormData } from '$lib/server/domains/organization/utils/form-data';
 import {
 	addBankAccountMutation,
 	updateBankAccountMutation

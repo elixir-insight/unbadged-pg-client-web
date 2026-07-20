@@ -7,7 +7,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
-import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/form-data';
+import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {

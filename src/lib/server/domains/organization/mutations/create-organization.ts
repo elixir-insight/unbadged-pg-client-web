@@ -1,12 +1,12 @@
 import * as v from 'valibot';
 import type { Logger } from 'pino';
 import { organizationClient } from '$lib/server/domains/organization/client';
-import { extractOrganizationId } from '$lib/server/domains/organization/extract-id';
+import { extractOrganizationId } from '$lib/server/domains/organization/utils/extract-id';
 import {
 	buildCreateOrganizationRequest,
 	CreateOrganizationFormBodySchema,
 	type CreateOrganizationFormBody
-} from '$lib/server/domains/organization/map-request';
+} from '$lib/server/domains/organization/mappers/to-api/create-organization';
 import { isSessionFailure, requireSession, type SessionTokens } from './session';
 import { mutationFailure, upstreamErrorToFailure, type MutationResult } from './types';
 

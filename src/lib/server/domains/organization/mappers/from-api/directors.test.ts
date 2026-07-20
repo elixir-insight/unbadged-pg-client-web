@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapDirectors } from './map-directors';
+import { mapDirectors } from './directors';
 
 describe('mapDirectors', () => {
 	it('maps upstream director records into organization directors', () => {

@@ -4,12 +4,9 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
-import { organizationClient } from '$lib/server/domains/organization/client';
-import { mapBankAccounts } from '$lib/server/domains/organization/map-get-response';
-import { resolveOrganizationBase } from '$lib/server/domains/organization/load-documents';
+import { organizationClient } from '../client';
+import { mapBankAccounts } from '../mappers/from-api/get-organization';
 import type { Logger } from 'pino';
-
-export { resolveOrganizationBase };
 
 export async function loadOrganizationBankAccounts(params: {
 	fetch: typeof fetch;

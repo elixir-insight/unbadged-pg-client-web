@@ -36,6 +36,10 @@ describe('organization KYB validation', () => {
 		expect(validateLegalStep(validLegal)).toEqual({});
 	});
 
+	it('accepts business PAN with spaces and lowercase', () => {
+		expect(validateLegalStep({ ...validLegal, businessPan: 'abcde 1234 f' })).toEqual({});
+	});
+
 	it('rejects invalid GSTIN and PAN', () => {
 		const errors = validateLegalStep({
 			...validLegal,

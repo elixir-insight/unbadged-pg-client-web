@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { CreateOrganizationRequestSchema, type CreateOrganizationRequest } from './schema';
+import { CreateOrganizationRequestSchema, type CreateOrganizationRequest } from '../../schema';
 
 const businessTypeLabelMap: Record<string, CreateOrganizationRequest['businessType']> = {
 	'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',

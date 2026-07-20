@@ -126,7 +126,7 @@
 		fieldErrors = {};
 	});
 
-	function collectStepValidationErrors(): Record<string, string> {
+	const stepValidationErrors = $derived.by((): Record<string, string> => {
 		if (currentStep === 'legal') {
 			return validateLegalStep({
 				gstin: editableKyb.gstin,
@@ -149,7 +149,7 @@
 		}
 
 		return validateDirectorsStep(editableDirectors);
-	}
+	});
 
 	function clearFieldError(key: string) {
 		if (!fieldErrors[key]) return;
@@ -166,11 +166,9 @@
 	}
 
 	function validateCurrentStep(): string | null {
-		fieldErrors = collectStepValidationErrors();
+		fieldErrors = { ...stepValidationErrors };
 		return firstValidationError(fieldErrors);
 	}
-
-	const canProceed = $derived(firstValidationError(collectStepValidationErrors()) === null);
 
 	function isCurrentStepUnchanged(): boolean {
 		if (currentStep === 'legal') {
@@ -410,7 +408,10 @@
 				'GSTIN',
 				editableKyb.gstin,
 				(value) => {
-					editableKyb.gstin = value;
+					editableKyb = {
+						...editableKyb,
+						gstin: value.replace(/\s/g, '').toUpperCase()
+					};
 				},
 				'gstin'
 			)}
@@ -418,7 +419,7 @@
 				'Business PAN',
 				editableKyb.businessPan,
 				(value) => {
-					editableKyb.businessPan = value;
+					editableKyb = { ...editableKyb, businessPan: normalizePanInput(value) };
 				},
 				'businessPan'
 			)}
@@ -426,7 +427,7 @@
 				'Business phone',
 				editableKyb.businessPhone,
 				(value) => {
-					editableKyb.businessPhone = value;
+					editableKyb = { ...editableKyb, businessPhone: value };
 				},
 				'businessPhone',
 				'',
@@ -436,7 +437,7 @@
 				'Industry',
 				editableKyb.industry,
 				(value) => {
-					editableKyb.industry = value;
+					editableKyb = { ...editableKyb, industry: value };
 				},
 				'industry'
 			)}
@@ -444,7 +445,7 @@
 				'Organization website',
 				editableKyb.organizationWebsite,
 				(value) => {
-					editableKyb.organizationWebsite = value;
+					editableKyb = { ...editableKyb, organizationWebsite: value };
 				},
 				'organizationWebsite',
 				'',
@@ -454,7 +455,10 @@
 				'Registered year',
 				editableKyb.registeredYear == null ? '' : String(editableKyb.registeredYear),
 				(value) => {
-					editableKyb.registeredYear = value === '' ? null : Number(value);
+					editableKyb = {
+						...editableKyb,
+						registeredYear: value === '' ? null : Number(value)
+					};
 				},
 				'registeredYear',
 				'',
@@ -464,7 +468,7 @@
 				editableKyb.businessType === 'Private Limited' ? 'CIN' : 'CIN (optional)',
 				editableKyb.cin,
 				(value) => {
-					editableKyb.cin = value;
+					editableKyb = { ...editableKyb, cin: value.replace(/\s/g, '').toUpperCase() };
 				},
 				'cin'
 			)}
@@ -472,7 +476,7 @@
 				'TAN (optional)',
 				editableKyb.tan,
 				(value) => {
-					editableKyb.tan = value;
+					editableKyb = { ...editableKyb, tan: value.replace(/\s/g, '').toUpperCase() };
 				},
 				'tan'
 			)}
@@ -722,7 +726,7 @@
 
 	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 		<Button variant="outline" href="/management/organizations">Cancel</Button>
-		<Button type="button" disabled={saving || !canProceed} onclick={handleNext}>
+		<Button type="button" disabled={saving} onclick={handleNext}>
 			{saving
 				? 'Saving…'
 				: adjacent.next?.key === 'review' || !adjacent.next

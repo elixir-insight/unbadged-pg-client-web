@@ -12,8 +12,7 @@
 	const canActivate = $derived(activationDocumentReady());
 
 	function activatePartner() {
-		organization.status = 'ACTIVE';
-		goto(resolve('/management/organizations/[orgId]/manage', { orgId }));
+		goto(resolve('/management/organizations'));
 	}
 </script>
 

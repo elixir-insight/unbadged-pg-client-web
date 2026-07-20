@@ -99,6 +99,7 @@ export const UpdateOrganizationResponseSchema = v.object({
 
 export const OrganizationProfileStatusSchema = v.picklist([
 	'APPROVED',
+	'ACTIVE',
 	'ON_HOLD',
 	'FROZEN',
 	'IN_PROGRESS'
@@ -236,7 +237,7 @@ export const OrganizationDetailsRecordSchema = v.object({
 });
 
 /**
- * GET organization envelope — payload shape varies; map in map-get-response.ts.
+ * GET organization envelope — payload shape varies; map in mappers/from-api/get-organization.ts.
  * Pagination is ignored when present.
  */
 export const GetOrganizationResponseSchema = v.object({
@@ -245,7 +246,7 @@ export const GetOrganizationResponseSchema = v.object({
 	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
 });
 
-/** GET organization details — KYB fields and directors; map in map-get-response.ts. */
+/** GET organization details — KYB fields and directors; map in mappers/from-api/get-organization.ts. */
 export const GetOrganizationDetailsResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),
@@ -287,4 +288,51 @@ export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationRespon
 export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
+>;
+
+export const OrganizationTableProfileStatusSchema = v.picklist([
+	'IN_PROGRESS',
+	'APPROVED',
+	'ACTIVE',
+	'ON_HOLD',
+	'REJECTED'
+]);
+
+export const OrganizationTableRecordSchema = v.object({
+	id: v.pipe(v.string(), v.minLength(1)),
+	name: v.pipe(v.string(), v.minLength(1)),
+	businessType: v.pipe(v.string(), v.minLength(1)),
+	category: v.pipe(v.string(), v.minLength(1)),
+	createdAt: v.pipe(v.string(), v.minLength(1)),
+	profileStatus: v.pipe(v.string(), v.minLength(1))
+});
+
+export const OrganizationTablePaginationSchema = v.object({
+	limit: v.number(),
+	page: v.number(),
+	total: v.number()
+});
+
+export const OrganizationTableStatusCountItemSchema = v.object({
+	status: v.pipe(v.string(), v.minLength(1)),
+	count: v.number()
+});
+
+/** Upstream returns statusCounts as `{ status, count }[]`; keep record shape as fallback. */
+export const GetOrganizationsTableResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.array(OrganizationTableRecordSchema)),
+	pagination: v.optional(OrganizationTablePaginationSchema),
+	statusCounts: v.optional(
+		v.union([v.array(OrganizationTableStatusCountItemSchema), v.record(v.string(), v.number())])
+	),
+	totalPages: v.optional(v.number()),
+	counts: v.optional(v.unknown())
+});
+
+export type OrganizationTableRecord = v.InferOutput<typeof OrganizationTableRecordSchema>;
+export type OrganizationTablePagination = v.InferOutput<typeof OrganizationTablePaginationSchema>;
+export type GetOrganizationsTableResponse = v.InferOutput<
+	typeof GetOrganizationsTableResponseSchema
 >;

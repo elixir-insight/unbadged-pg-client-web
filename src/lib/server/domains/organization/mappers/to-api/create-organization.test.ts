@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	buildCreateOrganizationRequest,
-	toE164IndianPhone
-} from '$lib/server/domains/organization/map-request';
-import { extractOrganizationId } from '$lib/server/domains/organization/extract-id';
+import { buildCreateOrganizationRequest, toE164IndianPhone } from './create-organization';
+import { extractOrganizationId } from '$lib/server/domains/organization/utils/extract-id';
 
 describe('toE164IndianPhone', () => {
 	it('prefixes 10-digit mobiles with +91', () => {

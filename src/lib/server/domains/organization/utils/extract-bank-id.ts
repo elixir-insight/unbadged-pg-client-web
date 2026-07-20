@@ -1,4 +1,4 @@
-import type { AddOrganizationBankResponse } from './schema';
+import type { AddOrganizationBankResponse } from '../schema';
 
 type BankAccountData = {
 	accountId?: string | number;

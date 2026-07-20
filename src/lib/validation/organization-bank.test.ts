@@ -4,7 +4,7 @@ import * as v from 'valibot';
 import {
 	buildAddOrganizationBankRequest,
 	AddBankFormBodySchema
-} from '$lib/server/domains/organization/map-bank-request';
+} from '$lib/server/domains/organization/mappers/to-api/bank-account';
 
 const validBank = {
 	accountHolderName: 'Acme Operations',
