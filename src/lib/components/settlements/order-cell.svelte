@@ -12,7 +12,8 @@
 
 <button
 	type="button"
-	onclick={() => goto(resolve('/merchant/transactions/collections/[id]', { id }))}
+	onclick={() =>
+		goto(resolve('/merchant/transactions/collections/orders/[orderId]', { orderId: id }))}
 	class="block text-left focus-visible:outline-none"
 >
 	<span class="block text-sm font-medium text-foreground hover:underline">{id}</span>
