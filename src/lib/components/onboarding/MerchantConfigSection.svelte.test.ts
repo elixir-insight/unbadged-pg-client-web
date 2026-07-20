@@ -5,7 +5,7 @@ import {
 	availableServiceTypes,
 	availableBankPipelines,
 	affiliatesByPipeline
-} from '../../../routes/management/onboarding/create-organization/constants';
+} from '../../../routes/management/organizations/create-organization/constants';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
 	return {
@@ -100,7 +100,7 @@ describe('MerchantConfigSection', () => {
 		);
 
 		await expect
-			.element(screen.getByText('Select a Pay-Ins Bank Pipeline to continue'))
+			.element(screen.getByText('Select a Collections Bank Pipeline to continue'))
 			.toBeVisible();
 	});
 

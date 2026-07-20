@@ -3,17 +3,17 @@
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
 		Table,
-		FilterCards,
 		SearchField,
 		Dropdown,
 		Avatar,
 		createUrlPagination
 	} from '$lib/components/reusable';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Chip } from '$lib/components/ui/badge';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ArrowLeft, X } from '$lib/assets/icons';
+	import { X } from '$lib/assets/icons';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { useSettlementDetail } from './use-settlement-detail.svelte';
@@ -74,9 +74,8 @@
 	// "Pending"/"Failed" are order-level outcomes — an order only produces a
 	// settlement transaction once it's captured (sale) or later adjusted
 	// (refund/chargeback), so this ledger never contains one. Neither is
-	// clickable via the UI anymore (the stat cards below now filter by
-	// payment mode instead), but pagination.status/.type are still honored
-	// defensively here for an old shared link that set them.
+	// clickable via the UI anymore, but pagination.status/.type are still
+	// honored defensively here for an old shared link that set them.
 	const statFilter = $derived(
 		pagination.status === 'pending' || pagination.status === 'failed' ? pagination.status : null
 	);
@@ -103,8 +102,8 @@
 
 	// One entry per payment mode actually present on this settlement's own
 	// ledger (not a static catalogue), each with its real transaction count —
-	// powers both the stat cards and the dropdown below, so a mode with zero
-	// transactions here never shows up in either.
+	// powers the dropdown below, so a mode with zero transactions here never
+	// shows up in it.
 	const paymentModeCounts = $derived.by(() => {
 		const counts: { mode: string; count: number }[] = [];
 		for (const t of detail.detail?.transactions ?? []) {
@@ -117,19 +116,6 @@
 	const paymentModeOptions = $derived(
 		paymentModeCounts.map((c) => ({ value: c.mode, label: c.mode }))
 	);
-
-	// The stat cards filter by payment mode: "All" clears the filter and
-	// shows the full ledger count, each mode card sets paymentModeParam via
-	// setPaymentMode. selectedPaymentModeCard is a writable derived (bound to
-	// FilterCards below) so it re-syncs from the URL whenever the filter
-	// changes some other way (e.g. the dropdown, or the empty state's "Clear
-	// filter" action).
-	const transactionCount = $derived(detail.detail?.transactions.length ?? 0);
-	let selectedPaymentModeCard = $derived(paymentModeParam || 'All');
-
-	function selectPaymentModeCard(label: string) {
-		setPaymentMode(label === 'All' ? '' : label);
-	}
 
 	// Which field the search box matches against — kept in its own URL param
 	// (same "read from page.url, goto() to update" pattern as paymentMode
@@ -177,6 +163,39 @@
 	function handleSearch(field: string, value: string) {
 		if (field !== searchFieldParam) setSearchField(field);
 		debouncedSearch(value);
+	}
+
+	// Removable filter tags — same Chip pattern as the settlements list page.
+	// Payment mode and search are the only filters exposed via this page's UI
+	// now that the stat cards are gone.
+	const activeFilters = $derived.by(() => {
+		const filters: { key: 'mode' | 'search'; label: string; value: string }[] = [];
+		if (paymentModeParam) {
+			filters.push({ key: 'mode', label: 'Payment Mode', value: paymentModeParam });
+		}
+		if (pagination.search) {
+			const label = searchFieldParam === 'orderId' ? 'Order ID' : 'Transaction ID';
+			filters.push({ key: 'search', label, value: pagination.search });
+		}
+		return filters;
+	});
+
+	function removeFilter(key: 'mode' | 'search') {
+		if (key === 'mode') setPaymentMode('');
+		else pagination.setSearch('');
+	}
+
+	function clearAllFilters() {
+		// A single atomic navigate — calling setPaymentMode/pagination.setSearch
+		// separately would race, since each reads page.url before the other's
+		// goto() has resolved and can clobber it.
+		const url = new SvelteURL(page.url.toString());
+		url.searchParams.delete('mode');
+		url.searchParams.delete('search');
+		url.searchParams.delete('skip');
+		const href =
+			`${url.pathname}?${url.searchParams.toString()}` as `${typeof url.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	interface TransactionDisplayRow extends Record<string, unknown> {
@@ -233,27 +252,10 @@
 	];
 </script>
 
-<div class="flex flex-col gap-6 p-6 sm:p-8 lg:p-4">
-	<div class="flex items-center gap-3">
-		<button
-			type="button"
-			onclick={backToList}
-			aria-label="Back to Settlements"
-			class="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-		>
-			<ArrowLeft class="size-4" />
-		</button>
-		<h1 class="text-2xl font-semibold text-foreground">Settlement Details</h1>
-	</div>
-
+<div class="flex flex-col gap-6">
 	{#if detail.loading}
 		<div class="flex flex-col gap-6">
 			<Skeleton class="h-24 rounded-xl" />
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-				{#each [...Array(6).keys()] as i (i)}
-					<Skeleton class="h-24 rounded-lg" />
-				{/each}
-			</div>
 			<Skeleton class="h-64 rounded-xl" />
 		</div>
 	{:else if detail.error}
@@ -295,26 +297,28 @@
 			<div class="border-t border-border"></div>
 
 			<!-- Bottom zone -->
-			<div class="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:p-6">
-				<div>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-4 p-4 sm:grid-cols-4 sm:p-6">
+				<div class="min-w-0">
 					<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Bank Reference
 					</p>
-					<p class="mt-1 font-mono text-sm font-medium text-foreground">{s.bankReference}</p>
+					<p class="mt-1 font-mono text-sm font-medium break-all text-foreground">
+						{s.bankReference}
+					</p>
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Sale Amount
 					</p>
 					<p class="mt-1 text-sm font-medium text-foreground">{currency.format(s.saleAmount)}</p>
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Deductions
 					</p>
 					<p class="mt-1 text-sm font-medium text-destructive">{currency.format(s.deductions)}</p>
 				</div>
-				<div>
+				<div class="min-w-0">
 					<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Net Payout
 					</p>
@@ -323,67 +327,67 @@
 			</div>
 		</div>
 
-		<!-- Payment-mode stat cards — same clickable FilterCards pattern as the
-		     settlements list page. "All" clears the filter and shows the full
-		     ledger count; each mode card filters the transaction table below by
-		     paymentMode (see setPaymentMode above). Modes are derived from this
-		     settlement's own ledger, so a mode with zero transactions here never
-		     gets a card. -->
-		<FilterCards
-			loading={false}
-			cards={[
-				{ label: 'All', count: transactionCount },
-				...paymentModeCounts.map((c) => ({ label: c.mode, count: c.count }))
-			]}
-			bind:selected={selectedPaymentModeCard}
-			onselect={selectPaymentModeCard}
-			class="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
-		/>
+		<!-- Filters -->
+		<div class="flex flex-col gap-3">
+			<div class="flex flex-wrap items-start gap-2 sm:items-center">
+				<div class="w-full sm:w-44">
+					<Dropdown
+						value={paymentModeParam || undefined}
+						options={paymentModeOptions}
+						placeholder="Select Status"
+						onValueChange={(value) => setPaymentMode(value)}
+					/>
+				</div>
+				<div class="w-full sm:w-auto sm:max-w-xs">
+					<SearchField
+						fields={[
+							{
+								value: 'transactionId',
+								label: 'Transaction ID',
+								placeholder: 'e.g. TXN-MER01-…'
+							},
+							{ value: 'orderId', label: 'Order ID', placeholder: 'e.g. ORD-MER01-…' }
+						]}
+						field={searchFieldParam}
+						value={searchInput}
+						onSearch={handleSearch}
+					/>
+				</div>
+			</div>
+
+			{#if activeFilters.length > 0}
+				<div class="flex flex-wrap items-center gap-2">
+					{#each activeFilters as filter (filter.key)}
+						<Chip variant="outline" class="h-auto gap-1.5 rounded-full px-3 py-1 text-xs">
+							<span class="text-muted-foreground">{filter.label}:</span>
+							<span class="font-semibold">{filter.value}</span>
+							<button
+								type="button"
+								onclick={() => removeFilter(filter.key)}
+								aria-label="Remove {filter.label} filter"
+								class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+							>
+								<X class="size-3" />
+							</button>
+						</Chip>
+					{/each}
+					<button
+						type="button"
+						onclick={clearAllFilters}
+						class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
+					>
+						Clear All
+					</button>
+				</div>
+			{/if}
+		</div>
 
 		<!-- Transactions -->
 		<div class="rounded-lg border border-border bg-card shadow-2xl">
-			<div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex items-center justify-between gap-2 p-4">
 				<span class="text-sm text-muted-foreground">
-					{filteredTransactions.length} transaction{filteredTransactions.length === 1 ? '' : 's'}
+					{pagination.showingText}
 				</span>
-				<div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-					<div class="flex items-center gap-1.5">
-						<div class="w-full sm:w-44">
-							<Dropdown
-								value={paymentModeParam || undefined}
-								options={paymentModeOptions}
-								placeholder="All payment modes"
-								search
-								onValueChange={(value) => setPaymentMode(value)}
-							/>
-						</div>
-						{#if paymentModeParam}
-							<button
-								type="button"
-								onclick={() => setPaymentMode('')}
-								aria-label="Clear payment mode filter"
-								class="cursor-pointer rounded-sm p-1 text-muted-foreground opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
-							>
-								<X class="size-3.5" />
-							</button>
-						{/if}
-					</div>
-					<div class="w-full sm:max-w-xs">
-						<SearchField
-							fields={[
-								{
-									value: 'transactionId',
-									label: 'Transaction ID',
-									placeholder: 'e.g. TXN-MER01-…'
-								},
-								{ value: 'orderId', label: 'Order ID', placeholder: 'e.g. ORD-MER01-…' }
-							]}
-							field={searchFieldParam}
-							value={searchInput}
-							onSearch={handleSearch}
-						/>
-					</div>
-				</div>
 			</div>
 
 			{#if filteredTransactions.length === 0}

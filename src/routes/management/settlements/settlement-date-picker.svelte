@@ -11,7 +11,8 @@
 	import { Calendar, ChevronsUpDown } from '$lib/assets/icons';
 
 	interface Props {
-		value: DateValue;
+		value?: DateValue;
+		placeholder?: string;
 		locale?: string;
 		maxValue?: DateValue;
 		class?: string;
@@ -20,6 +21,7 @@
 
 	let {
 		value = $bindable(),
+		placeholder = 'Select date',
 		locale = 'en-IN',
 		maxValue,
 		class: className,
@@ -29,10 +31,10 @@
 	let open = $state(false);
 
 	const fmt = $derived(new DateFormatter(locale, { dateStyle: 'medium' }));
-	const displayValue = $derived(fmt.format(value.toDate(getLocalTimeZone())));
-	const isToday = $derived(value.compare(today(getLocalTimeZone())) === 0);
+	const displayValue = $derived(value ? fmt.format(value.toDate(getLocalTimeZone())) : null);
+	const isToday = $derived(!!value && value.compare(today(getLocalTimeZone())) === 0);
 	const isYesterday = $derived(
-		value.compare(today(getLocalTimeZone()).subtract({ days: 1 })) === 0
+		!!value && value.compare(today(getLocalTimeZone()).subtract({ days: 1 })) === 0
 	);
 	const relativeLabel = $derived(isToday ? 'Today' : isYesterday ? 'Yesterday' : null);
 
@@ -53,8 +55,14 @@
 		)}
 	>
 		<Calendar class="size-4 shrink-0 text-muted-foreground" />
-		<span class="text-sm font-medium text-foreground">
-			{relativeLabel ? `${relativeLabel} · ${displayValue}` : displayValue}
+		<span
+			class={cn('text-sm font-medium', displayValue ? 'text-foreground' : 'text-muted-foreground')}
+		>
+			{#if displayValue}
+				{relativeLabel ? `${relativeLabel} · ${displayValue}` : displayValue}
+			{:else}
+				{placeholder}
+			{/if}
 		</span>
 		<ChevronsUpDown class="size-3.5 shrink-0 text-muted-foreground" />
 	</PopoverTrigger>

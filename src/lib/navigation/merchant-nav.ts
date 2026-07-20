@@ -18,7 +18,29 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Payments',
 		items: [
-			{ title: 'Transactions', href: '/merchant/transactions', icon: ArrowLeftRight },
+			{
+				title: 'Transactions',
+				href: '/merchant/transactions',
+				icon: ArrowLeftRight,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/transactions\/collections$/,
+						title: 'Collections'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements$/,
+						title: 'Disbursements'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/collections\/[^/]+$/,
+						title: 'Transaction Details'
+					},
+					{
+						matcher: /^\/merchant\/transactions\/disbursements\/[^/]+$/,
+						title: 'Transaction Details'
+					}
+				]
+			},
 			{
 				title: 'Disputes',
 				href: '/merchant/disputes',
@@ -42,8 +64,60 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Administration',
 		items: [
-			{ title: 'User Management', href: '/merchant/users', icon: Users },
-			{ title: 'Role Management', href: '/merchant/roles', icon: ShieldCheck }
+			{
+				title: 'User Management',
+				href: '/merchant/user-management',
+				icon: Users,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/user-management\/view-user\/[^/]+$/,
+						title: 'View User'
+					},
+					{
+						matcher: /^\/merchant\/user-management\/create-user$/,
+						title: 'Create User'
+					},
+					{
+						matcher: /^\/merchant\/user-management\/create-user\/preview$/,
+						title: 'Preview'
+					},
+					{
+						matcher: /^\/merchant\/user-management\/edit-user\/[^/]+$/,
+						title: 'Edit User'
+					},
+					{
+						matcher: /^\/merchant\/user-management\/edit-user\/[^/]+\/preview$/,
+						title: 'Preview'
+					}
+				]
+			},
+			{
+				title: 'Role Management',
+				href: '/merchant/role-management',
+				icon: ShieldCheck,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/role-management\/view-role\/[^/]+$/,
+						title: 'View Role'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/create-role$/,
+						title: 'Create Role'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/create-role\/preview$/,
+						title: 'Preview'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/edit-role\/[^/]+$/,
+						title: 'Edit Role'
+					},
+					{
+						matcher: /^\/merchant\/role-management\/edit-role\/[^/]+\/preview$/,
+						title: 'Preview'
+					}
+				]
+			}
 		]
 	}
 ];

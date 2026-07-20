@@ -1,17 +1,27 @@
 <script lang="ts">
 	import { onNavigate } from '$app/navigation';
 	import { tick } from 'svelte';
-	import { Toast } from '$lib/components/reusable';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { Toast } from '$lib/components/reusable';
+	import { merchantSession } from '$lib/stores/auth';
 
-	let { children } = $props();
+	let { data, children } = $props();
 	let isNavigating = $state(false);
+
+	$effect(() => {
+		merchantSession.hydrate(data.session);
+	});
 
 	onNavigate((navigation) => {
 		isNavigating = true;
 
-		if (!document.startViewTransition) {
+		const toPath = navigation.to?.url.pathname ?? '';
+		const fromPath = navigation.from?.url.pathname ?? '';
+		const sectionPath = /\/management\/organizations\/[^/]+\/(documents|integration)(?:\/|$)/;
+		const skipViewTransition = sectionPath.test(toPath) || sectionPath.test(fromPath);
+
+		if (!document.startViewTransition || skipViewTransition) {
 			navigation.complete.then(() => {
 				isNavigating = false;
 			});
@@ -43,7 +53,5 @@
 	<div class="app-nav-progress" aria-hidden="true"></div>
 {/if}
 
-<Toast richColors position="bottom-right" />
+<Toast richColors position="top-right" />
 {@render children()}
-
-<Toast position="bottom-right" richColors closeButton />

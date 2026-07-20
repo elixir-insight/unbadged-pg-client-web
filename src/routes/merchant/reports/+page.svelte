@@ -1,1 +1,5 @@
-<p class="text-sm text-muted-foreground">Coming soon.</p>
+<script lang="ts">
+	import { ReportGenerationForm } from '$lib/components/reports';
+</script>
+
+<ReportGenerationForm portal="merchant" />

@@ -8,16 +8,18 @@
 
 	const tabs = $derived([
 		...(merchantSession.hasPayinAccess()
-			? [{ label: 'Pay-ins', path: '/merchant/transactions/payins' as const }]
+			? [{ label: 'Collections', path: '/merchant/transactions/collections' as const }]
 			: []),
 		...(merchantSession.hasPayoutAccess()
-			? [{ label: 'Pay-outs', path: '/merchant/transactions/payouts' as const }]
+			? [{ label: 'Disbursements', path: '/merchant/transactions/disbursements' as const }]
 			: [])
 	]);
 
 	const isDetailPage = $derived(
-		page.url.pathname.startsWith(resolve('/merchant/transactions/payins') + '/') ||
-			page.url.pathname.startsWith(resolve('/merchant/transactions/payouts') + '/')
+		/\/collections\/orders\/[^/]+$/.test(page.url.pathname) ||
+			/\/collections\/payments\/[^/]+$/.test(page.url.pathname) ||
+			(page.url.pathname.startsWith(resolve('/merchant/transactions/disbursements') + '/') &&
+				page.url.pathname !== resolve('/merchant/transactions/disbursements'))
 	);
 
 	$effect(() => {
@@ -26,19 +28,19 @@
 
 		if (path === resolve('/merchant/transactions')) {
 			if (merchantSession.hasPayinAccess()) {
-				goto(resolve('/merchant/transactions/payins'));
+				goto(resolve('/merchant/transactions/collections'));
 			} else if (merchantSession.hasPayoutAccess()) {
-				goto(resolve('/merchant/transactions/payouts'));
+				goto(resolve('/merchant/transactions/disbursements'));
 			} else {
 				goto(resolve('/merchant'));
 			}
 		} else if (
-			path.startsWith(resolve('/merchant/transactions/payins')) &&
+			path.startsWith(resolve('/merchant/transactions/collections')) &&
 			!merchantSession.hasPayinAccess()
 		) {
 			goto(resolve('/merchant'));
 		} else if (
-			path.startsWith(resolve('/merchant/transactions/payouts')) &&
+			path.startsWith(resolve('/merchant/transactions/disbursements')) &&
 			!merchantSession.hasPayoutAccess()
 		) {
 			goto(resolve('/merchant'));

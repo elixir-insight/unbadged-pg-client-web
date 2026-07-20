@@ -1,293 +1,181 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import * as v from 'valibot';
+import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
+import { UpdateOrgRoleBodySchema } from '$lib/server/domains/members/schema';
 import type { RoleDetail } from '$lib/stores/role-management/role-management';
 
-const MOCK_ROLE_DETAILS: RoleDetail[] = [
-	{
-		roleInfo: {
-			roleId: 34,
-			roleName: 'QUALITY_ANALYST',
-			roleAssignedCount: 1,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'write-restricted', id: 1002 },
-			{ name: 'read', id: 1005 },
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 },
-			{ name: 'read', id: 1020 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'read', id: 1030 }
-		],
-		users: [
-			{ userName: 'Mrinal Kumar', email: 'mrinal.kumar@company.com' },
-			{ userName: 'Priya Sharma', email: 'priya.sharma@company.com' },
-			{ userName: 'Rahul Verma', email: 'rahul.verma@company.com' },
-			{ userName: 'Ananya Iyer', email: 'ananya.iyer@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 32,
-			roleName: 'ADMIN',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'write-restricted', id: 1002 },
-			{ name: 'delete', id: 1003 },
-			{ name: 'approve', id: 1004 },
-			{ name: 'read', id: 1005 },
-			{ name: 'write', id: 1006 },
-			{ name: 'write-restricted', id: 1007 },
-			{ name: 'delete', id: 1008 },
-			{ name: 'approve', id: 1009 },
-			{ name: 'read', id: 1010 },
-			{ name: 'write', id: 1011 },
-			{ name: 'write-restricted', id: 1012 },
-			{ name: 'delete', id: 1013 },
-			{ name: 'approve', id: 1014 },
-			{ name: 'read', id: 1015 },
-			{ name: 'write', id: 1016 },
-			{ name: 'write-restricted', id: 1017 },
-			{ name: 'delete', id: 1018 },
-			{ name: 'approve', id: 1019 },
-			{ name: 'read', id: 1020 },
-			{ name: 'write', id: 1021 },
-			{ name: 'delete', id: 1022 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'write', id: 1028 },
-			{ name: 'delete', id: 1029 },
-			{ name: 'read', id: 1030 },
-			{ name: 'write', id: 1031 },
-			{ name: 'delete', id: 1032 }
-		],
-		users: [
-			{ userName: 'Vikram Singh', email: 'vikram.singh@company.com' },
-			{ userName: 'Sneha Nair', email: 'sneha.nair@company.com' },
-			{ userName: 'Arjun Patel', email: 'arjun.patel@company.com' },
-			{ userName: 'Neha Gupta', email: 'neha.gupta@company.com' },
-			{ userName: 'Karthik Reddy', email: 'karthik.reddy@company.com' },
-			{ userName: 'Meera Joshi', email: 'meera.joshi@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 31,
-			roleName: 'QA_MANAGER',
-			roleAssignedCount: 1,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'write-restricted', id: 1002 },
-			{ name: 'approve', id: 1004 },
-			{ name: 'read', id: 1005 },
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 },
-			{ name: 'read', id: 1020 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'write', id: 1028 },
-			{ name: 'read', id: 1030 },
-			{ name: 'write', id: 1031 }
-		],
-		users: [
-			{ userName: 'Sanjay Kumar', email: 'sanjay.k@company.com' },
-			{ userName: 'Aisha Khan', email: 'aisha.khan@company.com' },
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 30,
-			roleName: 'TESTER',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'read', id: 1005 },
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 },
-			{ name: 'read', id: 1020 },
-			{ name: 'read', id: 1025 },
-			{ name: 'read', id: 1027 },
-			{ name: 'read', id: 1030 }
-		],
-		users: [
-			{ userName: 'Aisha Khan', email: 'aisha.khan@company.com' },
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 67,
-			roleName: 'ONBOARDING_TEAM_LEAD',
-			roleAssignedCount: 1,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'write-restricted', id: 1002 },
-			{ name: 'delete', id: 1003 },
-			{ name: 'approve', id: 1004 },
-			{ name: 'read', id: 1005 },
-			{ name: 'write', id: 1006 },
-			{ name: 'read', id: 1027 },
-			{ name: 'read', id: 1030 }
-		],
-		users: [{ userName: 'Divya Menon', email: 'divya.menon@company.com' }]
-	},
-	{
-		roleInfo: {
-			roleId: 7,
-			roleName: 'ORGANIZATION_WALLET_MANAGEMENT_READ_ONLY',
-			roleAssignedCount: 1,
-			defaultRole: true
-		},
-		permissions: [
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 }
-		],
-		users: [{ userName: 'Farhan Sheikh', email: 'farhan.sheikh@company.com' }]
-	},
-	{
-		roleInfo: {
-			roleId: 199,
-			roleName: 'QA_LEAD',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'write-restricted', id: 1002 },
-			{ name: 'approve', id: 1004 },
-			{ name: 'read', id: 1005 },
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 },
-			{ name: 'read', id: 1020 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'write', id: 1028 },
-			{ name: 'read', id: 1030 },
-			{ name: 'write', id: 1031 }
-		],
-		users: [
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' },
-			{ userName: 'Pooja Das', email: 'pooja.das@company.com' },
-			{ userName: 'Amit Kulkarni', email: 'amit.kulkarni@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 166,
-			roleName: 'DELIVERY_MANAGER',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'read', id: 1005 },
-			{ name: 'read', id: 1010 },
-			{ name: 'read', id: 1015 },
-			{ name: 'read', id: 1020 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'read', id: 1030 }
-		],
-		users: [
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' },
-			{ userName: 'Pooja Das', email: 'pooja.das@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 133,
-			roleName: 'BUSINESS_DEVELOPMENT_LEAD',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'read', id: 1005 },
-			{ name: 'write', id: 1006 },
-			{ name: 'read', id: 1020 },
-			{ name: 'write', id: 1021 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 }
-		],
-		users: [
-			{ userName: 'Karthik Reddy', email: 'karthik.reddy@company.com' },
-			{ userName: 'Meera Joshi', email: 'meera.joshi@company.com' },
-			{ userName: 'Rohan Mehta', email: 'rohan.mehta@company.com' },
-			{ userName: 'Aisha Khan', email: 'aisha.khan@company.com' },
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' },
-			{ userName: 'Pooja Das', email: 'pooja.das@company.com' }
-		]
-	},
-	{
-		roleInfo: {
-			roleId: 100,
-			roleName: 'HEAD_OF_GLOBAL_PARTNERSHIPS',
-			roleAssignedCount: 0,
-			defaultRole: false
-		},
-		permissions: [
-			{ name: 'read', id: 1000 },
-			{ name: 'write', id: 1001 },
-			{ name: 'approve', id: 1004 },
-			{ name: 'read', id: 1005 },
-			{ name: 'write', id: 1006 },
-			{ name: 'approve', id: 1009 },
-			{ name: 'read', id: 1020 },
-			{ name: 'write', id: 1021 },
-			{ name: 'delete', id: 1022 },
-			{ name: 'read', id: 1025 },
-			{ name: 'write', id: 1026 },
-			{ name: 'read', id: 1027 },
-			{ name: 'read', id: 1030 }
-		],
-		users: [
-			{ userName: 'Karthik Reddy', email: 'karthik.reddy@company.com' },
-			{ userName: 'Meera Joshi', email: 'meera.joshi@company.com' },
-			{ userName: 'Siddharth Rao', email: 'siddharth.rao@company.com' },
-			{ userName: 'Pooja Das', email: 'pooja.das@company.com' }
-		]
+async function requireSession(
+	cookies: Parameters<typeof getValidSession>[0],
+	fetchFn: typeof fetch,
+	logger: Parameters<typeof getValidSession>[2]
+) {
+	try {
+		return await getValidSession(cookies, fetchFn, logger);
+	} catch (e) {
+		if (e instanceof SessionError) {
+			error(401, { message: 'Unauthorized' });
+		}
+		throw e;
 	}
-];
+}
 
-export const GET: RequestHandler = async ({ params }) => {
-	const id = Number(params.id);
-	await new Promise((r) => setTimeout(r, 300));
-	const role = MOCK_ROLE_DETAILS.find((r) => r.roleInfo.roleId === id);
-	if (!role) {
-		return json({
-			roleInfo: {
-				roleId: id,
-				roleName: `ROLE_${id}`,
-				roleAssignedCount: 0,
-				defaultRole: false
-			},
-			permissions: [],
-			users: []
-		} satisfies import('$lib/stores/role-management/role-management').RoleDetail);
+function parseRoleId(raw: string | undefined): number {
+	const roleId = Number(raw);
+	if (!Number.isFinite(roleId)) {
+		error(400, { message: 'Invalid role id' });
 	}
+	return roleId;
+}
+
+export const GET: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const roleId = parseRoleId(params.id);
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	const result = await membersClient.getOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		roleId,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	const detail = result.data?.data?.[0];
+	if (!detail) {
+		error(404, { message: 'Role not found' });
+	}
+
+	const role: RoleDetail = {
+		roleInfo: {
+			roleId: detail.roleInfo?.roleId ?? roleId,
+			roleName: detail.roleInfo?.roleName ?? '',
+			description: detail.roleInfo?.description ?? '',
+			roleAssignedCount: detail.roleInfo?.roleAssignedCount ?? 0,
+			defaultRole: detail.roleInfo?.defaultRole ?? false
+		},
+		permissions: (detail.permissions ?? []).map((p) => ({
+			id: p.id,
+			name: p.name,
+			description: p.description
+		})),
+		users: detail.users ?? []
+	};
+
 	return json(role);
+};
+
+export const PATCH: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const roleId = parseRoleId(params.id);
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		error(400, { message: 'Invalid JSON body' });
+	}
+
+	const parsed = v.safeParse(UpdateOrgRoleBodySchema, body);
+	if (!parsed.success) {
+		error(400, { message: 'Invalid update role payload' });
+	}
+
+	const result = await membersClient.updateOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		roleId,
+		parsed.output,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json({
+		message: result.data?.message ?? 'Role updated successfully',
+		statusCode: result.data?.statusCode ?? 200,
+		data: result.data?.data ?? []
+	});
+};
+
+export const DELETE: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
+	const tokens = await requireSession(cookies, fetch, locals.logger);
+
+	const orgId = Number(locals.merchantSession?.organizationId);
+	if (!Number.isFinite(orgId)) {
+		error(401, { message: 'Organization not found in session' });
+	}
+
+	const roleId = parseRoleId(params.id);
+
+	const portal = resolveMembersApiPortalFromRequest({
+		url,
+		request,
+		groups: locals.merchantSession?.groups ?? []
+	});
+
+	const result = await membersClient.deleteOrgRole(
+		fetch,
+		locals.logger,
+		tokens.accessToken,
+		tokens.gatewayToken,
+		orgId,
+		roleId,
+		portal
+	);
+
+	if (!result.ok) {
+		if (result.error.kind === 'http') {
+			error(result.error.status, { message: result.error.message });
+		}
+		error(502, { message: result.error.message });
+	}
+
+	return json({
+		message: result.data?.message ?? 'Role deleted successfully',
+		statusCode: result.data?.statusCode ?? 200,
+		data: result.data?.data ?? []
+	});
 };
