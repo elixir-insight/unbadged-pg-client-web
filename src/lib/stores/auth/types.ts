@@ -1,4 +1,5 @@
 export type MerchantService = 'payin' | 'payout';
+export type GatewayServiceType = 'PAYIN' | 'PAYOUT';
 
 /**  Portal apps driven by access-token cognito:groups. Payin/payout are separate. */
 export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
@@ -50,6 +51,8 @@ export interface GatewayTokenPayload {
 	userName: string | null;
 	userEmail: string;
 	userType: string;
+	group?: string;
+	serviceTypes?: GatewayServiceType[];
 	iss: string;
 	token_use: 'gateway';
 	exp: number;
@@ -63,7 +66,7 @@ export interface MerchantSession {
 	merchantName: string;
 	email: string;
 	userType: string;
-	/** Filled by a separate services API later; temporarily both true for MERCHANT UX.*/
+	/** Merchant app access derived from the gateway token's serviceTypes claim. */
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
 }

@@ -1,10 +1,6 @@
 import type { CognitoIdToken, GatewayTokenPayload, MerchantSession } from './types';
 
-/**
- * Temporary payin/payout flags until the dedicated services-access API exists.
- * Do not derive these from `cognito:groups` — groups are portal-only (MERCHANT/PARTNER/MANAGEMENT).
- */
-const TEMP_SERVICE_PERMISSIONS = { payin: true, payout: true } as const;
+const MOCK_SERVICE_PERMISSIONS = { payin: true, payout: true } as const;
 
 /**
  * Maps a Cognito ID token into a normalized merchant session.
@@ -19,7 +15,7 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 		merchantName: token.preferred_username,
 		email: token.email,
 		userType: 'MEMBER',
-		permissions: { ...TEMP_SERVICE_PERMISSIONS },
+		permissions: { ...MOCK_SERVICE_PERMISSIONS },
 		groups
 	};
 }
@@ -42,20 +38,25 @@ export function resolveMerchantDisplayName(
 }
 
 /**
- * Live path — identity from gateway token, portal groups from access token.
- * Payin/payout come from a separate API later.
+ * Live path — identity and merchant services from the gateway token,
+ * portal groups from the Cognito access token.
  */
 export function parseMerchantSessionFromGateway(
 	token: GatewayTokenPayload,
 	accessGroups: string[]
 ): MerchantSession {
+	const serviceTypes = new Set(token.serviceTypes ?? []);
+
 	return {
 		userId: String(token.userId),
 		organizationId: String(token.orgId),
 		merchantName: resolveMerchantDisplayName(token.userName, token.userEmail),
 		email: token.userEmail,
 		userType: token.userType,
-		permissions: { ...TEMP_SERVICE_PERMISSIONS },
+		permissions: {
+			payin: serviceTypes.has('PAYIN'),
+			payout: serviceTypes.has('PAYOUT')
+		},
 		groups: accessGroups
 	};
 }

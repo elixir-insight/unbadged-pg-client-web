@@ -9,6 +9,7 @@
 	import { Button, Chip } from '$lib/components/reusable';
 	import { BadgeCheck, ZapIcon } from '$lib/assets/icons';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import type { OrganizationDocumentUpload } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
 	import {
 		allSectionsComplete,
@@ -18,6 +19,7 @@
 	} from '../../completeness';
 	import {
 		createChipSnippet,
+		formatLabel,
 		formatRegisteredAddress,
 		isPreviewNavigation,
 		isPreviewSectionParamChange,
@@ -31,7 +33,7 @@
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';
 	import { MessageSquareWarning } from '$lib/assets/icons';
 
-	type PreviewSection = 'kyb' | 'bank' | 'documents';
+	type PreviewSection = 'legal' | 'address' | 'directors' | 'bank' | 'documents';
 
 	let { data, form } = $props();
 
@@ -101,20 +103,29 @@
 	});
 
 	const previewSections: { key: PreviewSection; label: string }[] = [
-		{ key: 'kyb', label: 'KYB' },
-		{ key: 'bank', label: 'Bank details' },
+		{ key: 'legal', label: 'Legal' },
+		{ key: 'address', label: 'Address' },
+		{ key: 'directors', label: 'Directors' },
+		{ key: 'bank', label: 'Bank' },
 		{ key: 'documents', label: 'Documents' }
 	];
 
 	const activeSection = $derived.by((): PreviewSection => {
-		const section = page.url.searchParams.get('section') ?? 'kyb';
-		if (section === 'bank' || section === 'documents') return section;
-		return 'kyb';
+		const section = page.url.searchParams.get('section') ?? 'legal';
+		if (
+			section === 'address' ||
+			section === 'directors' ||
+			section === 'bank' ||
+			section === 'documents'
+		) {
+			return section;
+		}
+		return 'legal';
 	});
 
 	function previewSectionHref(section: PreviewSection, organizationId: string): ResolvedPathname {
 		const base = resolve(`/management/organizations/${organizationId}/preview`);
-		return section === 'kyb' ? base : (`${base}?section=${section}` as ResolvedPathname);
+		return section === 'legal' ? base : (`${base}?section=${section}` as ResolvedPathname);
 	}
 
 	function navigatePreviewSection(section: PreviewSection) {
@@ -144,8 +155,15 @@
 		if (activeSection === 'documents') {
 			return `/management/organizations/${orgId}/documents`;
 		}
+		if (activeSection === 'address' || activeSection === 'directors') {
+			return `/management/organizations/${orgId}/kyb?step=${activeSection}`;
+		}
 		return `/management/organizations/${orgId}/kyb`;
 	});
+
+	const activeSectionLabel = $derived(
+		previewSections.find((section) => section.key === activeSection)?.label ?? 'section'
+	);
 
 	const onApproveEnhance: SubmitFunction = ({ cancel }) => {
 		if (!canApprove) {
@@ -206,6 +224,36 @@
 	</div>
 {/snippet}
 
+{#snippet documentReviewRow(title: string, document: OrganizationDocumentUpload)}
+	<div
+		class="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+	>
+		<div class="min-w-0">
+			<p class="text-sm font-medium">{title}</p>
+			{#if document.fileName}
+				<p class="truncate text-xs text-muted-foreground">{document.fileName}</p>
+			{/if}
+		</div>
+		<div class="flex flex-wrap items-center gap-3">
+			<p class="text-sm text-muted-foreground">
+				{document.status}
+				{#if document.uploadedDate}
+					· Uploaded {document.uploadedDate}
+				{:else if document.status === 'Pending'}
+					· Pending
+				{/if}
+			</p>
+			{#if hasDocumentPreview(document)}
+				<DocumentActionsMenu
+					{document}
+					readOnly
+					onPreview={() => openDocumentPreview(title, document)}
+				/>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
 <div class="space-y-6">
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
@@ -242,24 +290,25 @@
 			</div>
 			<p class="text-sm text-muted-foreground">Loading profile overview…</p>
 		</div>
-	{:else if activeSection === 'kyb'}
-		<div class="space-y-6">
-			<div class="grid gap-4 md:grid-cols-2">
-				{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
-				{@render readOnlyField('Business Type', organization.kyb.businessType)}
-				{@render readOnlyField('GSTIN', organization.kyb.gstin)}
-				{@render readOnlyField('Business PAN', organization.kyb.businessPan)}
-				{@render readOnlyField('Business phone', organization.kyb.businessPhone)}
-				{@render readOnlyField('Industry', organization.kyb.industry)}
-				{@render readOnlyField('Organization website', organization.kyb.organizationWebsite)}
-				{@render readOnlyField(
-					'Registered year',
-					organization.kyb.registeredYear == null ? '' : String(organization.kyb.registeredYear)
-				)}
-				{@render readOnlyField('CIN', organization.kyb.cin)}
-				{@render readOnlyField('TAN', organization.kyb.tan)}
-				{@render readOnlyField('KYB Verification Status', organization.kyb.verificationStatus)}
-			</div>
+	{:else if activeSection === 'legal'}
+		<div class="grid gap-4 md:grid-cols-2">
+			{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
+			{@render readOnlyField('Business Type', organization.kyb.businessType)}
+			{@render readOnlyField('GSTIN', organization.kyb.gstin)}
+			{@render readOnlyField('Business PAN', organization.kyb.businessPan)}
+			{@render readOnlyField('Business phone', organization.kyb.businessPhone)}
+			{@render readOnlyField('Industry', organization.kyb.industry)}
+			{@render readOnlyField('Organization website', organization.kyb.organizationWebsite)}
+			{@render readOnlyField(
+				'Registered year',
+				organization.kyb.registeredYear == null ? '' : String(organization.kyb.registeredYear)
+			)}
+			{@render readOnlyField('CIN', organization.kyb.cin)}
+			{@render readOnlyField('TAN', organization.kyb.tan)}
+			{@render readOnlyField('KYB Verification Status', organization.kyb.verificationStatus)}
+		</div>
+	{:else if activeSection === 'address'}
+		<div class="grid gap-6 md:grid-cols-2">
 			<div class="space-y-1">
 				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Registered Address
@@ -276,19 +325,24 @@
 					{formatRegisteredAddress(organization.kyb.communicationAddress)}
 				</p>
 			</div>
-			<div class="space-y-3">
-				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Directors</p>
-				{#if reviewDirectors.length === 0}
-					<p class="text-sm text-muted-foreground">No directors added.</p>
-				{:else}
-					{#each reviewDirectors as director (director.id)}
-						<p class="text-sm">
-							{director.name || 'Unnamed'} — PAN {director.pan || '—'} — Aadhar {director.aadhar ||
-								'—'}
-						</p>
-					{/each}
-				{/if}
-			</div>
+		</div>
+	{:else if activeSection === 'directors'}
+		<div class="space-y-3">
+			{#if reviewDirectors.length === 0}
+				<p class="text-sm text-muted-foreground">No directors added.</p>
+			{:else}
+				{#each reviewDirectors as director (director.id)}
+					<div class="rounded-xl border border-border/60 p-4">
+						<div class="grid gap-4 md:grid-cols-2">
+							{@render readOnlyField('Name', director.name)}
+							{@render readOnlyField('PAN', director.pan)}
+							{@render readOnlyField('Aadhar', director.aadhar)}
+							{@render readOnlyField('Email', director.email)}
+							{@render readOnlyField('Phone', director.phone)}
+						</div>
+					</div>
+				{/each}
+			{/if}
 		</div>
 	{:else if activeSection === 'bank'}
 		<div class="space-y-4">
@@ -303,7 +357,7 @@
 					<div class="rounded-xl border border-border/60 p-4">
 						<div class="mb-3 flex flex-wrap items-center gap-2">
 							<p class="text-sm font-medium">{account.accountHolderName || 'Unnamed account'}</p>
-							<Chip variant="secondary" children={createChipSnippet(account.status)} />
+							<Chip variant="secondary" children={createChipSnippet(formatLabel(account.status))} />
 						</div>
 						<div class="grid gap-3 text-sm md:grid-cols-2">
 							<p>
@@ -313,42 +367,48 @@
 							<p><span class="text-muted-foreground">IFSC:</span> {account.ifscCode || '—'}</p>
 							<p><span class="text-muted-foreground">Bank:</span> {account.bankName || '—'}</p>
 							<p><span class="text-muted-foreground">Branch:</span> {account.branch || '—'}</p>
+							<p>
+								<span class="text-muted-foreground">Account type:</span>
+								{formatLabel(account.accountType)}
+							</p>
 						</div>
 					</div>
 				{/each}
 			{/if}
 		</div>
 	{:else if activeSection === 'documents'}
-		<div class="space-y-3">
+		<div class="space-y-6">
 			{#if documentsLoadError}
 				<p class="text-sm text-destructive">
 					Could not load documents: {documentsLoadError}
 				</p>
 			{/if}
-			{#each reviewDocuments as document (document.id)}
-				<div
-					class="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-				>
-					<p class="text-sm font-medium">{document.documentType}</p>
-					<div class="flex flex-wrap items-center gap-3">
-						<p class="text-sm text-muted-foreground">
-							{document.status}
-							{#if document.uploadedDate}
-								· Uploaded {document.uploadedDate}
-							{:else if document.status === 'Pending'}
-								· Pending
-							{/if}
-						</p>
-						{#if hasDocumentPreview(document)}
-							<DocumentActionsMenu
-								{document}
-								readOnly
-								onPreview={() => openDocumentPreview(document.documentType, document)}
-							/>
-						{/if}
-					</div>
-				</div>
-			{/each}
+
+			<section class="space-y-3">
+				<h2 class="text-sm font-semibold">Organization documents</h2>
+				{#if reviewDocuments.length === 0}
+					<p class="text-sm text-muted-foreground">No organization documents added.</p>
+				{:else}
+					{#each reviewDocuments as document (document.id)}
+						{@render documentReviewRow(document.documentType, document)}
+					{/each}
+				{/if}
+			</section>
+
+			<section class="space-y-4 border-t border-border/60 pt-5">
+				<h2 class="text-sm font-semibold">Director documents</h2>
+				{#if reviewDirectors.length === 0}
+					<p class="text-sm text-muted-foreground">No directors added.</p>
+				{:else}
+					{#each reviewDirectors as director (director.id)}
+						<div class="space-y-3 rounded-xl border border-border/60 p-4">
+							<h3 class="text-sm font-medium">{director.name || 'Unnamed director'}</h3>
+							{@render documentReviewRow('Aadhar Card', director.aadharDocument)}
+							{@render documentReviewRow('PAN Card', director.panDocument)}
+						</div>
+					{/each}
+				{/if}
+			</section>
 		</div>
 	{/if}
 
@@ -357,7 +417,7 @@
 			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
 					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
 				</div>
 				<Button variant="destructive" onclick={() => orgLayout.openPutOnHold()}>
@@ -372,7 +432,7 @@
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
 					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
 				</div>
 				<Button variant="destructive" onclick={() => orgLayout.openFreeze()}>Freeze</Button>
@@ -381,7 +441,7 @@
 			<p class="mb-4 text-sm text-muted-foreground">This organization is frozen.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
 					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
 				</div>
 				<Button variant="outline" onclick={() => orgLayout.openReactivate()}>Reactivate</Button>
@@ -392,7 +452,7 @@
 				and continue to commission configuration.
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+				<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
 				<Button onclick={() => (activateOpen = true)}>
 					<ZapIcon class="size-4" />
 					Activate
@@ -409,7 +469,7 @@
 			{/if}
 			<form method="POST" action="?/approve" use:enhance={onApproveEnhance}>
 				<div class="flex flex-wrap items-center justify-between gap-3">
-					<Button variant="outline" href={continueEditingHref}>Continue editing</Button>
+					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
 					<Button type="submit" disabled={!canApprove || approving}>
 						<BadgeCheck class="size-4" />
 						{approving ? 'Approving…' : 'Approve'}
