@@ -2,7 +2,7 @@ import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
 	ArrowLeftRight,
-	MessageSquareWarning,
+	// MessageSquareWarning,
 	Landmark,
 	FileText,
 	Users,
@@ -40,12 +40,13 @@ export const merchantNav: NavGroup[] = [
 					}
 				]
 			},
-			{
-				title: 'Disputes',
-				href: '/merchant/disputes',
-				icon: MessageSquareWarning,
-				service: 'payin'
-			},
+			// Disputes navigation is temporarily hidden.
+			// {
+			// 	title: 'Disputes',
+			// 	href: '/merchant/disputes',
+			// 	icon: MessageSquareWarning,
+			// 	service: 'payin'
+			// },
 			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' }
 			// Funds + Beneficiaries intentionally omitted from nav for now
 		]

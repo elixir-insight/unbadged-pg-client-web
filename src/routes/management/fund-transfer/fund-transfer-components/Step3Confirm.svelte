@@ -11,30 +11,25 @@
 	import ConfirmResultPanel from './ConfirmResultPanel.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
-	import { ShieldCheck, MailIcon, PhoneIcon } from '$lib/assets/icons';
+	import { MailIcon } from '$lib/assets/icons';
 	import ShieldX from '@lucide/svelte/icons/shield-x';
 	import ShieldLock from '@lucide/svelte/icons/shield';
-	import { cn } from '$lib/utils';
 
 	const store = getTransferStore();
 	const showDemoHint = import.meta.env.DEV;
 
-	const headerIcon = $derived.by(() => {
-		if (store.otpVerified) return ShieldCheck;
-		if (store.otpInputVisualState === 'error') return ShieldX;
-		return ShieldLock;
-	});
+	const showOtpPhase = $derived(
+		store.confirmStepStatus === 'pending' && !store.otpVerified && store.txnStatus !== 'processing'
+	);
+
+	const headerIcon = $derived(store.otpInputVisualState === 'error' ? ShieldX : ShieldLock);
 
 	const otpSubtitle = $derived.by(() => {
-		if (store.otpVerified) return 'Code verified successfully.';
 		if (store.otpError && store.confirmStepStatus === 'pending') {
 			const remaining = store.confirmAttemptsRemaining;
 			return `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`;
 		}
-		if (store.confirmStepStatus === 'failed' && !store.otpVerified) {
-			return 'Maximum verification attempts exceeded.';
-		}
-		return 'Enter the 6-digit code sent to your registered mobile and email.';
+		return 'Enter the 6-digit code sent to your registered email.';
 	});
 
 	const attemptsLabel = $derived(
@@ -43,24 +38,18 @@
 			: `${MAX_OTP_ATTEMPTS} attempts allowed`
 	);
 
-	const showTryAgain = $derived(
-		Boolean(store.otpError) && store.confirmStepStatus === 'pending' && !store.otpVerified
-	);
+	const showTryAgain = $derived(Boolean(store.otpError) && showOtpPhase);
 
 	const primaryDisabled = $derived(
-		store.otpVerified ||
-			(!showTryAgain &&
-				(store.otpDigits.length < OTP_LENGTH || store.otpAttempts >= MAX_OTP_ATTEMPTS))
+		!showTryAgain && (store.otpDigits.length < OTP_LENGTH || store.otpAttempts >= MAX_OTP_ATTEMPTS)
 	);
 
 	function handleVerify(code: string) {
-		if (store.otpVerified) return;
 		store.verifyOtp(code);
 	}
 
 	function handlePrimaryAction() {
-		if (store.otpVerified) return;
-		if (showTryAgain || (store.confirmStepStatus === 'failed' && !store.otpVerified)) {
+		if (showTryAgain) {
 			store.retryOtpEntry();
 			return;
 		}
@@ -68,50 +57,45 @@
 	}
 </script>
 
-<div class="overflow-hidden rounded-lg border border-border">
-	<div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-0">
-		<!-- LEFT: OTP entry (always visible) -->
-		<div class="border-border px-6 py-6 lg:border-r">
-			<div class="mb-6 flex items-start gap-3">
-				<span
-					class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground"
-				>
-					{#key headerIcon}
-						{@const Icon = headerIcon}
-						<Icon class="size-5" />
-					{/key}
-				</span>
-				<div>
-					<h2 class="text-base font-semibold text-foreground">Verify OTP</h2>
-					<p class="mt-0.5 text-sm text-muted-foreground">{otpSubtitle}</p>
-				</div>
-			</div>
-
-			<div class="mx-auto flex max-w-sm flex-col items-center space-y-6">
-				<div class="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-					<span class="inline-flex items-center gap-1.5">
-						<PhoneIcon class="size-4" />
-						+91 ••••• 43210
+<div class="mx-auto w-full max-w-xl sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
+	<div class="overflow-hidden rounded-lg border border-border shadow-sm">
+		{#if showOtpPhase}
+			<div
+				class="flex min-h-[30rem] flex-col px-6 py-8 sm:min-h-[32rem] sm:px-8 sm:py-10 lg:min-h-[34rem] lg:px-10"
+			>
+				<div class="mb-6 flex items-start gap-3 sm:mb-8 lg:gap-4">
+					<span
+						class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground sm:size-11 lg:size-12"
+					>
+						{#key headerIcon}
+							{@const Icon = headerIcon}
+							<Icon class="size-5 sm:size-6" />
+						{/key}
 					</span>
-					<span class="inline-flex items-center gap-1.5">
+					<div>
+						<h2 class="text-base font-semibold text-foreground sm:text-lg">Verify OTP</h2>
+						<p class="mt-0.5 text-sm text-muted-foreground sm:text-base">{otpSubtitle}</p>
+					</div>
+				</div>
+
+				<div
+					class="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center space-y-6 sm:max-w-md lg:max-w-xl lg:space-y-8"
+				>
+					<span class="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
 						<MailIcon class="size-4" />
 						p***@company.com
 					</span>
-				</div>
 
-				<OtpInput
-					length={OTP_LENGTH}
-					bind:value={store.otpDigits}
-					error={store.otpError}
-					disabled={store.otpVerified}
-					visualState={store.otpInputVisualState}
-					shakeKey={store.otpShakeKey}
-					onComplete={handleVerify}
-				/>
+					<OtpInput
+						length={OTP_LENGTH}
+						bind:value={store.otpDigits}
+						error={store.otpError}
+						disabled={false}
+						visualState={store.otpInputVisualState}
+						shakeKey={store.otpShakeKey}
+						onComplete={handleVerify}
+					/>
 
-				{#if store.otpVerified}
-					<p class="text-sm font-medium text-primary">Verified ✓</p>
-				{:else}
 					<div class="w-full space-y-2">
 						<div class="flex items-center justify-between text-xs text-muted-foreground">
 							<span>Code expires in</span>
@@ -120,53 +104,46 @@
 						</div>
 						<Progress value={store.otpProgressValue} />
 					</div>
-				{/if}
 
-				<div class="flex w-full items-center justify-between gap-3 text-xs">
-					<span class="text-muted-foreground">{attemptsLabel}</span>
-					<button
-						type="button"
-						class="font-medium text-primary hover:underline disabled:pointer-events-none disabled:opacity-50"
-						disabled={!store.canResendOtp || store.otpVerified}
-						onclick={() => store.resendOtp()}
-					>
-						Resend code
-					</button>
-				</div>
-
-				{#if showDemoHint}
-					<div
-						class="w-full rounded-lg bg-muted px-3 py-2.5 text-center text-xs text-muted-foreground"
-					>
-						Demo success: <span class="font-mono font-semibold text-foreground">{DEMO_OTP}</span>
-						&nbsp; Demo failure:
-						<span class="font-mono font-semibold text-foreground">{DEMO_FAIL_OTP}</span>
+					<div class="flex w-full items-center justify-between gap-3 text-xs">
+						<span class="text-muted-foreground">{attemptsLabel}</span>
+						<button
+							type="button"
+							class="font-medium text-primary hover:underline disabled:pointer-events-none disabled:opacity-50"
+							disabled={!store.canResendOtp}
+							onclick={() => store.resendOtp()}
+						>
+							Resend code
+						</button>
 					</div>
-				{/if}
 
-				<Button
-					class={cn('w-full', store.otpVerified && 'opacity-50')}
-					disabled={primaryDisabled}
-					onclick={handlePrimaryAction}
-				>
-					{#if showTryAgain || (store.confirmStepStatus === 'failed' && !store.otpVerified)}
-						Try again
-					{:else}
-						Verify and transfer {formatInr(store.amount)}
+					{#if showDemoHint}
+						<div
+							class="w-full rounded-lg bg-muted px-3 py-2.5 text-center text-xs text-muted-foreground"
+						>
+							Demo success: <span class="font-mono font-semibold text-foreground">{DEMO_OTP}</span>
+							&nbsp; Demo failure:
+							<span class="font-mono font-semibold text-foreground">{DEMO_FAIL_OTP}</span>
+						</div>
 					{/if}
-				</Button>
-			</div>
-		</div>
 
-		<!-- RIGHT: result panel -->
-		<div class="border-t border-border lg:border-t-0">
+					<Button class="w-full" disabled={primaryDisabled} onclick={handlePrimaryAction}>
+						{#if showTryAgain}
+							Try again
+						{:else}
+							Verify and transfer {formatInr(store.amount)}
+						{/if}
+					</Button>
+				</div>
+			</div>
+		{:else}
 			<ConfirmResultPanel />
-		</div>
+		{/if}
 	</div>
 </div>
 
-{#if store.showBackToReview}
-	<div class="mt-4">
+{#if store.showBackToReview && showOtpPhase}
+	<div class="mx-auto mt-4 w-full max-w-xl sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
 		<Button variant="ghost" onclick={() => store.prevStep()}>Back to review</Button>
 	</div>
 {/if}

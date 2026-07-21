@@ -22,13 +22,7 @@
 	const Icon = $derived(status === 'ok' ? CheckCircle2 : status === 'warning' ? Info : AlertCircle);
 </script>
 
-<div
-	class={cn(
-		'flex items-start gap-2 rounded-lg border border-border px-3 py-2.5 text-sm',
-		toneClass
-	)}
-	role="status"
->
+<div class={cn('flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm', toneClass)} role="status">
 	<Icon class="mt-0.5 size-4 shrink-0" />
 	<p>{message}</p>
 </div>

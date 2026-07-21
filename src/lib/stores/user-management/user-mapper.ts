@@ -82,6 +82,18 @@ function mapReportingManager(
 	};
 }
 
+function mapAssignedUsers(
+	assignedUsers: ApiUserDetailItem['assignedUsers']
+): NonNullable<UserItem['assignedUsers']> {
+	if (!assignedUsers) return [];
+	return assignedUsers
+		.filter((assignedUser) => assignedUser.name.trim())
+		.map((assignedUser) => ({
+			id: String(assignedUser.id),
+			name: assignedUser.name.trim()
+		}));
+}
+
 export function mapApiListUser(user: ApiUserListItem): UserItem {
 	return {
 		id: String(user.id),
@@ -95,6 +107,8 @@ export function mapApiListUser(user: ApiUserListItem): UserItem {
 }
 
 export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
+	const assignedUsers = mapAssignedUsers(user.assignedUsers);
+
 	return {
 		id: String(user.id),
 		name: user.userName,
@@ -104,7 +118,8 @@ export function mapApiDetailUser(user: ApiUserDetailItem): UserItem {
 		status: mapEnabledToStatus(user.enabled),
 		mobileNumber: normalizePhoneNumber(user.phoneNumber),
 		reportingManager: mapReportingManager(user.reportingTo),
-		assignedUsersCount: user.assignedUsersCount ?? 0
+		assignedUsersCount: user.assignedUsersCount ?? assignedUsers.length,
+		assignedUsers
 	};
 }
 

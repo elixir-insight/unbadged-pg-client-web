@@ -25,6 +25,8 @@
 		Calendar,
 		BadgeCheck,
 		ArrowRight,
+		MailIcon,
+		PhoneIcon,
 		X
 	} from '$lib/assets/icons';
 	import type { OrganizationStatus } from '$lib/data/mockData';
@@ -63,6 +65,10 @@
 			.join(' ');
 	}
 
+	function isRecord(value: unknown): value is Record<string, unknown> {
+		return typeof value === 'object' && value !== null;
+	}
+
 	function getParam(name: string): string {
 		return page.url.searchParams.get(name) ?? '';
 	}
@@ -86,6 +92,10 @@
 
 	let selectedOrg = $state<OrganizationTableRow | null>(null);
 	let drawerOpen = $state(false);
+	let organizationProfile = $state<{ email: string; phone: string } | null>(null);
+	let profileLoading = $state(false);
+	let profileError = $state<string | null>(null);
+	let profileRequestId = 0;
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
@@ -188,9 +198,48 @@
 		setUrlState({ search: null, status: null, category: null, skip: null }, true);
 	}
 
+	async function loadOrganizationProfile(orgId: string) {
+		const requestId = ++profileRequestId;
+		profileLoading = true;
+		profileError = null;
+		organizationProfile = null;
+
+		try {
+			const response = await fetch(
+				resolve('/api/management/onboard/organization/[orgId]/profile', { orgId })
+			);
+			const body: unknown = await response.json().catch(() => null);
+			if (!response.ok) {
+				const message =
+					isRecord(body) && typeof body.message === 'string'
+						? body.message
+						: 'Failed to load organization profile';
+				throw new Error(message);
+			}
+
+			if (requestId === profileRequestId) {
+				const profile = isRecord(body) && isRecord(body.profile) ? body.profile : null;
+				organizationProfile = {
+					email: profile && typeof profile.email === 'string' ? profile.email : '',
+					phone: profile && typeof profile.phone === 'string' ? profile.phone : ''
+				};
+			}
+		} catch (cause) {
+			if (requestId === profileRequestId) {
+				profileError =
+					cause instanceof Error ? cause.message : 'Failed to load organization profile';
+			}
+		} finally {
+			if (requestId === profileRequestId) {
+				profileLoading = false;
+			}
+		}
+	}
+
 	function openOrgDrawer(org: OrganizationTableRow) {
 		selectedOrg = org;
 		drawerOpen = true;
+		void loadOrganizationProfile(org.id);
 	}
 </script>
 
@@ -334,6 +383,55 @@
 	{#if selectedOrg}
 		<div class="space-y-5">
 			<div class="space-y-3">
+				{#if profileError}
+					<p class="text-sm text-destructive" role="alert">
+						Unable to load organization contact details.
+					</p>
+				{/if}
+				<div
+					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
+				>
+					<MailIcon class="size-4 shrink-0 text-muted-foreground" />
+					<div class="min-w-0">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+							Email Address
+						</p>
+						{#if profileLoading}
+							<p class="text-sm text-muted-foreground">Loading...</p>
+						{:else if organizationProfile?.email}
+							<a
+								href="mailto:{organizationProfile.email}"
+								class="block truncate text-sm font-medium hover:underline"
+							>
+								{organizationProfile.email}
+							</a>
+						{:else}
+							<p class="text-sm font-medium">—</p>
+						{/if}
+					</div>
+				</div>
+				<div
+					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
+				>
+					<PhoneIcon class="size-4 shrink-0 text-muted-foreground" />
+					<div class="min-w-0">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+							Phone Number
+						</p>
+						{#if profileLoading}
+							<p class="text-sm text-muted-foreground">Loading...</p>
+						{:else if organizationProfile?.phone}
+							<a
+								href="tel:{organizationProfile.phone}"
+								class="block truncate text-sm font-medium hover:underline"
+							>
+								{organizationProfile.phone}
+							</a>
+						{:else}
+							<p class="text-sm font-medium">—</p>
+						{/if}
+					</div>
+				</div>
 				<div
 					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
 				>

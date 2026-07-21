@@ -17,6 +17,8 @@
 		value?: string;
 		class?: string;
 		onSearch?: (field: string, value: string) => void;
+		/** When set, the right-side trigger calls this instead of opening the field selector. */
+		onFieldTriggerClick?: () => void;
 	}
 
 	let {
@@ -24,7 +26,8 @@
 		field = $bindable(fields[0]?.value ?? ''),
 		value = $bindable(''),
 		class: className,
-		onSearch
+		onSearch,
+		onFieldTriggerClick
 	}: Props = $props();
 
 	let open = $state(false);
@@ -83,32 +86,50 @@
 	<!-- Vertical divider -->
 	<div class="my-1.5 w-px self-stretch bg-border"></div>
 
-	<!-- Right zone: field selector -->
-	<Popover bind:open>
-		<PopoverTrigger
+	<!-- Right zone: field selector or custom trigger -->
+	{#if onFieldTriggerClick}
+		<button
+			type="button"
+			onclick={(event) => {
+				event.stopPropagation();
+				onFieldTriggerClick();
+			}}
 			class="flex h-full cursor-pointer items-center gap-1.5 px-3 focus-visible:outline-none"
 		>
 			<span class="text-sm whitespace-nowrap text-muted-foreground">
 				in <span class="font-medium text-foreground">{selectedField?.label ?? 'All'}</span>
 			</span>
 			<ChevronsUpDown class="size-3.5 shrink-0 text-muted-foreground" />
-		</PopoverTrigger>
+		</button>
+	{:else}
+		<Popover bind:open>
+			<PopoverTrigger
+				class="flex h-full cursor-pointer items-center gap-1.5 px-3 focus-visible:outline-none"
+			>
+				<span class="text-sm whitespace-nowrap text-muted-foreground">
+					in <span class="font-medium text-foreground">{selectedField?.label ?? 'All'}</span>
+				</span>
+				<ChevronsUpDown class="size-3.5 shrink-0 text-muted-foreground" />
+			</PopoverTrigger>
 
-		<PopoverContent align="end" sideOffset={4} class="w-44 gap-0 p-1">
-			{#each fields as f (f.value)}
-				<button
-					type="button"
-					onclick={() => selectField(f)}
-					class={cn(
-						'flex w-full cursor-pointer items-center justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors',
-						'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-						field === f.value && 'bg-accent font-medium'
-					)}
-				>
-					{f.label}
-					<Check class={cn('size-3.5 shrink-0', field === f.value ? 'opacity-100' : 'opacity-0')} />
-				</button>
-			{/each}
-		</PopoverContent>
-	</Popover>
+			<PopoverContent align="end" sideOffset={4} class="w-44 gap-0 p-1">
+				{#each fields as f (f.value)}
+					<button
+						type="button"
+						onclick={() => selectField(f)}
+						class={cn(
+							'flex w-full cursor-pointer items-center justify-between rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+							'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+							field === f.value && 'bg-accent font-medium'
+						)}
+					>
+						{f.label}
+						<Check
+							class={cn('size-3.5 shrink-0', field === f.value ? 'opacity-100' : 'opacity-0')}
+						/>
+					</button>
+				{/each}
+			</PopoverContent>
+		</Popover>
+	{/if}
 </div>
