@@ -150,8 +150,8 @@ export function isPreviewSubSectionNavigation(from: URL | undefined, to: URL | u
 
 export function isPreviewSectionParamChange(from: URL | undefined, to: URL | undefined): boolean {
 	if (!isPreviewSubSectionNavigation(from, to)) return false;
-	const fromSection = from?.searchParams.get('section') ?? 'kyb';
-	const toSection = to?.searchParams.get('section') ?? 'kyb';
+	const fromSection = from?.searchParams.get('section') ?? 'legal';
+	const toSection = to?.searchParams.get('section') ?? 'legal';
 	return fromSection !== toSection;
 }
 

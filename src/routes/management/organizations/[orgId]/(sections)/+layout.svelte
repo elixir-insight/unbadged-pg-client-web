@@ -53,6 +53,8 @@
 		getCurrentFlowNavStepKey(page.url.pathname, page.url.searchParams, organization.status)
 	);
 
+	const showSectionNavigation = $derived(!(isPostOnboarding && currentStepKey === 'review'));
+
 	function resolveStepHref(step: FlowStep, organizationId: string) {
 		return resolve(flowStepHref(organizationId, step.key) as '/');
 	}
@@ -60,37 +62,39 @@
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 sm:px-8">
 	<div class="rounded-xl border border-border bg-card px-6 py-5 shadow-sm">
-		<header class="mb-5">
+		<header class={cn(showSectionNavigation && 'mb-5')}>
 			<h1 class="text-lg font-medium">{organization.name}</h1>
 			<p class="mt-1 text-sm text-muted-foreground">
 				{formatLabel(organization.businessType)} · {formatLabel(organization.status)}
 			</p>
 		</header>
 
-		<nav
-			aria-label={isPostOnboarding ? 'Profile sections' : 'Onboarding steps'}
-			class="flex gap-0.5 rounded-lg bg-muted p-1"
-		>
-			{#each flowSteps as step (step.key)}
-				{@const isActive = step.key === currentStepKey}
-				{@const stepHref = resolveStepHref(step, orgId)}
-				<a
-					href={stepHref}
-					aria-disabled={sectionLoading}
-					tabindex={sectionLoading ? -1 : undefined}
-					class={cn(
-						'flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg px-2 py-1.5 text-sm text-ellipsis whitespace-nowrap transition-colors',
-						isActive
-							? 'bg-primary font-medium text-primary-foreground'
-							: 'text-muted-foreground hover:text-foreground',
-						sectionLoading && 'pointer-events-none opacity-60'
-					)}
-					aria-current={isActive ? 'step' : undefined}
-				>
-					{step.label}
-				</a>
-			{/each}
-		</nav>
+		{#if showSectionNavigation}
+			<nav
+				aria-label={isPostOnboarding ? 'Profile sections' : 'Onboarding steps'}
+				class="flex gap-0.5 rounded-lg bg-muted p-1"
+			>
+				{#each flowSteps as step (step.key)}
+					{@const isActive = step.key === currentStepKey}
+					{@const stepHref = resolveStepHref(step, orgId)}
+					<a
+						href={stepHref}
+						aria-disabled={sectionLoading}
+						tabindex={sectionLoading ? -1 : undefined}
+						class={cn(
+							'flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg px-2 py-1.5 text-sm text-ellipsis whitespace-nowrap transition-colors',
+							isActive
+								? 'bg-primary font-medium text-primary-foreground'
+								: 'text-muted-foreground hover:text-foreground',
+							sectionLoading && 'pointer-events-none opacity-60'
+						)}
+						aria-current={isActive ? 'step' : undefined}
+					>
+						{step.label}
+					</a>
+				{/each}
+			</nav>
+		{/if}
 	</div>
 
 	<div class="relative min-h-112 rounded-xl border border-border bg-card px-6 py-5 shadow-sm">
