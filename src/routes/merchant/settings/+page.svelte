@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
-	import { Button, Chip, Tabs } from '$lib/components/reusable';
-	import type { TabItem } from '$lib/components/reusable';
+	import { Button, Chip } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
-	import { cn } from '$lib/utils';
-	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
 	import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { cn } from '$lib/utils';
+	import ApiCredentialSection from './api-credential-section.svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	merchantSession.initialize();
 
@@ -29,24 +33,6 @@
 	];
 
 	let activeTab = $state('overview');
-
-	const tabs: TabItem[] = [
-		{
-			value: 'overview',
-			label: 'Overview',
-			content: overviewTab
-		},
-		{
-			value: 'configuration',
-			label: 'Configuration',
-			content: configurationTab
-		},
-		{
-			value: 'ip-whitelist',
-			label: 'Whitelisted IP Address',
-			content: ipWhitelistTab
-		}
-	];
 
 	function initials(name: string) {
 		return name
@@ -95,10 +81,7 @@
 			<Chip variant="success">Configured</Chip>
 		</div>
 
-		<div class="border-t border-border/40 px-4 py-4 sm:px-5">
-			<h3 class="text-sm font-semibold text-foreground">API Keys</h3>
-			<p class="mt-2 font-mono text-sm tracking-widest text-muted-foreground">••••••••••••••••</p>
-		</div>
+		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
 	</section>
 {/snippet}
 
@@ -169,7 +152,22 @@
 		</div>
 	</section>
 
-	<Tabs {tabs} bind:value={activeTab} variant="line" class="flex w-full flex-col gap-4" />
+	<Tabs.Root bind:value={activeTab} class="flex w-full flex-col gap-4">
+		<Tabs.List variant="line">
+			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+			<Tabs.Trigger value="configuration">Configuration</Tabs.Trigger>
+			<Tabs.Trigger value="ip-whitelist">Whitelisted IP Address</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Content value="overview">
+			{@render overviewTab()}
+		</Tabs.Content>
+		<Tabs.Content value="configuration">
+			{@render configurationTab()}
+		</Tabs.Content>
+		<Tabs.Content value="ip-whitelist">
+			{@render ipWhitelistTab()}
+		</Tabs.Content>
+	</Tabs.Root>
 </div>
 
 <ChangePasswordModal bind:open={changePasswordOpen} email={sessionEmail} />

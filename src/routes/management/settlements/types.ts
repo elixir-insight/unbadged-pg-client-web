@@ -1,4 +1,4 @@
-export type SettlementStatus = 'completed' | 'pending';
+export type SettlementStatus = 'completed' | 'pending' | 'failed';
 export type TransactionType = 'sale' | 'refund' | 'chargeback';
 export type SettlementTab = 'collections' | 'disbursements';
 

@@ -14,6 +14,8 @@ function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayToke
 		userName: 'Elixir Pay',
 		userEmail: 'admin@elixirpay.com',
 		userType: 'ROOT',
+		group: 'MERCHANT',
+		serviceTypes: ['PAYIN'],
 		iss: 'Elixir Pay',
 		token_use: 'gateway',
 		exp: 1_784_059_619,
@@ -56,8 +58,31 @@ describe('parseMerchantSessionFromGateway', () => {
 
 	it('uses portal groups from the access token only', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
-		expect(session.permissions).toEqual({ payin: true, payout: true });
 		expect(session.groups).toEqual(['MANAGEMENT']);
+	});
+
+	it('derives merchant service access from the gateway token', () => {
+		const payinSession = parseMerchantSessionFromGateway(gatewayToken(), ['MERCHANT']);
+		expect(payinSession.permissions).toEqual({ payin: true, payout: false });
+
+		const payoutSession = parseMerchantSessionFromGateway(
+			gatewayToken({ serviceTypes: ['PAYOUT'] }),
+			['MERCHANT']
+		);
+		expect(payoutSession.permissions).toEqual({ payin: false, payout: true });
+
+		const bothServicesSession = parseMerchantSessionFromGateway(
+			gatewayToken({ serviceTypes: ['PAYIN', 'PAYOUT'] }),
+			['MERCHANT']
+		);
+		expect(bothServicesSession.permissions).toEqual({ payin: true, payout: true });
+	});
+
+	it('denies merchant service access when serviceTypes is absent', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken({ serviceTypes: undefined }), [
+			'MERCHANT'
+		]);
+		expect(session.permissions).toEqual({ payin: false, payout: false });
 	});
 
 	it('falls back to email local-part when userName is null', () => {

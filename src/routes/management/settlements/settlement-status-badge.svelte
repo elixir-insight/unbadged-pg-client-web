@@ -5,8 +5,12 @@
 
 	let { status }: { status: SettlementStatus } = $props();
 
-	const variant: BadgeVariant = $derived(status === 'completed' ? 'success' : 'warning');
-	const label = $derived(status === 'completed' ? 'Completed' : 'Pending');
+	const variant: BadgeVariant = $derived(
+		status === 'completed' ? 'success' : status === 'failed' ? 'error' : 'warning'
+	);
+	const label = $derived(
+		status === 'completed' ? 'Completed' : status === 'failed' ? 'Failed' : 'Pending'
+	);
 </script>
 
 <Chip {variant}>{label}</Chip>
