@@ -56,7 +56,7 @@
 </script>
 
 <div class="flex flex-col lg:min-h-0 lg:flex-1">
-	{#if merchantSession.hasBothServices()}
+	{#if merchantSession.hasPayinAccess()}
 		<div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
 			<div class="flex shrink-0 items-center justify-between">
 				<h2 class="text-base leading-tight font-semibold">Welcome back, {merchantName}</h2>
@@ -135,37 +135,6 @@
 					/>
 					-->
 				</div>
-			</div>
-		</div>
-	{:else if merchantSession.hasPayinAccess()}
-		<div class="space-y-6">
-			<div class="flex items-center justify-between">
-				<h2 class="text-lg font-semibold">Welcome back, {merchantName}</h2>
-				<div class="flex items-center gap-2">
-					<Avatar name={merchantName} size="sm" />
-				</div>
-			</div>
-
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-				<StatCard
-					label="Available balance"
-					value="₹18,42,650"
-					badge={{ label: '4.2%', variant: 'success', trend: 'up' }}
-					sparkline={balanceTrend}
-				/>
-				<StatCard
-					label="PayIn · today"
-					value="₹6,42,300"
-					badge={{ label: '96.8%', variant: 'success' }}
-					subtext="128 transactions · 4 failed"
-				/>
-				<StatCard
-					label="Needs attention"
-					value="2"
-					unit="disputes"
-					badge={{ label: 'Action', variant: 'warning' }}
-					subtext="6 refunds pending · ₹42,500"
-				/>
 			</div>
 		</div>
 	{:else if merchantSession.hasPayoutAccess()}
