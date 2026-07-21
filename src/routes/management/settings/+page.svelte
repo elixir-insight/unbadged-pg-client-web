@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
-	import { Button, Chip } from '$lib/components/reusable';
+	import { Button, Chip, Tabs } from '$lib/components/reusable';
+	import type { TabItem } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
-	import * as Tabs from '$lib/components/ui/tabs';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
@@ -33,6 +33,19 @@
 	]);
 
 	let activeTab = $state('overview');
+
+	const tabs: TabItem[] = [
+		{
+			value: 'overview',
+			label: 'Overview',
+			content: overviewTab
+		},
+		{
+			value: 'configuration',
+			label: 'Configuration',
+			content: configurationTab
+		}
+	];
 </script>
 
 {#snippet overviewTab()}
@@ -142,18 +155,7 @@
 		</div>
 	</section>
 
-	<Tabs.Root bind:value={activeTab} class="flex w-full flex-col gap-4">
-		<Tabs.List variant="line">
-			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-			<Tabs.Trigger value="configuration">Configuration</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Content value="overview">
-			{@render overviewTab()}
-		</Tabs.Content>
-		<Tabs.Content value="configuration">
-			{@render configurationTab()}
-		</Tabs.Content>
-	</Tabs.Root>
+	<Tabs {tabs} bind:value={activeTab} variant="line" class="flex w-full flex-col gap-4" />
 </div>
 
 <ChangePasswordModal bind:open={changePasswordOpen} email={sessionEmail} />
