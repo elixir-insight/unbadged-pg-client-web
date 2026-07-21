@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Circle, CircleCheck } from '$lib/assets/icons';
+	import { Circle, CircleCheck, Eye, EyeOff } from '$lib/assets/icons';
 	import { Button, Input, Modal } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 
@@ -15,6 +15,9 @@
 	let newPassword = $state('');
 	let confirmPassword = $state('');
 	let isSubmitting = $state(false);
+	let showOldPassword = $state(false);
+	let showNewPassword = $state(false);
+	let showConfirmPassword = $state(false);
 
 	const emailUsername = $derived(email.split('@')[0]?.toLowerCase() ?? '');
 
@@ -57,6 +60,9 @@
 			newPassword = '';
 			confirmPassword = '';
 			isSubmitting = false;
+			showOldPassword = false;
+			showNewPassword = false;
+			showConfirmPassword = false;
 		}
 	});
 
@@ -82,39 +88,84 @@
 			<label for="old-password" class="text-sm font-medium text-foreground">
 				Old Password <span class="text-destructive">*</span>
 			</label>
-			<Input
-				id="old-password"
-				type="password"
-				bind:value={oldPassword}
-				placeholder="Old Password"
-				autocomplete="current-password"
-			/>
+			<div class="relative">
+				<Input
+					id="old-password"
+					type={showOldPassword ? 'text' : 'password'}
+					bind:value={oldPassword}
+					placeholder="Old Password"
+					autocomplete="current-password"
+					class="pr-10"
+				/>
+				<button
+					type="button"
+					onclick={() => (showOldPassword = !showOldPassword)}
+					class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+					aria-label={showOldPassword ? 'Hide old password' : 'Show old password'}
+				>
+					{#if showOldPassword}
+						<EyeOff class="size-4" />
+					{:else}
+						<Eye class="size-4" />
+					{/if}
+				</button>
+			</div>
 		</div>
 
 		<div class="flex flex-col gap-1.5">
 			<label for="new-password" class="text-sm font-medium text-foreground">
 				New Password <span class="text-destructive">*</span>
 			</label>
-			<Input
-				id="new-password"
-				type="password"
-				bind:value={newPassword}
-				placeholder="New Password"
-				autocomplete="new-password"
-			/>
+			<div class="relative">
+				<Input
+					id="new-password"
+					type={showNewPassword ? 'text' : 'password'}
+					bind:value={newPassword}
+					placeholder="New Password"
+					autocomplete="new-password"
+					class="pr-10"
+				/>
+				<button
+					type="button"
+					onclick={() => (showNewPassword = !showNewPassword)}
+					class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+					aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+				>
+					{#if showNewPassword}
+						<EyeOff class="size-4" />
+					{:else}
+						<Eye class="size-4" />
+					{/if}
+				</button>
+			</div>
 		</div>
 
 		<div class="flex flex-col gap-1.5">
 			<label for="confirm-password" class="text-sm font-medium text-foreground">
 				Confirm New Password <span class="text-destructive">*</span>
 			</label>
-			<Input
-				id="confirm-password"
-				type="password"
-				bind:value={confirmPassword}
-				placeholder="Confirm New Password"
-				autocomplete="new-password"
-			/>
+			<div class="relative">
+				<Input
+					id="confirm-password"
+					type={showConfirmPassword ? 'text' : 'password'}
+					bind:value={confirmPassword}
+					placeholder="Confirm New Password"
+					autocomplete="new-password"
+					class="pr-10"
+				/>
+				<button
+					type="button"
+					onclick={() => (showConfirmPassword = !showConfirmPassword)}
+					class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+					aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+				>
+					{#if showConfirmPassword}
+						<EyeOff class="size-4" />
+					{:else}
+						<Eye class="size-4" />
+					{/if}
+				</button>
+			</div>
 		</div>
 
 		<div class="space-y-3">

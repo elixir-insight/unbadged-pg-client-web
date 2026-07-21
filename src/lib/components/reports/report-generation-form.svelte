@@ -2,7 +2,7 @@
 	import type { DateRange } from 'bits-ui';
 	import { getLocalTimeZone, today } from '@internationalized/date';
 	import type { DropdownOption } from '$lib/components/reusable';
-	import { Button, DateRangePicker, Dropdown, toast } from '$lib/components/reusable';
+	import { Button, DateRangePicker, Dropdown, MultiSelect, toast } from '$lib/components/reusable';
 	import { AlertCircle, Loader2 } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import FormatSegmentedControl from './format-segmented-control.svelte';
@@ -67,11 +67,11 @@
 	});
 
 	function updateFilter<K extends keyof ReportFilters>(key: K, value: ReportFilters[K]) {
-		if (key === 'organizationId') {
-			filters = { ...filters, organizationId: value, merchantId: undefined };
-			return;
-		}
 		filters = { ...filters, [key]: value };
+	}
+
+	function updateOrganization(value: string | undefined) {
+		filters = { ...filters, organizationId: value, merchantId: undefined };
 	}
 
 	async function handleGenerate() {
@@ -140,7 +140,7 @@
 								placeholder="Select organization"
 								bordered={true}
 								search={true}
-								onValueChange={(value) => updateFilter('organizationId', value)}
+								onValueChange={(value) => updateOrganization(value)}
 							/>
 						</ReportFormField>
 					{/if}
@@ -173,12 +173,13 @@
 
 					{#if visibleFilters.includes('transactionStatus')}
 						<ReportFormField label="Transaction Status">
-							<Dropdown
-								value={filters.transactionStatus}
+							<MultiSelect
+								bind:value={
+									() => filters.transactionStatus ?? [],
+									(value) => updateFilter('transactionStatus', value.length > 0 ? value : undefined)
+								}
 								options={TRANSACTION_STATUS_OPTIONS}
 								placeholder="Select status"
-								bordered={true}
-								onValueChange={(value) => updateFilter('transactionStatus', value)}
 							/>
 						</ReportFormField>
 					{/if}

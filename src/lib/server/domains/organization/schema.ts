@@ -255,6 +255,25 @@ export const GetOrganizationDetailsResponseSchema = v.object({
 	)
 });
 
+export const OrganizationProfileRecordSchema = v.object({
+	orgId: v.string(),
+	companyName: v.string(),
+	orgName: v.string(),
+	email: v.string(),
+	phone: v.string(),
+	businessType: v.string(),
+	country: v.string(),
+	registeredDate: v.string(),
+	website: v.string(),
+	username: v.string()
+});
+
+export const GetOrganizationProfileResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.array(OrganizationProfileRecordSchema)
+});
+
 export const DashboardMerchantSchema = v.object({
 	orgId: v.pipe(v.string(), v.trim(), v.minLength(1)),
 	displayOrgId: v.optional(v.nullable(v.string())),
@@ -301,6 +320,10 @@ export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationRespon
 export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
+>;
+export type OrganizationProfileRecord = v.InferOutput<typeof OrganizationProfileRecordSchema>;
+export type GetOrganizationProfileResponse = v.InferOutput<
+	typeof GetOrganizationProfileResponseSchema
 >;
 export type DashboardMerchant = v.InferOutput<typeof DashboardMerchantSchema>;
 export type GetDashboardMerchantsResponse = v.InferOutput<
