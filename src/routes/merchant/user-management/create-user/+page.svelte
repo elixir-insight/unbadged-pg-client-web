@@ -54,6 +54,7 @@
 	}
 
 	function goToPreview() {
+		createUserFormStore.normalizeEmail();
 		submitAttempted = true;
 		const validationError = firstValidationError(createUserFormStore.validationErrors);
 		if (validationError) {
@@ -88,6 +89,7 @@
 						errors.email && 'border-destructive focus-visible:ring-destructive/30'
 					)}
 					bind:value={createUserFormStore.email}
+					onblur={() => createUserFormStore.normalizeEmail()}
 				/>
 				{#if errors.email}
 					<p class="text-xs text-destructive">{errors.email}</p>

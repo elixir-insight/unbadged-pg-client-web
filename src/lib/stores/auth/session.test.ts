@@ -51,11 +51,29 @@ describe('parseMerchantSessionFromGateway', () => {
 		expect(session.organizationId).toBe('10002');
 		expect(session.merchantName).toBe('Elixir Pay');
 		expect(session.email).toBe('admin@elixirpay.com');
+		expect(session.userType).toBe('ROOT');
 	});
 
 	it('uses portal groups from the access token only', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
 		expect(session.permissions).toEqual({ payin: true, payout: true });
 		expect(session.groups).toEqual(['MANAGEMENT']);
+	});
+
+	it('falls back to email local-part when userName is null', () => {
+		const session = parseMerchantSessionFromGateway(
+			gatewayToken({ userName: null, userEmail: 'Abdullah.a@elixirpay.in' }),
+			['MERCHANT']
+		);
+		expect(session.merchantName).toBe('Abdullah.a');
+		expect(session.email).toBe('Abdullah.a@elixirpay.in');
+	});
+
+	it('falls back to User when userName and email are blank', () => {
+		const session = parseMerchantSessionFromGateway(
+			gatewayToken({ userName: null, userEmail: '' }),
+			['MERCHANT']
+		);
+		expect(session.merchantName).toBe('User');
 	});
 });
