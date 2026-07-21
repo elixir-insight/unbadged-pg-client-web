@@ -9,6 +9,7 @@
 	import Sidebar from '../sidebar/sidebar.svelte';
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
+	import { cn } from '$lib/utils';
 
 	let {
 		app,
@@ -36,7 +37,15 @@
 
 	const allItems = $derived(navConfig[app].flatMap((g) => g.items));
 
-	const isDashboard = $derived(page.url.pathname === rootRoutes[app]);
+	const rootRouteIds: Record<AppId, string> = {
+		management: '/management',
+		merchant: '/merchant',
+		partner: '/partner'
+	};
+
+	const isDashboard = $derived(
+		page.route.id === rootRouteIds[app] || (page.route.id?.includes('/(dashboard)') ?? false)
+	);
 
 	const pageTitle = $derived(
 		allItems.find((i) => page.url.pathname === i.href)?.title ??
@@ -64,18 +73,35 @@
 
 		const segments = rest.split('/').filter(Boolean);
 
-		const items = segments.map((seg, index) => {
+		const items: { href: string; label: string }[] = [];
+
+		segments.forEach((seg, index) => {
 			const href = root + '/' + segments.slice(0, index + 1).join('/');
 
 			const custom = breadcrumbRoutes.find((route) => route.matcher.test(href));
+			if (custom) {
+				items.push({ href, label: custom.title });
+				return;
+			}
 
-			return {
-				href,
-				label: custom?.title ?? navTitleMap.get(href) ?? formatSegment(seg)
-			};
+			const navTitle = navTitleMap.get(href);
+			if (navTitle) {
+				items.push({ href, label: navTitle });
+				return;
+			}
+
+			// This segment is a literal path piece (e.g. "view-role") that only exists
+			// to lead into a dynamic id further down the path — it isn't its own
+			// breadcrumb level, so skip it instead of falling back to a formatted label.
+			const isPrefixOfDynamicRoute = breadcrumbRoutes.some((route) =>
+				route.matcher.test(href + '/__probe__')
+			);
+			if (isPrefixOfDynamicRoute) return;
+
+			items.push({ href, label: formatSegment(seg) });
 		});
 
-		// Remove numeric ID segments when a custom breadcrumb matched
+		// Remove numeric ID segments when no custom breadcrumb matched
 		return items.filter(
 			(item) => !/\/\d+$/.test(item.href) || item.label !== item.href.split('/').pop()
 		);
@@ -98,11 +124,11 @@
 			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
 			<header
-				class={`flex h-14 shrink-0 items-center gap-3 border-b border-border px-4${isDashboard ? ' md:hidden' : ''}`}
+				class={`${isDashboard ? ' md:hidden' : ''} flex h-14 shrink-0 items-center gap-3 border-b border-border px-4`}
 			>
 				<!-- Mobile: open drawer -->
 				<button
-					class="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
+					class="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-accent hover:text-accent-foreground md:hidden"
 					onclick={() => (isMobileOpen = true)}
 					aria-label="Open navigation"
 				>
@@ -114,8 +140,15 @@
 				{/if}
 			</header>
 
-			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
-				<div class="min-h-full p-5">
+			<div
+				class={cn(
+					'app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto',
+					isDashboard && 'md:overflow-hidden'
+				)}
+			>
+				<div
+					class={cn('min-h-full', isDashboard ? 'p-5 md:flex md:h-full md:flex-col md:p-6' : 'p-5')}
+				>
 					{@render children()}
 				</div>
 			</div>

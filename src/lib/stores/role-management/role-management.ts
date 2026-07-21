@@ -1,14 +1,9 @@
 import type { Component } from 'svelte';
 
-export type PermStatus = 'granted' | 'denied';
+export type PermStatus = 'granted' | 'denied' | 'unavailable';
 
 export type PermKey =
-	| 'read'
-	| 'writeUnrestricted'
-	| 'writeRestricted'
-	| 'delete'
-	| 'approve'
-	| 'fullAccess';
+	'read' | 'writeUnrestricted' | 'writeRestricted' | 'delete' | 'approve' | 'fullAccess';
 
 export type ModulePermissions = Record<PermKey, boolean>;
 export type PermissionsState = Record<string, ModulePermissions>;
@@ -43,7 +38,7 @@ export type RoleItem = {
 export type RolePermission = {
 	name: string;
 	id: number;
-	// description: string;
+	description?: string;
 };
 
 export type RoleUser = {
@@ -57,7 +52,7 @@ export type RoleDetail = {
 		roleName: string;
 		roleAssignedCount: number;
 		defaultRole: boolean;
-		// description: string;
+		description: string;
 	};
 	permissions: RolePermission[];
 	users: RoleUser[];

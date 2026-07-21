@@ -2,5 +2,13 @@
 	"files.associations": {
 		"*.css": "tailwindcss"
 	},
-	"conventionalCommits.scopes": ["#3", "#30", "#10", "#56"]
+	"conventionalCommits.scopes": [
+		"#3",
+		"#22",
+		"#30",
+		"#10",
+		"#56",
+		"37",
+		"#72"
+	]
 }

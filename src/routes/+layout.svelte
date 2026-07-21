@@ -4,13 +4,34 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toast } from '$lib/components/reusable';
-	let { children } = $props();
+	import { merchantSession } from '$lib/stores/auth';
+	import {
+		isKybSubStepNavigation,
+		isPreviewSubSectionNavigation
+	} from './management/organizations/[orgId]/helpers';
+
+	let { data, children } = $props();
 	let isNavigating = $state(false);
 
-	onNavigate((navigation) => {
-		isNavigating = true;
+	$effect(() => {
+		merchantSession.hydrate(data.session);
+	});
 
-		if (!document.startViewTransition) {
+	onNavigate((navigation) => {
+		const toPath = navigation.to?.url.pathname ?? '';
+		const fromPath = navigation.from?.url.pathname ?? '';
+		const sectionPath = /\/management\/organizations\/[^/]+\/(documents|integration)(?:\/|$)/;
+		const skipViewTransition =
+			sectionPath.test(toPath) ||
+			sectionPath.test(fromPath) ||
+			isKybSubStepNavigation(navigation.from?.url, navigation.to?.url) ||
+			isPreviewSubSectionNavigation(navigation.from?.url, navigation.to?.url);
+
+		if (!skipViewTransition) {
+			isNavigating = true;
+		}
+
+		if (!document.startViewTransition || skipViewTransition) {
 			navigation.complete.then(() => {
 				isNavigating = false;
 			});
@@ -42,7 +63,5 @@
 	<div class="app-nav-progress" aria-hidden="true"></div>
 {/if}
 
-<Toast richColors position="bottom-right" />
+<Toast richColors position="top-right" />
 {@render children()}
-
-<Toast position="bottom-right" richColors closeButton />

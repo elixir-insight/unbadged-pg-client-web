@@ -7,6 +7,8 @@
 
 	let { children } = $props();
 
+	const isErrorPage = $derived(page.error != null);
+
 	const PAYIN_ROUTES = [
 		'/merchant/disputes',
 		'/merchant/settlements',
@@ -18,8 +20,6 @@
 		'/merchant/beneficiaries',
 		'/merchant/transactions/disbursements'
 	];
-
-	merchantSession.initialize();
 
 	$effect(() => {
 		const path = page.url.pathname;
@@ -39,6 +39,10 @@
 	});
 </script>
 
-<AppShell app="merchant">
+{#if isErrorPage}
 	{@render children()}
-</AppShell>
+{:else}
+	<AppShell app="merchant">
+		{@render children()}
+	</AppShell>
+{/if}
