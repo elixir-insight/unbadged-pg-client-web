@@ -46,19 +46,23 @@ export const SignInResponseSchema = v.union([
 /** Refresh only returns tokens — not the session-conflict union. */
 export const RefreshResponseSchema = SignInTokensResponseSchema;
 
+/** Auth emails are case-insensitive — normalize before upstream calls. */
+const AuthEmailSchema = v.pipe(
+	v.string(),
+	v.trim(),
+	v.toLowerCase(),
+	v.minLength(1, 'Email is required'),
+	v.email('Enter a valid email')
+);
+
 export const SignInBodySchema = v.object({
-	userEmail: v.pipe(
-		v.string(),
-		v.trim(),
-		v.minLength(1, 'Email is required'),
-		v.email('Enter a valid email')
-	),
+	userEmail: AuthEmailSchema,
 	password: v.pipe(v.string(), v.trim(), v.minLength(1, 'Password is required')),
 	force: v.optional(v.boolean(), false)
 });
 
 export const ForgotPasswordRequestSchema = v.object({
-	userEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email'))
+	userEmail: AuthEmailSchema
 });
 
 export const ForgotPasswordResponseSchema = v.object({
@@ -69,7 +73,7 @@ export const ForgotPasswordResponseSchema = v.object({
 export type ForgotPasswordResponse = v.InferOutput<typeof ForgotPasswordResponseSchema>;
 
 export const ConfirmPasswordRequestSchema = v.object({
-	userEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email')),
+	userEmail: AuthEmailSchema,
 	confirmationCode: v.pipe(
 		v.string(),
 		v.trim(),

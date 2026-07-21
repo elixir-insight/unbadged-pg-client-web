@@ -1,116 +1,127 @@
-<script lang="ts" module>
-	import type { BadgeVariant } from '$lib/components/ui/badge';
+<script module lang="ts">
+	import type { Component } from 'svelte';
+	import type { BadgeVariant } from '$lib/components/ui/badge/badge.svelte';
 
-	export type StatCardTone = 'success' | 'warning' | 'danger' | 'brand';
+	export interface StatCardBadge {
+		label: string;
+		variant?: BadgeVariant;
+		trend?: 'up' | 'down';
+	}
 
-	/** Maps our semantic tone names onto chip.svelte's real variant prop. */
-	const toneToChipVariant: Record<StatCardTone, BadgeVariant> = {
-		success: 'success',
-		warning: 'warning',
-		danger: 'destructive',
-		brand: 'default'
-	};
+	export interface StatCardTrend {
+		label: string;
+		direction: 'up' | 'down';
+	}
 
-	const toneToTextClass: Record<StatCardTone, string> = {
-		success: 'text-success',
-		warning: 'text-warning',
-		danger: 'text-destructive',
-		brand: 'text-foreground'
-	};
-
-	const toneToBorderClass: Record<StatCardTone, string> = {
-		success: 'border-l-success',
-		warning: 'border-l-warning',
-		danger: 'border-l-destructive',
-		brand: 'border-l-transparent'
-	};
-
-	const toneToSelectedClass: Record<StatCardTone, string> = {
-		success: 'ring-1 ring-success/30 bg-success/5',
-		warning: 'ring-1 ring-warning/30 bg-warning/5',
-		danger: 'ring-1 ring-destructive/30 bg-destructive/5',
-		brand: 'ring-1 ring-primary/30 bg-primary/5'
-	};
+	export type StatCardIconVariant = 'muted' | 'success' | 'warning' | 'error';
 </script>
 
 <script lang="ts">
-	import Chip from '$lib/components/reusable/chip/chip.svelte';
+	import { Chip } from '$lib/components/ui/badge';
+	import { TrendingUp, TrendingDown } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
+
+	interface Props {
+		label: string;
+		value: string;
+		unit?: string;
+		badge?: StatCardBadge;
+		icon?: Component;
+		// iconVariant?: StatCardIconVariant;
+		subtext?: string;
+		trend?: StatCardTrend;
+		sparkline?: number[];
+		class?: string;
+	}
 
 	let {
 		label,
 		value,
-		badgeText,
-		badgeVariant,
-		subText,
-		valueTone,
-		accent,
-		selected = false,
-		onclick,
+		unit,
+		badge,
+		icon: Icon,
+		// iconVariant = 'muted',
+		subtext,
+		trend,
+		sparkline,
 		class: className
-	}: {
-		label: string;
-		value: string;
-		badgeText?: string;
-		badgeVariant?: StatCardTone;
-		subText?: string;
-		/** Colors just the value text — for status-like numbers (e.g. Successful/Pending/Failed). */
-		valueTone?: StatCardTone;
-		/** Adds a left accent border in the matching semantic color, square on that side. */
-		accent?: StatCardTone;
-		/** Highlights the card as the active filter, when clickable. */
-		selected?: boolean;
-		/** Makes the card an interactive filter trigger instead of a static display. */
-		onclick?: () => void;
-		class?: string;
-	} = $props();
+	}: Props = $props();
 
-	const interactive = $derived(!!onclick);
-
-	const cardClass = $derived(
-		cn(
-			'border border-border bg-card shadow-xs text-left',
-			accent
-				? cn('rounded-l-none rounded-r-lg border-l-2', toneToBorderClass[accent])
-				: 'rounded-lg',
-			interactive &&
-				'cursor-pointer transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-			selected && accent && toneToSelectedClass[accent],
-			className
-		)
-	);
+	const points = $derived.by(() => {
+		if (!sparkline || sparkline.length < 2) return '';
+		const min = Math.min(...sparkline);
+		const max = Math.max(...sparkline);
+		const range = max - min || 1;
+		const stepX = 100 / (sparkline.length - 1);
+		return sparkline.map((v, i) => `${i * stepX},${28 - ((v - min) / range) * 26}`).join(' ');
+	});
 </script>
 
-{#snippet content()}
-	<div class="flex flex-col gap-2.5 p-4">
-		<div class="flex items-start justify-between gap-2">
-			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-			{#if badgeText && badgeVariant}
-				<Chip variant={toneToChipVariant[badgeVariant]} class="shrink-0">{badgeText}</Chip>
-			{/if}
-		</div>
+<div
+	class={cn(
+		'relative isolate flex flex-col justify-center overflow-hidden rounded-lg border border-border/60 bg-linear-to-br from-chart-3/12 via-background to-chart-4/6 px-4 py-5 shadow-xs backdrop-blur-sm',
+		className
+	)}
+>
+	{#if Icon}
+		<Icon class="pointer-events-none absolute -right-4 -bottom-4 -z-10 size-24 text-chart-3/10" />
+	{/if}
 
-		<p
-			class={cn(
-				'font-mono text-xl font-semibold tabular-nums',
-				valueTone ? toneToTextClass[valueTone] : 'text-foreground'
-			)}
-		>
-			{value}
-		</p>
+	<div class="flex items-start justify-between gap-2">
+		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
 
-		{#if subText}
-			<p class="text-xs text-muted-foreground">{subText}</p>
+		{#if badge}
+			<Chip variant={badge.variant ?? 'default'} class="shrink-0">
+				{#if badge.trend === 'up'}
+					<TrendingUp data-icon="inline-start" />
+				{:else if badge.trend === 'down'}
+					<TrendingDown data-icon="inline-start" />
+				{/if}
+				{badge.label}
+			</Chip>
 		{/if}
 	</div>
-{/snippet}
 
-{#if interactive}
-	<button type="button" {onclick} class={cardClass}>
-		{@render content()}
-	</button>
-{:else}
-	<div class={cardClass}>
-		{@render content()}
-	</div>
-{/if}
+	<p class="mt-2 text-lg font-semibold tracking-tight">
+		{value}
+		{#if unit}
+			<span class="text-sm font-normal text-muted-foreground">{unit}</span>
+		{/if}
+	</p>
+
+	{#if subtext}
+		<p class="mt-1 text-xs text-muted-foreground">{subtext}</p>
+	{/if}
+
+	{#if trend}
+		<p
+			class={cn(
+				'mt-2 flex items-center gap-1 text-xs font-medium',
+				trend.direction === 'up'
+					? 'text-green-600 dark:text-green-400'
+					: 'text-red-600 dark:text-red-400'
+			)}
+		>
+			{#if trend.direction === 'up'}
+				<TrendingUp class="size-3.5" />
+			{:else}
+				<TrendingDown class="size-3.5" />
+			{/if}
+			{trend.label}
+		</p>
+	{/if}
+
+	{#if points}
+		<svg viewBox="0 0 100 28" preserveAspectRatio="none" class="mt-2 h-8 w-full">
+			<polyline
+				{points}
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				class="text-primary"
+			/>
+		</svg>
+	{/if}
+</div>

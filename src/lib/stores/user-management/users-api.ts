@@ -111,7 +111,10 @@ export async function createUser(
 	const res = await fetch(withPortal('/api/users', portal), {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload)
+		body: JSON.stringify({
+			...payload,
+			userEmail: payload.userEmail.trim().toLowerCase()
+		})
 	});
 
 	const raw: {
@@ -142,7 +145,10 @@ export async function updateUser(
 	const res = await fetch(withPortal(`/api/users?userId=${encodeURIComponent(userId)}`, portal), {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload)
+		body: JSON.stringify({
+			...payload,
+			userEmail: payload.userEmail.trim().toLowerCase()
+		})
 	});
 
 	const raw: { message?: string } = await res.json().catch(() => ({}));

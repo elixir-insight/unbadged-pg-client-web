@@ -166,6 +166,11 @@ class CreateUserFormStore {
 		this.reportingManagerEmail = email;
 	}
 
+	/** Emails are case-insensitive — normalize before preview / API submit. */
+	normalizeEmail() {
+		this.email = this.email.trim().toLowerCase();
+	}
+
 	clearReportingManager() {
 		this.reportingManagerId = null;
 		this.reportingManagerName = '';

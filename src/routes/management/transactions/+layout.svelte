@@ -45,15 +45,15 @@
 
 	$effect(() => {
 		if (page.url.pathname === resolve('/management/transactions')) {
-			gotoScopedPath('/management/transactions/collections/orders', scope);
+			gotoScopedPath('/management/transactions/collections/payments', scope);
 		}
 	});
 
 	function collectionsTabHref(): string {
-		if (page.url.pathname.includes('/collections/payments')) {
-			return scopedListHref('/management/transactions/collections/payments', scope);
+		if (page.url.pathname.includes('/collections/orders')) {
+			return scopedListHref('/management/transactions/collections/orders', scope);
 		}
-		return scopedListHref('/management/transactions/collections/orders', scope);
+		return scopedListHref('/management/transactions/collections/payments', scope);
 	}
 </script>
 

@@ -3,30 +3,31 @@
 	import { Button, Chip, Tabs } from '$lib/components/reusable';
 	import type { TabItem } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
-	import { cn } from '$lib/utils';
+	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
+	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import ChangePasswordModal from './change-password-modal.svelte';
-	import IpWhitelistTab from './ip-whitelist-tab.svelte';
+	import { cn } from '$lib/utils';
+	import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
 
 	merchantSession.initialize();
 
-	const merchantName = $derived(merchantSession.session?.merchantName ?? 'Merchant');
+	const displayName = $derived(merchantSession.session?.merchantName ?? 'Admin');
 	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
-	const website = 'https://google.com';
-	const email = 'merchant@jubiliantpay.com';
-	const phone = '+916382303714';
-	const sessionEmail = $derived(merchantSession.session?.email ?? email);
+	const userRole = $derived(formatUserType(merchantSession.session?.userType ?? 'MEMBER'));
+	const sessionEmail = $derived(merchantSession.session?.email ?? 'admin@elixirpay.com');
+	const website = 'https://elixirpay.com';
+	const phone = '+91 XXXXX XXXXX';
 
 	let changePasswordOpen = $state(false);
 
-	const overviewFields = [
-		{ label: 'Company Name', value: 'wayne' },
-		{ label: 'Business Type', value: 'Private Limited' },
-		{ label: 'Country', value: 'India' },
-		{ label: 'Registered State', value: 'Tamil Nadu' },
-		{ label: 'Support Email', value: 'merchant@wayne.com', kind: 'email' as const },
-		{ label: 'Phone', value: '+91 XXXXX XXXXX' }
-	];
+	const overviewFields = $derived([
+		{ label: 'Display Name', value: displayName },
+		{ label: 'Role', value: userRole },
+		{ label: 'Organization ID', value: organizationId || '—' },
+		{ label: 'Portal', value: 'Management' },
+		{ label: 'Support Email', value: sessionEmail, kind: 'email' as const },
+		{ label: 'Phone', value: phone }
+	]);
 
 	let activeTab = $state('overview');
 
@@ -47,15 +48,6 @@
 			content: ipWhitelistTab
 		}
 	];
-
-	function initials(name: string) {
-		return name
-			.split(' ')
-			.map((word) => word[0])
-			.slice(0, 2)
-			.join('')
-			.toUpperCase();
-	}
 </script>
 
 {#snippet overviewTab()}
@@ -90,7 +82,9 @@
 		>
 			<div class="min-w-0 flex-1">
 				<h3 class="text-sm font-semibold text-foreground">Webhook</h3>
-				<p class="mt-2 truncate text-sm text-muted-foreground">https://merchant.com/webhook</p>
+				<p class="mt-2 truncate text-sm text-muted-foreground">
+					https://management.elixirpay.com/webhook
+				</p>
 			</div>
 			<Chip variant="success">Configured</Chip>
 		</div>
@@ -123,17 +117,17 @@
 			<div class="absolute -top-10 left-4 sm:-top-12 sm:left-6">
 				<Avatar.Root class="size-20 border-4 border-card bg-muted sm:size-24">
 					<Avatar.Fallback class="bg-primary text-lg font-bold text-primary-foreground sm:text-xl">
-						{initials(merchantName)}
+						{getUserInitials(displayName)}
 					</Avatar.Fallback>
-					<Avatar.Badge class="size-3.5 bg-success ring-card sm:size-4" />
 				</Avatar.Root>
 			</div>
 
 			<div class="pt-12 sm:pt-14">
-				<h2 class="text-xl font-bold text-foreground">{merchantName}</h2>
+				<h2 class="text-xl font-bold text-foreground">{displayName}</h2>
 				{#if organizationId}
 					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
 				{/if}
+				<p class="mt-0.5 text-sm text-muted-foreground">{userRole}</p>
 
 				<ul class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
 					<li class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -150,10 +144,10 @@
 					<li class="flex items-center gap-2 text-sm text-muted-foreground">
 						<MailIcon class="size-4 shrink-0" aria-hidden="true" />
 						<a
-							href="mailto:{email}"
+							href="mailto:{sessionEmail}"
 							class="truncate text-foreground transition-colors hover:text-primary"
 						>
-							{email}
+							{sessionEmail}
 						</a>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-muted-foreground">

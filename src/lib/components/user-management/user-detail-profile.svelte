@@ -39,13 +39,6 @@
 	function statusVariant(currentStatus: UserStatus): BadgeVariant {
 		return currentStatus === 'Active' ? 'success' : 'info';
 	}
-
-	function avatarBadgeClass(currentStatus?: UserStatus): string {
-		if (!currentStatus) return 'hidden';
-		return currentStatus === 'Active'
-			? 'bg-success ring-card sm:size-4'
-			: 'bg-info ring-card sm:size-4';
-	}
 </script>
 
 <div class="m-auto flex w-full flex-col gap-6 md:w-[75%]">
@@ -64,7 +57,6 @@
 					<Avatar.Fallback class="bg-primary text-lg font-bold text-primary-foreground sm:text-xl">
 						{initials}
 					</Avatar.Fallback>
-					<Avatar.Badge class={cn('size-3.5 ring-card', avatarBadgeClass(status))} />
 				</Avatar.Root>
 			</div>
 

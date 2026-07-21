@@ -31,11 +31,20 @@
 
 		try {
 			const res = await fetch(`/api/roles?${params}`);
+			if (!res.ok) {
+				roles = [];
+				hasMore = false;
+				return;
+			}
+
 			const data: { items?: RoleItem[] } = await res.json();
 
 			// Single-shot list for now — BFF returns the filtered page; appending the same
 			// response would duplicate cards and loop while the sentinel stays visible.
 			roles = data?.items ?? [];
+			hasMore = false;
+		} catch {
+			roles = [];
 			hasMore = false;
 		} finally {
 			loading = false;

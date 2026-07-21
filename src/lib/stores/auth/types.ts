@@ -46,7 +46,8 @@ export interface AccessTokenPayload {
 export interface GatewayTokenPayload {
 	orgId: number;
 	userId: number;
-	userName: string;
+	/** Backend may return null for ROOT / incomplete profiles. */
+	userName: string | null;
 	userEmail: string;
 	userType: string;
 	iss: string;
@@ -61,6 +62,7 @@ export interface MerchantSession {
 	organizationId: string;
 	merchantName: string;
 	email: string;
+	userType: string;
 	/** Filled by a separate services API later; temporarily both true for MERCHANT UX.*/
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
