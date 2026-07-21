@@ -159,7 +159,8 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 		// members first, then fall back to user directory (same source as the picker).
 		let reportingTo:
 			{ id: number; name: string; employeeId?: string; userEmail?: string } | undefined;
-		let assignedUsersCount = 0;
+		let assignedUsers = member.assignedUsers ?? [];
+		let assignedUsersCount = assignedUsers.length;
 
 		const [membersList, directoryList] = await Promise.all([
 			membersClient.list(
@@ -190,9 +191,16 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 			);
 		} else {
 			const members = membersList.data?.data ?? [];
-			assignedUsersCount = members.filter(
+			const directReports = members.filter(
 				(item) => item.supervisorId != null && Number(item.supervisorId) === Number(memberId)
-			).length;
+			);
+			if (assignedUsers.length === 0) {
+				assignedUsers = directReports.map((item) => ({
+					id: item.id,
+					name: item.userName
+				}));
+			}
+			assignedUsersCount = assignedUsers.length;
 		}
 
 		const supervisorId = member.supervisorId ?? null;
@@ -240,7 +248,7 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 		if (!membersList.ok && !reportingTo) {
 			return json({
 				...(result.data ?? {}),
-				data: [{ ...member, roles: resolvedRoles, assignedUsersCount }]
+				data: [{ ...member, roles: resolvedRoles, assignedUsersCount, assignedUsers }]
 			});
 		}
 
@@ -248,7 +256,8 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 			{
 				supervisorId,
 				reportingTo: reportingTo ?? null,
-				assignedUsersCount
+				assignedUsersCount,
+				assignedUsers
 			},
 			'reporting-to and assigned-reports resolved — returning view-user response'
 		);
@@ -260,7 +269,8 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 					...member,
 					roles: resolvedRoles,
 					...(reportingTo ? { reportingTo } : {}),
-					assignedUsersCount
+					assignedUsersCount,
+					assignedUsers
 				}
 			]
 		});

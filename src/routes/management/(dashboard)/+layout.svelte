@@ -3,11 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
 
-	const userName = 'Linda';
+	const userName = $derived(merchantSession.session?.merchantName ?? 'User');
 
 	const tabPaths = {
 		overview: resolve('/management'),
@@ -39,7 +40,7 @@
 			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<div class="min-w-0">
 					<h1 class="text-lg font-bold whitespace-nowrap text-foreground">
-						Good Morning, {userName}
+						Welcome, {userName}
 					</h1>
 				</div>
 			</div>

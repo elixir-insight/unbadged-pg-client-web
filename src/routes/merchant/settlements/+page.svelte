@@ -462,7 +462,7 @@
 	<Tabs
 		tabs={[
 			{ value: 'scheduled', label: 'Settlements', content: scheduledContent },
-			{ value: 'ondemand', label: 'Ondemand settlements', content: ondemandContent }
+			{ value: 'ondemand', label: 'On-Demand Settlements', content: ondemandContent }
 		]}
 		bind:value={tabValue}
 		onValueChange={setTab}

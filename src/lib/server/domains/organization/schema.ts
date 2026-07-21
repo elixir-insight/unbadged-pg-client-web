@@ -255,6 +255,25 @@ export const GetOrganizationDetailsResponseSchema = v.object({
 	)
 });
 
+export const OrganizationProfileRecordSchema = v.object({
+	orgId: v.string(),
+	companyName: v.string(),
+	orgName: v.string(),
+	email: v.string(),
+	phone: v.string(),
+	businessType: v.string(),
+	country: v.string(),
+	registeredDate: v.string(),
+	website: v.string(),
+	username: v.string()
+});
+
+export const GetOrganizationProfileResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.array(OrganizationProfileRecordSchema)
+});
+
 export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationRequestSchema>;
 export type CreateOrganizationResponse = v.InferOutput<typeof CreateOrganizationResponseSchema>;
 export type UpdateOrganizationKybRequest = v.InferOutput<typeof UpdateOrganizationKybRequestSchema>;
@@ -288,6 +307,10 @@ export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationRespon
 export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
+>;
+export type OrganizationProfileRecord = v.InferOutput<typeof OrganizationProfileRecordSchema>;
+export type GetOrganizationProfileResponse = v.InferOutput<
+	typeof GetOrganizationProfileResponseSchema
 >;
 
 export const OrganizationTableProfileStatusSchema = v.picklist([

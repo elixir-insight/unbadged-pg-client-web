@@ -1,6 +1,11 @@
 /** Raw role shape — list may return names; detail returns role IDs */
 export type ApiUserRole = string | number | { roleId?: number; roleName?: string; name?: string };
 
+export interface ApiAssignedUser {
+	id: number;
+	name: string;
+}
+
 /** List item from GET /api/v1/{management|merchant}/member */
 export interface ApiUserListItem {
 	id: number;
@@ -46,6 +51,8 @@ export interface ApiUserDetailItem {
 	};
 	/** Count of members whose supervisorId is this user — blocks delete when > 0 */
 	assignedUsersCount?: number;
+	/** Members assigned to this user as direct reports. */
+	assignedUsers?: ApiAssignedUser[];
 }
 
 export interface ApiPagination {

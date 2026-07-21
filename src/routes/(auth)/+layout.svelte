@@ -52,12 +52,19 @@
 			<video
 				bind:this={videoEl}
 				src="/video/LoginVid.mp4"
-				class="absolute inset-0 h-full w-full object-cover"
+				class="pointer-events-none absolute inset-0 h-full w-full object-cover select-none [&::-webkit-media-controls]:hidden [&::-webkit-media-controls-enclosure]:hidden [&::-webkit-media-controls-panel]:hidden"
 				preload="auto"
 				autoplay
 				muted
 				loop
 				playsinline
+				controls={false}
+				controlslist="nodownload nofullscreen noplaybackrate noremoteplayback"
+				disablepictureinpicture
+				disableremoteplayback
+				draggable="false"
+				tabindex="-1"
+				oncontextmenu={(event) => event.preventDefault()}
 				aria-hidden="true"
 			></video>
 		{/if}

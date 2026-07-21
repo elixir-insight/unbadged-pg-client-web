@@ -49,6 +49,7 @@
 					userName: merchantSession.session.merchantName,
 					userRole: formatUserType(merchantSession.session.userType ?? ''),
 					userInitials: getUserInitials(merchantSession.session.merchantName),
+					confirmLogout: app === 'management' || app === 'merchant',
 					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {}),
 					...(settingsHrefs[app] ? { settingsHref: settingsHrefs[app] } : {})
 				}
@@ -95,9 +96,13 @@
 	<div
 		class="mt-4 flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
 	>
-		<div class="flex min-w-0 items-center gap-2">
+		<a
+			href={resolve(...([rootRoutes[app]] as Parameters<typeof resolve>))}
+			aria-label="Go to dashboard"
+			class="flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+		>
 			<CompanyLogoLight class=" shrink-0" />
-		</div>
+		</a>
 
 		<!-- Mobile: close drawer -->
 		<button

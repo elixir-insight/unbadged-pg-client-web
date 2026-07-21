@@ -7,6 +7,11 @@ export interface UserReportingManager {
 	email: string;
 }
 
+export interface UserAssignedUser {
+	id: string;
+	name: string;
+}
+
 export interface UserItem {
 	id: string;
 	name: string;
@@ -18,6 +23,7 @@ export interface UserItem {
 	reportingManager?: UserReportingManager | null;
 	/** Users who report to this person — delete is blocked when non-empty. */
 	assignedUsersCount?: number;
+	assignedUsers?: UserAssignedUser[];
 }
 
 /** Normalized list response used by the UI */

@@ -3,7 +3,6 @@
 	import { resolve } from '$app/paths';
 	import { Pencil, Trash2 } from '$lib/assets/icons';
 	import { UserDetailProfile } from '$lib/components/user-management';
-	import { buildUserOverviewFields } from '$lib/components/user-management/user-overview-fields';
 	import { Button, Modal, Tooltip } from '$lib/components/reusable';
 	import { userFormStore } from '$lib/stores/user-form.svelte';
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
@@ -30,20 +29,15 @@
 			: null
 	);
 
-	const overviewFields = $derived(
-		buildUserOverviewFields({
-			email: user.email,
-			mobileNumber: user.mobileNumber,
-			employeeId: user.employeeId,
-			reportingManager: user.reportingManager
-		})
-	);
-
 	const phoneDisplay = $derived(formatPhoneDisplay(user.mobileNumber));
 
 	function handleEdit() {
 		createUserFormStore.loadForEdit(user);
 		goto(resolve('/merchant/user-management/edit-user/[id]', { id: user.id }));
+	}
+
+	function getUserHref(id: string): string {
+		return resolve('/merchant/user-management/view-user/[id]', { id });
 	}
 
 	async function confirmDelete() {
@@ -80,8 +74,10 @@
 	{phoneDisplay}
 	status={user.status}
 	roles={user.roles ?? []}
-	{overviewFields}
 	initials={getInitials(user.name)}
+	assignedUsers={user.assignedUsers ?? []}
+	reportingManager={user.reportingManager}
+	{getUserHref}
 >
 	{#snippet actions()}
 		{#if deleteDisabledReason}

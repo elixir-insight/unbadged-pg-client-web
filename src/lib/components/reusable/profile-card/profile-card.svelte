@@ -3,7 +3,9 @@
 	import { resolve } from '$app/paths';
 	import { Settings, LogOut, ChevronUp, Hash } from '$lib/assets/icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
+	import Modal from '../modal/modal.svelte';
 
 	let {
 		userName = '',
@@ -11,7 +13,8 @@
 		userInitials = '',
 		vanNumber,
 		isCollapsed = false,
-		settingsHref
+		settingsHref,
+		confirmLogout = false
 	}: {
 		userName?: string;
 		userRole?: string;
@@ -19,7 +22,10 @@
 		vanNumber?: string;
 		isCollapsed?: boolean;
 		settingsHref?: string;
+		confirmLogout?: boolean;
 	} = $props();
+
+	let logoutOpen = $state(false);
 
 	function handleSettingsClick() {
 		if (settingsHref) {
@@ -88,15 +94,53 @@
 			</DropdownMenu.Item>
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
 
-			<form method="POST" action={resolve('/logout')}>
-				<button
-					type="submit"
-					class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
+			{#if confirmLogout}
+				<DropdownMenu.Item
+					variant="destructive"
+					onclick={() => (logoutOpen = true)}
+					class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm"
 				>
 					<LogOut class="h-4 w-4 shrink-0" />
 					Sign out
-				</button>
-			</form>
+				</DropdownMenu.Item>
+			{:else}
+				<form method="POST" action={resolve('/logout')}>
+					<button
+						type="submit"
+						class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus:bg-destructive/10"
+					>
+						<LogOut class="h-4 w-4 shrink-0" />
+						Sign out
+					</button>
+				</form>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>
+
+{#if confirmLogout}
+	<Modal
+		bind:open={logoutOpen}
+		title="Confirm logout"
+		description="Are you sure you want to log out of your account?"
+	>
+		{#snippet footer()}
+			<div class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<Button
+					type="button"
+					variant="outline"
+					class="w-full sm:w-auto"
+					onclick={() => (logoutOpen = false)}
+				>
+					Cancel
+				</Button>
+				<form method="POST" action={resolve('/logout')} class="w-full sm:w-auto">
+					<Button type="submit" variant="destructive" class="w-full sm:w-auto">
+						<LogOut class="size-4" aria-hidden="true" />
+						Log out
+					</Button>
+				</form>
+			</div>
+		{/snippet}
+	</Modal>
+{/if}

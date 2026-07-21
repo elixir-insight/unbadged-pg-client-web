@@ -6,7 +6,7 @@
 		RefundInsightsCard,
 		SettlementsCard,
 		RecentActivityCard,
-		RefundsDisputesCard,
+		// RefundsDisputesCard,
 		type RecentPayment
 	} from '$lib/components/merchant-dashboard';
 	import { Undo, ArrowDownToLine, Landmark, Wallet } from '$lib/assets/icons';
@@ -117,14 +117,15 @@
 						availableFundsChangeLabel="+4.2%"
 						pendingSettlement="₹38,900"
 						lastSettlementAmount="₹7,65,400"
-						class="col-span-12 h-full min-h-0 md:col-span-6 lg:col-span-4"
+						class="col-span-12 h-full min-h-0 md:col-span-6"
 					/>
 					<RefundInsightsCard
 						completed={refundStats.completed}
 						initiated={refundStats.initiated}
 						failed={refundStats.failed}
-						class="col-span-12 h-full min-h-0 md:col-span-6 lg:col-span-4"
+						class="col-span-12 h-full min-h-0 md:col-span-6"
 					/>
+					<!-- Dispute overview is temporarily hidden.
 					<RefundsDisputesCard
 						open={3}
 						pending={4}
@@ -132,6 +133,7 @@
 						avgResolutionTime="1.8 days"
 						class="col-span-12 h-full min-h-0 md:col-span-12 lg:col-span-4"
 					/>
+					-->
 				</div>
 			</div>
 		</div>
