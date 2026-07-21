@@ -71,7 +71,7 @@
 				phoneNumber: createUserFormStore.formattedMobile,
 				reportingTo,
 				roles: createUserFormStore.selectedRoleIds,
-				userEmail: createUserFormStore.email.trim(),
+				userEmail: createUserFormStore.email.trim().toLowerCase(),
 				userName: createUserFormStore.fullName
 			});
 

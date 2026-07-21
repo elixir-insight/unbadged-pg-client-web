@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { ClientTypeStep, MerchantProfileStep } from '$lib/components/onboarding';
 	import {
@@ -20,6 +23,11 @@
 
 	let { data, form }: { data: PageData; form: { message?: string } | null } = $props();
 
+	type CreateOrgStep = 'type' | 'profile';
+
+	const CREATE_ORG_BASE = '/management/organizations/create-organization';
+	const stepIds = new Set<string>(['type', 'profile']);
+
 	const businessTypeEnumMap: Record<string, OrganizationBusinessType> = {
 		'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
 		Partnership: 'PARTNERSHIP',
@@ -37,14 +45,29 @@
 		Payouts: data.payoutPipelines
 	});
 
+	const currentStep = $derived.by((): CreateOrgStep => {
+		const step = page.url.searchParams.get('step') ?? 'type';
+		return stepIds.has(step) ? (step as CreateOrgStep) : 'type';
+	});
+
 	function toOrganizationServiceTypes(selected: string[]): OrganizationServiceType[] {
 		return selected
 			.map((value) => serviceTypeMap[value])
 			.filter((value): value is OrganizationServiceType => value !== undefined);
 	}
 
-	let activeStep = $state(0);
-	let completedSteps = $state(new Set<number>());
+	function stepHref(step: CreateOrgStep): string {
+		return step === 'type' ? CREATE_ORG_BASE : `${CREATE_ORG_BASE}?step=${step}`;
+	}
+
+	function goToStep(step: CreateOrgStep) {
+		goto(resolve(stepHref(step) as '/'), {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
 	let selectedCategory = $state<ClientType | null>(null);
 
 	let orgName = $state('');
@@ -58,6 +81,12 @@
 	let errors = $state<Record<string, string>>({});
 	let submitAttempted = $state(false);
 	let submitting = $state(false);
+
+	$effect(() => {
+		if (currentStep === 'profile' && !selectedCategory) {
+			goToStep('type');
+		}
+	});
 
 	$effect(() => {
 		if (data.pipelinesError) {
@@ -170,22 +199,21 @@
 	};
 
 	function next() {
-		completedSteps = new Set([...completedSteps, activeStep]);
-		activeStep += 1;
+		goToStep('profile');
 	}
 
 	function prev() {
-		if (activeStep > 0 && !submitting) {
-			activeStep -= 1;
+		if (currentStep === 'profile' && !submitting) {
 			errors = {};
 			submitAttempted = false;
+			goToStep('type');
 		}
 	}
 </script>
 
-{#if activeStep === 0}
+{#if currentStep === 'type'}
 	<ClientTypeStep bind:selectedCategory onNext={next} />
-{:else}
+{:else if selectedCategory}
 	<MerchantProfileStep
 		{selectedCategory}
 		bind:orgName

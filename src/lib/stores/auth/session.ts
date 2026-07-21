@@ -18,9 +18,27 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 		organizationId: token['custom:org_id'],
 		merchantName: token.preferred_username,
 		email: token.email,
+		userType: 'MEMBER',
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },
 		groups
 	};
+}
+
+/** Display name when gateway `userName` is null/blank — prefer email local-part. */
+export function resolveMerchantDisplayName(
+	userName: string | null | undefined,
+	userEmail: string | null | undefined
+): string {
+	const name = userName?.trim();
+	if (name) return name;
+
+	const email = userEmail?.trim();
+	if (email) {
+		const localPart = email.split('@')[0]?.trim();
+		if (localPart) return localPart;
+	}
+
+	return 'User';
 }
 
 /**
@@ -34,8 +52,9 @@ export function parseMerchantSessionFromGateway(
 	return {
 		userId: String(token.userId),
 		organizationId: String(token.orgId),
-		merchantName: token.userName,
+		merchantName: resolveMerchantDisplayName(token.userName, token.userEmail),
 		email: token.userEmail,
+		userType: token.userType,
 		permissions: { ...TEMP_SERVICE_PERMISSIONS },
 		groups: accessGroups
 	};

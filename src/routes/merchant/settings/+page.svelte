@@ -5,7 +5,7 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { cn } from '$lib/utils';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import ChangePasswordModal from './change-password-modal.svelte';
+	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
 
 	merchantSession.initialize();
 
@@ -115,7 +115,6 @@
 					<Avatar.Fallback class="bg-primary text-lg font-bold text-primary-foreground sm:text-xl">
 						{initials(merchantName)}
 					</Avatar.Fallback>
-					<Avatar.Badge class="size-3.5 bg-success ring-card sm:size-4" />
 				</Avatar.Root>
 			</div>
 
