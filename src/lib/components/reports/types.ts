@@ -23,7 +23,7 @@ export type ReportFilterKey =
 
 export interface ReportFilters {
 	service?: string;
-	transactionStatus?: string;
+	transactionStatus?: string[];
 	organizationId?: string;
 	merchantId?: string;
 	paymentMethod?: string;
