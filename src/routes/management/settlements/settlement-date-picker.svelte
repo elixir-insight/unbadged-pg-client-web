@@ -30,7 +30,9 @@
 
 	let open = $state(false);
 
-	const fmt = $derived(new DateFormatter(locale, { dateStyle: 'medium' }));
+	const fmt = $derived(
+		new DateFormatter(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+	);
 	const displayValue = $derived(value ? fmt.format(value.toDate(getLocalTimeZone())) : null);
 	const isToday = $derived(!!value && value.compare(today(getLocalTimeZone())) === 0);
 	const isYesterday = $derived(

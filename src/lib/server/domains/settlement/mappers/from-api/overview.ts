@@ -8,7 +8,7 @@ const currency = new Intl.NumberFormat('en-IN', {
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-IN', {
 	day: '2-digit',
-	month: 'short',
+	month: '2-digit',
 	year: 'numeric',
 	hour: '2-digit',
 	minute: '2-digit'

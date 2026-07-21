@@ -55,6 +55,8 @@
 		formData.set('userEmail', email);
 		formData.set('password', password);
 		submitting = true;
+		// Drop the session-expired banner so a login failure doesn't stack two errors.
+		sessionNotice = null;
 		return async ({ result, update }) => {
 			submitting = false;
 			if (result.type === 'failure' && result.data?.requiresForce === true) {
@@ -85,7 +87,7 @@
 					</p>
 				</div>
 
-				{#if sessionNotice}
+				{#if sessionNotice && !(form?.message && !form.requiresForce)}
 					<p
 						class={sessionNoticeKind === 'success'
 							? 'text-sm text-primary'
