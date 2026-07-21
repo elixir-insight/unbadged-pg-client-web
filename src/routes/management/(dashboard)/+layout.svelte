@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -46,8 +47,12 @@
 
 			<Tabs.List variant="line" class="shrink-0">
 				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-				<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
-				<Tabs.Trigger value="disbursements">Disbursements</Tabs.Trigger>
+				{#if merchantSession.hasPayinAccess()}
+					<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
+				{/if}
+				{#if merchantSession.hasPayoutAccess()}
+					<Tabs.Trigger value="disbursements">Disbursements</Tabs.Trigger>
+				{/if}
 			</Tabs.List>
 		</div>
 

@@ -28,7 +28,7 @@
 	const navGroups = $derived(navConfig[app]);
 
 	const visibleNavGroups = $derived(
-		app === 'merchant'
+		app !== 'partner'
 			? navGroups
 					.map((g) => ({
 						...g,

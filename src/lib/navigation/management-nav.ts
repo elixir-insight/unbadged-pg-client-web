@@ -66,7 +66,12 @@ export const managementNav: NavGroup[] = [
 		title: 'Financial Operations',
 		items: [
 			// { title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
-			{ title: 'Fund Transfer', href: '/management/fund-transfer', icon: Send },
+			{
+				title: 'Fund Transfer',
+				href: '/management/fund-transfer',
+				icon: Send,
+				service: 'payout'
+			},
 			{
 				title: 'Transactions',
 				href: '/management/transactions',
@@ -99,6 +104,7 @@ export const managementNav: NavGroup[] = [
 				title: 'Settlements',
 				href: '/management/settlements',
 				icon: Landmark,
+				service: 'payin',
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/settlements\/[^/]+$/,

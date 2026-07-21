@@ -5,9 +5,9 @@
 	import { untrack } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
-	import { Button, Chip, Dropdown, Input, Modal } from '$lib/components/reusable';
+	import { Button, Chip, Dropdown, Input } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
-	import { Check, Landmark, Pencil, Plus, Trash2 } from '$lib/assets/icons';
+	import { Check, Landmark, Pencil, Plus } from '$lib/assets/icons';
 	import type { AccountType, BankAccountStatus, OrganizationBankAccount } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
 	import {
@@ -76,7 +76,6 @@
 	let bankAccounts = $state(untrack(() => cloneOrganization(data.bankAccounts)));
 	let lastOrgId = $state(untrack(() => organization.id));
 	let expandedRowId = $state<string | null>(null);
-	let deleteAccountId = $state<string | null>(null);
 	let bankDraft = $state<OrganizationBankAccount>(emptyBankDraft());
 	let fieldErrors = $state<Record<string, string>>({});
 	let saving = $state(false);
@@ -90,7 +89,6 @@
 			bankAccounts = cloneOrganization(nextAccounts);
 			lastOrgId = currentOrgId;
 			expandedRowId = null;
-			deleteAccountId = null;
 			bankDraft = emptyBankDraft();
 			fieldErrors = {};
 		} else if (expandedRowId === null && !saving) {
@@ -101,9 +99,6 @@
 	});
 
 	const adjacent = $derived(getAdjacentFlowSteps('bank'));
-	const accountPendingDelete = $derived(
-		bankAccounts.find((account) => account.id === deleteAccountId) ?? null
-	);
 
 	function clearFieldError(key: string) {
 		if (!fieldErrors[key]) return;
@@ -267,17 +262,6 @@
 				await update({ reset: false });
 			};
 		};
-	}
-
-	function deleteSelectedBank() {
-		if (!deleteAccountId) return;
-		bankAccounts = bankAccounts.filter((account) => account.id !== deleteAccountId);
-		persistBanks();
-		if (expandedRowId === deleteAccountId) {
-			expandedRowId = null;
-			bankDraft = emptyBankDraft();
-		}
-		deleteAccountId = null;
 	}
 </script>
 
@@ -498,17 +482,6 @@
 								>
 									<Pencil class="size-4" />
 								</Button>
-								<Button
-									variant="ghost"
-									size="icon-sm"
-									class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-									aria-label="Delete bank account"
-									onclick={() => {
-										deleteAccountId = account.id;
-									}}
-								>
-									<Trash2 class="size-4" />
-								</Button>
 							</div>
 						</div>
 					{/if}
@@ -537,23 +510,3 @@
 		</Button>
 	</div>
 </div>
-
-<Modal
-	open={deleteAccountId !== null}
-	title="Delete bank account"
-	description="This removes the selected bank account from the current local page state."
->
-	<p class="text-sm text-muted-foreground">
-		Delete {accountPendingDelete?.accountHolderName ?? 'this bank account'}?
-	</p>
-	{#snippet footer()}
-		<div class="flex gap-2">
-			<Button variant="ghost" class="flex-1" onclick={() => (deleteAccountId = null)}>Cancel</Button
-			>
-			<Button variant="destructive" class="flex-1" onclick={deleteSelectedBank}>
-				<Trash2 class="size-4" />
-				Delete
-			</Button>
-		</div>
-	{/snippet}
-</Modal>
