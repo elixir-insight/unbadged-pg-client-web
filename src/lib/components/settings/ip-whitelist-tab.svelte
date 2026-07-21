@@ -9,7 +9,6 @@
 	import {
 		addIpToAllowlist,
 		deleteIpFromAllowlist,
-		fetchIpAllowlist,
 		type IpAllowlistPortal,
 		type WhitelistedIp
 	} from '$lib/api/ip-allowlist';
@@ -37,21 +36,10 @@
 	async function loadIps() {
 		loading = true;
 		loadErrorMessage = null;
-		try {
-			allIps = await fetchIpAllowlist(portal);
-			demoMode = false;
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'Backend service temporarily unavailable';
-			loadErrorMessage = message || 'Backend service temporarily unavailable';
-			demoMode = true;
-			allIps = resolveIpAllowlistFallback();
-			toast.error('Failed to load whitelisted IP addresses', {
-				description: loadErrorMessage
-			});
-		} finally {
-			loading = false;
-		}
+		// Temporarily use seeded mock data instead of calling the IP allowlist API.
+		demoMode = true;
+		allIps = resolveIpAllowlistFallback();
+		loading = false;
 	}
 
 	onMount(() => {
