@@ -9,7 +9,7 @@ import {
 
 export const ipAllowlistClient = {
 	list: (fetchFn: typeof fetch, logger: Logger, accessToken: string, gatewayToken: string) =>
-		apiFetch('/api/v1/management/organizations/ip-allowlists', {
+		apiFetch('/api/v1/management/organizations/ip-allowlists/', {
 			fetch: fetchFn,
 			logger,
 			method: 'GET',
@@ -25,7 +25,7 @@ export const ipAllowlistClient = {
 		gatewayToken: string,
 		body: CreateIpAllowlistRequest
 	) =>
-		apiFetch('/api/v1/management/organizations/ip-allowlists', {
+		apiFetch('/api/v1/management/organizations/ip-allowlists/', {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',

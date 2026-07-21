@@ -3,7 +3,7 @@
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import { Button, EmptyState, Input, Modal, Table, toast } from '$lib/components/reusable';
-	import { Shield, Trash2, Plus } from '$lib/assets/icons';
+	import { MessageSquareWarning, Shield, Trash2, Plus } from '$lib/assets/icons';
 	import { formatAbsoluteTime } from '$lib/utils/format-time';
 	import { isValidIpAddress } from '$lib/utils/ip-address';
 	import {
@@ -12,10 +12,12 @@
 		fetchIpAllowlist,
 		type WhitelistedIp
 	} from '$lib/api/ip-allowlist';
+	import { resolveIpAllowlistFallback } from '$lib/data/mockIpAllowlist';
 
 	let allIps = $state<WhitelistedIp[]>([]);
 	let loading = $state(true);
-	let loadError = $state(false);
+	let loadErrorMessage = $state<string | null>(null);
+	let demoMode = $state(false);
 
 	let searchQuery = $state('');
 
@@ -27,14 +29,18 @@
 
 	async function loadIps() {
 		loading = true;
-		loadError = false;
+		loadErrorMessage = null;
 		try {
 			allIps = await fetchIpAllowlist();
+			demoMode = false;
 		} catch (error) {
-			loadError = true;
-			allIps = [];
+			const message =
+				error instanceof Error ? error.message : 'Backend service temporarily unavailable';
+			loadErrorMessage = message || 'Backend service temporarily unavailable';
+			demoMode = true;
+			allIps = resolveIpAllowlistFallback();
 			toast.error('Failed to load whitelisted IP addresses', {
-				description: error instanceof Error ? error.message : 'Something went wrong.'
+				description: loadErrorMessage
 			});
 		} finally {
 			loading = false;
@@ -56,6 +62,11 @@
 		addModalOpen = true;
 	}
 
+	function nextMockId(): number {
+		if (allIps.length === 0) return 1;
+		return Math.max(...allIps.map((ip) => ip.id)) + 1;
+	}
+
 	async function handleAddIp() {
 		if (isSubmitting) return;
 
@@ -68,9 +79,25 @@
 			ipError = 'Enter a valid IPv4 or IPv6 address';
 			return;
 		}
+		if (allIps.some((ip) => ip.ipAddress.toLowerCase() === trimmed.toLowerCase())) {
+			ipError = 'This IP address is already on the allowlist';
+			return;
+		}
 
 		isSubmitting = true;
 		try {
+			if (demoMode) {
+				allIps = [
+					{ id: nextMockId(), ipAddress: trimmed, createdAt: new Date().toISOString() },
+					...allIps
+				];
+				toast.success('IP address added successfully');
+				addModalOpen = false;
+				newIp = '';
+				ipError = '';
+				return;
+			}
+
 			const message = await addIpToAllowlist(trimmed);
 			toast.success(message || 'IP address added successfully');
 			addModalOpen = false;
@@ -100,6 +127,15 @@
 
 		isDeleting = true;
 		try {
+			if (demoMode) {
+				const targetId = deleteTarget.id;
+				allIps = allIps.filter((ip) => ip.id !== targetId);
+				toast.success('IP allowlist deleted successfully');
+				deleteModalOpen = false;
+				deleteTarget = null;
+				return;
+			}
+
 			const message = await deleteIpFromAllowlist(deleteTarget.id);
 			toast.success(message || 'IP allowlist deleted successfully');
 			deleteModalOpen = false;
@@ -159,17 +195,29 @@
 		</div>
 	</section>
 
-	{#if loadError}
-		<EmptyState
-			icon={Shield}
-			title="Couldn't load whitelisted IP addresses"
-			description="Something went wrong while fetching the list. Please try again."
+	{#if loadErrorMessage}
+		<section
+			class="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5"
+			role="status"
 		>
-			{#snippet action()}
-				<Button size="sm" variant="outline" onclick={loadIps}>Retry</Button>
-			{/snippet}
-		</EmptyState>
-	{:else if !loading && allIps.length === 0}
+			<div class="flex min-w-0 items-start gap-3">
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+				>
+					<MessageSquareWarning class="size-4" />
+				</div>
+				<div class="min-w-0">
+					<h3 class="text-sm font-semibold text-foreground">
+						Backend service temporarily unavailable
+					</h3>
+					<p class="mt-1 text-sm text-muted-foreground">{loadErrorMessage}</p>
+				</div>
+			</div>
+			<Button size="sm" variant="outline" class="shrink-0" onclick={loadIps}>Retry</Button>
+		</section>
+	{/if}
+
+	{#if !loading && allIps.length === 0}
 		<EmptyState
 			icon={Shield}
 			title="No Whitelisted IP Addresses"
