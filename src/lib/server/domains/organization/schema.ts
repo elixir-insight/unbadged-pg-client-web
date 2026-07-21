@@ -255,6 +255,19 @@ export const GetOrganizationDetailsResponseSchema = v.object({
 	)
 });
 
+export const DashboardMerchantSchema = v.object({
+	orgId: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	displayOrgId: v.optional(v.nullable(v.string())),
+	legalCompanyName: v.optional(v.nullable(v.string())),
+	email: v.optional(v.nullable(v.string()))
+});
+
+export const GetDashboardMerchantsResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.array(DashboardMerchantSchema)
+});
+
 export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationRequestSchema>;
 export type CreateOrganizationResponse = v.InferOutput<typeof CreateOrganizationResponseSchema>;
 export type UpdateOrganizationKybRequest = v.InferOutput<typeof UpdateOrganizationKybRequestSchema>;
@@ -288,6 +301,10 @@ export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationRespon
 export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
+>;
+export type DashboardMerchant = v.InferOutput<typeof DashboardMerchantSchema>;
+export type GetDashboardMerchantsResponse = v.InferOutput<
+	typeof GetDashboardMerchantsResponseSchema
 >;
 
 export const OrganizationTableProfileStatusSchema = v.picklist([
