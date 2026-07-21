@@ -17,6 +17,7 @@
 		value = $bindable(''),
 		variant = 'default' as TabsListVariant,
 		orientation = 'horizontal' as 'horizontal' | 'vertical',
+		triggerClass,
 		class: className,
 		onValueChange,
 		...restProps
@@ -25,6 +26,7 @@
 		value?: string;
 		variant?: TabsListVariant;
 		orientation?: 'horizontal' | 'vertical';
+		triggerClass?: string;
 		class?: string;
 		onValueChange?: (value: string) => void;
 	} = $props();
@@ -39,7 +41,7 @@
 <UITabs.Tabs bind:value {orientation} {onValueChange} class={cn(className)} {...restProps}>
 	<UITabs.TabsList {variant}>
 		{#each tabs as tab (tab.value)}
-			<UITabs.TabsTrigger value={tab.value} disabled={tab.disabled}>
+			<UITabs.TabsTrigger value={tab.value} disabled={tab.disabled} class={triggerClass}>
 				{#if tab.icon}
 					<tab.icon class="size-4" />
 				{/if}
