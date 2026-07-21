@@ -36,17 +36,18 @@
 	const tabs = $derived([
 		...(merchantSession.hasPayinAccess()
 			? [{ label: 'Collections', path: '/management/transactions/collections' as const }]
-			: []),
-		...(merchantSession.hasPayoutAccess()
-			? [{ label: 'Disbursements', path: '/management/transactions/disbursements' as const }]
 			: [])
+		// Disbursements tab temporarily hidden
+		// ...(merchantSession.hasPayoutAccess()
+		// 	? [{ label: 'Disbursements', path: '/management/transactions/disbursements' as const }]
+		// 	: [])
 	]);
 
 	const isDetailPage = $derived(
 		/\/collections\/orders\/[^/]+$/.test(page.url.pathname) ||
-			/\/collections\/payments\/[^/]+$/.test(page.url.pathname) ||
-			(page.url.pathname.startsWith(resolve('/management/transactions/disbursements') + '/') &&
-				page.url.pathname !== resolve('/management/transactions/disbursements'))
+			/\/collections\/payments\/[^/]+$/.test(page.url.pathname)
+		// || (page.url.pathname.startsWith(resolve('/management/transactions/disbursements') + '/') &&
+		// 	page.url.pathname !== resolve('/management/transactions/disbursements'))
 	);
 
 	$effect(() => {
@@ -56,8 +57,6 @@
 		if (path === resolve('/management/transactions')) {
 			if (merchantSession.hasPayinAccess()) {
 				gotoScopedPath('/management/transactions/collections/payments', scope);
-			} else if (merchantSession.hasPayoutAccess()) {
-				gotoScopedPath('/management/transactions/disbursements', scope);
 			} else {
 				goto(resolve('/management'));
 			}
@@ -66,11 +65,13 @@
 			!merchantSession.hasPayinAccess()
 		) {
 			goto(resolve('/management'));
-		} else if (
-			path.startsWith(resolve('/management/transactions/disbursements')) &&
-			!merchantSession.hasPayoutAccess()
-		) {
-			goto(resolve('/management'));
+		} else if (path.startsWith(resolve('/management/transactions/disbursements'))) {
+			// Disbursements temporarily hidden — bounce to collections or home
+			if (merchantSession.hasPayinAccess()) {
+				gotoScopedPath('/management/transactions/collections/payments', scope);
+			} else {
+				goto(resolve('/management'));
+			}
 		}
 	});
 
@@ -116,9 +117,7 @@
 		<nav class="flex gap-1 border-b border-border">
 			{#each tabs as tab (tab.path)}
 				<a
-					href={tab.path === '/management/transactions/collections'
-						? collectionsTabHref()
-						: scopedListHref('/management/transactions/disbursements', scope)}
+					href={collectionsTabHref()}
 					class="relative px-3 pb-2 text-sm font-medium transition-colors {page.url.pathname.startsWith(
 						resolve(tab.path)
 					)

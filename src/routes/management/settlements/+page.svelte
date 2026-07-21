@@ -37,12 +37,14 @@
 		dateParam ? parseDate(dateParam) : undefined
 	);
 	const tabParam = $derived<SettlementTab>(
-		page.url.searchParams.get('tab') === 'disbursements' ? 'disbursements' : 'collections'
+		// Disbursements tab temporarily hidden — always show collections
+		// page.url.searchParams.get('tab') === 'disbursements' ? 'disbursements' : 'collections'
+		'collections'
 	);
 
 	const tabs = [
-		{ value: 'collections', label: 'Collections' },
-		{ value: 'disbursements', label: 'Disbursements' }
+		{ value: 'collections', label: 'Collections' }
+		// { value: 'disbursements', label: 'Disbursements' }
 	] as const;
 
 	function tabHref(tab: (typeof tabs)[number]['value']): string {
@@ -71,6 +73,13 @@
 			`${page.url.pathname}?${url.searchParams.toString()}` as `${typeof page.url.pathname}?${string}`;
 		goto(resolve(href as '/'), { replaceState: replace, noScroll: true, keepFocus: true });
 	}
+
+	// Bounce ?tab=disbursements back to collections while the tab is hidden.
+	$effect(() => {
+		if (page.url.searchParams.get('tab') === 'disbursements') {
+			updateParams({ tab: null }, true);
+		}
+	});
 
 	function setDate(value: DateValue) {
 		updateParams({ date: value.toString(), skip: null });
@@ -396,15 +405,6 @@
 	</div>
 {/snippet}
 
-{#snippet disbursementsTab()}
-	<div class="pt-4">
-		<StatePanel
-			title="Disbursement settlements aren't available yet"
-			description="This tab will show partner disbursement settlements once that data source is connected."
-		/>
-	</div>
-{/snippet}
-
 <div class="flex flex-col gap-4">
 	<nav class="flex gap-1 border-b border-border">
 		{#each tabs as tab (tab.value)}
@@ -421,7 +421,5 @@
 
 	{#if tabParam === 'collections'}
 		{@render collectionsTab()}
-	{:else}
-		{@render disbursementsTab()}
 	{/if}
 </div>
