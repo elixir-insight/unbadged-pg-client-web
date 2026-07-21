@@ -30,10 +30,10 @@
 	const createdAt = $derived(
 		payment?.paymentTimeline[0]
 			? new Date(payment.paymentTimeline[0].timestampMs).toLocaleString('en-IN', {
-					weekday: 'short',
-					day: 'numeric',
-					month: 'short',
-					hour: 'numeric',
+					day: '2-digit',
+					month: '2-digit',
+					year: 'numeric',
+					hour: '2-digit',
 					minute: '2-digit'
 				})
 			: '—'

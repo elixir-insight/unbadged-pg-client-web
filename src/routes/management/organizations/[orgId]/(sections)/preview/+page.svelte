@@ -25,6 +25,7 @@
 		isPreviewSectionParamChange,
 		maskAccountNumber
 	} from '../../helpers';
+	import { formatDate } from '$lib/utils/format-time';
 	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
 	import { hasDocumentPreview } from '../documents/document-preview';
@@ -238,7 +239,7 @@
 			<p class="text-sm text-muted-foreground">
 				{document.status}
 				{#if document.uploadedDate}
-					· Uploaded {document.uploadedDate}
+					· Uploaded {formatDate(document.uploadedDate)}
 				{:else if document.status === 'Pending'}
 					· Pending
 				{/if}

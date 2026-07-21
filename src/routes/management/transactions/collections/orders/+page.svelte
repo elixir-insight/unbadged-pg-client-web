@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
+	import { formatAbsoluteTime } from '$lib/utils/format-time';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
 		Table,
@@ -48,7 +49,16 @@
 
 	const columns: ColumnDef<PayinOrderListItem>[] = [
 		{ accessorKey: 'orderId', header: 'Order ID' },
-		{ accessorKey: 'createdAt', header: 'Date & Time' },
+		{
+			accessorKey: 'createdAt',
+			header: 'Date & Time',
+			cell: (info) => {
+				const value = info.getValue<string>();
+				if (!value) return '—';
+				if (/^\d{2}\/\d{2}\/\d{4}/.test(value)) return value;
+				return formatAbsoluteTime(value);
+			}
+		},
 		{ accessorKey: 'customer', header: 'Customer' },
 		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
 		{ accessorKey: 'attemptCount', header: 'Attempts', enableSorting: true },
@@ -130,7 +140,8 @@
 
 		if (dateRange.start && dateRange.end) {
 			const tz = getLocalTimeZone();
-			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+			const fmt = (d: Date) =>
+				d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 			const start = dateRange.start.toDate(tz);
 			const end = dateRange.end.toDate(tz);
 			filters.push({ key: 'date', label: 'Date', value: `${fmt(start)} – ${fmt(end)}` });

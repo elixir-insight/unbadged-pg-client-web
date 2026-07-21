@@ -8,7 +8,7 @@ const now = Date.now();
 function fmtDate(ms: number): string {
 	return new Date(ms).toLocaleString('en-IN', {
 		day: '2-digit',
-		month: 'short',
+		month: '2-digit',
 		year: 'numeric',
 		hour: '2-digit',
 		minute: '2-digit'

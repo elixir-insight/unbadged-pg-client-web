@@ -33,6 +33,7 @@
 	import type { OrganizationTableRow } from '$lib/organization/table';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { debounce } from '$lib/utils/debounce';
+	import { formatDate } from '$lib/utils/format-time';
 
 	let { data } = $props();
 
@@ -119,7 +120,8 @@
 		},
 		{
 			accessorKey: 'createdAt',
-			header: 'Created At'
+			header: 'Created At',
+			cell: ({ row }) => formatDate(row.original.createdAt)
 		},
 		{
 			accessorKey: 'status',
@@ -473,7 +475,7 @@
 						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Created At
 						</p>
-						<p class="text-sm font-medium">{selectedOrg.createdAt}</p>
+						<p class="text-sm font-medium">{formatDate(selectedOrg.createdAt)}</p>
 					</div>
 				</div>
 			</div>
