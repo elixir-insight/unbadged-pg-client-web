@@ -1,13 +1,18 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { ipAllowlistClient } from '$lib/server/domains/ip-allowlist/client';
+import { ipAllowlistClient, parseIpAllowlistPortal } from '$lib/server/domains/ip-allowlist/client';
 
-export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch }) => {
+export const DELETE: RequestHandler = async ({ params, url, cookies, locals, fetch }) => {
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 
 	if (!accessToken || !gatewayToken) {
 		return json({ message: 'Not authenticated' }, { status: 401 });
+	}
+
+	const portal = parseIpAllowlistPortal(url.searchParams.get('portal'));
+	if (!portal) {
+		return json({ message: 'Invalid portal' }, { status: 400 });
 	}
 
 	const id = Number(params.id);
@@ -20,7 +25,8 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch })
 		locals.logger,
 		accessToken,
 		gatewayToken,
-		id
+		id,
+		portal
 	);
 
 	if (!result.ok) {

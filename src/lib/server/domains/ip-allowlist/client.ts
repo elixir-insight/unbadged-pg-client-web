@@ -7,9 +7,30 @@ import {
 	type CreateIpAllowlistRequest
 } from './schema';
 
+export type IpAllowlistPortal = 'management' | 'merchant';
+
+export function parseIpAllowlistPortal(value: string | null): IpAllowlistPortal | null {
+	if (value === 'management' || value === 'merchant') return value;
+	return null;
+}
+
+function collectionPath(portal: IpAllowlistPortal): string {
+	return `/api/v1/${portal}/organizations/ip-allowlists/`;
+}
+
+function entryPath(portal: IpAllowlistPortal, id: number): string {
+	return `/api/v1/${portal}/organizations/ip-allowlists/${id}`;
+}
+
 export const ipAllowlistClient = {
-	list: (fetchFn: typeof fetch, logger: Logger, accessToken: string, gatewayToken: string) =>
-		apiFetch('/api/v1/management/organizations/ip-allowlists/', {
+	list: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		portal: IpAllowlistPortal
+	) =>
+		apiFetch(collectionPath(portal), {
 			fetch: fetchFn,
 			logger,
 			method: 'GET',
@@ -23,9 +44,10 @@ export const ipAllowlistClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		body: CreateIpAllowlistRequest
+		body: CreateIpAllowlistRequest,
+		portal: IpAllowlistPortal
 	) =>
-		apiFetch('/api/v1/management/organizations/ip-allowlists/', {
+		apiFetch(collectionPath(portal), {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -40,9 +62,10 @@ export const ipAllowlistClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		id: number
+		id: number,
+		portal: IpAllowlistPortal
 	) =>
-		apiFetch(`/api/v1/management/organizations/ip-allowlists/${id}`, {
+		apiFetch(entryPath(portal, id), {
 			fetch: fetchFn,
 			logger,
 			method: 'DELETE',

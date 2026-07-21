@@ -86,7 +86,7 @@
 {/snippet}
 
 {#snippet ipWhitelistTab()}
-	<IpWhitelistTab />
+	<IpWhitelistTab portal="merchant" />
 {/snippet}
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">

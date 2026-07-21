@@ -10,9 +10,16 @@
 		addIpToAllowlist,
 		deleteIpFromAllowlist,
 		fetchIpAllowlist,
+		type IpAllowlistPortal,
 		type WhitelistedIp
 	} from '$lib/api/ip-allowlist';
 	import { resolveIpAllowlistFallback } from '$lib/data/mockIpAllowlist';
+
+	interface Props {
+		portal: IpAllowlistPortal;
+	}
+
+	let { portal }: Props = $props();
 
 	let allIps = $state<WhitelistedIp[]>([]);
 	let loading = $state(true);
@@ -31,7 +38,7 @@
 		loading = true;
 		loadErrorMessage = null;
 		try {
-			allIps = await fetchIpAllowlist();
+			allIps = await fetchIpAllowlist(portal);
 			demoMode = false;
 		} catch (error) {
 			const message =
@@ -98,7 +105,7 @@
 				return;
 			}
 
-			const message = await addIpToAllowlist(trimmed);
+			const message = await addIpToAllowlist(trimmed, portal);
 			toast.success(message || 'IP address added successfully');
 			addModalOpen = false;
 			newIp = '';
@@ -136,7 +143,7 @@
 				return;
 			}
 
-			const message = await deleteIpFromAllowlist(deleteTarget.id);
+			const message = await deleteIpFromAllowlist(deleteTarget.id, portal);
 			toast.success(message || 'IP allowlist deleted successfully');
 			deleteModalOpen = false;
 			deleteTarget = null;

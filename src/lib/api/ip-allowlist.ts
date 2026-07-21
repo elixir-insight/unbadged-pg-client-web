@@ -1,3 +1,5 @@
+export type IpAllowlistPortal = 'management' | 'merchant';
+
 export interface WhitelistedIp extends Record<string, unknown> {
 	id: number;
 	ipAddress: string;
@@ -24,8 +26,12 @@ interface CreateIpAllowlistResponseBody {
 	statusCode: number;
 }
 
-export async function fetchIpAllowlist(): Promise<WhitelistedIp[]> {
-	const res = await fetch('/api/ip-allowlist');
+function portalQuery(portal: IpAllowlistPortal): string {
+	return `?portal=${portal}`;
+}
+
+export async function fetchIpAllowlist(portal: IpAllowlistPortal): Promise<WhitelistedIp[]> {
+	const res = await fetch(`/api/ip-allowlist${portalQuery(portal)}`);
 	if (!res.ok) {
 		const body: ErrorResponseBody = await res.json();
 		throw new Error(body.message ?? `Request failed (${res.status})`);
@@ -37,8 +43,11 @@ export async function fetchIpAllowlist(): Promise<WhitelistedIp[]> {
 }
 
 /** Returns the backend's success message, for use in the confirmation toast. */
-export async function addIpToAllowlist(ipAddress: string): Promise<string> {
-	const res = await fetch('/api/ip-allowlist', {
+export async function addIpToAllowlist(
+	ipAddress: string,
+	portal: IpAllowlistPortal
+): Promise<string> {
+	const res = await fetch(`/api/ip-allowlist${portalQuery(portal)}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ ipAddress } satisfies CreateIpAllowlistRequest)
@@ -58,8 +67,11 @@ interface DeleteIpAllowlistResponseBody {
 }
 
 /** Returns the backend's success message, for use in the confirmation toast. */
-export async function deleteIpFromAllowlist(id: number): Promise<string> {
-	const res = await fetch(`/api/ip-allowlist/${id}`, { method: 'DELETE' });
+export async function deleteIpFromAllowlist(
+	id: number,
+	portal: IpAllowlistPortal
+): Promise<string> {
+	const res = await fetch(`/api/ip-allowlist/${id}${portalQuery(portal)}`, { method: 'DELETE' });
 	if (!res.ok) {
 		const body: ErrorResponseBody = await res.json();
 		throw new Error(body.message ?? `Request failed (${res.status})`);

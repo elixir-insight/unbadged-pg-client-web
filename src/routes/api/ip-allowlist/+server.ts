@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import * as v from 'valibot';
 import type { RequestHandler } from './$types';
-import { ipAllowlistClient } from '$lib/server/domains/ip-allowlist/client';
+import { ipAllowlistClient, parseIpAllowlistPortal } from '$lib/server/domains/ip-allowlist/client';
 import { CreateIpAllowlistRequestSchema } from '$lib/server/domains/ip-allowlist/schema';
 
-export const GET: RequestHandler = async ({ cookies, locals, fetch }) => {
+export const GET: RequestHandler = async ({ url, cookies, locals, fetch }) => {
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 
@@ -12,7 +12,18 @@ export const GET: RequestHandler = async ({ cookies, locals, fetch }) => {
 		return json({ message: 'Not authenticated' }, { status: 401 });
 	}
 
-	const result = await ipAllowlistClient.list(fetch, locals.logger, accessToken, gatewayToken);
+	const portal = parseIpAllowlistPortal(url.searchParams.get('portal'));
+	if (!portal) {
+		return json({ message: 'Invalid portal' }, { status: 400 });
+	}
+
+	const result = await ipAllowlistClient.list(
+		fetch,
+		locals.logger,
+		accessToken,
+		gatewayToken,
+		portal
+	);
 
 	if (!result.ok) {
 		if (result.error.kind === 'http') {
@@ -32,12 +43,17 @@ export const GET: RequestHandler = async ({ cookies, locals, fetch }) => {
 	return json(result.data);
 };
 
-export const POST: RequestHandler = async ({ request, cookies, locals, fetch }) => {
+export const POST: RequestHandler = async ({ url, request, cookies, locals, fetch }) => {
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 
 	if (!accessToken || !gatewayToken) {
 		return json({ message: 'Not authenticated' }, { status: 401 });
+	}
+
+	const portal = parseIpAllowlistPortal(url.searchParams.get('portal'));
+	if (!portal) {
+		return json({ message: 'Invalid portal' }, { status: 400 });
 	}
 
 	const rawBody: unknown = await request.json().catch(() => null);
@@ -51,7 +67,8 @@ export const POST: RequestHandler = async ({ request, cookies, locals, fetch }) 
 		locals.logger,
 		accessToken,
 		gatewayToken,
-		parsedBody.output
+		parsedBody.output,
+		portal
 	);
 
 	if (!result.ok) {
