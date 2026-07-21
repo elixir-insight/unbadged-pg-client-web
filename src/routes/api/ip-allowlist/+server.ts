@@ -4,6 +4,11 @@ import type { RequestHandler } from './$types';
 import { ipAllowlistClient, parseIpAllowlistPortal } from '$lib/server/domains/ip-allowlist/client';
 import { CreateIpAllowlistRequestSchema } from '$lib/server/domains/ip-allowlist/schema';
 
+function resolveOrgId(locals: App.Locals): string | null {
+	const orgId = locals.merchantSession?.organizationId?.trim();
+	return orgId || null;
+}
+
 export const GET: RequestHandler = async ({ url, cookies, locals, fetch }) => {
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
@@ -17,12 +22,18 @@ export const GET: RequestHandler = async ({ url, cookies, locals, fetch }) => {
 		return json({ message: 'Invalid portal' }, { status: 400 });
 	}
 
+	const orgId = resolveOrgId(locals);
+	if (!orgId) {
+		return json({ message: 'Organization context is missing' }, { status: 400 });
+	}
+
 	const result = await ipAllowlistClient.list(
 		fetch,
 		locals.logger,
 		accessToken,
 		gatewayToken,
-		portal
+		portal,
+		orgId
 	);
 
 	if (!result.ok) {
@@ -56,6 +67,11 @@ export const POST: RequestHandler = async ({ url, request, cookies, locals, fetc
 		return json({ message: 'Invalid portal' }, { status: 400 });
 	}
 
+	const orgId = resolveOrgId(locals);
+	if (!orgId) {
+		return json({ message: 'Organization context is missing' }, { status: 400 });
+	}
+
 	const rawBody: unknown = await request.json().catch(() => null);
 	const parsedBody = v.safeParse(CreateIpAllowlistRequestSchema, rawBody);
 	if (!parsedBody.success) {
@@ -68,7 +84,8 @@ export const POST: RequestHandler = async ({ url, request, cookies, locals, fetc
 		accessToken,
 		gatewayToken,
 		parsedBody.output,
-		portal
+		portal,
+		orgId
 	);
 
 	if (!result.ok) {

@@ -14,12 +14,12 @@ export function parseIpAllowlistPortal(value: string | null): IpAllowlistPortal 
 	return null;
 }
 
-function collectionPath(portal: IpAllowlistPortal): string {
-	return `/api/v1/${portal}/organizations/ip-allowlists/`;
+function collectionPath(portal: IpAllowlistPortal, orgId: string): string {
+	return `/api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/ip-allowlists`;
 }
 
-function entryPath(portal: IpAllowlistPortal, id: number): string {
-	return `/api/v1/${portal}/organizations/ip-allowlists/${id}`;
+function entryPath(portal: IpAllowlistPortal, orgId: string, id: number): string {
+	return `/api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/ip-allowlists/${id}`;
 }
 
 export const ipAllowlistClient = {
@@ -28,9 +28,10 @@ export const ipAllowlistClient = {
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		portal: IpAllowlistPortal
+		portal: IpAllowlistPortal,
+		orgId: string
 	) =>
-		apiFetch(collectionPath(portal), {
+		apiFetch(collectionPath(portal, orgId), {
 			fetch: fetchFn,
 			logger,
 			method: 'GET',
@@ -45,9 +46,10 @@ export const ipAllowlistClient = {
 		accessToken: string,
 		gatewayToken: string,
 		body: CreateIpAllowlistRequest,
-		portal: IpAllowlistPortal
+		portal: IpAllowlistPortal,
+		orgId: string
 	) =>
-		apiFetch(collectionPath(portal), {
+		apiFetch(collectionPath(portal, orgId), {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
@@ -63,9 +65,10 @@ export const ipAllowlistClient = {
 		accessToken: string,
 		gatewayToken: string,
 		id: number,
-		portal: IpAllowlistPortal
+		portal: IpAllowlistPortal,
+		orgId: string
 	) =>
-		apiFetch(entryPath(portal, id), {
+		apiFetch(entryPath(portal, orgId, id), {
 			fetch: fetchFn,
 			logger,
 			method: 'DELETE',

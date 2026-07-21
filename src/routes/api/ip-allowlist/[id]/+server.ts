@@ -15,6 +15,11 @@ export const DELETE: RequestHandler = async ({ params, url, cookies, locals, fet
 		return json({ message: 'Invalid portal' }, { status: 400 });
 	}
 
+	const orgId = locals.merchantSession?.organizationId?.trim();
+	if (!orgId) {
+		return json({ message: 'Organization context is missing' }, { status: 400 });
+	}
+
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) {
 		return json({ message: 'Invalid IP allowlist id' }, { status: 400 });
@@ -26,7 +31,8 @@ export const DELETE: RequestHandler = async ({ params, url, cookies, locals, fet
 		accessToken,
 		gatewayToken,
 		id,
-		portal
+		portal,
+		orgId
 	);
 
 	if (!result.ok) {
