@@ -6,13 +6,14 @@
 		SearchField,
 		Dropdown,
 		Avatar,
+		Button,
 		createUrlPagination
 	} from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { X } from '$lib/assets/icons';
+	import { ArrowLeft, X } from '$lib/assets/icons';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import SettlementStatusBadge from '../settlement-status-badge.svelte';
@@ -207,11 +208,16 @@
 	];
 
 	function goToTransaction(row: TransactionDisplayRow) {
-		goto(
-			resolve('/management/transactions/collections/payments/[txnId]', {
-				txnId: row.transactionId
-			})
+		const transactionPath = resolve(
+			'/management/settlements/[settlementId]/transactions/[transactionId]',
+			{
+				settlementId: s.settlementId,
+				transactionId: row.transactionId
+			}
 		);
+		const query = page.url.searchParams.toString();
+		const href = `${transactionPath}${query ? `?${query}` : ''}`;
+		goto(resolve(href as '/'));
 	}
 
 	function rowAriaLabel(row: TransactionDisplayRow): string {
@@ -226,6 +232,16 @@
 </script>
 
 <div class="flex flex-col gap-6">
+	<Button
+		variant="ghost"
+		onclick={backToList}
+		class="w-fit px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+		aria-label="Go back to settlements"
+	>
+		<ArrowLeft class="size-4" />
+		Go back
+	</Button>
+
 	<div class="rounded-xl border border-border bg-card shadow-sm">
 		<div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
 			<div class="flex items-center gap-3">
@@ -241,13 +257,6 @@
 			</div>
 			<div class="flex items-center gap-2">
 				<SettlementStatusBadge status={s.status} />
-				<button
-					type="button"
-					onclick={backToList}
-					class="text-sm font-medium text-primary hover:underline focus-visible:outline-none"
-				>
-					Back
-				</button>
 			</div>
 		</div>
 
@@ -278,7 +287,7 @@
 	</div>
 
 	<div class="flex flex-col gap-3">
-		<div class="flex flex-wrap items-start gap-2 sm:items-center">
+		<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
 			<div class="w-full sm:w-44">
 				<Dropdown
 					value={paymentModeParam || undefined}
@@ -287,7 +296,7 @@
 					onValueChange={(value) => setPaymentMode(value)}
 				/>
 			</div>
-			<div class="w-full sm:w-auto sm:max-w-xs">
+			<div class="w-full sm:ml-auto sm:max-w-sm">
 				<SearchField
 					fields={[
 						{

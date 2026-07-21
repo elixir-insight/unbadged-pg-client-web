@@ -8,29 +8,39 @@ import {
 import { settlementClient } from '$lib/server/domains/settlement/client';
 import { mapManagementSettlementListItemToDetail } from '$lib/server/domains/settlement/mappers/from-api/list';
 import { mapSettlementDetailsResponse } from '$lib/server/domains/settlement/mappers/from-api/details';
-import { getMerchantsWithVans } from '$lib/data/management-van-mock';
 import type { SettlementDetail } from '../types';
 
 const DEFAULT_LIMIT = 10;
 
-function resolveOrgId(raw: string | null): string | undefined {
+function resolveOrgId(
+	raw: string | null,
+	merchantOptions: { value: string; label: string }[]
+): string | undefined {
 	if (!raw) return undefined;
-	const merchants = getMerchantsWithVans();
-	return merchants.some((m) => m.orgId === raw) ? raw : undefined;
+	return merchantOptions.some((merchant) => merchant.value === raw) ? raw : undefined;
 }
 
 function emptyPagination(limit: number, page: number) {
 	return { limit, page, total: 0 };
 }
 
-export const load: PageServerLoad = async ({ params, url, cookies, fetch, locals, depends }) => {
+export const load: PageServerLoad = async ({
+	params,
+	url,
+	cookies,
+	fetch,
+	locals,
+	depends,
+	parent
+}) => {
 	depends('management-settlement:details');
 
+	const parentData = await parent();
 	const settlementId = params.settlementId?.trim();
 	if (!settlementId) error(404, 'Settlement not found');
 
 	const log = locals.logger.child({ action: 'management-settlement-detail', settlementId });
-	const orgId = resolveOrgId(url.searchParams.get('merchantId'));
+	const orgId = resolveOrgId(url.searchParams.get('merchantId'), parentData.merchantOptions);
 	const skip = Number(url.searchParams.get('skip')) || 0;
 	const limit = Number(url.searchParams.get('limit')) || DEFAULT_LIMIT;
 	const page = Math.floor(skip / limit) + 1;

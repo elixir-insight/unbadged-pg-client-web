@@ -76,7 +76,7 @@
 		updateParams({ date: value.toString(), skip: null });
 	}
 
-	const merchantId = $derived(getCurrentSettlementMerchantId());
+	const merchantId = $derived(getCurrentSettlementMerchantId(data.merchantOptions));
 
 	const statusOptions = [
 		{ value: 'completed', label: 'Completed' },
@@ -148,10 +148,11 @@
 
 	const filteredTotal = $derived(data.pagination.total);
 	const pageSaleTotal = $derived(data.settlements.reduce((sum, item) => sum + item.saleAmount, 0));
+	const pagePendingSettlements = $derived(
+		data.settlements.filter((item) => item.status === 'pending')
+	);
 	const pagePendingSaleTotal = $derived(
-		data.settlements
-			.filter((item) => item.status === 'pending')
-			.reduce((sum, item) => sum + item.saleAmount, 0)
+		pagePendingSettlements.reduce((sum, item) => sum + item.saleAmount, 0)
 	);
 
 	const lastSettlement = $derived.by(() => {
@@ -264,7 +265,7 @@
 				value={currency.format(pagePendingSaleTotal)}
 				badgeText="Pending"
 				badgeVariant="warning"
-				subText="{pagination.status === 'pending' ? filteredTotal : '—'} pending in current filter"
+				subText="{pagePendingSettlements.length} pending on this page"
 				selected={pagination.status === 'pending'}
 				onclick={() => applyStatusFilter('pending')}
 			/>

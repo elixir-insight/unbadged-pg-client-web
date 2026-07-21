@@ -2,31 +2,17 @@ import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { page } from '$app/state';
 import { SvelteURLSearchParams } from 'svelte/reactivity';
-import { getMerchantsWithVans } from '$lib/data/management-van-mock';
 
 const MERCHANT_ID_PARAM = 'merchantId';
 
-export function getSettlementMerchantOptions(): { value: string; label: string }[] {
-	return getMerchantsWithVans().map((merchant) => ({
-		value: merchant.orgId,
-		label: merchant.merchantName
-	}));
-}
-
-export function getDefaultSettlementMerchantId(): string {
-	return getMerchantsWithVans()[0]?.orgId ?? '';
-}
-
-export function isValidSettlementMerchantId(merchantId: string): boolean {
-	return getMerchantsWithVans().some((merchant) => merchant.orgId === merchantId);
-}
-
-export function getCurrentSettlementMerchantId(): string {
+export function getCurrentSettlementMerchantId(
+	merchantOptions: { value: string; label: string }[]
+): string {
 	const merchantId = page.url.searchParams.get(MERCHANT_ID_PARAM);
-	if (merchantId && isValidSettlementMerchantId(merchantId)) {
+	if (merchantId && merchantOptions.some((merchant) => merchant.value === merchantId)) {
 		return merchantId;
 	}
-	return getDefaultSettlementMerchantId();
+	return merchantOptions[0]?.value ?? '';
 }
 
 export function setSettlementMerchant(merchantId: string, pathname = page.url.pathname): void {

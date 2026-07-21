@@ -10,27 +10,25 @@ import {
 	mapUiStatusToApi,
 	type ManagementSettlementListRow
 } from '$lib/server/domains/settlement/mappers/from-api/list';
-import { getMerchantsWithVans } from '$lib/data/management-van-mock';
 
 const DEFAULT_LIMIT = 10;
 
-function defaultOrgId(): string {
-	return getMerchantsWithVans()[0]?.orgId ?? '';
-}
-
-function resolveOrgId(raw: string | null): string {
-	const merchants = getMerchantsWithVans();
-	if (raw && merchants.some((m) => m.orgId === raw)) return raw;
-	return defaultOrgId();
+function resolveOrgId(
+	raw: string | null,
+	merchantOptions: { value: string; label: string }[]
+): string {
+	if (raw && merchantOptions.some((merchant) => merchant.value === raw)) return raw;
+	return merchantOptions[0]?.value ?? '';
 }
 
 function emptyPagination(limit: number, page: number) {
 	return { limit, page, total: 0 };
 }
 
-export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
+export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends, parent }) => {
 	depends('management-settlements:list');
 
+	const parentData = await parent();
 	const log = locals.logger.child({ action: 'management-settlements-list' });
 	const skip = Number(url.searchParams.get('skip')) || 0;
 	const limit = Number(url.searchParams.get('limit')) || DEFAULT_LIMIT;
@@ -46,7 +44,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		dateParam && dateParam !== 'none'
 			? dateParam
 			: url.searchParams.get('toDate')?.trim() || undefined;
-	const orgId = resolveOrgId(url.searchParams.get('merchantId'));
+	const orgId = resolveOrgId(url.searchParams.get('merchantId'), parentData.merchantOptions);
 	const apiStatus = mapUiStatusToApi(uiStatus);
 
 	const empty = {
@@ -55,6 +53,13 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		orgId,
 		listError: null as string | null
 	};
+
+	if (!orgId) {
+		return {
+			...empty,
+			listError: parentData.merchantsError ?? 'No merchants are available.'
+		};
+	}
 
 	let tokens;
 	try {
