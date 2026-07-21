@@ -4,6 +4,7 @@ import {
 	AddOrganizationBankResponseSchema,
 	CreateOrganizationResponseSchema,
 	GetDirectorDocumentsResponseSchema,
+	GetDashboardMerchantsResponseSchema,
 	GetOrganizationBankAccountsResponseSchema,
 	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
@@ -19,6 +20,21 @@ import {
 } from './schema';
 
 export const organizationClient = {
+	listDashboardMerchants: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string
+	) =>
+		apiFetch('/api/v1/management/dashboard/merchants', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: GetDashboardMerchantsResponseSchema
+		}),
+
 	create: (
 		fetchFn: typeof fetch,
 		logger: Logger,

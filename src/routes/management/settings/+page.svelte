@@ -1,5 +1,13 @@
 <script lang="ts">
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
+
+	import ApiCredentialSection from './api-credential-section.svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	merchantSession.initialize();
+
 	import { Button, Chip, Tabs } from '$lib/components/reusable';
 	import type { TabItem } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
@@ -83,10 +91,7 @@
 			<Chip variant="success">Configured</Chip>
 		</div>
 
-		<div class="border-t border-border/40 px-4 py-4 sm:px-5">
-			<h3 class="text-sm font-semibold text-foreground">API Keys</h3>
-			<p class="mt-2 font-mono text-sm tracking-widest text-muted-foreground">••••••••••••••••</p>
-		</div>
+		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
 	</section>
 {/snippet}
 

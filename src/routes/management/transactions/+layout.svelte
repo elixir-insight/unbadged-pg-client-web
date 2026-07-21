@@ -1,9 +1,11 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve -- scoped tab hrefs append query params after resolve() */
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Dropdown } from '$lib/components/reusable';
 	import { getMerchantsWithVans, getVansByOrgId } from '$lib/data/management-van-mock';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import {
 		getCurrentScope,
 		gotoScopedPath,
@@ -31,10 +33,14 @@
 		}))
 	);
 
-	const tabs = [
-		{ label: 'Collections', path: '/management/transactions/collections' as const },
-		{ label: 'Disbursements', path: '/management/transactions/disbursements' as const }
-	];
+	const tabs = $derived([
+		...(merchantSession.hasPayinAccess()
+			? [{ label: 'Collections', path: '/management/transactions/collections' as const }]
+			: []),
+		...(merchantSession.hasPayoutAccess()
+			? [{ label: 'Disbursements', path: '/management/transactions/disbursements' as const }]
+			: [])
+	]);
 
 	const isDetailPage = $derived(
 		/\/collections\/orders\/[^/]+$/.test(page.url.pathname) ||
@@ -44,8 +50,27 @@
 	);
 
 	$effect(() => {
-		if (page.url.pathname === resolve('/management/transactions')) {
-			gotoScopedPath('/management/transactions/collections/payments', scope);
+		const path = page.url.pathname;
+		if (merchantSession.loading) return;
+
+		if (path === resolve('/management/transactions')) {
+			if (merchantSession.hasPayinAccess()) {
+				gotoScopedPath('/management/transactions/collections/payments', scope);
+			} else if (merchantSession.hasPayoutAccess()) {
+				gotoScopedPath('/management/transactions/disbursements', scope);
+			} else {
+				goto(resolve('/management'));
+			}
+		} else if (
+			path.startsWith(resolve('/management/transactions/collections')) &&
+			!merchantSession.hasPayinAccess()
+		) {
+			goto(resolve('/management'));
+		} else if (
+			path.startsWith(resolve('/management/transactions/disbursements')) &&
+			!merchantSession.hasPayoutAccess()
+		) {
+			goto(resolve('/management'));
 		}
 	});
 

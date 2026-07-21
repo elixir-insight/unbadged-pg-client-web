@@ -47,8 +47,12 @@
 
 			<Tabs.List variant="line" class="shrink-0">
 				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-				<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
-				<Tabs.Trigger value="disbursements">Disbursements</Tabs.Trigger>
+				{#if merchantSession.hasPayinAccess()}
+					<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
+				{/if}
+				{#if merchantSession.hasPayoutAccess()}
+					<Tabs.Trigger value="disbursements">Disbursements</Tabs.Trigger>
+				{/if}
 			</Tabs.List>
 		</div>
 
