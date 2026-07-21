@@ -5,9 +5,9 @@
 	let { data }: { data: PageData } = $props();
 
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
-	import { Button, Chip, Tabs } from '$lib/components/reusable';
-	import type { TabItem } from '$lib/components/reusable';
+	import { Button, Chip } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import { cn } from '$lib/utils';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
@@ -33,19 +33,6 @@
 	];
 
 	let activeTab = $state('overview');
-
-	const tabs: TabItem[] = [
-		{
-			value: 'overview',
-			label: 'Overview',
-			content: overviewTab
-		},
-		{
-			value: 'configuration',
-			label: 'Configuration',
-			content: configurationTab
-		}
-	];
 
 	function initials(name: string) {
 		return name
@@ -161,7 +148,18 @@
 		</div>
 	</section>
 
-	<Tabs {tabs} bind:value={activeTab} variant="line" class="flex w-full flex-col gap-4" />
+	<Tabs.Root bind:value={activeTab} class="flex w-full flex-col gap-4">
+		<Tabs.List variant="line">
+			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+			<Tabs.Trigger value="configuration">Configuration</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Content value="overview">
+			{@render overviewTab()}
+		</Tabs.Content>
+		<Tabs.Content value="configuration">
+			{@render configurationTab()}
+		</Tabs.Content>
+	</Tabs.Root>
 </div>
 
 <ChangePasswordModal bind:open={changePasswordOpen} email={sessionEmail} />
