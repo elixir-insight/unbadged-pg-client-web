@@ -50,7 +50,9 @@
 					vanNumber: merchantSession.session.organizationId,
 					settingsHref: '/merchant/settings'
 				}
-			: {}
+			: app === 'management'
+				? { settingsHref: '/management/settings' }
+				: {}
 	);
 
 	const rootRoutes: Record<AppId, string> = {

@@ -94,10 +94,7 @@
 			<Chip variant="success">Configured</Chip>
 		</div>
 
-		<div class="border-t border-border/40 px-4 py-4 sm:px-5">
-			<h3 class="text-sm font-semibold text-foreground">API Keys</h3>
-			<p class="mt-2 font-mono text-sm tracking-widest text-muted-foreground">••••••••••••••••</p>
-		</div>
+		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
 	</section>
 {/snippet}
 
@@ -164,11 +161,6 @@
 			</div>
 		</div>
 	</section>
-	<div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
-		<section class="overflow-hidden rounded-xl border border-border bg-card">
-			<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
-		</section>
-	</div>
 
 	<Tabs {tabs} bind:value={activeTab} variant="line" class="flex w-full flex-col gap-4" />
 </div>
