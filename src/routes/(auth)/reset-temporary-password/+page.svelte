@@ -55,7 +55,7 @@
 							id="new-password"
 							name="newPassword"
 							type={showNewPassword ? 'text' : 'password'}
-							placeholder="Enter new password"
+							placeholder="Enter Password"
 							bind:value={newPassword}
 							autocomplete="new-password"
 							required

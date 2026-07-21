@@ -12,6 +12,7 @@ function sessionWithPermissions(
 		organizationId: 'org-1',
 		merchantName: 'Acme',
 		email: 'acme@example.com',
+		userType: 'MEMBER',
 		permissions,
 		groups
 	};

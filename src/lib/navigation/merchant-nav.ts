@@ -1,7 +1,6 @@
 import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
-	Wallet,
 	ArrowLeftRight,
 	MessageSquareWarning,
 	Landmark,
@@ -47,14 +46,8 @@ export const merchantNav: NavGroup[] = [
 				icon: MessageSquareWarning,
 				service: 'payin'
 			},
-			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' },
-			{ title: 'Funds', href: '/merchant/funds', icon: Wallet, service: 'payout' },
-			{
-				title: 'Beneficiaries',
-				href: '/merchant/beneficiaries',
-				icon: Users,
-				service: 'payout'
-			}
+			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' }
+			// Funds + Beneficiaries intentionally omitted from nav for now
 		]
 	},
 	{
