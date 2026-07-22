@@ -23,13 +23,23 @@ import {
 	mapPaymentMix,
 	type PaymentMixChartItem
 } from '$lib/server/domains/dashboard/mappers/from-api/payment-mix';
+import { mapRecentTransactions } from '$lib/server/domains/dashboard/mappers/from-api/recent-transactions';
+import { mapDashboardSettlements } from '$lib/server/domains/dashboard/mappers/from-api/settlements';
 import type {
 	DashboardKpiRange,
 	DashboardTrendGranularity
 } from '$lib/server/domains/dashboard/schema';
+import { paymentAttemptClient } from '$lib/server/domains/payment-attempt/client';
+import { settlementClient } from '$lib/server/domains/settlement/client';
+import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
+import type {
+	DashboardSettlement,
+	DashboardTransaction
+} from '$lib/components/merchant-dashboard/dashboard-data';
 
 const VALID_RANGES = new Set<DashboardKpiRange>(['today', '7d', '30d']);
 const VALID_GRANULARITIES = new Set<DashboardTrendGranularity>(['daily', 'weekly']);
+const RECENT_LIMIT = 6;
 
 function parseRange(value: string | null): DashboardKpiRange {
 	if (value && VALID_RANGES.has(value as DashboardKpiRange)) {
@@ -45,12 +55,38 @@ function parseGranularity(value: string | null): DashboardTrendGranularity {
 	return 'daily';
 }
 
+function formatDateParam(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+}
+
+function rangeToDateParams(range: DashboardKpiRange): { fromDate: string; toDate: string } {
+	const toDate = new Date();
+	const fromDate = new Date(toDate);
+
+	if (range === 'today') {
+		// keep same calendar day
+	} else if (range === '7d') {
+		fromDate.setDate(fromDate.getDate() - 6);
+	} else {
+		fromDate.setDate(fromDate.getDate() - 29);
+	}
+
+	return {
+		fromDate: formatDateParam(fromDate),
+		toDate: formatDateParam(toDate)
+	};
+}
+
 export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
 	depends('merchant:dashboard');
 
 	const log = locals.logger.child({ action: 'merchant-dashboard' });
 	const range = parseRange(url.searchParams.get('range'));
 	const granularity = parseGranularity(url.searchParams.get('granularity'));
+	const { fromDate, toDate } = rangeToDateParams(range);
 
 	const base = {
 		range,
@@ -62,7 +98,11 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		paymentMix: [] as PaymentMixChartItem[],
 		paymentMixError: null as string | null,
 		conversionFunnel: emptyConversionFunnel() as ConversionFunnelView,
-		conversionFunnelError: null as string | null
+		conversionFunnelError: null as string | null,
+		recentTransactions: [] as DashboardTransaction[],
+		recentTransactionsError: null as string | null,
+		settlements: [] as DashboardSettlement[],
+		settlementsError: null as string | null
 	};
 
 	let tokens;
@@ -75,13 +115,39 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 				kpisError: e.message,
 				collectionsTrendError: e.message,
 				paymentMixError: e.message,
-				conversionFunnelError: e.message
+				conversionFunnelError: e.message,
+				recentTransactionsError: e.message,
+				settlementsError: e.message
 			};
 		}
 		throw e;
 	}
 
-	const [kpisResult, trendResult, paymentMixResult, funnelResult] = await Promise.all([
+	const vanResult = await resolvePayinVirtualAccountNumber(
+		fetch,
+		log,
+		tokens.accessToken,
+		tokens.gatewayToken
+	);
+
+	const attemptsPromise = vanResult.ok
+		? paymentAttemptClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, {
+				fromDate,
+				toDate,
+				limit: RECENT_LIMIT,
+				page: 0,
+				virtualAccountNumber: vanResult.data
+			})
+		: Promise.resolve(null);
+
+	const [
+		kpisResult,
+		trendResult,
+		paymentMixResult,
+		funnelResult,
+		settlementsResult,
+		attemptsResult
+	] = await Promise.all([
 		dashboardClient.getKpis(fetch, log, tokens.accessToken, tokens.gatewayToken, range),
 		dashboardClient.getCollectionsTrend(
 			fetch,
@@ -92,7 +158,14 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 			granularity
 		),
 		dashboardClient.getPaymentMix(fetch, log, tokens.accessToken, tokens.gatewayToken, range),
-		dashboardClient.getConversionFunnel(fetch, log, tokens.accessToken, tokens.gatewayToken, range)
+		dashboardClient.getConversionFunnel(fetch, log, tokens.accessToken, tokens.gatewayToken, range),
+		settlementClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, {
+			page: 1,
+			limit: RECENT_LIMIT,
+			fromDate,
+			toDate
+		}),
+		attemptsPromise
 	]);
 
 	let kpis = base.kpis;
@@ -170,6 +243,44 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		}
 	}
 
+	let recentTransactions = base.recentTransactions;
+	let recentTransactionsError: string | null = null;
+	if (!vanResult.ok) {
+		log.warn(
+			{ kind: vanResult.error.kind, message: vanResult.error.message },
+			'GET merchant PAYIN virtual account failed'
+		);
+		recentTransactionsError = vanResult.error.message;
+	} else if (!attemptsResult) {
+		recentTransactionsError = 'Unable to load recent transactions';
+	} else if (!attemptsResult.ok) {
+		log.warn(
+			{
+				kind: attemptsResult.error.kind,
+				message: attemptsResult.error.message
+			},
+			'GET merchant payment attempts for dashboard failed'
+		);
+		recentTransactionsError = attemptsResult.error.message;
+	} else {
+		recentTransactions = mapRecentTransactions(attemptsResult.data.data);
+	}
+
+	let settlements = base.settlements;
+	let settlementsError: string | null = null;
+	if (!settlementsResult.ok) {
+		log.warn(
+			{
+				kind: settlementsResult.error.kind,
+				message: settlementsResult.error.message
+			},
+			'GET merchant settlements for dashboard failed'
+		);
+		settlementsError = settlementsResult.error.message;
+	} else {
+		settlements = mapDashboardSettlements(settlementsResult.data.data);
+	}
+
 	return {
 		range,
 		granularity,
@@ -180,6 +291,10 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		paymentMix,
 		paymentMixError,
 		conversionFunnel,
-		conversionFunnelError
+		conversionFunnelError,
+		recentTransactions,
+		recentTransactionsError,
+		settlements,
+		settlementsError
 	};
 };

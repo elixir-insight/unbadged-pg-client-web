@@ -27,7 +27,8 @@ export interface FunnelOutcome {
 }
 
 export interface DashboardTransaction {
-	id: string;
+	txnId: string;
+	orderId: string;
 	customer: string;
 	amount: number;
 	method: string;
@@ -83,7 +84,8 @@ export function formatDashboardCurrency(value: number, compact = false): string 
 
 const transactions: DashboardTransaction[] = [
 	{
-		id: 'ORD_28910',
+		txnId: 'PAT_28910',
+		orderId: 'ORD_28910',
 		customer: 'Aarav Mehta',
 		amount: 24384,
 		method: 'UPI',
@@ -92,7 +94,8 @@ const transactions: DashboardTransaction[] = [
 		date: 'Today, 10:32 AM'
 	},
 	{
-		id: 'ORD_28901',
+		txnId: 'PAT_28901',
+		orderId: 'ORD_28901',
 		customer: 'Priya Sharma',
 		amount: 21423,
 		method: 'Card',
@@ -101,7 +104,8 @@ const transactions: DashboardTransaction[] = [
 		date: 'Today, 9:55 AM'
 	},
 	{
-		id: 'ORD_28876',
+		txnId: 'PAT_28876',
+		orderId: 'ORD_28876',
 		customer: 'Rohit Iyer',
 		amount: 19287,
 		method: 'Netbanking',
@@ -110,7 +114,8 @@ const transactions: DashboardTransaction[] = [
 		date: 'Today, 9:18 AM'
 	},
 	{
-		id: 'ORD_28853',
+		txnId: 'PAT_28853',
+		orderId: 'ORD_28853',
 		customer: 'Sneha Kapoor',
 		amount: 15094,
 		method: 'Wallet',
@@ -119,7 +124,8 @@ const transactions: DashboardTransaction[] = [
 		date: 'Today, 8:41 AM'
 	},
 	{
-		id: 'ORD_28840',
+		txnId: 'PAT_28840',
+		orderId: 'ORD_28840',
 		customer: 'Vikram Singh',
 		amount: 9928,
 		method: 'UPI',
@@ -128,7 +134,8 @@ const transactions: DashboardTransaction[] = [
 		date: 'Today, 8:04 AM'
 	},
 	{
-		id: 'ORD_28817',
+		txnId: 'PAT_28817',
+		orderId: 'ORD_28817',
 		customer: 'Ananya Nair',
 		amount: 15804,
 		method: 'Card',
