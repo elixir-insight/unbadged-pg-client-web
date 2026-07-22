@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
+	import { formatAbsoluteTime } from '$lib/utils/format-time';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
 		Button,
@@ -177,7 +178,16 @@
 
 	const columns: ColumnDef<PageData['orders'][number]>[] = [
 		{ accessorKey: 'orderId', header: 'Order ID' },
-		{ accessorKey: 'createdAt', header: 'Date & Time' },
+		{
+			accessorKey: 'createdAt',
+			header: 'Date & Time',
+			cell: (info) => {
+				const value = info.getValue<string>();
+				if (!value) return '—';
+				if (/^\d{2}\/\d{2}\/\d{4}/.test(value)) return value;
+				return formatAbsoluteTime(value);
+			}
+		},
 		{ accessorKey: 'customer', header: 'Customer' },
 		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
 		{ accessorKey: 'attemptId', header: 'Attempt ID' },

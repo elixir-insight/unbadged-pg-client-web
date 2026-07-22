@@ -64,7 +64,11 @@
 			const date = new Date(todayMs - (29 - i) * dayMs);
 			const wave = Math.sin(i / 3.5) * amplitude + Math.sin(i / 7) * (amplitude / 2);
 			return {
-				label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+				label: date.toLocaleDateString('en-IN', {
+					day: '2-digit',
+					month: '2-digit',
+					year: 'numeric'
+				}),
 				value: Math.max(0, Math.round(base + growth * i + wave))
 			};
 		});

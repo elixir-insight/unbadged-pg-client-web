@@ -1,12 +1,7 @@
 import type { SettlementListItem } from '../../schema';
 import type { Settlement, SettlementStatus } from '$lib/types/settlement';
 import { formatSettlementAmount } from './overview';
-
-const dateFormatter = new Intl.DateTimeFormat('en-IN', {
-	day: '2-digit',
-	month: 'short',
-	year: 'numeric'
-});
+import { formatDate } from '$lib/utils/format-time';
 
 export function parseSettlementAmount(value: string | null | undefined): number | null {
 	if (value == null) return null;
@@ -138,9 +133,7 @@ export function mapManagementSettlementListItemToDetail(item: SettlementListItem
 function formatSettlementDate(value: string | null | undefined): string {
 	const trimmed = value?.trim() ?? '';
 	if (!trimmed) return '—';
-	const date = new Date(trimmed);
-	if (Number.isNaN(date.getTime())) return trimmed;
-	return dateFormatter.format(date);
+	return formatDate(trimmed);
 }
 
 export interface SettlementListRow {

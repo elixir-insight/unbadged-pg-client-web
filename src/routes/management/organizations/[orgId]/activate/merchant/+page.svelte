@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import type { ResolvedPathname } from '$app/types';
-	import { Button } from '$lib/components/reusable';
+	import { resolve } from '$app/paths';
+	import { Button, toast } from '$lib/components/reusable';
 	import { AlertCircle } from '$lib/assets/icons';
 	import type { OrganizationFeeConfigDraft } from '$lib/data/mockData';
 	import {
@@ -54,9 +56,15 @@
 	let chargesSaved = $state(false);
 	let commissionSaved = $state(false);
 	let partnerSaved = $state(false);
+	let chargesConfigured = $state(false);
+	let commissionConfigured = $state(false);
+	let partnerConfigured = $state(false);
 
 	const methodConfigId = $derived(resolveMethodConfigId(pathSelection));
 	const pathReady = $derived(methodConfigId !== null);
+	const feeConfigComplete = $derived(
+		pathReady && chargesConfigured && commissionConfigured && partnerConfigured
+	);
 
 	const cancelHref = $derived(
 		defaultOrganizationLandingPath(organization.id, organization.status) as ResolvedPathname
@@ -79,7 +87,12 @@
 	}
 
 	function loadDraftForPath(configId: string | null) {
-		if (!configId) return;
+		if (!configId) {
+			chargesConfigured = false;
+			commissionConfigured = false;
+			partnerConfigured = false;
+			return;
+		}
 		const existing = organization.feeConfigDrafts.find(
 			(draft) => draft.methodConfigId === configId
 		);
@@ -93,8 +106,15 @@
 			chargesEffectiveTo = '';
 			commissionEffectiveTo = '';
 			partnerEffectiveTo = '';
+			chargesConfigured = false;
+			commissionConfigured = false;
+			partnerConfigured = false;
 			return;
 		}
+
+		chargesConfigured = Boolean(existing.charges);
+		commissionConfigured = Boolean(existing.commission);
+		partnerConfigured = Boolean(existing.partner);
 
 		if (existing.charges) {
 			chargesSlabs = cloneSlabs(existing.charges.slabs);
@@ -151,6 +171,7 @@
 			feeConfigId,
 			charges: sectionDraft(chargesSlabs, chargesEffectiveFrom, chargesEffectiveTo)
 		});
+		chargesConfigured = true;
 		chargesSaved = true;
 		setTimeout(() => {
 			chargesSaved = false;
@@ -169,6 +190,7 @@
 			...current,
 			commission: sectionDraft(commissionSlabs, commissionEffectiveFrom, commissionEffectiveTo)
 		});
+		commissionConfigured = true;
 		commissionSaved = true;
 		setTimeout(() => {
 			commissionSaved = false;
@@ -187,10 +209,25 @@
 			...current,
 			partner: sectionDraft(partnerSlabs, partnerEffectiveFrom, partnerEffectiveTo)
 		});
+		partnerConfigured = true;
 		partnerSaved = true;
 		setTimeout(() => {
 			partnerSaved = false;
 		}, 3000);
+	}
+
+	function completeFeeConfiguration() {
+		if (!feeConfigComplete) {
+			toast.error('Complete fee configuration', {
+				description: 'Save charges, commission, and partner fee before continuing.'
+			});
+			return;
+		}
+
+		toast.success('Fee configuration saved', {
+			description: 'Organization setup is complete.'
+		});
+		goto(resolve('/management/organizations'));
 	}
 
 	$effect(() => {
@@ -274,8 +311,11 @@
 				onSave={savePartner}
 			/>
 
-			<div class="flex justify-start">
+			<div class="flex flex-wrap items-center justify-between gap-2">
 				<Button variant="ghost" href={cancelHref}>Cancel</Button>
+				<Button disabled={!feeConfigComplete} onclick={completeFeeConfiguration}>
+					Complete & go to organizations
+				</Button>
 			</div>
 		</div>
 

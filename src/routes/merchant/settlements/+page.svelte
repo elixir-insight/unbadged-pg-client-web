@@ -26,6 +26,7 @@
 	import StatusBadge from './status-badge.svelte';
 	import type { SettlementStatus } from '$lib/types/settlement';
 	import type { PageData } from './$types';
+	import { formatDate } from '$lib/utils/format-time';
 
 	let { data }: { data: PageData } = $props();
 
@@ -167,7 +168,7 @@
 		const last = data.overview.lastSettlement;
 		if (!last) return 'No settlements yet';
 		const parts = [`Settlement ${last.settlementId}`];
-		if (last.settlementDatetime) parts.push(last.settlementDatetime);
+		if (last.settlementDatetime) parts.push(formatDate(last.settlementDatetime));
 		return parts.join(' · ');
 	});
 
@@ -180,7 +181,8 @@
 			const fmt = (d: DateValue) =>
 				d.toDate('Asia/Kolkata').toLocaleDateString('en-IN', {
 					day: '2-digit',
-					month: 'short'
+					month: '2-digit',
+					year: 'numeric'
 				});
 			filters.push({
 				key: 'date',
@@ -238,7 +240,14 @@
 		{ accessorKey: 'amount', header: 'Amount Settled', enableSorting: true },
 		{ accessorKey: 'fees', header: 'Fees & Tax' },
 		{ accessorKey: 'netAmount', header: 'Net Amount' },
-		{ accessorKey: 'settledOn', header: 'Settled / Expected On' },
+		{
+			accessorKey: 'settledOn',
+			header: 'Settled / Expected On',
+			cell: (info) => {
+				const value = info.getValue<string | null>();
+				return value ? formatDate(value) : '—';
+			}
+		},
 		{
 			accessorKey: 'status',
 			header: 'Status',

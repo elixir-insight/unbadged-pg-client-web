@@ -1,16 +1,16 @@
 <script lang="ts">
-	import ApiCredentialSection from './api-credential-section.svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
-
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
 	import { Button, Chip } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import { cn } from '$lib/utils';
-	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
+	import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { cn } from '$lib/utils';
+	import ApiCredentialSection from './api-credential-section.svelte';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	merchantSession.initialize();
 
@@ -85,6 +85,10 @@
 	</section>
 {/snippet}
 
+{#snippet ipWhitelistTab()}
+	<IpWhitelistTab portal="merchant" />
+{/snippet}
+
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">
 		<div class="relative h-28 bg-muted sm:h-32">
@@ -152,12 +156,16 @@
 		<Tabs.List variant="line">
 			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
 			<Tabs.Trigger value="configuration">Configuration</Tabs.Trigger>
+			<Tabs.Trigger value="ip-whitelist">Whitelisted IP Address</Tabs.Trigger>
 		</Tabs.List>
 		<Tabs.Content value="overview">
 			{@render overviewTab()}
 		</Tabs.Content>
 		<Tabs.Content value="configuration">
 			{@render configurationTab()}
+		</Tabs.Content>
+		<Tabs.Content value="ip-whitelist">
+			{@render ipWhitelistTab()}
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

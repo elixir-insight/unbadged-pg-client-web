@@ -1,5 +1,6 @@
 import { getLocalTimeZone } from '@internationalized/date';
 import type { ReportGenerationRequest } from './types';
+import { formatDate } from '$lib/utils/format-time';
 
 function formatDateForFilename(date: Date): string {
 	const year = date.getFullYear();
@@ -136,14 +137,14 @@ function filterDummyTransactions(request: ReportGenerationRequest): DummyTransac
 
 function buildSummaryRows(request: ReportGenerationRequest): string[][] {
 	const tz = getLocalTimeZone();
-	const start = request.dateRange.start?.toDate(tz).toISOString().slice(0, 10) ?? '';
-	const end = request.dateRange.end?.toDate(tz).toISOString().slice(0, 10) ?? '';
+	const start = request.dateRange.start?.toDate(tz);
+	const end = request.dateRange.end?.toDate(tz);
 
 	return [
 		['Report Type', request.reportType],
 		['Portal', request.portal],
-		['Start Date', start],
-		['End Date', end],
+		['Start Date', start ? formatDate(start) : ''],
+		['End Date', end ? formatDate(end) : ''],
 		['Format', request.fileFormat.toUpperCase()],
 		['Service', request.filters.service ?? 'All'],
 		['Transaction Status', (request.filters.transactionStatus ?? []).join('|') || 'All'],
@@ -168,7 +169,7 @@ function buildDummyDataRows(request: ReportGenerationRequest): string[][] {
 
 	const rows = filterDummyTransactions(request).map((row) => [
 		row.transactionId,
-		row.date,
+		formatDate(row.date),
 		row.merchant,
 		row.service,
 		row.paymentMethod,

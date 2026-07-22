@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Component } from 'svelte';
-	import { Button } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
+	import type { Snippet, Component } from 'svelte';
 
 	let {
 		icon: IconComponent,
 		title,
 		description,
+		action,
 		actionLabel,
 		onaction,
 		class: className
@@ -14,6 +14,7 @@
 		icon?: Component;
 		title: string;
 		description?: string;
+		action?: Snippet;
 		actionLabel?: string;
 		onaction?: () => void;
 		class?: string;
@@ -21,24 +22,36 @@
 </script>
 
 <div
-	class={cn('flex flex-col items-center justify-center gap-3 px-4 py-16 text-center', className)}
+	class={cn(
+		'flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center',
+		className
+	)}
 >
 	{#if IconComponent}
 		<div
-			class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10"
+			class="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
 		>
-			<IconComponent class="size-5 text-muted-foreground/40" />
+			<IconComponent class="size-6" />
 		</div>
 	{/if}
-	<div class="flex flex-col gap-1">
-		<p class="text-sm font-medium text-foreground">{title}</p>
+
+	<div>
+		<h3 class="text-sm font-semibold text-foreground">{title}</h3>
+
 		{#if description}
-			<p class="text-xs text-muted-foreground">{description}</p>
+			<p class="mt-1 text-sm text-muted-foreground">{description}</p>
 		{/if}
 	</div>
-	{#if actionLabel && onaction}
-		<Button variant="outline" size="sm" onclick={onaction}>
+
+	{#if action}
+		{@render action()}
+	{:else if actionLabel && onaction}
+		<button
+			type="button"
+			class="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+			onclick={onaction}
+		>
 			{actionLabel}
-		</Button>
+		</button>
 	{/if}
 </div>

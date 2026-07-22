@@ -5,13 +5,13 @@ import {
 	Users,
 	ShieldCheck,
 	// Wallet,
-	Send,
+	// Send,
 	ArrowLeftRight,
-	TrendingUp,
+	// TrendingUp,
 	Landmark,
-	FileText,
-	Fingerprint,
-	CircleCheck
+	FileText
+	// Fingerprint,
+	// CircleCheck
 } from '$lib/assets/icons';
 
 export const managementNav: NavGroup[] = [
@@ -66,12 +66,12 @@ export const managementNav: NavGroup[] = [
 		title: 'Financial Operations',
 		items: [
 			// { title: 'Wallet Management', href: '/management/wallets', icon: Wallet },
-			{
-				title: 'Fund Transfer',
-				href: '/management/fund-transfer',
-				icon: Send,
-				service: 'payout'
-			},
+			// {
+			// 	title: 'Fund Transfer',
+			// 	href: '/management/fund-transfer',
+			// 	icon: Send,
+			// 	service: 'payout'
+			// },
 			{
 				title: 'Transactions',
 				href: '/management/transactions',
@@ -99,7 +99,7 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			},
-			{ title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
+			// { title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
 			{
 				title: 'Settlements',
 				href: '/management/settlements',
@@ -117,9 +117,9 @@ export const managementNav: NavGroup[] = [
 	{
 		title: 'Monitoring',
 		items: [
-			{ title: 'Reports', href: '/management/reports', icon: FileText },
-			{ title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
-			{ title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
+			{ title: 'Reports', href: '/management/reports', icon: FileText }
+			// { title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
+			// { title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
 		]
 	}
 ];
