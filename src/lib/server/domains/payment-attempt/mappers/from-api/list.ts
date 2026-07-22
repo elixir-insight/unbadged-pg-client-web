@@ -1,4 +1,5 @@
 import type { PayinPaymentStatus, PayinRefundDetail, PayinRefundStatus } from '$lib/types/payin';
+import { formatSnakeCaseLabel, truncateText } from '$lib/utils/format-display';
 import type { PaymentAttemptCounts, PaymentAttemptItem, PaymentRefundItem } from '../../schema';
 
 const amountFormatter = new Intl.NumberFormat('en-IN', {
@@ -26,6 +27,7 @@ export interface PaymentAttemptListRow extends Record<string, unknown> {
 	txnId: string;
 	orderId: string;
 	createdAt: string;
+	customer: string;
 	paymentMethod: string;
 	paymentChannel: string;
 	amount: string;
@@ -95,12 +97,17 @@ export function mapPaymentAttemptUiStatus(status: string | undefined): string | 
 }
 
 export function mapPaymentAttemptListItem(item: PaymentAttemptItem): PaymentAttemptListRow {
+	const customer = item.payerVpa?.trim() || item.clientOrderId?.trim() || '—';
+
 	return {
 		txnId: item.payinAttemptId,
 		orderId: item.orderId?.trim() || '—',
 		createdAt: formatDate(item.createdAtIst?.trim() || item.createdAt?.trim() || ''),
-		paymentMethod: item.paymentMethod?.trim() || '—',
-		paymentChannel: item.paymentChannel?.trim() || item.paymentMode?.trim() || '—',
+		customer: truncateText(customer),
+		paymentMethod: formatSnakeCaseLabel(item.paymentMethod?.trim() || '—'),
+		paymentChannel: formatSnakeCaseLabel(
+			item.paymentChannel?.trim() || item.paymentMode?.trim() || '—'
+		),
 		amount: formatAmount(item.transactionAmount),
 		status: mapPaymentAttemptApiStatus(item.transactionStatus)
 	};
@@ -116,7 +123,7 @@ export function mapRelatedPaymentAttempts(items: PaymentAttemptItem[]): RelatedP
 	return items.map((item, index) => ({
 		txnId: item.payinAttemptId,
 		attemptNumber: index + 1,
-		paymentMethod: item.paymentMethod?.trim() || '—',
+		paymentMethod: formatSnakeCaseLabel(item.paymentMethod?.trim() || '—'),
 		paymentStatus: mapPaymentAttemptApiStatus(item.transactionStatus)
 	}));
 }
