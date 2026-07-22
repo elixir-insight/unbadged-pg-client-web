@@ -15,7 +15,10 @@ import {
 	mapRelatedPaymentAttempts,
 	type RelatedPaymentAttempt
 } from '$lib/server/domains/payment-attempt/mappers/from-api/list';
-import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
+import {
+	isNoPayinVirtualAccountError,
+	resolvePayinVirtualAccountNumber
+} from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
 import type { PayinTimelineEntry } from '$lib/types/payin';
 
 export const load: PageServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
@@ -52,10 +55,14 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		tokens.gatewayToken
 	);
 	if (!vanResult.ok) {
-		log.warn(
-			{ kind: vanResult.error.kind, message: vanResult.error.message },
-			'GET merchant PAYIN virtual account failed'
-		);
+		if (isNoPayinVirtualAccountError(vanResult.error)) {
+			log.info('payment order detail — no PAYIN virtual account yet');
+		} else {
+			log.warn(
+				{ kind: vanResult.error.kind, message: vanResult.error.message },
+				'GET merchant PAYIN virtual account failed'
+			);
+		}
 		return {
 			...base,
 			orderError: vanResult.error.message,

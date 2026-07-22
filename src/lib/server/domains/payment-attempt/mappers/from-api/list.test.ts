@@ -32,17 +32,19 @@ describe('payment attempt mappers', () => {
 				createdAt: '2026-07-21T10:00:00.000Z',
 				transactionAmount: '4500',
 				transactionStatus: 'CAPTURED',
-				paymentMethod: 'UPI',
-				paymentChannel: 'UPI_COLLECT'
+				paymentMethod: 'CREDIT_CARD',
+				paymentChannel: 'VISA',
+				payerVpa: 'shopper@upi'
 			})
 		);
 
 		expect(row.txnId).toBe('PAT-1');
 		expect(row.orderId).toBe('ORD-1');
+		expect(row.customer).toBe('shopper@upi');
+		expect(row.paymentMethod).toBe('Credit Card');
+		expect(row.paymentChannel).toBe('VISA');
 		expect(row.amount).toContain('4,500');
 		expect(row.status).toBe('success');
-		expect(row.paymentMethod).toBe('UPI');
-		expect(row.paymentChannel).toBe('UPI_COLLECT');
 	});
 
 	it('formats payment method labels for the table', () => {
@@ -57,6 +59,34 @@ describe('payment attempt mappers', () => {
 		);
 
 		expect(row.paymentMethod).toBe('Debit Card');
+	});
+
+	it('uses em dash placeholders for empty customer, method, and channel', () => {
+		const row = mapPaymentAttemptListItem(
+			v.parse(PaymentAttemptItemSchema, {
+				payinAttemptId: 'PAT-2',
+				transactionAmount: '2',
+				transactionStatus: 'CAPTURED'
+			})
+		);
+
+		expect(row.customer).toBe('—');
+		expect(row.paymentMethod).toBe('—');
+		expect(row.paymentChannel).toBe('—');
+		expect(row.orderId).toBe('—');
+	});
+
+	it('truncates long customer values for the table', () => {
+		const row = mapPaymentAttemptListItem(
+			v.parse(PaymentAttemptItemSchema, {
+				payinAttemptId: 'PAT-3',
+				transactionAmount: '2',
+				transactionStatus: 'CAPTURED',
+				clientOrderId: 'ORDER-53d44733-ce24-4ae3-9e89-c6b88e9289cc'
+			})
+		);
+
+		expect(row.customer).toBe('ORDER-53d44733-ce24-4ae…');
 	});
 
 	it('maps order attempts for the related payments table', () => {

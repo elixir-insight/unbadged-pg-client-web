@@ -7,10 +7,12 @@
 	interface Props {
 		transactions: DashboardTransaction[];
 		error?: string | null;
+		/** Non-error empty state (e.g. merchant has no VAN yet). */
+		emptyMessage?: string | null;
 		class?: string;
 	}
 
-	let { transactions, error = null, class: className }: Props = $props();
+	let { transactions, error = null, emptyMessage = null, class: className }: Props = $props();
 
 	const statusConfig = {
 		success: { label: 'Captured', class: 'bg-success/10 text-success' },
@@ -99,8 +101,10 @@
 			</table>
 		</div>
 	{:else}
-		<p class="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-			No recent transactions.
+		<p
+			class="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground"
+		>
+			{emptyMessage ?? 'No recent transactions.'}
 		</p>
 	{/if}
 </section>

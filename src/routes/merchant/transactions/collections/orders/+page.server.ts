@@ -13,7 +13,10 @@ import {
 	type PaymentOrderCardCounts,
 	type PaymentOrderListRow
 } from '$lib/server/domains/payment-order/mappers/from-api/list';
-import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
+import {
+	isNoPayinVirtualAccountError,
+	resolvePayinVirtualAccountNumber
+} from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
@@ -38,7 +41,8 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 	const base = {
 		orders: [] as PaymentOrderListRow[],
 		counts: emptyCounts(),
-		pagination: { limit, page, total: 0 }
+		pagination: { limit, page, total: 0 },
+		vanSetupMessage: null as string | null
 	};
 
 	let tokens;
@@ -62,6 +66,15 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		tokens.gatewayToken
 	);
 	if (!vanResult.ok) {
+		if (isNoPayinVirtualAccountError(vanResult.error)) {
+			log.info('payment orders — no PAYIN virtual account yet');
+			return {
+				...base,
+				vanSetupMessage: vanResult.error.message,
+				listError: null,
+				countsError: null
+			};
+		}
 		log.warn(
 			{ kind: vanResult.error.kind, message: vanResult.error.message },
 			'GET merchant PAYIN virtual account failed'
@@ -136,6 +149,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 			total: exactTotal ?? skip + orders.length + (orders.length === limit && !listError ? 1 : 0)
 		},
 		listError,
-		countsError
+		countsError,
+		vanSetupMessage: null
 	};
 };

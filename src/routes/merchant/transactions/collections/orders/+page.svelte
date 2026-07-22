@@ -168,7 +168,11 @@
 	});
 
 	const showingText = $derived(
-		data.listError ? 'Unable to load orders' : `${pagination.showingText} orders`
+		data.vanSetupMessage
+			? 'Collection account not set up'
+			: data.listError
+				? 'Unable to load orders'
+				: `${pagination.showingText} orders`
 	);
 
 	const columns: ColumnDef<PageData['orders'][number]>[] = [
@@ -270,11 +274,19 @@
 
 		{#if data.orders.length === 0}
 			<EmptyState
-				title={data.listError ? 'Unable to load orders' : 'No orders match your filters'}
-				description={data.listError
-					? data.listError
-					: 'Try a different date range, status, or order ID.'}
-				actionLabel={activeFilters.length > 0 ? 'Clear filters' : undefined}
+				title={data.vanSetupMessage
+					? 'Collection account not set up'
+					: data.listError
+						? 'Unable to load orders'
+						: 'No orders match your filters'}
+				description={data.vanSetupMessage
+					? data.vanSetupMessage
+					: data.listError
+						? data.listError
+						: 'Try a different date range, status, or order ID.'}
+				actionLabel={!data.vanSetupMessage && activeFilters.length > 0
+					? 'Clear filters'
+					: undefined}
 				onaction={clearAllFilters}
 			/>
 		{:else}
