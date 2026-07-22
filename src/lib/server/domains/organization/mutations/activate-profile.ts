@@ -1,7 +1,5 @@
 import type { Logger } from 'pino';
 import { validateOrganizationActivation } from '$lib/validation/organization-activation';
-import { createVirtualAccountMutation } from '$lib/server/domains/virtual-account/mutations/create';
-import { DEFAULT_ACTIVATE_VIRTUAL_ACCOUNT_REQUEST } from '$lib/server/domains/virtual-account/schema';
 import { updateOrganizationStatusMutation } from './update-status';
 import { mutationFailure, type MutationResult } from './types';
 
@@ -56,28 +54,6 @@ export async function activateProfileMutation(params: {
 	}
 
 	params.log.info({ orgId, category: params.category }, 'organization profile activated');
-
-	const vanResult = await createVirtualAccountMutation({
-		fetch: params.fetch,
-		log: params.log,
-		cookies: params.cookies,
-		orgId,
-		body: DEFAULT_ACTIVATE_VIRTUAL_ACCOUNT_REQUEST
-	});
-
-	if (!vanResult.ok) {
-		params.log.error(
-			{ orgId, status: vanResult.status, message: vanResult.message },
-			'virtual account creation failed after profile activation'
-		);
-		return mutationFailure(
-			vanResult.status,
-			`Profile activated, but virtual account creation failed: ${vanResult.message}`,
-			vanResult.exceptionCode
-		);
-	}
-
-	params.log.info({ orgId }, 'virtual account created after profile activation');
 
 	const redirectPath =
 		params.category === 'PARTNER'
