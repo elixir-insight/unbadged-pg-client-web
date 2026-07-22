@@ -1,6 +1,10 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
-import { MerchantVirtualAccountsResponseSchema } from './schema';
+import {
+	CreateVirtualAccountResponseSchema,
+	MerchantVirtualAccountsResponseSchema,
+	type CreateVirtualAccountRequest
+} from './schema';
 
 export interface VirtualAccountsQuery {
 	pipelineCode?: string;
@@ -46,5 +50,24 @@ export const virtualAccountClient = {
 				pipelineCode: query.pipelineCode
 			},
 			schema: MerchantVirtualAccountsResponseSchema
+		}),
+
+	/** POST /api/v1/management/organizations/{orgId}/virtual-accounts */
+	create: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		body: CreateVirtualAccountRequest
+	) =>
+		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/virtual-accounts`, {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			body,
+			schema: CreateVirtualAccountResponseSchema
 		})
 };

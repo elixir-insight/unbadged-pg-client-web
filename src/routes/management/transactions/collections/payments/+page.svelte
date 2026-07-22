@@ -226,9 +226,21 @@
 				return formatAbsoluteTime(value);
 			}
 		},
-		{ accessorKey: 'customer', header: 'Customer' },
-		{ accessorKey: 'paymentMethod', header: 'Method' },
-		{ accessorKey: 'paymentChannel', header: 'Channel' },
+		{
+			accessorKey: 'customer',
+			header: 'Customer',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
+		{
+			accessorKey: 'paymentMethod',
+			header: 'Method',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
+		{
+			accessorKey: 'paymentChannel',
+			header: 'Channel',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
 		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
 		{
 			accessorKey: 'status',

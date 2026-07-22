@@ -211,7 +211,11 @@
 	});
 
 	const showingText = $derived(
-		data.listError ? 'Unable to load payments' : `${pagination.showingText} payments`
+		data.vanSetupMessage
+			? 'Collection account not set up'
+			: data.listError
+				? 'Unable to load payments'
+				: `${pagination.showingText} payments`
 	);
 
 	const columns: ColumnDef<PageData['payments'][number]>[] = [
@@ -227,9 +231,21 @@
 				return formatAbsoluteTime(value);
 			}
 		},
-		{ accessorKey: 'customer', header: 'Customer' },
-		{ accessorKey: 'paymentMethod', header: 'Method' },
-		{ accessorKey: 'paymentChannel', header: 'Channel' },
+		{
+			accessorKey: 'customer',
+			header: 'Customer',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
+		{
+			accessorKey: 'paymentMethod',
+			header: 'Method',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
+		{
+			accessorKey: 'paymentChannel',
+			header: 'Channel',
+			cell: (info) => info.getValue<string>()?.trim() || '—'
+		},
 		{ accessorKey: 'amount', header: 'Amount', enableSorting: true },
 		{
 			accessorKey: 'status',
@@ -324,11 +340,19 @@
 
 		{#if data.payments.length === 0}
 			<EmptyState
-				title={data.listError ? 'Unable to load payments' : 'No payments match your filters'}
-				description={data.listError
-					? data.listError
-					: 'Try a different date range, payment method, status, or identifier.'}
-				actionLabel={activeFilters.length > 0 ? 'Clear filters' : undefined}
+				title={data.vanSetupMessage
+					? 'Collection account not set up'
+					: data.listError
+						? 'Unable to load payments'
+						: 'No payments match your filters'}
+				description={data.vanSetupMessage
+					? data.vanSetupMessage
+					: data.listError
+						? data.listError
+						: 'Try a different date range, payment method, status, or identifier.'}
+				actionLabel={!data.vanSetupMessage && activeFilters.length > 0
+					? 'Clear filters'
+					: undefined}
 				onaction={clearAllFilters}
 			/>
 		{:else}

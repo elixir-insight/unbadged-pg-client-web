@@ -12,9 +12,20 @@ const NumericStringSchema = v.pipe(
 	})
 );
 
+/** Same as NumericStringSchema, but null/undefined → 0 (empty merchant dashboards). */
+const NullableNumericStringSchema = v.pipe(
+	v.union([v.string(), v.number(), v.null(), v.undefined()]),
+	v.transform((value) => {
+		if (value == null) return 0;
+		const parsed =
+			typeof value === 'number' ? value : Number(String(value).replace(/,/g, '').trim());
+		return Number.isFinite(parsed) ? parsed : 0;
+	})
+);
+
 export const DashboardAmountWithChangeSchema = v.object({
 	amount: NumericStringSchema,
-	changePercent: NumericStringSchema
+	changePercent: NullableNumericStringSchema
 });
 
 export const DashboardKpisDataSchema = v.object({

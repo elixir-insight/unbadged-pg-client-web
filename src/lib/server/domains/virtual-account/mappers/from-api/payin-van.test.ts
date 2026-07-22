@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { findPayinVirtualAccount } from './payin-van';
+import {
+	findPayinVirtualAccount,
+	isNoPayinVirtualAccountError,
+	NO_PAYIN_VAN_CODE,
+	NO_PAYIN_VAN_MESSAGE
+} from './payin-van';
 import type { MerchantVirtualAccount } from '../../schema';
 
 function account(
@@ -71,5 +76,34 @@ describe('findPayinVirtualAccount', () => {
 				})
 			])
 		).toBeNull();
+	});
+});
+
+describe('isNoPayinVirtualAccountError', () => {
+	it('detects the setup-state error code', () => {
+		expect(
+			isNoPayinVirtualAccountError({
+				kind: 'http',
+				status: 404,
+				code: NO_PAYIN_VAN_CODE,
+				message: NO_PAYIN_VAN_MESSAGE
+			})
+		).toBe(true);
+	});
+
+	it('rejects other API errors', () => {
+		expect(
+			isNoPayinVirtualAccountError({
+				kind: 'http',
+				status: 500,
+				message: 'Server error'
+			})
+		).toBe(false);
+		expect(
+			isNoPayinVirtualAccountError({
+				kind: 'validation',
+				message: 'Unexpected response shape'
+			})
+		).toBe(false);
 	});
 });

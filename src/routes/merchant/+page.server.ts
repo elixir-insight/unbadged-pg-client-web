@@ -31,7 +31,10 @@ import type {
 } from '$lib/server/domains/dashboard/schema';
 import { paymentAttemptClient } from '$lib/server/domains/payment-attempt/client';
 import { settlementClient } from '$lib/server/domains/settlement/client';
-import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
+import {
+	isNoPayinVirtualAccountError,
+	resolvePayinVirtualAccountNumber
+} from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
 import type {
 	DashboardSettlement,
 	DashboardTransaction
@@ -101,6 +104,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		conversionFunnelError: null as string | null,
 		recentTransactions: [] as DashboardTransaction[],
 		recentTransactionsError: null as string | null,
+		recentTransactionsEmptyMessage: null as string | null,
 		settlements: [] as DashboardSettlement[],
 		settlementsError: null as string | null
 	};
@@ -245,12 +249,18 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 
 	let recentTransactions = base.recentTransactions;
 	let recentTransactionsError: string | null = null;
+	let recentTransactionsEmptyMessage: string | null = null;
 	if (!vanResult.ok) {
-		log.warn(
-			{ kind: vanResult.error.kind, message: vanResult.error.message },
-			'GET merchant PAYIN virtual account failed'
-		);
-		recentTransactionsError = vanResult.error.message;
+		if (isNoPayinVirtualAccountError(vanResult.error)) {
+			log.info({ orgHint: 'no-payin-van' }, 'merchant dashboard — no PAYIN virtual account yet');
+			recentTransactionsEmptyMessage = vanResult.error.message;
+		} else {
+			log.warn(
+				{ kind: vanResult.error.kind, message: vanResult.error.message },
+				'GET merchant PAYIN virtual account failed'
+			);
+			recentTransactionsError = vanResult.error.message;
+		}
 	} else if (!attemptsResult) {
 		recentTransactionsError = 'Unable to load recent transactions';
 	} else if (!attemptsResult.ok) {
@@ -294,6 +304,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		conversionFunnelError,
 		recentTransactions,
 		recentTransactionsError,
+		recentTransactionsEmptyMessage,
 		settlements,
 		settlementsError
 	};
