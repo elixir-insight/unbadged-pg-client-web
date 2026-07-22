@@ -55,5 +55,65 @@ export const PaymentAttemptListResponseSchema = v.object({
 	pagination: PaymentAttemptPaginationSchema
 });
 
+export const PaymentAttemptCountsSchema = v.object({
+	authorizedCount: v.number(),
+	cancelledCount: v.number(),
+	capturedCount: v.number(),
+	createdCount: v.number(),
+	expiredCount: v.number(),
+	failedCount: v.number(),
+	initiatedCount: v.number(),
+	refundInitiatedCount: v.number(),
+	rejectedCount: v.number(),
+	suspectedCount: v.number(),
+	totalCount: v.number()
+});
+
+export const PaymentAttemptCountsResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(PaymentAttemptCountsSchema)
+});
+
+export const PaymentRefundItemSchema = v.object({
+	adjustedSettlementId: v.optional(v.nullable(v.string()), ''),
+	affiliateId: v.optional(v.nullable(v.string()), ''),
+	clientOrderId: v.optional(v.nullable(v.string()), ''),
+	clientRefundId: v.optional(v.nullable(v.string()), ''),
+	createdAt: v.optional(v.nullable(v.string()), ''),
+	createdAtIst: v.optional(v.nullable(v.string()), ''),
+	gatewayDescription: v.optional(v.nullable(v.string()), ''),
+	id: v.optional(v.nullable(v.string()), ''),
+	initiatedBy: v.optional(v.nullable(v.string()), ''),
+	initiatedByName: v.optional(v.nullable(v.string()), ''),
+	initiatorType: v.optional(v.nullable(v.string()), ''),
+	orderId: v.optional(v.nullable(v.string()), ''),
+	orgId: v.optional(v.nullable(v.string()), ''),
+	payinAttemptId: v.string(),
+	pipelineRefundId: v.optional(v.nullable(v.string()), ''),
+	processingSpeed: v.optional(v.nullable(v.string()), ''),
+	refundAmount: v.string(),
+	refundCategory: v.optional(v.nullable(v.string()), ''),
+	refundFee: v.optional(v.nullable(v.string()), ''),
+	refundGst: v.optional(v.nullable(v.string()), ''),
+	refundId: v.string(),
+	refundReason: v.optional(v.nullable(v.string()), ''),
+	refundStatus: v.string(),
+	refundType: v.optional(v.nullable(v.string()), ''),
+	statusDescription: v.optional(v.nullable(v.string()), ''),
+	txnAmount: v.optional(v.nullable(v.string()), ''),
+	updatedAt: v.optional(v.nullable(v.string()), ''),
+	vaIdentifier: v.optional(v.nullable(v.string()), ''),
+	virtualAccountNumber: v.optional(v.nullable(v.string()), '')
+});
+
+export const PaymentRefundListResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(PaymentRefundItemSchema),
+	pagination: v.optional(PaymentAttemptPaginationSchema)
+});
+
 export type PaymentAttemptItem = v.InferOutput<typeof PaymentAttemptItemSchema>;
-export type PaymentAttemptListResponse = v.InferOutput<typeof PaymentAttemptListResponseSchema>;
+export type PaymentAttemptCounts = v.InferOutput<typeof PaymentAttemptCountsSchema>;
+export type PaymentRefundItem = v.InferOutput<typeof PaymentRefundItemSchema>;

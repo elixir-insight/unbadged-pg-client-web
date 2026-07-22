@@ -15,6 +15,7 @@
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
+	// import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
 
 	merchantSession.initialize();
 
@@ -49,6 +50,11 @@
 			label: 'Configuration',
 			content: configurationTab
 		}
+		// {
+		// 	value: 'ip-whitelist',
+		// 	label: 'Whitelisted IP Address',
+		// 	content: ipWhitelistTab
+		// }
 	];
 </script>
 
@@ -94,6 +100,10 @@
 		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
 	</section>
 {/snippet}
+
+<!-- {#snippet ipWhitelistTab()}
+	<IpWhitelistTab portal="management" />
+{/snippet} -->
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">

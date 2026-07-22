@@ -56,11 +56,10 @@ export function formatInr(amount: number): string {
 
 export function formatDateTime(iso: string): string {
 	return new Intl.DateTimeFormat('en-IN', {
-		day: 'numeric',
-		month: 'short',
+		day: '2-digit',
+		month: '2-digit',
 		year: 'numeric',
-		hour: 'numeric',
-		minute: '2-digit',
-		hour12: true
+		hour: '2-digit',
+		minute: '2-digit'
 	}).format(new Date(iso));
 }

@@ -2,8 +2,12 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { page } from '$app/state';
-import { getDefaultScope, resolveScope } from '$lib/data/management-van-mock';
-import type { TransactionScope } from '$lib/types/virtual-account';
+import type { MerchantOption } from '$lib/utils/management-merchant-catalog';
+import type { TransactionScope, VirtualAccount } from '$lib/types/virtual-account';
+import {
+	getDefaultScope,
+	resolveScopeFromMerchantsAndVans
+} from '$lib/utils/management-merchant-catalog';
 import {
 	appendScopeToPath,
 	buildScopedHref,
@@ -27,6 +31,16 @@ type ResolveFn = (path: string, params?: Record<string, string>) => string;
 
 const resolvePath = resolve as unknown as ResolveFn;
 
+function getMerchants(): MerchantOption[] {
+	const merchants = page.data.merchants;
+	return Array.isArray(merchants) ? (merchants as MerchantOption[]) : [];
+}
+
+function getVans(): VirtualAccount[] {
+	const vans = page.data.vans;
+	return Array.isArray(vans) ? (vans as VirtualAccount[]) : [];
+}
+
 /** Appends scope query params after a path from resolve(). */
 export function gotoWithScope(resolvedPath: string, scope: TransactionScope): void {
 	goto(`${resolvedPath}${scopeQueryString(scope)}`);
@@ -46,7 +60,12 @@ export function gotoScopedPath(path: ManagementListPath, scope: TransactionScope
 
 export function readScopeFromUrl(searchParams: URLSearchParams): TransactionScope {
 	const { merchantId, vanId } = readScopeFromSearchParams(searchParams);
-	return resolveScope(merchantId, vanId);
+	return (
+		resolveScopeFromMerchantsAndVans(getMerchants(), getVans(), merchantId, vanId) ?? {
+			orgId: merchantId ?? '',
+			vanId: vanId ?? ''
+		}
+	);
 }
 
 export function setScope(scope: TransactionScope, pathname = page.url.pathname): void {
@@ -57,13 +76,15 @@ export function setScope(scope: TransactionScope, pathname = page.url.pathname):
 }
 
 export function setMerchant(orgId: string): void {
-	const currentVanId = page.url.searchParams.get('vanId');
-	const scope = resolveScope(orgId, currentVanId);
-	setScope(scope);
+	setScope({ orgId, vanId: '' });
 }
 
 export function setVan(vanId: string): void {
-	const orgId = page.url.searchParams.get('merchantId') ?? getDefaultScope().orgId;
+	const orgId =
+		page.url.searchParams.get('merchantId') ??
+		getDefaultScope(getMerchants(), getVans())?.orgId ??
+		'';
+	if (!orgId) return;
 	setScope({ orgId, vanId });
 }
 
@@ -75,13 +96,15 @@ export function managementCollectionsPath(
 	subpath: 'orders' | 'payments',
 	scope?: TransactionScope
 ): string {
-	const activeScope = scope ?? getDefaultScope();
+	const activeScope = scope ??
+		getDefaultScope(getMerchants(), getVans()) ?? { orgId: '', vanId: '' };
 	const base = resolvePath(`/management/transactions/collections/${subpath}`);
 	return buildScopedHref(base, activeScope);
 }
 
 export function managementDisbursementsPath(scope?: TransactionScope): string {
-	const activeScope = scope ?? getDefaultScope();
+	const activeScope = scope ??
+		getDefaultScope(getMerchants(), getVans()) ?? { orgId: '', vanId: '' };
 	const base = resolvePath('/management/transactions/disbursements');
 	return buildScopedHref(base, activeScope);
 }

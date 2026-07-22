@@ -1,6 +1,6 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve -- scoped navigation appends query params after resolve() */
-	import type { PayinPaymentDetail } from '$lib/types/payin';
+	import type { PayinPaymentStatus } from '$lib/types/payin';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import PaymentStatusBadge from './payment-status-badge.svelte';
@@ -9,12 +9,19 @@
 		| '/merchant/transactions/collections/payments/[txnId]'
 		| '/management/transactions/collections/payments/[txnId]';
 
+	interface RelatedPayment {
+		txnId: string;
+		attemptNumber: number;
+		paymentMethod: string;
+		paymentStatus: PayinPaymentStatus;
+	}
+
 	let {
 		payments,
 		paymentDetailPath,
 		scopeQuery = ''
 	}: {
-		payments: PayinPaymentDetail[];
+		payments: RelatedPayment[];
 		paymentDetailPath: PaymentDetailPath;
 		scopeQuery?: string;
 	} = $props();

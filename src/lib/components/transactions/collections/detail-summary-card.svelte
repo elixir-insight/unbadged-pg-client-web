@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { formatAbsoluteTime, formatDate } from '$lib/utils/format-time';
 
 	interface Props {
 		amount: string;
@@ -9,6 +10,12 @@
 	}
 
 	let { amount, createdAt, subtitle, statusBadge }: Props = $props();
+
+	const createdAtLabel = $derived(
+		/^\d{4}-\d{2}-\d{2}$/.test(createdAt.trim())
+			? formatDate(createdAt)
+			: formatAbsoluteTime(createdAt)
+	);
 </script>
 
 <div class="min-w-0">
@@ -19,5 +26,5 @@
 	{#if subtitle}
 		<p class="mt-1 text-sm text-muted-foreground">{subtitle}</p>
 	{/if}
-	<p class="mt-2 text-sm text-muted-foreground">Created on: {createdAt}</p>
+	<p class="mt-2 text-sm text-muted-foreground">Created on: {createdAtLabel}</p>
 </div>

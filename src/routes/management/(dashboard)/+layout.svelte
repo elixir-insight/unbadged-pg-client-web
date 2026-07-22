@@ -12,8 +12,8 @@
 
 	const tabPaths = {
 		overview: resolve('/management'),
-		collections: resolve('/management/collections'),
-		disbursements: resolve('/management/disbursements')
+		collections: resolve('/management/collections')
+		// disbursements: resolve('/management/disbursements')
 	} as const;
 
 	type TabValue = keyof typeof tabPaths;
@@ -26,6 +26,13 @@
 	function handleValueChange(value: string) {
 		goto(tabPaths[value as TabValue]);
 	}
+
+	// Temporarily hide Disbursements — bounce direct URL hits back to overview.
+	$effect(() => {
+		if (page.url.pathname === resolve('/management/disbursements')) {
+			goto(resolve('/management'));
+		}
+	});
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
@@ -50,9 +57,9 @@
 				{#if merchantSession.hasPayinAccess()}
 					<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
 				{/if}
-				{#if merchantSession.hasPayoutAccess()}
+				<!-- {#if merchantSession.hasPayoutAccess()}
 					<Tabs.Trigger value="disbursements">Disbursements</Tabs.Trigger>
-				{/if}
+				{/if} -->
 			</Tabs.List>
 		</div>
 

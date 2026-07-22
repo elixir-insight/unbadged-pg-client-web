@@ -1,6 +1,10 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
-import { PaymentAttemptListResponseSchema } from './schema';
+import {
+	PaymentAttemptCountsResponseSchema,
+	PaymentAttemptListResponseSchema,
+	PaymentRefundListResponseSchema
+} from './schema';
 
 export interface PaymentAttemptListQuery {
 	orderId?: string;
@@ -45,5 +49,40 @@ export const paymentAttemptClient = {
 				VAN: query.virtualAccountNumber
 			},
 			schema: PaymentAttemptListResponseSchema
+		}),
+
+	getCounts: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		virtualAccountNumber?: string,
+		portal: PaymentAttemptPortal = 'merchant'
+	) =>
+		apiFetch(`api/v1/${portal}/payment/attempts/counts`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: { VAN: virtualAccountNumber },
+			schema: PaymentAttemptCountsResponseSchema
+		}),
+
+	listRefunds: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		payinAttemptId: string,
+		portal: PaymentAttemptPortal = 'merchant'
+	) =>
+		apiFetch(`api/v1/${portal}/payment/attempts/${encodeURIComponent(payinAttemptId)}/refunds`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: PaymentRefundListResponseSchema
 		})
 };
