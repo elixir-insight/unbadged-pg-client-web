@@ -12,6 +12,7 @@ export { default as NotificationsCard } from './notifications-card.svelte';
 export type { NotificationItem } from './notifications-card.svelte';
 export { default as DashboardRangeControl } from './dashboard-range-control.svelte';
 export { default as DashboardStatCard } from './dashboard-stat-card.svelte';
+export { default as DashboardSkeleton } from './dashboard-skeleton.svelte';
 export { default as CollectionTrendCard } from './collection-trend-card.svelte';
 export { default as PaymentMixCard } from './payment-mix-card.svelte';
 export { default as ConversionFunnelCard } from './conversion-funnel-card.svelte';

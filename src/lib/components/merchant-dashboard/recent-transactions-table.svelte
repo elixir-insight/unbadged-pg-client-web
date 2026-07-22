@@ -6,10 +6,11 @@
 
 	interface Props {
 		transactions: DashboardTransaction[];
+		error?: string | null;
 		class?: string;
 	}
 
-	let { transactions, class: className }: Props = $props();
+	let { transactions, error = null, class: className }: Props = $props();
 
 	const statusConfig = {
 		success: { label: 'Captured', class: 'bg-success/10 text-success' },
@@ -40,7 +41,11 @@
 		</a>
 	</div>
 
-	{#if transactions.length}
+	{#if error}
+		<p class="flex flex-1 items-center justify-center px-4 text-center text-sm text-destructive">
+			{error}
+		</p>
+	{:else if transactions.length}
 		<div class="min-h-0 flex-1 overflow-x-auto">
 			<table class="w-full border-collapse text-xs">
 				<caption class="sr-only">Recent collection transactions</caption>
@@ -55,16 +60,16 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-border">
-					{#each transactions.slice(0, 6) as transaction (transaction.id)}
+					{#each transactions.slice(0, 6) as transaction (transaction.txnId)}
 						<tr class="transition-colors hover:bg-muted/30">
 							<td class="px-4 py-3">
 								<a
-									href={resolve('/merchant/transactions/collections/orders/[orderId]', {
-										orderId: transaction.id
+									href={resolve('/merchant/transactions/collections/payments/[txnId]', {
+										txnId: transaction.txnId
 									})}
 									class="font-mono text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 								>
-									{transaction.id}
+									{transaction.orderId !== '—' ? transaction.orderId : transaction.txnId}
 								</a>
 								<p class="mt-0.5 text-xs text-muted-foreground">{transaction.date}</p>
 							</td>
