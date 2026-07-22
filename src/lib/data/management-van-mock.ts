@@ -1,10 +1,10 @@
-import type { TransactionScope, VirtualAccount } from '$lib/types/virtual-account';
+import type {
+	MerchantWithVans,
+	TransactionScope,
+	VirtualAccount
+} from '$lib/types/virtual-account';
 
-export interface MerchantWithVans {
-	orgId: string;
-	merchantName: string;
-	vans: VirtualAccount[];
-}
+export type { MerchantWithVans, TransactionScope, VirtualAccount };
 
 export const VAN_CATALOG: VirtualAccount[] = [
 	{

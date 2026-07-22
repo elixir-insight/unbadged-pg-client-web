@@ -1,76 +1,50 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import { Undo } from '$lib/assets/icons';
-	import { getPayinPaymentDetail } from '$lib/data/payin-order-mock';
 	import {
 		DetailPageLayout,
 		DetailSummaryCard,
 		Details,
 		PaymentRefundsTable,
 		PaymentStatusBadge,
-		RefundModal,
 		Timeline,
 		type DetailSection
 	} from '$lib/components/transactions/collections';
-	import type { PayinPaymentStatus, PayinRefundDetail } from '$lib/types/payin';
-	import { toast } from '$lib/components/reusable';
+	import type { PageData } from './$types';
 
-	const txnId = $derived(page.params.txnId ?? '');
-	const payment = $derived(getPayinPaymentDetail(txnId));
+	let { data }: { data: PageData } = $props();
 
-	let refundModalOpen = $state(false);
+	const payment = $derived(data.payment);
 
-	const displayStatus = $derived<PayinPaymentStatus>(
-		(payment?.refunds?.length ?? 0) > 0 ? 'refunded' : (payment?.paymentStatus ?? 'pending')
+	function parseAmount(value: string): number {
+		return Number(value.replace(/[₹,\s]/g, '')) || 0;
+	}
+
+	function formatAmount(value: number): string {
+		return new Intl.NumberFormat('en-IN', {
+			style: 'currency',
+			currency: 'INR',
+			maximumFractionDigits: 2
+		}).format(value);
+	}
+
+	const totalFees = $derived(
+		payment
+			? parseAmount(payment.processingFee) +
+					parseAmount(payment.gatewayFee) +
+					parseAmount(payment.gatewayGst) +
+					parseAmount(payment.partnerFee) +
+					parseAmount(payment.partnerGst)
+			: 0
 	);
 
-	const createdAt = $derived(
-		payment?.paymentTimeline[0]
-			? new Date(payment.paymentTimeline[0].timestampMs).toLocaleString('en-IN', {
-					day: '2-digit',
-					month: '2-digit',
-					year: 'numeric',
-					hour: '2-digit',
-					minute: '2-digit'
-				})
-			: '—'
+	const totalRefunded = $derived(
+		data.refunds
+			.filter((refund) => refund.refundStatus === 'completed')
+			.reduce((total, refund) => total + parseAmount(refund.refundAmount), 0)
 	);
-
-	function parseFee(s: string | undefined): number {
-		return parseFloat((s ?? '').replace(/[₹,]/g, '')) || 0;
-	}
-
-	function neg(s: string): string {
-		return `−${s}`;
-	}
-
-	function formatMethodChannel(method: string, channel: string): string {
-		const mode = channel.split('_').pop() ?? channel;
-		return `${method} · ${mode.charAt(0).toUpperCase() + mode.slice(1).toLowerCase()}`;
-	}
-
-	function formatFee(value: number): string {
-		return `₹${value.toFixed(2)}`;
-	}
-
-	async function handleRefund(amount: string, remarks: string) {
-		await new Promise((r) => setTimeout(r, 1000));
-		toast.success(`Refund of ₹${parseFloat(amount).toFixed(2)} initiated successfully`, {
-			description: `Remarks: ${remarks}`
-		});
-	}
-
-	function totalRefunded(refunds: PayinRefundDetail[] | undefined): string {
-		if (!refunds?.length) return '₹0.00';
-		const total = refunds.reduce(
-			(sum, r) => sum + parseFloat(r.refundAmount.replace(/[₹,]/g, '')),
-			0
-		);
-		return `₹${total.toFixed(2)}`;
-	}
 
 	const detailSections = $derived<DetailSection[]>(
 		payment
@@ -82,87 +56,76 @@
 							{
 								label: 'Order ID',
 								value: payment.orderId,
-								copyable: true,
+								copyable: payment.orderId !== '—',
 								mono: true,
-								link: {
-									path: '/merchant/transactions/collections/orders/[orderId]',
-									params: { orderId: payment.orderId }
-								}
+								link:
+									payment.orderId !== '—'
+										? {
+												path: '/merchant/transactions/collections/orders/[orderId]',
+												params: { orderId: payment.orderId }
+											}
+										: undefined
 							},
-							{ label: 'Attempt', value: String(payment.attemptNumber) },
-							{ label: 'Customer', value: payment.customerName, bold: true },
+							{
+								label: 'Client order ID',
+								value: payment.clientOrderId,
+								copyable: payment.clientOrderId !== '—',
+								mono: true
+							},
 							{
 								label: 'Payment method',
-								value: formatMethodChannel(payment.paymentMethod, payment.paymentChannel)
+								value:
+									[payment.paymentMethod, payment.paymentChannel]
+										.filter((value) => value !== '—')
+										.join(' · ') || '—'
 							},
+							{ label: 'Payment mode', value: payment.paymentMode },
 							{ label: 'Payer VPA', value: payment.payerVpa || '—', mono: true },
+							{ label: 'Payee VPA', value: payment.payeeVpa || '—', mono: true },
 							{ label: 'Bank pipeline', value: payment.bankPipelineCode, mono: true },
 							{ label: 'UTR', value: payment.utr || '—', mono: true, copyable: !!payment.utr },
 							{
 								label: 'RRN',
-								value: payment.bankRRN || '—',
+								value: payment.bankRrn || '—',
 								mono: true,
-								copyable: !!payment.bankRRN
-							}
+								copyable: !!payment.bankRrn
+							},
+							{
+								label: 'Settlement ID',
+								value: payment.settlementId || '—',
+								mono: true,
+								copyable: !!payment.settlementId
+							},
+							{ label: 'Status details', value: payment.statusDescription }
 						]
 					},
-					...(payment.paymentStatus === 'success' && payment.refundableAmount
+					...(payment.paymentStatus === 'success'
 						? [
 								{
 									title: 'Fees & Settlement',
 									rows: [
 										{ label: 'Transaction amount', value: payment.transactionAmount },
 										{
-											label: 'Processing fee',
-											value: neg(
-												formatFee(
-													parseFee(payment.processingFee) +
-														parseFee(payment.gatewayFee) +
-														parseFee(payment.gatewayGst) +
-														parseFee(payment.partnerFee) +
-														parseFee(payment.partnerGst)
-												)
-											),
+											label: 'Processing fees',
+											value: `−${formatAmount(totalFees)}`,
 											variant: 'negative' as const
 										},
 										{
-											label: 'Net settlement',
+											label: 'Refundable amount',
 											value: payment.refundableAmount,
 											variant: 'positive' as const,
 											bold: true
 										},
-										...(payment.refunds?.length
+										...(totalRefunded > 0
 											? [
 													{
-														label: 'Total refunded',
-														value: neg(totalRefunded(payment.refunds)),
+														label: 'Completed refunds',
+														value: `−${formatAmount(totalRefunded)}`,
 														variant: 'negative' as const
 													}
 												]
 											: [])
 									]
-								}
-							]
-						: []),
-					...(payment.refunds?.length
-						? [
-								{
-									title: 'Refunds',
-									rows: payment.refunds.flatMap((refund) => [
-										{ label: 'Refund ID', value: refund.refundId, copyable: true, mono: true },
-										{ label: 'Amount', value: refund.refundAmount },
-										{
-											label: 'Type',
-											value: refund.refundType.charAt(0).toUpperCase() + refund.refundType.slice(1)
-										},
-										{
-											label: 'Status',
-											value:
-												refund.refundStatus.charAt(0).toUpperCase() + refund.refundStatus.slice(1)
-										},
-										{ label: 'Speed', value: refund.refundSpeed },
-										{ label: 'Remark', value: refund.remark }
-									])
 								}
 							]
 						: [])
@@ -177,7 +140,9 @@
 			class="flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-background p-16 text-center shadow-sm"
 		>
 			<p class="text-sm font-medium text-foreground">Payment not found</p>
-			<p class="text-xs text-muted-foreground">No record found for ID: {txnId}</p>
+			<p class="text-xs text-muted-foreground">
+				{data.paymentError ?? `No record found for ID: ${data.payinAttemptId}`}
+			</p>
 		</div>
 	</div>
 {:else}
@@ -185,52 +150,45 @@
 		{#snippet summary()}
 			<DetailSummaryCard
 				amount={payment.transactionAmount}
-				{createdAt}
-				subtitle={payment.customerName}
+				createdAt={payment.createdAt}
+				subtitle={payment.clientOrderId !== '—' ? payment.clientOrderId : undefined}
 			>
 				{#snippet statusBadge()}
-					<PaymentStatusBadge status={displayStatus} />
+					<PaymentStatusBadge status={payment.paymentStatus} />
 				{/snippet}
 			</DetailSummaryCard>
 		{/snippet}
 
 		{#snippet details()}
 			<Details sections={detailSections} flat />
-			{#if payment.refunds?.length}
-				<div class="mt-5 border-t border-border pt-5">
-					<p class="mb-3 text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase">
-						Refund history
-					</p>
-					<PaymentRefundsTable refunds={payment.refunds} />
-				</div>
-			{/if}
+			<div class="mt-5 border-t border-border pt-5">
+				<p class="mb-3 text-xs font-semibold tracking-widest text-muted-foreground/60 uppercase">
+					Refund history
+				</p>
+				{#if data.refundsError}
+					<p class="text-sm text-destructive">{data.refundsError}</p>
+				{:else}
+					<PaymentRefundsTable refunds={data.refunds} />
+				{/if}
+			</div>
 		{/snippet}
 
 		{#snippet timeline()}
-			<Timeline entries={payment.paymentTimeline} />
+			{#if data.timelineError}
+				<p class="text-sm text-destructive">{data.timelineError}</p>
+			{:else}
+				<Timeline entries={data.timeline} />
+			{/if}
 		{/snippet}
 
 		{#snippet sidebarActions()}
 			<p class="mb-3 text-xs text-muted-foreground">
-				Issue a full or partial refund for this captured payment.
+				Refund history is connected. Issuing refunds requires the refund creation API.
 			</p>
-			<Button
-				class="w-full"
-				onclick={() => (refundModalOpen = true)}
-				disabled={!payment.refundableAmount || payment.paymentStatus !== 'success'}
-			>
+			<Button class="w-full" disabled>
 				<Undo class="size-4" />
 				Issue refund
 			</Button>
 		{/snippet}
 	</DetailPageLayout>
-{/if}
-
-{#if payment?.refundableAmount}
-	<RefundModal
-		bind:open={refundModalOpen}
-		refundableAmount={payment.refundableAmount}
-		customerName={payment.customerName}
-		onconfirm={handleRefund}
-	/>
 {/if}
