@@ -8,7 +8,6 @@ export const MerchantVirtualAccountSchema = v.object({
 	dailyDepositLimit: v.optional(v.nullable(StringOrNumberSchema)),
 	dailyTxnAmount: v.optional(v.nullable(StringOrNumberSchema)),
 	dailyTxnLimit: v.optional(v.nullable(StringOrNumberSchema)),
-	id: StringOrNumberSchema,
 	isNonWhitelistedAllowed: v.optional(v.nullable(v.boolean()), false),
 	pipelineClass: v.optional(v.nullable(v.string()), ''),
 	pipelineCode: v.optional(v.nullable(v.string()), ''),

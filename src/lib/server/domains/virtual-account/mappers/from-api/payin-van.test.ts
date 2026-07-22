@@ -9,7 +9,7 @@ import type { MerchantVirtualAccount } from '../../schema';
 
 function account(
 	overrides: Partial<MerchantVirtualAccount> &
-		Pick<MerchantVirtualAccount, 'id' | 'pipelineRole' | 'virtualAccountNumber'>
+		Pick<MerchantVirtualAccount, 'pipelineRole' | 'virtualAccountNumber'>
 ): MerchantVirtualAccount {
 	return {
 		createdAt: '',
@@ -34,30 +34,25 @@ describe('findPayinVirtualAccount', () => {
 	it('returns the first PAYIN account with a VAN number', () => {
 		const payin = findPayinVirtualAccount([
 			account({
-				id: 'va-payout',
 				pipelineRole: 'PAYOUT',
 				virtualAccountNumber: '111'
 			}),
 			account({
-				id: 'va-payin',
 				pipelineRole: 'PAYIN',
 				virtualAccountNumber: '222'
 			})
 		]);
 
-		expect(payin?.id).toBe('va-payin');
 		expect(payin?.virtualAccountNumber).toBe('222');
 	});
 
 	it('skips PAYIN accounts with blank VAN numbers', () => {
 		const payin = findPayinVirtualAccount([
 			account({
-				id: 'va-empty',
 				pipelineRole: 'PAYIN',
 				virtualAccountNumber: '   '
 			}),
 			account({
-				id: 'va-payin',
 				pipelineRole: 'PAYIN',
 				virtualAccountNumber: '333'
 			})
@@ -70,7 +65,6 @@ describe('findPayinVirtualAccount', () => {
 		expect(
 			findPayinVirtualAccount([
 				account({
-					id: 'va-payout',
 					pipelineRole: 'PAYOUT',
 					virtualAccountNumber: '111'
 				})
