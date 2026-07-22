@@ -25,8 +25,8 @@ describe('mapCollectionsTrend', () => {
 		});
 
 		expect(mapCollectionsTrend(parsed.data)).toEqual([
-			{ label: '07-14', gross: 154000, net: 149688, transactionCount: 42 },
-			{ label: '07-16', gross: 181000, net: 175932, transactionCount: 51 }
+			{ label: '14-07', gross: 154000, net: 149688, transactionCount: 42 },
+			{ label: '16-07', gross: 181000, net: 175932, transactionCount: 51 }
 		]);
 	});
 });

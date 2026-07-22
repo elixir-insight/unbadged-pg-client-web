@@ -3,10 +3,27 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { authClient } from './client';
 import { decodeJwt } from './jwt';
-import { SignInPasswordChangeResponseSchema } from './schema';
+import { AuthTokensSchema, SignInPasswordChangeResponseSchema } from './schema';
 import { storeSession } from './session';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
 import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
+
+export type AuthTokenBundle = v.InferOutput<typeof AuthTokensSchema>;
+
+export function extractAuthTokens(data: unknown): AuthTokenBundle | null {
+	const parsed = v.safeParse(AuthTokensSchema, data);
+	return parsed.success ? parsed.output : null;
+}
+
+/** Persist auth cookies and resolve the portal home for the signed-in user. */
+export function startAuthenticatedSession(
+	cookies: Cookies,
+	tokens: AuthTokenBundle
+): PortalHomePath {
+	storeSession(cookies, tokens);
+	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+	return resolvePortalHome(accessPayload['cognito:groups'] ?? []);
+}
 export type SignInSuccess = {
 	ok: true;
 	redirectTo: PortalHomePath;
@@ -152,6 +169,6 @@ export async function performSignIn(opts: {
 	const groups = accessPayload['cognito:groups'] ?? [];
 	const redirectTo = resolvePortalHome(groups);
 	log.info({ ip, userEmail, redirectTo, groups }, 'sign-in succeeded');
-	storeSession(cookies, item);
+	startAuthenticatedSession(cookies, item);
 	return { ok: true, redirectTo };
 }

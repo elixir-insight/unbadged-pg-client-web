@@ -47,6 +47,20 @@ describe('payment attempt mappers', () => {
 		expect(row.status).toBe('success');
 	});
 
+	it('formats payment method labels for the table', () => {
+		const row = mapPaymentAttemptListItem(
+			v.parse(PaymentAttemptItemSchema, {
+				payinAttemptId: 'PAT-2',
+				transactionAmount: '1200',
+				transactionStatus: 'CAPTURED',
+				paymentMethod: 'DEBIT_CARD',
+				paymentChannel: 'CARD'
+			})
+		);
+
+		expect(row.paymentMethod).toBe('Debit Card');
+	});
+
 	it('uses em dash placeholders for empty customer, method, and channel', () => {
 		const row = mapPaymentAttemptListItem(
 			v.parse(PaymentAttemptItemSchema, {

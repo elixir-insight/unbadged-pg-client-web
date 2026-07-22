@@ -3,10 +3,10 @@ import { render } from 'vitest-browser-svelte';
 import CollectionTrendCard from './collection-trend-card.svelte';
 
 const data = [
-	{ label: '07-14', gross: 180000, net: 174960, transactionCount: 40 },
-	{ label: '07-16', gross: 220000, net: 213840, transactionCount: 52 },
-	{ label: '07-18', gross: 205000, net: 199260, transactionCount: 48 },
-	{ label: '07-20', gross: 240000, net: 233280, transactionCount: 61 }
+	{ label: '14-07', gross: 180000, net: 174960, transactionCount: 40 },
+	{ label: '16-07', gross: 220000, net: 213840, transactionCount: 52 },
+	{ label: '18-07', gross: 205000, net: 199260, transactionCount: 48 },
+	{ label: '20-07', gross: 240000, net: 233280, transactionCount: 61 }
 ];
 
 describe('CollectionTrendCard', () => {

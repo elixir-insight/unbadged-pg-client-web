@@ -150,9 +150,9 @@ export function mapPaymentAttemptDetail(item: PaymentAttemptItem): PaymentAttemp
 		orderId: item.orderId?.trim() || '—',
 		clientOrderId: item.clientOrderId?.trim() || '—',
 		transactionAmount: formatAmount(item.transactionAmount),
-		paymentMethod: item.paymentMethod?.trim() || '—',
-		paymentChannel: item.paymentChannel?.trim() || '—',
-		paymentMode: item.paymentMode?.trim() || '—',
+		paymentMethod: formatSnakeCaseLabel(item.paymentMethod?.trim() || '—'),
+		paymentChannel: formatSnakeCaseLabel(item.paymentChannel?.trim() || '—'),
+		paymentMode: formatSnakeCaseLabel(item.paymentMode?.trim() || '—'),
 		paymentStatus: status,
 		statusDescription:
 			item.statusDescription?.trim() || item.gatewayDescription?.trim() || 'No status details',
