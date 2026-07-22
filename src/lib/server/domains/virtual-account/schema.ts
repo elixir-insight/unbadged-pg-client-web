@@ -32,3 +32,47 @@ export type MerchantVirtualAccount = v.InferOutput<typeof MerchantVirtualAccount
 export type MerchantVirtualAccountsResponse = v.InferOutput<
 	typeof MerchantVirtualAccountsResponseSchema
 >;
+
+/** Nested txn-type restriction on create. Extra swagger fields omitted until needed. */
+export const CreateVirtualAccountTxnTypeSchema = v.object({
+	transactionType: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	typeCode: v.number()
+});
+
+export const CreateVirtualAccountRequestSchema = v.object({
+	allowedTxnTypes: v.array(CreateVirtualAccountTxnTypeSchema),
+	dailyDepositLimit: v.string(),
+	dailyTxnLimit: v.string(),
+	pipelineClass: v.string(),
+	pipelineCode: v.string(),
+	pipelineRole: v.string(),
+	tps: v.number(),
+	txnAmountMax: v.string(),
+	txnAmountMin: v.string()
+});
+
+export const CreateVirtualAccountResponseSchema = v.object({
+	data: v.optional(v.union([v.string(), v.null()])),
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number())
+});
+
+export type CreateVirtualAccountRequest = v.InferOutput<typeof CreateVirtualAccountRequestSchema>;
+export type CreateVirtualAccountResponse = v.InferOutput<typeof CreateVirtualAccountResponseSchema>;
+
+/** Temporary hardcoded payload used after profile activation. */
+export const DEFAULT_ACTIVATE_VIRTUAL_ACCOUNT_REQUEST: CreateVirtualAccountRequest = {
+	pipelineCode: 'TEST',
+	pipelineRole: 'PAYIN',
+	pipelineClass: 'FACILITATED',
+	dailyTxnLimit: '200000',
+	txnAmountMin: '0',
+	dailyDepositLimit: '2000000',
+	txnAmountMax: '2000000',
+	allowedTxnTypes: [
+		{ transactionType: 'UPI', typeCode: 200 },
+		{ transactionType: 'CARD', typeCode: 201 },
+		{ transactionType: 'NET_BANKING', typeCode: 202 }
+	],
+	tps: 30
+};

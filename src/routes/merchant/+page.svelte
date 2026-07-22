@@ -138,6 +138,7 @@
 						<RecentTransactionsTable
 							transactions={data.recentTransactions}
 							error={data.recentTransactionsError}
+							emptyMessage={data.recentTransactionsEmptyMessage}
 							class="col-span-12 h-full lg:col-span-7"
 						/>
 					</section>

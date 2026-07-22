@@ -51,6 +51,26 @@ describe('mapDashboardKpis', () => {
 		expect(view.awaitingSettlement).toContain('85,908');
 	});
 
+	it('accepts null changePercent from empty merchant dashboards', () => {
+		const parsed = v.parse(DashboardKpisResponseSchema, {
+			data: [
+				{
+					totalCollections: { changePercent: null, amount: '0' },
+					avgTransactionValue: { changePercent: null, amount: '0' },
+					successRate: '0',
+					awaitingSettlement: '0',
+					totalSettled: '0'
+				}
+			],
+			message: 'Dashboard KPIs fetched successfully',
+			statusCode: 200
+		});
+
+		const view = mapDashboardKpis(parsed.data[0]);
+		expect(view.totalCollections.changePercent).toBe(0);
+		expect(view.avgTransactionValue.changePercent).toBe(0);
+	});
+
 	it('returns placeholder empty values', () => {
 		expect(emptyDashboardKpis().totalCollections.amount).toBe('—');
 		expect(emptyDashboardKpis().successRate).toBe('—');

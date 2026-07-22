@@ -1,7 +1,17 @@
 import type { Logger } from 'pino';
-import type { Result } from '../../../../http/errors';
+import type { ApiError, Result } from '../../../../http/errors';
 import { virtualAccountClient } from '../../client';
 import type { MerchantVirtualAccount } from '../../schema';
+
+/** Stable code for “merchant has no PAYIN VAN yet” (setup state, not a hard failure). */
+export const NO_PAYIN_VAN_CODE = 'NO_PAYIN_VAN';
+
+export const NO_PAYIN_VAN_MESSAGE =
+	'No collection account is set up yet. Ask your operations team to create a virtual account.';
+
+export function isNoPayinVirtualAccountError(error: ApiError): boolean {
+	return error.kind === 'http' && error.code === NO_PAYIN_VAN_CODE;
+}
 
 export function findPayinVirtualAccount(
 	accounts: MerchantVirtualAccount[]
@@ -35,8 +45,9 @@ export async function resolvePayinVirtualAccountNumber(
 			ok: false,
 			error: {
 				kind: 'http',
-				status: result.data.statusCode,
-				message: 'No PAYIN virtual account found for this merchant'
+				status: 404,
+				code: NO_PAYIN_VAN_CODE,
+				message: NO_PAYIN_VAN_MESSAGE
 			}
 		};
 	}
