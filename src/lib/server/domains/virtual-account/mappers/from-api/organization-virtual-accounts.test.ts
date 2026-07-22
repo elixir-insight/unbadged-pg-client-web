@@ -50,6 +50,7 @@ describe('mapOrganizationVirtualAccounts', () => {
 						pipelineRole: 'PAYIN',
 						status: 'ACTIVE',
 						tps: 0,
+						updatedAt: '',
 						virtualAccountNumber: '   '
 					}
 				],
