@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, isRedirect, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { loadOrganizationBankAccounts } from '$lib/server/domains/organization/loaders/bank-accounts';
 import {
@@ -7,6 +7,7 @@ import {
 } from '$lib/server/domains/organization/loaders/documents';
 import { activateProfileMutation } from '$lib/server/domains/organization/mutations/activate-profile';
 import { updateOrganizationStatusMutation } from '$lib/server/domains/organization/mutations/update-status';
+import { failUploadAction } from '$lib/server/http/upload-action-error';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -83,22 +84,29 @@ export const actions = {
 	activate: async ({ request, params, cookies, fetch, locals }) => {
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
-		const formData = await request.formData();
-		const category = String(formData.get('category') ?? 'MERCHANT').toUpperCase();
 
-		const result = await activateProfileMutation({
-			fetch,
-			log,
-			cookies,
-			orgId,
-			category,
-			formData
-		});
+		try {
+			const formData = await request.formData();
+			const category = String(formData.get('category') ?? 'MERCHANT').toUpperCase();
 
-		if (!result.ok) {
-			return fail(result.status, { message: result.message, action: 'activate' });
+			const result = await activateProfileMutation({
+				fetch,
+				log,
+				cookies,
+				orgId,
+				category,
+				formData
+			});
+
+			if (!result.ok) {
+				return fail(result.status, { message: result.message, action: 'activate' });
+			}
+
+			redirect(303, result.redirectPath);
+		} catch (error) {
+			if (isRedirect(error)) throw error;
+			log.error({ err: error, orgId }, 'activate profile action failed');
+			return failUploadAction(error);
 		}
-
-		redirect(303, result.redirectPath);
 	}
 } satisfies Actions;
