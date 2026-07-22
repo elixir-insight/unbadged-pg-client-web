@@ -46,6 +46,31 @@ export function formatDate(input: number | Date | string): string {
 	return date.toLocaleDateString(DATE_LOCALE, DATE_FORMAT);
 }
 
+/** Compact chart axis label: dd-mm */
+export function formatChartDate(input: number | Date | string): string {
+	const date = toDate(input);
+	if (!Number.isNaN(date.getTime())) {
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		return `${day}-${month}`;
+	}
+
+	if (typeof input === 'string') {
+		const trimmed = input.trim();
+		if (!trimmed) return '—';
+
+		// Normalize legacy MM-DD labels to dd-mm.
+		const shortDate = /^(\d{2})-(\d{2})$/.exec(trimmed);
+		if (shortDate) {
+			return `${shortDate[2]}-${shortDate[1]}`;
+		}
+
+		return trimmed;
+	}
+
+	return '—';
+}
+
 /** Formats a date-time as dd/mm/yyyy, hh:mm. */
 export function formatAbsoluteTime(input: number | Date | string): string {
 	const date = toDate(input);

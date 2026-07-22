@@ -14,6 +14,9 @@ const SignInTokensResponseSchema = v.object({
 	data: v.array(AuthTokensSchema)
 });
 
+export type AuthTokens = v.InferOutput<typeof AuthTokensSchema>;
+export type SignInTokensResponse = v.InferOutput<typeof SignInTokensResponseSchema>;
+
 const SignInSessionExistsResponseSchema = v.object({
 	message: v.string(),
 	statusCode: v.number(),
@@ -45,6 +48,17 @@ export const SignInResponseSchema = v.union([
 
 /** Refresh only returns tokens — not the session-conflict union. */
 export const RefreshResponseSchema = SignInTokensResponseSchema;
+
+/** Password set may return auth tokens (same envelope as sign-in) or an ack-only payload. */
+export const SetPasswordResponseSchema = v.union([
+	SignInTokensResponseSchema,
+	v.object({
+		message: v.string(),
+		statusCode: v.number(),
+		data: v.array(v.unknown())
+	})
+]);
+export type SetPasswordResponse = v.InferOutput<typeof SetPasswordResponseSchema>;
 
 /** Auth emails are case-insensitive — normalize before upstream calls. */
 const AuthEmailSchema = v.pipe(

@@ -4,6 +4,7 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	RefreshResponseSchema,
 	SignInResponseSchema,
+	SetPasswordResponseSchema,
 	ForgotPasswordRequestSchema,
 	ForgotPasswordResponseSchema,
 	ConfirmPasswordRequestSchema,
@@ -61,7 +62,7 @@ export const authClient = {
 			method: 'POST',
 			skipAuth: true,
 			body: { userEmail, challengeSession, newPassword },
-			schema: v.nullable(v.looseObject({ message: v.optional(v.string()) }))
+			schema: SetPasswordResponseSchema
 		}),
 
 	signOut: (

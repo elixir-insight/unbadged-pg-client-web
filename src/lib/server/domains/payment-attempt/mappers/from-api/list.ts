@@ -1,4 +1,5 @@
 import type { PayinPaymentStatus, PayinRefundDetail, PayinRefundStatus } from '$lib/types/payin';
+import { formatLabel } from '$lib/utils/format-label';
 import type { PaymentAttemptCounts, PaymentAttemptItem, PaymentRefundItem } from '../../schema';
 
 const amountFormatter = new Intl.NumberFormat('en-IN', {
@@ -99,7 +100,7 @@ export function mapPaymentAttemptListItem(item: PaymentAttemptItem): PaymentAtte
 		txnId: item.payinAttemptId,
 		orderId: item.orderId?.trim() || '—',
 		createdAt: formatDate(item.createdAtIst?.trim() || item.createdAt?.trim() || ''),
-		paymentMethod: item.paymentMethod?.trim() || '—',
+		paymentMethod: formatLabel(item.paymentMethod?.trim() || '—'),
 		paymentChannel: item.paymentChannel?.trim() || item.paymentMode?.trim() || '—',
 		amount: formatAmount(item.transactionAmount),
 		status: mapPaymentAttemptApiStatus(item.transactionStatus)
@@ -116,7 +117,7 @@ export function mapRelatedPaymentAttempts(items: PaymentAttemptItem[]): RelatedP
 	return items.map((item, index) => ({
 		txnId: item.payinAttemptId,
 		attemptNumber: index + 1,
-		paymentMethod: item.paymentMethod?.trim() || '—',
+		paymentMethod: formatLabel(item.paymentMethod?.trim() || '—'),
 		paymentStatus: mapPaymentAttemptApiStatus(item.transactionStatus)
 	}));
 }
@@ -143,7 +144,7 @@ export function mapPaymentAttemptDetail(item: PaymentAttemptItem): PaymentAttemp
 		orderId: item.orderId?.trim() || '—',
 		clientOrderId: item.clientOrderId?.trim() || '—',
 		transactionAmount: formatAmount(item.transactionAmount),
-		paymentMethod: item.paymentMethod?.trim() || '—',
+		paymentMethod: formatLabel(item.paymentMethod?.trim() || '—'),
 		paymentChannel: item.paymentChannel?.trim() || '—',
 		paymentMode: item.paymentMode?.trim() || '—',
 		paymentStatus: status,

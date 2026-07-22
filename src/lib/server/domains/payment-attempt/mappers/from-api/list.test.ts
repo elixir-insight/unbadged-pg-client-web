@@ -41,6 +41,22 @@ describe('payment attempt mappers', () => {
 		expect(row.orderId).toBe('ORD-1');
 		expect(row.amount).toContain('4,500');
 		expect(row.status).toBe('success');
+		expect(row.paymentMethod).toBe('UPI');
+		expect(row.paymentChannel).toBe('UPI_COLLECT');
+	});
+
+	it('formats payment method labels for the table', () => {
+		const row = mapPaymentAttemptListItem(
+			v.parse(PaymentAttemptItemSchema, {
+				payinAttemptId: 'PAT-2',
+				transactionAmount: '1200',
+				transactionStatus: 'CAPTURED',
+				paymentMethod: 'DEBIT_CARD',
+				paymentChannel: 'CARD'
+			})
+		);
+
+		expect(row.paymentMethod).toBe('Debit Card');
 	});
 
 	it('maps order attempts for the related payments table', () => {
