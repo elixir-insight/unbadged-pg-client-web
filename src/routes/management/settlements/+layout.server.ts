@@ -13,26 +13,22 @@ export interface MerchantOption {
 
 function mapMerchantOptions(
 	merchants: {
-		orgId: string;
+		displayOrgId: string;
 		legalCompanyName?: string | null;
-		displayOrgId?: string | null;
 		email?: string | null;
 	}[]
 ): MerchantOption[] {
 	const seenOrgIds = new Set<string>();
 
 	return merchants.flatMap((merchant) => {
-		if (seenOrgIds.has(merchant.orgId)) return [];
-		seenOrgIds.add(merchant.orgId);
+		const orgId = merchant.displayOrgId.trim();
+		if (!orgId || seenOrgIds.has(orgId)) return [];
+		seenOrgIds.add(orgId);
 
 		return [
 			{
-				value: merchant.orgId,
-				label:
-					merchant.legalCompanyName?.trim() ||
-					merchant.displayOrgId?.trim() ||
-					merchant.email?.trim() ||
-					merchant.orgId
+				value: orgId,
+				label: merchant.legalCompanyName?.trim() || merchant.email?.trim() || orgId
 			}
 		];
 	});

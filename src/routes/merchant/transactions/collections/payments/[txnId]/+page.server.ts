@@ -12,6 +12,7 @@ import {
 } from '$lib/server/domains/payment-attempt/mappers/from-api/list';
 import { paymentOrderClient } from '$lib/server/domains/payment-order/client';
 import { mapPaymentOrderTimeline } from '$lib/server/domains/payment-order/mappers/from-api/list';
+import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
 import type { PayinRefundDetail, PayinTimelineEntry } from '$lib/types/payin';
 
 export const load: PageServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
@@ -41,11 +42,33 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		throw error;
 	}
 
+	const vanResult = await resolvePayinVirtualAccountNumber(
+		fetch,
+		log,
+		tokens.accessToken,
+		tokens.gatewayToken
+	);
+	if (!vanResult.ok) {
+		log.warn(
+			{ kind: vanResult.error.kind, message: vanResult.error.message },
+			'GET merchant PAYIN virtual account failed'
+		);
+		return {
+			...base,
+			paymentError: vanResult.error.message,
+			refundsError: vanResult.error.message,
+			timelineError: vanResult.error.message
+		};
+	}
+
+	const virtualAccountNumber = vanResult.data;
+
 	const [paymentResult, refundsResult] = await Promise.all([
 		paymentAttemptClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, {
 			payinAttemptId,
 			limit: 1,
-			page: 0
+			page: 0,
+			virtualAccountNumber
 		}),
 		paymentAttemptClient.listRefunds(
 			fetch,

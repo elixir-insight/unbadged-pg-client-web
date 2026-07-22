@@ -15,15 +15,27 @@ import {
 	mapRelatedPaymentAttempts,
 	type RelatedPaymentAttempt
 } from '$lib/server/domains/payment-attempt/mappers/from-api/list';
-import { getVanById, resolveScope } from '$lib/data/management-van-mock';
+import { resolveVirtualAccountNumber } from '../../../resolve-van';
 import type { PayinTimelineEntry } from '$lib/types/payin';
 
-export const load: PageServerLoad = async ({ params, url, cookies, fetch, locals, depends }) => {
+export const load: PageServerLoad = async ({
+	params,
+	url,
+	cookies,
+	fetch,
+	locals,
+	depends,
+	parent
+}) => {
 	depends('management-payment-orders:detail');
 
 	const orderId = params.orderId;
-	const scope = resolveScope(url.searchParams.get('merchantId'), url.searchParams.get('vanId'));
-	const virtualAccountNumber = getVanById(scope.vanId)?.vanNumber;
+	const parentData = await parent();
+	const { virtualAccountNumber, scopeError } = resolveVirtualAccountNumber(
+		parentData,
+		url.searchParams.get('merchantId'),
+		url.searchParams.get('vanId')
+	);
 	const log = locals.logger.child({ action: 'management-payment-order-detail', orderId });
 	const base = {
 		orderId,
@@ -31,6 +43,16 @@ export const load: PageServerLoad = async ({ params, url, cookies, fetch, locals
 		payments: [] as RelatedPaymentAttempt[],
 		timeline: [] as PayinTimelineEntry[]
 	};
+
+	if (scopeError || !virtualAccountNumber) {
+		const message = scopeError ?? 'Virtual account is required';
+		return {
+			...base,
+			orderError: message,
+			paymentsError: message,
+			timelineError: message
+		};
+	}
 
 	let tokens;
 	try {

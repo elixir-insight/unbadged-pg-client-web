@@ -13,6 +13,7 @@ import {
 	type PaymentOrderCardCounts,
 	type PaymentOrderListRow
 } from '$lib/server/domains/payment-order/mappers/from-api/list';
+import { resolvePayinVirtualAccountNumber } from '$lib/server/domains/virtual-account/mappers/from-api/payin-van';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
@@ -54,6 +55,26 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		throw error;
 	}
 
+	const vanResult = await resolvePayinVirtualAccountNumber(
+		fetch,
+		log,
+		tokens.accessToken,
+		tokens.gatewayToken
+	);
+	if (!vanResult.ok) {
+		log.warn(
+			{ kind: vanResult.error.kind, message: vanResult.error.message },
+			'GET merchant PAYIN virtual account failed'
+		);
+		return {
+			...base,
+			listError: vanResult.error.message,
+			countsError: vanResult.error.message
+		};
+	}
+
+	const virtualAccountNumber = vanResult.data;
+
 	const [listResult, countsResult] = await Promise.all([
 		paymentOrderClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, {
 			orderId,
@@ -61,9 +82,16 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 			fromDate,
 			toDate,
 			limit,
-			page
+			page,
+			virtualAccountNumber
 		}),
-		paymentOrderClient.getCounts(fetch, log, tokens.accessToken, tokens.gatewayToken)
+		paymentOrderClient.getCounts(
+			fetch,
+			log,
+			tokens.accessToken,
+			tokens.gatewayToken,
+			virtualAccountNumber
+		)
 	]);
 
 	let orders: PaymentOrderListRow[] = [];

@@ -12,7 +12,7 @@ import {
 	type PaymentOrderCardCounts,
 	type PaymentOrderListRow
 } from '$lib/server/domains/payment-order/mappers/from-api/list';
-import { getVanById, resolveScope } from '$lib/data/management-van-mock';
+import { resolveVirtualAccountNumber } from '../../resolve-van';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
@@ -21,7 +21,7 @@ function emptyCounts(): PaymentOrderCardCounts {
 	return { Orders: 0, Successful: 0, Pending: 0, Created: 0, Failed: 0 };
 }
 
-export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
+export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends, parent }) => {
 	depends('management-payment-orders:list');
 
 	const log = locals.logger.child({ action: 'management-payment-orders-page' });
@@ -33,13 +33,25 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 	const status = url.searchParams.get('status')?.trim() || undefined;
 	const fromDate = url.searchParams.get('fromDate')?.trim() || undefined;
 	const toDate = url.searchParams.get('toDate')?.trim() || undefined;
-	const scope = resolveScope(url.searchParams.get('merchantId'), url.searchParams.get('vanId'));
-	const virtualAccountNumber = getVanById(scope.vanId)?.vanNumber;
+	const parentData = await parent();
+	const { virtualAccountNumber, scopeError } = resolveVirtualAccountNumber(
+		parentData,
+		url.searchParams.get('merchantId'),
+		url.searchParams.get('vanId')
+	);
 	const base = {
 		orders: [] as PaymentOrderListRow[],
 		counts: emptyCounts(),
 		pagination: { limit, page, total: 0 }
 	};
+
+	if (scopeError || !virtualAccountNumber) {
+		return {
+			...base,
+			listError: scopeError ?? 'Virtual account is required',
+			countsError: scopeError ?? 'Virtual account is required'
+		};
+	}
 
 	let tokens;
 	try {
