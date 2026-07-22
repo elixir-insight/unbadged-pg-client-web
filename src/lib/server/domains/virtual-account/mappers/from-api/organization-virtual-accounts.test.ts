@@ -11,7 +11,6 @@ describe('mapOrganizationVirtualAccounts', () => {
 				dailyDepositLimit: 0,
 				dailyTxnAmount: '',
 				dailyTxnLimit: 0,
-				id: 1,
 				isNonWhitelistedAllowed: false,
 				pipelineClass: 'FACILITATED',
 				pipelineCode: 'TEST',
@@ -28,7 +27,7 @@ describe('mapOrganizationVirtualAccounts', () => {
 
 		expect(mapOrganizationVirtualAccounts(accounts, 'ORG_2bV', 'Elixir global')).toEqual([
 			{
-				vanId: '1',
+				vanId: 'TEST202610013919',
 				vanNumber: 'TEST202610013919',
 				orgId: 'ORG_2bV',
 				merchantName: 'Elixir global',
@@ -43,7 +42,6 @@ describe('mapOrganizationVirtualAccounts', () => {
 				[
 					{
 						createdAt: '',
-						id: 2,
 						isNonWhitelistedAllowed: false,
 						pipelineClass: '',
 						pipelineCode: '',

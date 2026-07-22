@@ -16,7 +16,7 @@ export function mapOrganizationVirtualAccounts(
 
 		return [
 			{
-				vanId: String(account.id),
+				vanId: vanNumber,
 				vanNumber,
 				orgId,
 				merchantName,
