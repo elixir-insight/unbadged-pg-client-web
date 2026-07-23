@@ -95,7 +95,6 @@
 	let drawerOpen = $state(false);
 	let organizationProfile = $state<{ email: string; phone: string } | null>(null);
 	let profileLoading = $state(false);
-	let profileError = $state<string | null>(null);
 	let profileRequestId = 0;
 
 	const categoryOptions = [
@@ -203,7 +202,6 @@
 	async function loadOrganizationProfile(orgId: string) {
 		const requestId = ++profileRequestId;
 		profileLoading = true;
-		profileError = null;
 		organizationProfile = null;
 
 		try {
@@ -226,10 +224,10 @@
 					phone: profile && typeof profile.phone === 'string' ? profile.phone : ''
 				};
 			}
-		} catch (cause) {
+		} catch {
+			// Contact fields fall back to "—" when profile fetch fails.
 			if (requestId === profileRequestId) {
-				profileError =
-					cause instanceof Error ? cause.message : 'Failed to load organization profile';
+				organizationProfile = null;
 			}
 		} finally {
 			if (requestId === profileRequestId) {
@@ -385,11 +383,6 @@
 	{#if selectedOrg}
 		<div class="space-y-5">
 			<div class="space-y-3">
-				{#if profileError}
-					<p class="text-sm text-destructive" role="alert">
-						Unable to load organization contact details.
-					</p>
-				{/if}
 				<div
 					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
 				>
