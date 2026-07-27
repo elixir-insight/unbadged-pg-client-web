@@ -1,38 +1,64 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { merchantApiCredentialsClient } from '$lib/server/domains/merchant-api-credentials/client';
+import { merchantProfileClient } from '$lib/server/domains/merchant-profile/client';
+import { mapMerchantProfile } from '$lib/server/domains/merchant-profile/mappers/from-api/profile';
 import { getValidSession } from '$lib/server/domains/auth/getValidSession';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	const tokens = await getValidSession(cookies, fetch, locals.logger);
-	const result = await merchantApiCredentialsClient.list(
-		fetch,
-		locals.logger,
-		tokens.accessToken,
-		tokens.gatewayToken
-	);
 
-	if (!result.ok) {
-		if (result.error.kind === 'http' && result.error.status === 401) {
-			clearAuthCookies(cookies);
-			redirect(303, '/login?reason=session-expired');
-		}
-		locals.logger.error({ error: result.error }, 'failed to load API credential');
-		return {
-			apiCredential: null,
-			apiCredentialError: 'Could not load your API credential. Please try again.'
-		};
+	const [credentialResult, profileResult] = await Promise.all([
+		merchantApiCredentialsClient.list(
+			fetch,
+			locals.logger,
+			tokens.accessToken,
+			tokens.gatewayToken
+		),
+		merchantProfileClient.getProfile(fetch, locals.logger, tokens.accessToken, tokens.gatewayToken)
+	]);
+
+	if (
+		(!credentialResult.ok &&
+			credentialResult.error.kind === 'http' &&
+			credentialResult.error.status === 401) ||
+		(!profileResult.ok && profileResult.error.kind === 'http' && profileResult.error.status === 401)
+	) {
+		clearAuthCookies(cookies);
+		redirect(303, '/login?reason=session-expired');
 	}
 
-	// Only id/clientId are ever forwarded to the client — clientSecret from the
-	// list response (if the backend ever sends it) is intentionally dropped here
-	// so it never reaches the browser. id is normalized to a string since the
-	// backend returns it as a number.
-	const item = result.data.data[0];
+	let apiCredential: { id: string; clientId: string } | null = null;
+	let apiCredentialError: string | null = null;
+
+	if (!credentialResult.ok) {
+		locals.logger.error({ error: credentialResult.error }, 'failed to load API credential');
+		apiCredentialError = 'Could not load your API credential. Please try again.';
+	} else {
+		const item = credentialResult.data.data[0];
+		apiCredential = item ? { id: String(item.id), clientId: item.clientId } : null;
+	}
+
+	let profile = null;
+	let profileError: string | null = null;
+
+	if (!profileResult.ok) {
+		locals.logger.error({ error: profileResult.error }, 'failed to load merchant profile');
+		profileError = 'Could not load your organization profile. Please try again.';
+	} else {
+		const item = profileResult.data.data[0];
+		profile = item ? mapMerchantProfile(item) : null;
+		if (!profile) {
+			profileError = 'Organization profile not found.';
+		}
+	}
+
 	return {
-		apiCredential: item ? { id: String(item.id), clientId: item.clientId } : null,
-		apiCredentialError: null
+		apiCredential,
+		apiCredentialError,
+		profile,
+		profileError
 	};
 };
 
