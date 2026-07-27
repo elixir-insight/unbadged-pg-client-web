@@ -52,7 +52,7 @@
 				{/if}
 			</div>
 
-			<p class="font-mono text-xl font-semibold tabular-nums text-foreground">{value}</p>
+			<p class="font-mono text-xl font-semibold text-foreground tabular-nums">{value}</p>
 
 			{#if subText || trendLabel}
 				<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">

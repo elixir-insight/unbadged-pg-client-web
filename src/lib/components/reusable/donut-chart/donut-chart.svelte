@@ -75,7 +75,7 @@
 								{centerLabel}
 							</p>
 						{/if}
-						<p class="font-mono text-sm font-semibold tabular-nums text-foreground">
+						<p class="font-mono text-sm font-semibold text-foreground tabular-nums">
 							{resolvedCenterValue}
 						</p>
 					</div>
@@ -89,7 +89,7 @@
 								<span class="truncate text-foreground">{arc.label}</span>
 							</div>
 							<div class="shrink-0 text-right">
-								<p class="font-mono text-xs tabular-nums text-foreground">
+								<p class="font-mono text-xs text-foreground tabular-nums">
 									{valueFormatter(arc.value)}
 								</p>
 								<p class="text-[10px] text-muted-foreground">{arc.percent.toFixed(1)}%</p>

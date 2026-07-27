@@ -13,6 +13,8 @@
 		caption = '',
 		class: className = '',
 		onRowClick,
+		isRowClickable,
+		getRowAriaLabel,
 		variant = 'default',
 		pageNumber,
 		setPageNumber,
@@ -25,6 +27,9 @@
 		caption?: string;
 		class?: string;
 		onRowClick?: (row: TData) => void;
+		/** When set, rows for which this returns false render inert and muted instead of clickable. */
+		isRowClickable?: (row: TData) => boolean;
+		getRowAriaLabel?: (row: TData) => string;
 		variant?: 'default' | 'bordered' | 'borderless';
 		pageNumber: number;
 		setPageNumber: (page: number) => void;
@@ -80,7 +85,7 @@
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row
 					class={cn(
-						'table-header-premium h-11 border-y border-border rounded-lg',
+						'table-header-premium h-11 rounded-lg border-y border-border',
 						variant === 'borderless' && 'border-b-0'
 					)}
 				>
@@ -130,26 +135,29 @@
 				{/each}
 			{:else}
 				{#each table.getRowModel().rows as row (row.id)}
+					{@const clickable = !!onRowClick && (!isRowClickable || isRowClickable(row.original))}
 					<Table.Row
 						class={cn(
-							'tr-shine border-b border-border/40',
+							'group tr-shine border-b border-border/40',
 							onRowClick && [
 								'cursor-pointer',
 								'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-inset'
 							],
+							!!onRowClick && !clickable && 'cursor-default opacity-60 hover:bg-transparent',
 							variant === 'borderless' && 'border-b-0',
 							variant === 'bordered' && 'border-b-border/50'
 						)}
-						onclick={() => onRowClick?.(row.original)}
-						onkeydown={onRowClick
+						onclick={() => clickable && onRowClick?.(row.original)}
+						onkeydown={clickable
 							? (e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										onRowClick(row.original);
+										onRowClick?.(row.original);
 									}
 								}
 							: undefined}
-						tabindex={onRowClick ? 0 : undefined}
+						tabindex={clickable ? 0 : undefined}
+						aria-label={clickable ? getRowAriaLabel?.(row.original) : undefined}
 						data-state={row.getIsSelected() ? 'selected' : undefined}
 					>
 						{#each row.getVisibleCells() as cell (cell.id)}

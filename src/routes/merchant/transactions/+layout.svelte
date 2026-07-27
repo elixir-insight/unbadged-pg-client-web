@@ -8,16 +8,19 @@
 
 	const tabs = $derived([
 		...(merchantSession.hasPayinAccess()
-			? [{ label: 'Pay-ins', path: '/merchant/transactions/payins' as const }]
-			: []),
-		...(merchantSession.hasPayoutAccess()
-			? [{ label: 'Pay-outs', path: '/merchant/transactions/payouts' as const }]
+			? [{ label: 'Collections', path: '/merchant/transactions/collections' as const }]
 			: [])
+		// Disbursements tab temporarily hidden
+		// ...(merchantSession.hasPayoutAccess()
+		// 	? [{ label: 'Disbursements', path: '/merchant/transactions/disbursements' as const }]
+		// 	: [])
 	]);
 
 	const isDetailPage = $derived(
-		page.url.pathname.startsWith(resolve('/merchant/transactions/payins') + '/') ||
-			page.url.pathname.startsWith(resolve('/merchant/transactions/payouts') + '/')
+		/\/collections\/orders\/[^/]+$/.test(page.url.pathname) ||
+			/\/collections\/payments\/[^/]+$/.test(page.url.pathname)
+		// || (page.url.pathname.startsWith(resolve('/merchant/transactions/disbursements') + '/') &&
+		// 	page.url.pathname !== resolve('/merchant/transactions/disbursements'))
 	);
 
 	$effect(() => {
@@ -26,36 +29,36 @@
 
 		if (path === resolve('/merchant/transactions')) {
 			if (merchantSession.hasPayinAccess()) {
-				goto(resolve('/merchant/transactions/payins'));
-			} else if (merchantSession.hasPayoutAccess()) {
-				goto(resolve('/merchant/transactions/payouts'));
+				goto(resolve('/merchant/transactions/collections'));
 			} else {
 				goto(resolve('/merchant'));
 			}
 		} else if (
-			path.startsWith(resolve('/merchant/transactions/payins')) &&
+			path.startsWith(resolve('/merchant/transactions/collections')) &&
 			!merchantSession.hasPayinAccess()
 		) {
 			goto(resolve('/merchant'));
-		} else if (
-			path.startsWith(resolve('/merchant/transactions/payouts')) &&
-			!merchantSession.hasPayoutAccess()
-		) {
-			goto(resolve('/merchant'));
+		} else if (path.startsWith(resolve('/merchant/transactions/disbursements'))) {
+			// Disbursements temporarily hidden — bounce to collections or home
+			if (merchantSession.hasPayinAccess()) {
+				goto(resolve('/merchant/transactions/collections'));
+			} else {
+				goto(resolve('/merchant'));
+			}
 		}
 	});
 </script>
 
 <div class="flex flex-col gap-4">
 	{#if !isDetailPage}
-		<nav class="border-border flex gap-1 border-b">
+		<nav class="flex gap-1 border-b border-border">
 			{#each tabs as tab (tab.path)}
 				<a
 					href={resolve(tab.path)}
 					class="relative px-3 pb-2 text-sm font-medium transition-colors {page.url.pathname.startsWith(
 						resolve(tab.path)
 					)
-						? 'text-foreground border-foreground -mb-px border-b-2'
+						? '-mb-px border-b-2 border-foreground text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 				>
 					{tab.label}

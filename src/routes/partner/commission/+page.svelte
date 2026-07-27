@@ -556,13 +556,13 @@
 						{#each drawerBreakdown as row (row.slabLabel)}
 							<tr class="border-b border-border/40 last:border-b-0">
 								<td class="px-3 py-2.5 whitespace-nowrap text-foreground">{row.slabLabel}</td>
-								<td class="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap"
+								<td class="px-3 py-2.5 text-right font-mono whitespace-nowrap tabular-nums"
 									>{row.ratePercent}%</td
 								>
-								<td class="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap"
+								<td class="px-3 py-2.5 text-right font-mono whitespace-nowrap tabular-nums"
 									>{currency.format(row.volume)}</td
 								>
-								<td class="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap"
+								<td class="px-3 py-2.5 text-right font-mono whitespace-nowrap tabular-nums"
 									>{currency.format(row.commission)}</td
 								>
 							</tr>
@@ -577,11 +577,11 @@
 							<tr class="border-t border-border bg-muted/30 font-semibold">
 								<td class="px-3 py-2.5 text-foreground">Total</td>
 								<td class="px-3 py-2.5"></td>
-								<td class="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap"
+								<td class="px-3 py-2.5 text-right font-mono whitespace-nowrap tabular-nums"
 									>{currency.format(drawerTotalVolume)}</td
 								>
 								<td
-									class="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap text-primary"
+									class="px-3 py-2.5 text-right font-mono whitespace-nowrap text-primary tabular-nums"
 									>{currency.format(drawerTotalCommission)}</td
 								>
 							</tr>

@@ -1,4 +1,10 @@
 export type MerchantService = 'payin' | 'payout';
+export type GatewayServiceType = 'PAYIN' | 'PAYOUT';
+
+/**  Portal apps driven by access-token cognito:groups. Payin/payout are separate. */
+export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
+
+export type PortalHomePath = '/merchant' | '/partner' | '/management';
 
 export interface CognitoIdToken {
 	sub: string;
@@ -22,11 +28,45 @@ export interface CognitoIdToken {
 	event_id: string;
 }
 
+/** Cognito access token — source of portal cognito:groups. */
+export interface AccessTokenPayload {
+	sub: string;
+	username: string;
+	client_id: string;
+	token_use: 'access';
+	scope: string;
+	auth_time: number;
+	exp: number;
+	iat: number;
+	jti: string;
+	iss: string;
+	event_id?: string;
+	'cognito:groups'?: string[];
+}
+
+export interface GatewayTokenPayload {
+	orgId: number;
+	userId: number;
+	/** Backend may return null for ROOT / incomplete profiles. */
+	userName: string | null;
+	userEmail: string;
+	userType: string;
+	group?: string;
+	serviceTypes?: GatewayServiceType[];
+	iss: string;
+	token_use: 'gateway';
+	exp: number;
+	iat: number;
+	sub?: string;
+}
+
 export interface MerchantSession {
 	userId: string;
 	organizationId: string;
 	merchantName: string;
 	email: string;
+	userType: string;
+	/** Merchant app access derived from the gateway token's serviceTypes claim. */
 	permissions: { payin: boolean; payout: boolean };
 	groups: string[];
 }

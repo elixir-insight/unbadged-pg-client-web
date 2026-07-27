@@ -103,7 +103,7 @@
 		data-size={size}
 		class={cn(
 			'flex w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-2.5 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none',
-			'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer',
+			'cursor-pointer focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
 			'disabled:cursor-not-allowed disabled:opacity-50',
 			'dark:bg-input/30 dark:hover:bg-input/50',
 			size === 'sm' ? 'h-8' : 'h-9',
@@ -132,7 +132,7 @@
 			/>
 		</div>
 
-		<div class="max-h-60 overflow-y-auto scroll-py-1 py-1">
+		<div class="max-h-60 scroll-py-1 overflow-y-auto py-1">
 			{#if filtered.length === 0}
 				<p class="px-3 py-4 text-center text-sm text-muted-foreground">{emptyMessage}</p>
 			{:else}
@@ -161,9 +161,9 @@
 		onclick={() => pick(item)}
 		class={cn(
 			'flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-sm transition-colors',
-			'hover:bg-accent cursor-pointer',
+			'cursor-pointer hover:bg-accent',
 			'disabled:cursor-not-allowed disabled:opacity-50',
-			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+			'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
 			value === item.value && 'bg-accent'
 		)}
 	>

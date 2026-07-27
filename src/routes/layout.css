@@ -7,6 +7,7 @@
 
 :root {
 	--background: oklch(1 0 0);
+	color-scheme: light;
 	--foreground: oklch(0.2077 0.0398 265.7549);
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.2077 0.0398 265.7549);
@@ -68,6 +69,7 @@
 }
 
 .dark {
+	color-scheme: dark;
 	--background: oklch(0.1288 0.0406 264.6952);
 	--foreground: oklch(0.9842 0.0034 247.8575);
 	--card: oklch(0.2077 0.0398 265.7549);
@@ -197,10 +199,37 @@
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+		scrollbar-width: thin;
+		scrollbar-color: color-mix(in srgb, var(--muted-foreground) 45%, transparent) transparent;
+	}
+	html,
+	body {
+		height: 100%;
+		overflow: hidden;
 	}
 	body {
 		@apply bg-background text-foreground;
 		letter-spacing: var(--tracking-normal);
+	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background-color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+		border-radius: 9999px;
+		border: 2px solid transparent;
+		background-clip: content-box;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background-color: color-mix(in srgb, var(--muted-foreground) 80%, transparent);
+	}
+	html {
+		scroll-behavior: smooth;
 	}
 
 	h1 {
@@ -218,13 +247,109 @@
 	h5 {
 		font-size: var(--font-size-h5);
 	}
+
+	/* Scrollbars: follow app theme, not browser forced-dark (e.g. Brave dark mode) */
+	*,
+	.app-shell-content,
+	[data-slot='table-container'] {
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
+	}
+
+	*::-webkit-scrollbar,
+	.app-shell-content::-webkit-scrollbar,
+	[data-slot='table-container']::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	*::-webkit-scrollbar-track,
+	.app-shell-content::-webkit-scrollbar-track,
+	[data-slot='table-container']::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	*::-webkit-scrollbar-thumb,
+	.app-shell-content::-webkit-scrollbar-thumb,
+	[data-slot='table-container']::-webkit-scrollbar-thumb {
+		background-color: var(--border);
+		border-radius: var(--radius-lg);
+	}
+
+	*::-webkit-scrollbar-thumb:hover,
+	.app-shell-content::-webkit-scrollbar-thumb:hover,
+	[data-slot='table-container']::-webkit-scrollbar-thumb:hover {
+		background-color: var(--muted-foreground);
+	}
+
+	/* Override browser autofill background (e.g. Chrome's blue/yellow tint) */
+	[data-slot='input']:-webkit-autofill,
+	[data-slot='input']:-webkit-autofill:hover,
+	[data-slot='input']:-webkit-autofill:focus,
+	[data-slot='input']:-webkit-autofill:active,
+	[data-slot='textarea']:-webkit-autofill,
+	[data-slot='textarea']:-webkit-autofill:hover,
+	[data-slot='textarea']:-webkit-autofill:focus,
+	[data-slot='textarea']:-webkit-autofill:active {
+		-webkit-box-shadow: 0 0 0 1000px var(--background) inset !important;
+		-webkit-text-fill-color: var(--foreground) !important;
+		caret-color: var(--foreground);
+		transition: background-color 5000s ease-in-out 0s;
+	}
+
+	.dark [data-slot='input']:-webkit-autofill,
+	.dark [data-slot='input']:-webkit-autofill:hover,
+	.dark [data-slot='input']:-webkit-autofill:focus,
+	.dark [data-slot='input']:-webkit-autofill:active,
+	.dark [data-slot='textarea']:-webkit-autofill,
+	.dark [data-slot='textarea']:-webkit-autofill:hover,
+	.dark [data-slot='textarea']:-webkit-autofill:focus,
+	.dark [data-slot='textarea']:-webkit-autofill:active {
+		-webkit-box-shadow: 0 0 0 1000px color-mix(in oklch, var(--input) 30%, transparent) inset !important;
+	}
+}
+
+/* === Scrollbar === */
+
+.custom-scrollbar,
+.app-shell-content {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.app-shell-content::-webkit-scrollbar {
+	width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.app-shell-content::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.app-shell-content::-webkit-scrollbar-thumb {
+	background-color: var(--border);
+	border-radius: 9999px;
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.app-shell-content::-webkit-scrollbar-thumb:hover {
+	background-color: var(--muted-foreground);
 }
 
 /* === View Transitions === */
 
-/* Assign stable view-transition-name values via class selectors */
-.app-shell-content {
+/*
+  Keep view-transition-name off the overflow-y-auto scrollport.
+  Naming the scroll container makes Chrome promote it during navigations and
+  leaks a second (document) scrollbar — most visible on tall pages like Documents.
+*/
+.app-shell-page {
 	view-transition-name: page;
+	scroll-behavior: smooth;
 }
 
 .sidebar-active-indicator {
@@ -318,6 +443,22 @@
 	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Isolate toasts from the page view-transition layer.
+   Without a name, toasts are captured in the root snapshot and paint under `page`. */
+[data-sonner-toaster] {
+	view-transition-name: app-toaster;
+}
+
+::view-transition-group(app-toaster) {
+	z-index: 1;
+	animation: none;
+}
+
+::view-transition-old(app-toaster),
+::view-transition-new(app-toaster) {
+	animation: none;
+}
+
 /* Navigation loading bar — shimmer that only appears after 200ms to avoid flicker on fast navigations */
 .app-nav-progress {
 	position: fixed;
@@ -345,6 +486,11 @@
 
 /* Accessibility: respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
+	html,
+	.app-shell-content {
+		scroll-behavior: auto;
+	}
+
 	::view-transition-old(*),
 	::view-transition-new(*) {
 		animation: none !important;

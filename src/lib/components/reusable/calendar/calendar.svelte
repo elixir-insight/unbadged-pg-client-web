@@ -25,7 +25,7 @@
 		placeholder = 'Select date range',
 		minValue,
 		maxValue,
-		locale = 'en-US',
+		locale = 'en-IN',
 		numberOfMonths = 1,
 		disabled = false,
 		readonly = false,
@@ -36,7 +36,7 @@
 	let open = $state(false);
 
 	const displayValue = $derived.by(() => {
-		const fmt = new DateFormatter(locale, { dateStyle: 'medium' });
+		const fmt = new DateFormatter(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 		const start = value?.start;
 		const end = value?.end;
 		if (start && end)
@@ -78,7 +78,7 @@
 				!displayValue && 'text-muted-foreground'
 			)}
 		>
-			<Calendar class="size-4 shrink-0 text-muted-foreground w-(--bits-popover-anchor-width)" />
+			<Calendar class="size-4 w-(--bits-popover-anchor-width) shrink-0 text-muted-foreground" />
 			<span class="flex-1 truncate">{displayValue ?? placeholder}</span>
 		</button>
 		{#if displayValue && !disabled && !readonly}
