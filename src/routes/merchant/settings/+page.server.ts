@@ -4,6 +4,7 @@ import { merchantApiCredentialsClient } from '$lib/server/domains/merchant-api-c
 import { merchantProfileClient } from '$lib/server/domains/merchant-profile/client';
 import { mapMerchantProfile } from '$lib/server/domains/merchant-profile/mappers/from-api/profile';
 import { getValidSession } from '$lib/server/domains/auth/getValidSession';
+import { resetPasswordAction } from '$lib/server/domains/auth/reset-password';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
@@ -129,5 +130,13 @@ export const actions = {
 		return fail(result.error.kind === 'http' ? result.error.status : 500, {
 			message: result.error.message || 'Something went wrong. Please try again.'
 		});
-	}
+	},
+
+	resetPassword: async ({ request, cookies, fetch, locals }) =>
+		resetPasswordAction({
+			request,
+			cookies,
+			fetch,
+			logger: locals.logger
+		})
 } satisfies Actions;
