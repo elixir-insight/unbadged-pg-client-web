@@ -255,11 +255,66 @@ export const GetOrganizationDetailsResponseSchema = v.object({
 	)
 });
 
+export const OrganizationProfileRecordSchema = v.object({
+	orgId: v.string(),
+	companyName: v.string(),
+	orgName: v.string(),
+	email: v.string(),
+	phone: v.string(),
+	businessType: v.string(),
+	country: v.string(),
+	registeredDate: v.string(),
+	website: v.string(),
+	username: v.string()
+});
+
+export const GetOrganizationProfileResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.array(OrganizationProfileRecordSchema)
+});
+
+export const DashboardMerchantVirtualAccountSchema = v.object({
+	bankPipelineCode: v.optional(v.nullable(v.string()), ''),
+	createdAt: v.optional(v.nullable(v.string()), ''),
+	createdBy: v.optional(v.nullable(v.string()), ''),
+	dailyDepositAmount: v.optional(v.nullable(v.string()), ''),
+	dailyDepositLimit: v.optional(v.nullable(v.string()), ''),
+	dailyTxnAmount: v.optional(v.nullable(v.string()), ''),
+	dailyTxnLimit: v.optional(v.nullable(v.string()), ''),
+	deletedAt: v.optional(v.nullable(v.string()), ''),
+	id: v.union([v.string(), v.number()]),
+	isNonWhitelistedAllowed: v.optional(v.nullable(v.boolean()), false),
+	orgId: v.optional(v.nullable(v.string()), ''),
+	pipelineClass: v.optional(v.nullable(v.string()), ''),
+	pipelineRoles: v.optional(v.nullable(v.string()), ''),
+	status: v.optional(v.nullable(v.string()), ''),
+	tps: v.optional(v.nullable(v.number()), 0),
+	txnAmountMax: v.optional(v.nullable(v.string()), ''),
+	txnAmountMin: v.optional(v.nullable(v.string()), ''),
+	updatedAt: v.optional(v.nullable(v.string()), ''),
+	updatedBy: v.optional(v.nullable(v.string()), ''),
+	vaIdentifier: v.optional(v.nullable(v.union([v.string(), v.number()]))),
+	virtualAccountNumber: v.string()
+});
+
 export const DashboardMerchantSchema = v.object({
-	orgId: v.pipe(v.string(), v.trim(), v.minLength(1)),
-	displayOrgId: v.optional(v.nullable(v.string())),
-	legalCompanyName: v.optional(v.nullable(v.string())),
-	email: v.optional(v.nullable(v.string()))
+	affiliateId: v.optional(v.nullable(v.string()), ''),
+	businessType: v.optional(v.nullable(v.string()), ''),
+	createdAt: v.optional(v.nullable(v.string()), ''),
+	createdBy: v.optional(v.nullable(v.string()), ''),
+	deletedAt: v.optional(v.nullable(v.string()), ''),
+	displayOrgId: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	email: v.optional(v.nullable(v.string()), ''),
+	legalCompanyName: v.optional(v.nullable(v.string()), ''),
+	phoneNumber: v.optional(v.nullable(v.string()), ''),
+	profileDescription: v.optional(v.nullable(v.string()), ''),
+	profileStatus: v.optional(v.nullable(v.string()), ''),
+	profileType: v.optional(v.nullable(v.string()), ''),
+	serviceTypes: v.optional(v.array(v.string()), []),
+	updatedAt: v.optional(v.nullable(v.string()), ''),
+	updatedBy: v.optional(v.nullable(v.string()), ''),
+	virtualAccounts: v.optional(v.array(DashboardMerchantVirtualAccountSchema), [])
 });
 
 export const GetDashboardMerchantsResponseSchema = v.object({
@@ -301,6 +356,13 @@ export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationRespon
 export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetailsRecordSchema>;
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
+>;
+export type OrganizationProfileRecord = v.InferOutput<typeof OrganizationProfileRecordSchema>;
+export type GetOrganizationProfileResponse = v.InferOutput<
+	typeof GetOrganizationProfileResponseSchema
+>;
+export type DashboardMerchantVirtualAccount = v.InferOutput<
+	typeof DashboardMerchantVirtualAccountSchema
 >;
 export type DashboardMerchant = v.InferOutput<typeof DashboardMerchantSchema>;
 export type GetDashboardMerchantsResponse = v.InferOutput<

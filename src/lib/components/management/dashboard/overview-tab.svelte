@@ -3,6 +3,7 @@
 	import MetricTile, { type MetricTileData } from './metric-tile.svelte';
 	import StatusDistributionCard, { type StatusDatum } from './status-distribution-card.svelte';
 	import TrendAreaCard, { type TrendPoint } from './trend-area-card.svelte';
+	import { formatChartDate } from '$lib/utils/format-time';
 
 	const kpis: MetricTileData[] = [
 		{
@@ -64,7 +65,7 @@
 			const date = new Date(todayMs - (29 - i) * dayMs);
 			const wave = Math.sin(i / 3.5) * amplitude + Math.sin(i / 7) * (amplitude / 2);
 			return {
-				label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+				label: formatChartDate(date),
 				value: Math.max(0, Math.round(base + growth * i + wave))
 			};
 		});

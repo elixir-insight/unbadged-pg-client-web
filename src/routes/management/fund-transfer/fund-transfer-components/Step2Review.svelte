@@ -72,18 +72,16 @@
 	<div class="bg-warning-bg rounded-lg px-4 py-3 text-sm text-warning-foreground">
 		An OTP will be sent to your registered mobile and email. Do not share the code with anyone.
 	</div>
-</div>
 
-<div
-	class="sticky bottom-0 z-10 -mx-5 mt-6 flex flex-col gap-3 border-t border-border bg-background px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
->
-	<Button variant="outline" onclick={() => store.prevStep()}>Edit Details</Button>
-	<Button
-		onclick={() => {
-			store.startOtpCountdown();
-			store.nextStep();
-		}}
-	>
-		Send OTP and confirm
-	</Button>
+	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<Button variant="outline" onclick={() => store.prevStep()}>Edit Details</Button>
+		<Button
+			onclick={() => {
+				store.startOtpCountdown();
+				store.nextStep();
+			}}
+		>
+			Send OTP and confirm
+		</Button>
+	</div>
 </div>

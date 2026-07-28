@@ -1,6 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { authClient } from '$lib/server/domains/auth/client';
+import {
+	extractAuthTokens,
+	performSignIn,
+	startAuthenticatedSession
+} from '$lib/server/domains/auth/sign-in';
 import { clearPasswordChallenge, readPasswordChallenge } from '$lib/server/domains/auth/session';
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
@@ -13,7 +18,7 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 };
 
 export const actions = {
-	default: async ({ request, cookies, fetch, locals }) => {
+	default: async ({ request, cookies, fetch, locals, getClientAddress }) => {
 		const log = locals.logger;
 		const challenge = readPasswordChallenge(cookies);
 		if (!challenge) {
@@ -62,8 +67,45 @@ export const actions = {
 			return fail(status, { message });
 		}
 
-		log.info({ userEmail: challenge.userEmail }, 'password set — challenge completed');
+		log.info({ userEmail: challenge.userEmail }, 'password set — starting session');
 		clearPasswordChallenge(cookies);
+
+		const tokens = extractAuthTokens(result.data.data[0]);
+		if (tokens) {
+			const redirectTo = startAuthenticatedSession(cookies, tokens);
+			log.info(
+				{ userEmail: challenge.userEmail, redirectTo },
+				'password set — session started from set-password tokens'
+			);
+			redirect(303, redirectTo);
+		}
+
+		log.info(
+			{ userEmail: challenge.userEmail },
+			'set-password returned no tokens — falling back to sign-in'
+		);
+
+		const signInResult = await performSignIn({
+			fetch,
+			cookies,
+			logger: log,
+			ip: getClientAddress(),
+			userEmail: challenge.userEmail,
+			password: newPassword
+		});
+
+		if (signInResult.ok) {
+			log.info(
+				{ userEmail: challenge.userEmail, redirectTo: signInResult.redirectTo },
+				'password set — session started'
+			);
+			redirect(303, signInResult.redirectTo);
+		}
+
+		log.warn(
+			{ userEmail: challenge.userEmail, status: signInResult.status },
+			'password set but auto sign-in failed — redirecting to login'
+		);
 		redirect(303, '/login?reason=password-updated');
 	}
 } satisfies Actions;

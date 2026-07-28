@@ -112,7 +112,7 @@
 
 <div class="space-y-2">
 	<div
-		class={cn('flex justify-center gap-2', shaking && 'otp-shake')}
+		class={cn('flex justify-center gap-2 sm:gap-2.5 lg:gap-3', shaking && 'otp-shake')}
 		role="group"
 		aria-label="One-time password"
 	>
@@ -125,7 +125,7 @@
 				maxlength={1}
 				{disabled}
 				class={cn(
-					'size-11 rounded-md border text-center text-lg font-semibold shadow-xs transition-colors',
+					'size-11 rounded-md border text-center text-lg font-semibold shadow-xs transition-colors sm:size-12 sm:text-xl lg:size-14',
 					'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
 					disabled && 'cursor-not-allowed opacity-80',
 					boxClass,

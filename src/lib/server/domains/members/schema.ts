@@ -24,6 +24,11 @@ export const MemberListItemSchema = v.object({
 	updatedAt: v.optional(v.nullable(v.string()), '')
 });
 
+export const AssignedUserSchema = v.object({
+	id: v.number(),
+	name: v.string()
+});
+
 /**
  * Detail item from GET /api/v1/{management|merchant}/member/{memberId}.
  * Active vs Invited payloads can omit or null some fields — keep this permissive.
@@ -44,7 +49,8 @@ export const MemberDetailItemSchema = v.object({
 	createdAt: v.optional(v.nullable(v.string()), ''),
 	updatedAt: v.optional(v.nullable(v.string()), ''),
 	createdBy: v.optional(v.nullable(v.number())),
-	updatedBy: v.optional(v.nullable(v.number()))
+	updatedBy: v.optional(v.nullable(v.number())),
+	assignedUsers: v.optional(v.array(AssignedUserSchema), [])
 });
 
 export const MembersListResponseSchema = v.object({

@@ -1,11 +1,8 @@
+import { formatLabel } from '$lib/utils/format-label';
+
 /** Human-readable label for gateway `userType` values (e.g. ROOT → Root). */
 export function formatUserType(userType: string): string {
-	return userType
-		.trim()
-		.split(/[_\s-]+/)
-		.filter(Boolean)
-		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-		.join(' ');
+	return formatLabel(userType);
 }
 
 export function getUserInitials(name: string): string {

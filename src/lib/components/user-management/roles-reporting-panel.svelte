@@ -63,10 +63,10 @@
 <div class="rounded-xl border border-border bg-card shadow">
 	<div class="border-b border-border px-5 py-4">
 		<h2 class="text-sm font-semibold text-foreground">Roles & Reporting</h2>
-		<p class="mt-1 text-xs text-muted-foreground">{statusSummary}</p>
+		<p class="mt-1 text-sm font-bold text-muted-foreground">{statusSummary}</p>
 	</div>
 
-	<div class="flex h-[420px]">
+	<div class="flex h-105">
 		<div class="w-56 shrink-0 overflow-y-auto border-r border-border">
 			<button
 				type="button"

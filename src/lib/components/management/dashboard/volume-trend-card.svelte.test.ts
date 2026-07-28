@@ -3,9 +3,9 @@ import { render } from 'vitest-browser-svelte';
 import VolumeTrendCard, { type VolumePoint } from './volume-trend-card.svelte';
 
 const data: VolumePoint[] = [
-	{ label: 'Jul 08', value: 4200000 },
-	{ label: 'Jul 09', value: 3800000 },
-	{ label: 'Jul 10', value: 6200000 }
+	{ label: '08-07', value: 4200000 },
+	{ label: '09-07', value: 3800000 },
+	{ label: '10-07', value: 6200000 }
 ];
 
 describe('VolumeTrendCard', () => {

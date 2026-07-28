@@ -1,14 +1,11 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { getTransferStore, formatInr, maskAccountNumber } from '../fund-transfer.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, XCircle, FileClock } from '$lib/assets/icons';
+	import { Check, XCircle } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 
 	const store = getTransferStore();
-
-	const showIdle = $derived(
-		store.confirmStepStatus === 'pending' && !store.otpVerified && store.txnStatus !== 'processing'
-	);
 
 	const showSuccess = $derived(
 		store.otpVerified &&
@@ -20,9 +17,13 @@
 
 	const formattedDate = $derived(
 		store.txnProcessedAt
-			? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(
-					new Date(store.txnProcessedAt)
-				)
+			? new Intl.DateTimeFormat('en-IN', {
+					day: '2-digit',
+					month: '2-digit',
+					year: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit'
+				}).format(new Date(store.txnProcessedAt))
 			: '—'
 	);
 
@@ -55,21 +56,11 @@
 	);
 </script>
 
-{#if showIdle}
-	<div class="flex min-h-[28rem] flex-col items-center justify-center px-6 py-10 text-center">
-		<span
-			class="mb-4 flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
+{#if showSuccess}
+	<div class="flex min-h-[30rem] flex-col sm:min-h-[32rem] lg:min-h-[34rem]">
+		<div
+			class="bg-primary px-8 py-8 text-center text-primary-foreground sm:px-10 sm:py-10 lg:px-12 lg:py-12"
 		>
-			<FileClock class="size-6" />
-		</span>
-		<h3 class="text-base font-semibold text-foreground">Awaiting verification</h3>
-		<p class="mt-2 max-w-xs text-sm text-muted-foreground">
-			Your transfer result will appear here once you enter and verify the OTP.
-		</p>
-	</div>
-{:else if showSuccess}
-	<div class="flex min-h-[28rem] flex-col">
-		<div class="bg-primary px-8 py-8 text-center text-primary-foreground">
 			<span
 				class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-success text-success-foreground"
 			>
@@ -79,10 +70,12 @@
 			<p class="mt-1 text-sm text-primary-foreground/80">
 				To {store.beneficiary.name || 'beneficiary'}
 			</p>
-			<p class="mt-3 text-[1.75rem] leading-none font-bold">{formatInr(store.amount)}</p>
+			<p class="mt-3 text-[1.75rem] leading-none font-bold sm:text-[2rem] lg:text-[2.25rem]">
+				{formatInr(store.amount)}
+			</p>
 		</div>
 
-		<div class="flex flex-1 flex-col px-6 py-2">
+		<div class="flex flex-1 flex-col px-6 py-2 sm:px-8 lg:px-10">
 			<dl class="flex-1 text-sm">
 				<div
 					class="flex items-center justify-between gap-4 border-b border-dashed border-border py-3"
@@ -127,12 +120,21 @@
 				</div>
 			</dl>
 
-			<Button href="/management/transactions" class="mt-4 w-full">View transaction history</Button>
+			<div class="mt-6 flex flex-row gap-3 border-t border-border pt-6 pb-2 sm:mt-8 sm:pt-8">
+				<Button class="flex-1" onclick={() => store.startNewTransfer()}>
+					Add new fund transfer
+				</Button>
+				<Button variant="outline" href={resolve('/management/transactions')} class="flex-1">
+					View transactions
+				</Button>
+			</div>
 		</div>
 	</div>
 {:else if showFailure}
-	<div class="flex min-h-[28rem] flex-col">
-		<div class="bg-primary px-8 py-8 text-center text-primary-foreground">
+	<div class="flex min-h-[30rem] flex-col sm:min-h-[32rem] lg:min-h-[34rem]">
+		<div
+			class="bg-primary px-8 py-8 text-center text-primary-foreground sm:px-10 sm:py-10 lg:px-12 lg:py-12"
+		>
 			<span
 				class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
 			>
@@ -142,10 +144,12 @@
 			<p class="mt-1 text-sm text-primary-foreground/80">
 				To {store.beneficiary.name || 'beneficiary'}
 			</p>
-			<p class="mt-3 text-[1.75rem] leading-none font-bold">{formatInr(store.amount)}</p>
+			<p class="mt-3 text-[1.75rem] leading-none font-bold sm:text-[2rem] lg:text-[2.25rem]">
+				{formatInr(store.amount)}
+			</p>
 		</div>
 
-		<div class="flex flex-1 flex-col px-6 py-2">
+		<div class="flex flex-1 flex-col px-6 py-2 sm:px-8 lg:px-10">
 			<dl class="flex-1 text-sm">
 				<div
 					class="flex items-start justify-between gap-4 border-b border-dashed border-border py-3"
@@ -179,7 +183,14 @@
 				</div>
 			</dl>
 
-			<Button href="/management/transactions" class="mt-4 w-full">View transaction history</Button>
+			<div class="mt-6 flex flex-row gap-3 border-t border-border pt-6 pb-2 sm:mt-8 sm:pt-8">
+				<Button class="flex-1" onclick={() => store.startNewTransfer()}>
+					Add new fund transfer
+				</Button>
+				<Button variant="outline" href={resolve('/management/transactions')} class="flex-1">
+					View transactions
+				</Button>
+			</div>
 		</div>
 	</div>
 {/if}

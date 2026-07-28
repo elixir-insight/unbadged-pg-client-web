@@ -193,7 +193,7 @@ export function getSettlementTotals(
 export function formatRecordDate(isoDate: string): string {
 	return new Intl.DateTimeFormat('en-IN', {
 		day: '2-digit',
-		month: 'short',
+		month: '2-digit',
 		year: 'numeric'
 	}).format(new Date(isoDate));
 }

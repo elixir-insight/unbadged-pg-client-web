@@ -3,9 +3,9 @@ import { render } from 'vitest-browser-svelte';
 import TrendAreaCard, { type TrendPoint } from './trend-area-card.svelte';
 
 const data: TrendPoint[] = [
-	{ label: 'Jul 08', value: 18 },
-	{ label: 'Jul 09', value: 20 },
-	{ label: 'Jul 10', value: 22 }
+	{ label: '08-07', value: 18 },
+	{ label: '09-07', value: 20 },
+	{ label: '10-07', value: 22 }
 ];
 
 describe('TrendAreaCard', () => {

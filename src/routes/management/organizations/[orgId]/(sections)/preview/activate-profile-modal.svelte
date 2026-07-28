@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button, Dropdown, FileUpload, Input, Modal } from '$lib/components/reusable';
@@ -50,6 +50,39 @@
 		resetForm();
 	}
 
+	function activationErrorMessage(result: {
+		type: string;
+		data?: unknown;
+		error?: unknown;
+	}): string {
+		if (
+			result.data &&
+			typeof result.data === 'object' &&
+			'message' in result.data &&
+			typeof result.data.message === 'string' &&
+			result.data.message.trim()
+		) {
+			return result.data.message;
+		}
+
+		if (form?.message?.trim()) return form.message;
+
+		const rawError =
+			result.error instanceof Error
+				? result.error.message
+				: typeof result.error === 'string'
+					? result.error
+					: '';
+
+		if (rawError.toLowerCase().includes('unexpected end of json')) {
+			return 'Upload failed — the certificate file may exceed the server size limit. Try a smaller file (max 20MB) and try again.';
+		}
+
+		if (rawError.trim()) return rawError;
+
+		return 'Something went wrong';
+	}
+
 	const onActivateEnhance: SubmitFunction = ({ formData, cancel }) => {
 		fieldErrors = {};
 
@@ -74,20 +107,23 @@
 		}
 
 		activating = true;
-		return async ({ result, update }) => {
+		return async ({ result }) => {
 			activating = false;
 
 			if (result.type === 'failure') {
-				const message =
-					form?.message ??
-					(result.data &&
-					typeof result.data === 'object' &&
-					'message' in result.data &&
-					typeof result.data.message === 'string'
-						? result.data.message
-						: 'Something went wrong');
-				toast.error('Failed to activate profile', { description: message });
-				await update({ reset: false });
+				toast.error('Failed to activate profile', {
+					description: activationErrorMessage(result)
+				});
+				await applyAction(result);
+				return;
+			}
+
+			// Empty/non-JSON responses (e.g. upload body rejected before the action runs)
+			// surface as `error` — show a toast and stay on the page instead of the 500 boundary.
+			if (result.type === 'error') {
+				toast.error('Failed to activate profile', {
+					description: activationErrorMessage(result)
+				});
 				return;
 			}
 
@@ -96,9 +132,11 @@
 				toast.success('Profile activated', {
 					description: 'Continue with commission and fee configuration'
 				});
+				await applyAction(result);
+				return;
 			}
 
-			await update({ reset: false });
+			await applyAction(result);
 		};
 	};
 </script>

@@ -8,6 +8,7 @@ import {
 	GetOrganizationBankAccountsResponseSchema,
 	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
+	GetOrganizationProfileResponseSchema,
 	GetOrganizationsTableResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationResponseSchema,
@@ -65,6 +66,22 @@ export const organizationClient = {
 			accessToken,
 			gatewayToken,
 			schema: GetOrganizationDetailsResponseSchema
+		}),
+
+	getProfile: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/profile`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: GetOrganizationProfileResponseSchema
 		}),
 
 	update: (

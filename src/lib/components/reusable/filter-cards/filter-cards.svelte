@@ -2,6 +2,7 @@
 	export interface FilterCard {
 		label: string;
 		count: number;
+		disabled?: boolean;
 	}
 </script>
 
@@ -47,12 +48,14 @@
 		{#each cards as card (card.label)}
 			<button
 				type="button"
+				disabled={card.disabled}
 				onclick={() => handleSelect(card.label)}
 				class={cn(
 					'cursor-pointer rounded-lg border p-4 text-left shadow-xs transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+					card.disabled && 'cursor-default opacity-70',
 					selected === card.label
 						? 'border-primary bg-primary/10 ring-1 ring-primary/20'
-						: 'border-border bg-background hover:border-primary/40 hover:bg-accent hover:shadow-sm'
+						: 'border-border bg-background enabled:hover:border-primary/40 enabled:hover:bg-accent enabled:hover:shadow-sm'
 				)}
 			>
 				<h4

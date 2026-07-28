@@ -50,13 +50,13 @@
 	];
 
 	const volumeTrend: VolumePoint[] = [
-		{ label: 'Jul 08', value: 4200000 },
-		{ label: 'Jul 09', value: 3800000 },
-		{ label: 'Jul 10', value: 6200000 },
-		{ label: 'Jul 11', value: 6800000 },
-		{ label: 'Jul 12', value: 8200000 },
-		{ label: 'Jul 13', value: 7200000 },
-		{ label: 'Jul 14', value: 7800000 }
+		{ label: '08-07', value: 4200000 },
+		{ label: '09-07', value: 3800000 },
+		{ label: '10-07', value: 6200000 },
+		{ label: '11-07', value: 6800000 },
+		{ label: '12-07', value: 8200000 },
+		{ label: '13-07', value: 7200000 },
+		{ label: '14-07', value: 7800000 }
 	];
 
 	const statusDistribution: StatusDatum[] = [

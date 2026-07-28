@@ -10,3 +10,22 @@ export type { RecentPayment } from './recent-activity-card.svelte';
 export { default as RefundsDisputesCard } from './refunds-disputes-card.svelte';
 export { default as NotificationsCard } from './notifications-card.svelte';
 export type { NotificationItem } from './notifications-card.svelte';
+export { default as DashboardRangeControl } from './dashboard-range-control.svelte';
+export { default as DashboardStatCard } from './dashboard-stat-card.svelte';
+export { default as DashboardSkeleton } from './dashboard-skeleton.svelte';
+export { default as CollectionTrendCard } from './collection-trend-card.svelte';
+export { default as PaymentMixCard } from './payment-mix-card.svelte';
+export { default as ConversionFunnelCard } from './conversion-funnel-card.svelte';
+export { default as RecentTransactionsTable } from './recent-transactions-table.svelte';
+export { default as DashboardSettlementsTable } from './settlements-table.svelte';
+export { formatDashboardCurrency, getDashboardSnapshot } from './dashboard-data';
+export type {
+	CollectionTrendPoint,
+	DashboardRange,
+	DashboardSettlement,
+	DashboardSnapshot,
+	DashboardTransaction,
+	FunnelOutcome,
+	FunnelStage,
+	PaymentMixItem
+} from './dashboard-data';
