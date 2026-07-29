@@ -4,7 +4,8 @@ import type { OrganizationStatus } from '$lib/data/mockData';
 
 const ACRONYMS = new Set(['LLP', 'KYB', 'CIN', 'TAN', 'GSTIN', 'IFSC', 'URL', 'IP']);
 
-export type FlowStepKey = 'legal' | 'address' | 'directors' | 'bank' | 'documents' | 'review';
+export type FlowStepKey =
+	'legal' | 'address' | 'directors' | 'bank' | 'documents' | 'review' | 'fees';
 
 export interface FlowStep {
 	key: FlowStepKey;
@@ -68,6 +69,11 @@ export function getPostOnboardingSteps(): FlowStep[] {
 			key: 'documents',
 			label: 'Documents',
 			href: (orgId) => `/management/organizations/${orgId}/documents`
+		},
+		{
+			key: 'fees',
+			label: 'Fees',
+			href: (orgId) => feesPath(orgId)
 		}
 	];
 }
@@ -97,6 +103,7 @@ export function getCurrentFlowStepKey(
 	searchParams: URLSearchParams
 ): FlowStepKey {
 	if (pathname.includes('/preview')) return 'review';
+	if (pathname.includes('/fees')) return 'fees';
 	if (pathname.includes('/bank')) return 'bank';
 	if (pathname.includes('/documents')) return 'documents';
 
@@ -123,8 +130,12 @@ export function previewPath(orgId: string): string {
 	return `/management/organizations/${orgId}/preview`;
 }
 
+export function feesPath(orgId: string): string {
+	return `/management/organizations/${orgId}/fees`;
+}
+
 const ORG_ONBOARDING_SECTION_PATH =
-	/^\/management\/organizations\/[^/]+\/(kyb|bank|documents|preview)(?:\/|$)/;
+	/^\/management\/organizations\/[^/]+\/(kyb|bank|documents|preview|fees)(?:\/|$)/;
 
 export function isOrgOnboardingSectionPath(pathname: string): boolean {
 	return ORG_ONBOARDING_SECTION_PATH.test(pathname);
@@ -175,6 +186,8 @@ export function flowStepHref(orgId: string, step: FlowStepKey): string {
 			return `/management/organizations/${orgId}/documents`;
 		case 'review':
 			return `/management/organizations/${orgId}/preview`;
+		case 'fees':
+			return feesPath(orgId);
 		case 'legal':
 			return kybBase;
 		default:

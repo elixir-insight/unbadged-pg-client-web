@@ -26,6 +26,7 @@ function account(
 		txnAmountMin: '',
 		updatedAt: '',
 		updatedBy: 0,
+		vaNumber: null,
 		...overrides
 	};
 }
@@ -44,6 +45,32 @@ describe('findPayinVirtualAccount', () => {
 		]);
 
 		expect(payin?.virtualAccountNumber).toBe('222');
+	});
+
+	it('accepts upstream vaNumber after schema normalization', () => {
+		const payin = findPayinVirtualAccount([
+			{
+				createdAt: '',
+				createdBy: 0,
+				dailyDepositLimit: '',
+				dailyTxnAmount: '',
+				dailyTxnLimit: '',
+				isNonWhitelistedAllowed: true,
+				pipelineClass: 'DIRECT',
+				pipelineCode: 'TEST',
+				pipelineRole: 'PAYIN',
+				status: '',
+				tps: 30,
+				txnAmountMax: '',
+				txnAmountMin: '',
+				updatedAt: '',
+				updatedBy: 0,
+				vaNumber: '',
+				virtualAccountNumber: 'TEST202610019122'
+			}
+		]);
+
+		expect(payin?.virtualAccountNumber).toBe('TEST202610019122');
 	});
 
 	it('skips PAYIN accounts with blank VAN numbers', () => {
