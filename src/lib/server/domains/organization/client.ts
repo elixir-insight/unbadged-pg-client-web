@@ -3,6 +3,7 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	AddOrganizationBankResponseSchema,
 	CreateOrganizationResponseSchema,
+	DeleteDirectorResponseSchema,
 	GetDirectorDocumentsResponseSchema,
 	GetDashboardMerchantsResponseSchema,
 	GetOrganizationBankAccountsResponseSchema,
@@ -209,6 +210,27 @@ export const organizationClient = {
 				accessToken,
 				gatewayToken,
 				schema: GetDirectorDocumentsResponseSchema
+			}
+		),
+
+	/** DELETE /api/v1/management/onboard/organization/{orgId}/directors/{directorId} */
+	deleteDirector: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		directorId: string
+	) =>
+		apiFetch(
+			`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/directors/${encodeURIComponent(directorId)}`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'DELETE',
+				accessToken,
+				gatewayToken,
+				schema: DeleteDirectorResponseSchema
 			}
 		),
 
