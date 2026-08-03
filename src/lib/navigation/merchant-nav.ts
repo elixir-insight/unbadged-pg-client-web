@@ -40,7 +40,6 @@ export const merchantNav: NavGroup[] = [
 					}
 				]
 			},
-			// Disputes navigation is temporarily hidden.
 			{
 				title: 'Dispute',
 				href: '/merchant/dispute',

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Download, Eye, FileText, Store, Trash2 } from '$lib/assets/icons';
-	import { Button, FileUpload, Switch, toast } from '$lib/components/reusable';
+	import { Button, FileUpload, Modal, Switch, toast } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		title: string;
@@ -20,9 +21,44 @@
 
 	let inputRef = $state<HTMLInputElement | null>(null);
 	let documents = $state<SessionDocument[]>([]);
+	let deleteOpen = $state(false);
+	let documentPendingDelete = $state<SessionDocument | null>(null);
 
 	const acceptedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'zip'];
 	const maxFileSize = 20 * 1024 * 1024;
+
+	const dummyFilesByTitle: Record<string, { name: string; shownToMerchant: boolean }> = {
+		'Merchant Proof': { name: 'invoice-proof.pdf', shownToMerchant: false },
+		'Aggregator Correspondence': {
+			name: 'aggregator-acknowledgement.pdf',
+			shownToMerchant: false
+		},
+		'Final Resolution Documents': {
+			name: 'final-resolution-letter.pdf',
+			shownToMerchant: true
+		}
+	};
+
+	function createDummyDocument(fileName: string, shownToMerchant: boolean): SessionDocument {
+		const content = `Dummy supporting document: ${fileName}`;
+		const file = new File([content], fileName, {
+			type: 'application/pdf',
+			lastModified: Date.now() - 86_400_000
+		});
+
+		return {
+			id: crypto.randomUUID(),
+			file,
+			uploadedAt: new Date(Date.now() - 3_600_000),
+			shownToMerchant
+		};
+	}
+
+	onMount(() => {
+		const dummy = dummyFilesByTitle[title];
+		if (!dummy || documents.length > 0) return;
+		documents = [createDummyDocument(dummy.name, dummy.shownToMerchant)];
+	});
 
 	function formatSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
@@ -98,8 +134,22 @@
 		URL.revokeObjectURL(url);
 	}
 
-	function removeFile(documentId: string): void {
-		documents = documents.filter((document) => document.id !== documentId);
+	function openDeleteModal(document: SessionDocument): void {
+		documentPendingDelete = document;
+		deleteOpen = true;
+	}
+
+	function closeDeleteModal(): void {
+		deleteOpen = false;
+		documentPendingDelete = null;
+	}
+
+	function confirmDelete(): void {
+		if (!documentPendingDelete) return;
+		const fileName = documentPendingDelete.file.name;
+		documents = documents.filter((document) => document.id !== documentPendingDelete?.id);
+		closeDeleteModal();
+		toast.success(`${fileName} deleted`);
 	}
 </script>
 
@@ -160,7 +210,7 @@
 										variant="outline"
 										size="icon-sm"
 										aria-label="Delete {document.file.name}"
-										onclick={() => removeFile(document.id)}
+										onclick={() => openDeleteModal(document)}
 									>
 										<Trash2 class="size-4" />
 									</Button>
@@ -198,4 +248,18 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<Modal bind:open={deleteOpen} title="Delete document">
+		{#if documentPendingDelete}
+			<p class="text-sm text-muted-foreground">
+				Are you sure you want to delete
+				<span class="font-medium text-foreground">{documentPendingDelete.file.name}</span>?
+			</p>
+		{/if}
+
+		{#snippet footer()}
+			<Button variant="outline" onclick={closeDeleteModal}>Cancel</Button>
+			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
+		{/snippet}
+	</Modal>
 </section>
