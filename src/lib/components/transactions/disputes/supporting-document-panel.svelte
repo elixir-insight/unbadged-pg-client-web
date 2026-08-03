@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { Download, Eye, FileText, Trash2 } from '$lib/assets/icons';
-	import { Button, FileUpload, toast } from '$lib/components/reusable';
+	import { Download, Eye, FileText, Store, Trash2 } from '$lib/assets/icons';
+	import { Button, FileUpload, Switch, toast } from '$lib/components/reusable';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		title: string;
 		description: string;
+		showMerchantVisibility?: boolean;
 	}
 
 	interface SessionDocument {
 		id: string;
 		file: File;
 		uploadedAt: Date;
+		shownToMerchant: boolean;
 	}
 
-	let { title, description }: Props = $props();
+	let { title, description, showMerchantVisibility = false }: Props = $props();
 
 	let inputRef = $state<HTMLInputElement | null>(null);
 	let documents = $state<SessionDocument[]>([]);
@@ -64,13 +67,20 @@
 			.map((file) => ({
 				id: crypto.randomUUID(),
 				file,
-				uploadedAt: new Date()
+				uploadedAt: new Date(),
+				shownToMerchant: false
 			}));
 
 		documents = [...documents, ...newDocuments];
 		if (newDocuments.length > 0) {
 			toast.success(`${newDocuments.length} document${newDocuments.length === 1 ? '' : 's'} added`);
 		}
+	}
+
+	function setMerchantVisibility(documentId: string, shownToMerchant: boolean): void {
+		documents = documents.map((document) =>
+			document.id === documentId ? { ...document, shownToMerchant } : document
+		);
 	}
 
 	function openFile(document: SessionDocument): void {
@@ -94,25 +104,19 @@
 </script>
 
 <section class="flex flex-col rounded-xl border border-border bg-background p-4">
-	<div class="flex items-start justify-between gap-3">
-		<div>
-			<h3 class="text-sm font-semibold text-foreground">{title}</h3>
-			<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
-		</div>
-		<!-- <Button variant="outline" size="sm" class="shrink-0" onclick={() => inputRef?.click()}>
-			<UploadCloud class="size-4" />
-			Upload Files
-		</Button> -->
+	<div>
+		<h3 class="text-sm font-semibold text-foreground">{title}</h3>
+		<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
 	</div>
 
-	<button onclick={() => inputRef?.click()}>
+	<button type="button" class="mt-4 text-left" onclick={() => inputRef?.click()}>
 		<FileUpload
 			bind:inputRef
 			variant="dropzone"
 			multiple
 			accept=".pdf,.jpg,.jpeg,.png,.zip"
 			placeholder="PDF, JPG, PNG, ZIP · MAX 20 MB"
-			class="mt-4 cursor-pointer"
+			class="cursor-pointer"
 			onfileschange={addFiles}
 		/>
 	</button>
@@ -120,43 +124,75 @@
 	{#if documents.length > 0}
 		<ul class="mt-4 flex flex-col gap-3" aria-label="{title} uploaded documents">
 			{#each documents as document (document.id)}
-				<li class="flex items-center gap-3 rounded-xl border border-border p-3">
-					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-					>
-						<FileText class="size-5" />
-					</span>
-					<div class="min-w-0 flex-1">
-						<p class="truncate text-sm font-medium text-foreground">{document.file.name}</p>
-						<p class="mt-0.5 text-xs text-muted-foreground">
-							{formatDate(document.uploadedAt)} · {formatSize(document.file.size)}
-						</p>
-					</div>
-					<div class="flex shrink-0 items-center gap-1">
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Preview {document.file.name}"
-							onclick={() => openFile(document)}
+				<li class="rounded-xl border border-border p-3">
+					<div class="flex gap-3">
+						<span
+							class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
 						>
-							<Eye class="size-4" />
-						</Button>
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Download {document.file.name}"
-							onclick={() => downloadFile(document)}
-						>
-							<Download class="size-4" />
-						</Button>
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Delete {document.file.name}"
-							onclick={() => removeFile(document.id)}
-						>
-							<Trash2 class="size-4" />
-						</Button>
+							<FileText class="size-5" />
+						</span>
+
+						<div class="min-w-0 flex-1">
+							<p class="truncate text-sm font-medium text-foreground">{document.file.name}</p>
+							<p class="mt-0.5 text-xs text-muted-foreground">
+								{formatDate(document.uploadedAt)} · {formatSize(document.file.size)}
+							</p>
+
+							<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+								<div class="flex items-center gap-1">
+									<Button
+										variant="outline"
+										size="icon-sm"
+										aria-label="Preview {document.file.name}"
+										onclick={() => openFile(document)}
+									>
+										<Eye class="size-4" />
+									</Button>
+									<Button
+										variant="outline"
+										size="icon-sm"
+										aria-label="Download {document.file.name}"
+										onclick={() => downloadFile(document)}
+									>
+										<Download class="size-4" />
+									</Button>
+									<Button
+										variant="outline"
+										size="icon-sm"
+										aria-label="Delete {document.file.name}"
+										onclick={() => removeFile(document.id)}
+									>
+										<Trash2 class="size-4" />
+									</Button>
+								</div>
+
+								{#if showMerchantVisibility}
+									<label
+										class={cn(
+											'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
+											document.shownToMerchant
+												? 'border-primary bg-primary/10 text-primary'
+												: 'border-border text-muted-foreground'
+										)}
+									>
+										<Store class="size-3.5 shrink-0" aria-hidden="true" />
+										<span>
+											{document.shownToMerchant ? 'Shown to merchant' : 'Hidden to merchant'}
+										</span>
+										<span class="sr-only">
+											{document.shownToMerchant
+												? `Hide ${document.file.name} from merchant`
+												: `Show ${document.file.name} to merchant`}
+										</span>
+										<Switch
+											size="sm"
+											checked={document.shownToMerchant}
+											onCheckedChange={(checked) => setMerchantVisibility(document.id, checked)}
+										/>
+									</label>
+								{/if}
+							</div>
+						</div>
 					</div>
 				</li>
 			{/each}

@@ -5,15 +5,18 @@
 	const documentGroups = [
 		{
 			title: 'Merchant Proof',
-			description: 'Upload invoices, receipts, screenshots and customer proofs.'
+			description: 'Upload invoices, receipts, screenshots and customer proofs.',
+			showMerchantVisibility: false
 		},
 		{
 			title: 'Aggregator Correspondence',
-			description: 'Upload emails, letters and acknowledgements from the aggregator.'
+			description: 'Upload emails, letters and acknowledgements from the aggregator.',
+			showMerchantVisibility: true
 		},
 		{
 			title: 'Final Resolution Documents',
-			description: 'Upload decision letters, settlement proofs and final documents.'
+			description: 'Upload decision letters, settlement proofs and final documents.',
+			showMerchantVisibility: true
 		}
 	];
 </script>
@@ -28,7 +31,11 @@
 
 	<div class="mt-6 grid gap-4 lg:grid-cols-3">
 		{#each documentGroups as group (group.title)}
-			<SupportingDocumentPanel title={group.title} description={group.description} />
+			<SupportingDocumentPanel
+				title={group.title}
+				description={group.description}
+				showMerchantVisibility={group.showMerchantVisibility}
+			/>
 		{/each}
 	</div>
 </section>

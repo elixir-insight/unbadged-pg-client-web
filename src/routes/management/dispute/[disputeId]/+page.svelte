@@ -260,7 +260,7 @@
 						<h2 class="text-base font-semibold text-foreground">Dispute Details</h2>
 					</div>
 
-					<div class="mt-6 flex flex-col gap-14">
+					<div class="mt-6 flex flex-col gap-4">
 						<div
 							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
 						>
