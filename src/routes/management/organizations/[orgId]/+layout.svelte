@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/reusable';
 	import { MessageSquareWarning, XCircle } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
-	import { breadcrumb } from '$lib/stores/breadcrumb.svelte';
+	import { breadcrumb, type BreadcrumbItem } from '$lib/stores/breadcrumb.svelte';
 	import ChangeOrganizationStatusModal from './components/ChangeOrganizationStatusModal.svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from './layout-context';
 	import {
@@ -102,7 +102,7 @@
 		const org = organization;
 		const pathname = page.url.pathname.split('?')[0] ?? '';
 		const orgHref = resolve('/management/organizations/[orgId]', { orgId: org.id });
-		const items = [
+		const items: BreadcrumbItem[] = [
 			{ label: 'Organizations', href: resolve('/management/organizations') },
 			{ label: org.name, href: orgHref }
 		];
