@@ -50,7 +50,9 @@
 					userRole: formatUserType(merchantSession.session.userType ?? ''),
 					userInitials: getUserInitials(merchantSession.session.merchantName),
 					confirmLogout: app === 'management' || app === 'merchant',
-					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {}),
+					...(app === 'merchant' || app === 'management'
+						? { vanNumber: merchantSession.session.displayOrgId }
+						: {}),
 					...(settingsHrefs[app] ? { settingsHref: settingsHrefs[app] } : {})
 				}
 			: app === 'management'

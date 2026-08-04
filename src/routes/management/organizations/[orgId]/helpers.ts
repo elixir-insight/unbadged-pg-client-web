@@ -292,3 +292,16 @@ export function buildTabStatusChip(completed: boolean) {
 		variant: tabVariantMap[label]
 	};
 }
+
+export function getOrganizationSectionBreadcrumbLabel(pathname: string): string | null {
+	const match = pathname.match(/\/management\/organizations\/[^/]+\/([^/]+)/);
+	if (!match) return null;
+
+	const segment = match[1];
+	if (segment === 'activate') {
+		const subMatch = pathname.match(/\/activate\/([^/]+)/);
+		return subMatch ? formatLabel(subMatch[1]) : 'Activate';
+	}
+
+	return formatLabel(segment);
+}

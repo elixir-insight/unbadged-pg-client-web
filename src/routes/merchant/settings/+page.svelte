@@ -15,7 +15,7 @@
 	merchantSession.initialize();
 
 	const merchantName = $derived(merchantSession.session?.merchantName ?? 'Merchant');
-	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
+	const displayOrgId = $derived(merchantSession.session?.displayOrgId ?? '');
 	const website = 'https://google.com';
 	const email = 'merchant@jubiliantpay.com';
 	const phone = '+916382303714';
@@ -113,8 +113,8 @@
 
 			<div class="pt-12 sm:pt-14">
 				<h2 class="text-xl font-bold text-foreground">{merchantName}</h2>
-				{#if organizationId}
-					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
+				{#if displayOrgId}
+					<p class="mt-0.5 text-sm text-muted-foreground">@{displayOrgId}</p>
 				{/if}
 
 				<ul class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
