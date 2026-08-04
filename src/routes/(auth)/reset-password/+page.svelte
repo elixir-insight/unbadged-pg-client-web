@@ -247,7 +247,7 @@
 						aria-invalid={otpError || (form?.error && form.errorField === 'otp')
 							? 'true'
 							: undefined}
-						class="h-11 text-base!"
+						class="h-11 w-full rounded-md border border-input bg-background text-center text-lg font-semibold tracking-[1em] text-foreground placeholder:font-normal placeholder:tracking-normal"
 						oninput={handleOtpInput}
 					/>
 					{#if otpError || (form?.error && form.errorField === 'otp')}
