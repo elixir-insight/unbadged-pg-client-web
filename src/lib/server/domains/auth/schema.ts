@@ -102,3 +102,16 @@ export const ConfirmPasswordResponseSchema = v.object({
 	data: v.array(v.unknown())
 });
 export type ConfirmPasswordResponse = v.InferOutput<typeof ConfirmPasswordResponseSchema>;
+
+/** Authenticated password change from settings (old + new). */
+export const ResetPasswordRequestSchema = v.object({
+	oldPassword: v.pipe(v.string(), v.minLength(1, 'Current password is required')),
+	newPassword: PasswordSchema
+});
+
+export const ResetPasswordResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(v.unknown())
+});
+export type ResetPasswordResponse = v.InferOutput<typeof ResetPasswordResponseSchema>;

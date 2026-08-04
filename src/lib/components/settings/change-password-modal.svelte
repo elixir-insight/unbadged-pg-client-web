@@ -1,15 +1,16 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Circle, CircleCheck, Eye, EyeOff } from '$lib/assets/icons';
-	import { Button, Input, Modal } from '$lib/components/reusable';
+	import { Button, Input, Modal, toast } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 
 	interface Props {
 		open?: boolean;
 		email?: string;
-		onconfirm?: () => void | Promise<void>;
 	}
 
-	let { open = $bindable(false), email = '', onconfirm }: Props = $props();
+	let { open = $bindable(false), email = '' }: Props = $props();
 
 	let oldPassword = $state('');
 	let newPassword = $state('');
@@ -18,25 +19,30 @@
 	let showOldPassword = $state(false);
 	let showNewPassword = $state(false);
 	let showConfirmPassword = $state(false);
+	let formError = $state<string | null>(null);
 
 	const emailUsername = $derived(email.split('@')[0]?.toLowerCase() ?? '');
 
 	const requirements = $derived([
 		{
-			label: 'Be 8-15 characters long',
-			met: newPassword.length >= 8 && newPassword.length <= 15
+			label: 'Be at least 12 characters long',
+			met: newPassword.length >= 12
+		},
+		{
+			label: 'Include at least 1 uppercase letter',
+			met: /[A-Z]/.test(newPassword)
+		},
+		{
+			label: 'Include at least 1 lowercase letter',
+			met: /[a-z]/.test(newPassword)
 		},
 		{
 			label: 'Include at least 1 number',
-			met: /\d/.test(newPassword)
+			met: /[0-9]/.test(newPassword)
 		},
 		{
-			label: 'Include at least 1 letter',
-			met: /[a-zA-Z]/.test(newPassword)
-		},
-		{
-			label: 'Include at least 1 special character (e.g. @, $, !, %, *, #, ?, &)',
-			met: /[@$!%*#?&]/.test(newPassword)
+			label: 'Include at least 1 special character',
+			met: /[^A-Za-z0-9]/.test(newPassword)
 		},
 		{
 			label: 'Not include your email username',
@@ -63,27 +69,59 @@
 			showOldPassword = false;
 			showNewPassword = false;
 			showConfirmPassword = false;
+			formError = null;
 		}
 	});
 
-	async function handleSubmit() {
-		if (!canSubmit) return;
+	const onSubmit: SubmitFunction = ({ cancel }) => {
+		if (!canSubmit) {
+			cancel();
+			return;
+		}
 
 		isSubmitting = true;
-		await onconfirm?.();
-		isSubmitting = false;
-		open = false;
-	}
+		formError = null;
+
+		return async ({ result }) => {
+			isSubmitting = false;
+
+			if (result.type === 'redirect') {
+				window.location.href = result.location;
+				return;
+			}
+
+			if (result.type === 'success') {
+				const message =
+					typeof result.data?.message === 'string'
+						? result.data.message
+						: 'Password Reset Successfully';
+				toast.success(message);
+				open = false;
+				return;
+			}
+
+			if (result.type === 'failure') {
+				const message =
+					typeof result.data?.message === 'string'
+						? result.data.message
+						: 'Could not change password. Please try again.';
+				formError = message;
+				toast.error(message);
+				return;
+			}
+
+			formError = 'Could not change password. Please try again.';
+			toast.error(formError);
+		};
+	};
 </script>
 
 <Modal bind:open title="Change Password">
-	<form
-		class="flex flex-col gap-5"
-		onsubmit={(event) => {
-			event.preventDefault();
-			handleSubmit();
-		}}
-	>
+	<form method="POST" action="?/resetPassword" class="flex flex-col gap-5" use:enhance={onSubmit}>
+		{#if formError}
+			<p class="text-sm text-destructive" role="alert">{formError}</p>
+		{/if}
+
 		<div class="flex flex-col gap-1.5">
 			<label for="old-password" class="text-sm font-medium text-foreground">
 				Old Password <span class="text-destructive">*</span>
@@ -91,6 +129,7 @@
 			<div class="relative">
 				<Input
 					id="old-password"
+					name="oldPassword"
 					type={showOldPassword ? 'text' : 'password'}
 					bind:value={oldPassword}
 					placeholder="Old Password"
@@ -119,6 +158,7 @@
 			<div class="relative">
 				<Input
 					id="new-password"
+					name="newPassword"
 					type={showNewPassword ? 'text' : 'password'}
 					bind:value={newPassword}
 					placeholder="New Password"
@@ -147,6 +187,7 @@
 			<div class="relative">
 				<Input
 					id="confirm-password"
+					name="confirmPassword"
 					type={showConfirmPassword ? 'text' : 'password'}
 					bind:value={confirmPassword}
 					placeholder="Confirm New Password"

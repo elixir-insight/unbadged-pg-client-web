@@ -5,7 +5,6 @@
 	import { resolve } from '$app/paths';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Button } from '$lib/components/ui/button';
-	// import { Chip } from '$lib/components/ui/badge';
 	import { Input, Modal } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
@@ -182,11 +181,19 @@
 	class="flex shrink-0 flex-col gap-4 bg-background px-5 py-4 text-center sm:gap-6 sm:px-8 lg:px-10"
 >
 	<p class="text-xs text-muted-foreground sm:text-sm">
-		<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
+		<a
+			href="https://elixirpay.in/terms"
+			target="_blank"
+			class="underline underline-offset-4 hover:text-foreground"
+		>
 			Terms and Conditions
 		</a>
-		<span class="mx-2 text-border sm:mx-3" aria-hidden="true">|</span>
-		<a href={resolve('/')} class="underline underline-offset-4 hover:text-foreground">
+		<span class="mx-3 text-border" aria-hidden="true">|</span>
+		<a
+			href="https://elixirpay.in/privacy"
+			target="_blank"
+			class="underline underline-offset-4 hover:text-foreground"
+		>
 			Privacy Policy
 		</a>
 	</p>

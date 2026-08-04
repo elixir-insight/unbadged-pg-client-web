@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
 	import { theme } from '$lib/stores/theme.svelte';
 	import SecurityTrustBanner from '$lib/components/auth/security-trust-banner.svelte';
 
@@ -9,8 +8,6 @@
 	let videoEl = $state<HTMLVideoElement | null>(null);
 	let videoReady = $state(false);
 	let videoFailed = $state(false);
-
-	const isLoginPage = $derived(page.url.pathname === '/login');
 
 	$effect(() => {
 		const el = videoEl;
@@ -80,13 +77,11 @@
 				: 'opacity-100'}"
 			aria-hidden="true"
 		/>
-		{#if isLoginPage}
-			<div
-				class="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center px-6 xl:bottom-8 xl:px-10"
-			>
-				<SecurityTrustBanner class="pointer-events-auto" />
-			</div>
-		{/if}
+		<div
+			class="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center px-6 xl:bottom-8 xl:px-10"
+		>
+			<SecurityTrustBanner class="pointer-events-auto" />
+		</div>
 	</div>
 
 	<!-- Right Panel — page content (locked to viewport; no page scroll) -->
