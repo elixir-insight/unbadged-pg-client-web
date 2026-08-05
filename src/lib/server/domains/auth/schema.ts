@@ -39,11 +39,29 @@ export const SignInPasswordChangeResponseSchema = v.object({
 	)
 });
 
-/** Tokens on success, or session-conflict / password-change payload on 202. */
+export const MfaChallengeNameSchema = v.picklist(['EMAIL_OTP', 'SMS_MFA']);
+export type MfaChallengeName = v.InferOutput<typeof MfaChallengeNameSchema>;
+
+export const SignInMfaChallengeItemSchema = v.object({
+	challengeName: MfaChallengeNameSchema,
+	challengeSession: v.string(),
+	challengeDestination: v.string(),
+	challengeExpiresIn: v.number()
+});
+
+// 202 "OTP verification required" — MFA challenge after password sign-in.
+export const SignInMfaChallengeResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(SignInMfaChallengeItemSchema)
+});
+
+/** Tokens on success, or session-conflict / password-change / MFA challenge on 202. */
 export const SignInResponseSchema = v.union([
 	SignInTokensResponseSchema,
 	SignInSessionExistsResponseSchema,
-	SignInPasswordChangeResponseSchema
+	SignInPasswordChangeResponseSchema,
+	SignInMfaChallengeResponseSchema
 ]);
 
 /** Refresh only returns tokens — not the session-conflict union. */
@@ -153,3 +171,12 @@ export const UpdateMfaRequestSchema = v.pipe(
 		'Provide enabled or method to update'
 	)
 );
+
+export const VerifyMfaRequestSchema = v.object({
+	userEmail: AuthEmailSchema,
+	challengeName: MfaChallengeNameSchema,
+	challengeSession: v.string(),
+	code: v.pipe(v.string(), v.trim(), v.length(6, 'Enter the 6-digit verification code'))
+});
+
+export const VerifyMfaResponseSchema = SignInTokensResponseSchema;

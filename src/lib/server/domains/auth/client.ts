@@ -15,6 +15,8 @@ import {
 	CreateMfaResponseSchema,
 	MfaConfigResponseSchema,
 	UpdateMfaRequestSchema,
+	VerifyMfaRequestSchema,
+	VerifyMfaResponseSchema,
 	type MfaMethod
 } from './schema';
 
@@ -186,5 +188,19 @@ export const authClient = {
 			gatewayToken,
 			body,
 			schema: MfaConfigResponseSchema
+		}),
+
+	verifyMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		body: v.InferOutput<typeof VerifyMfaRequestSchema>
+	) =>
+		apiFetch('/api/v1/user/mfa/verify', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body,
+			schema: VerifyMfaResponseSchema
 		})
 };
