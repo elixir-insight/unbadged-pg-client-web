@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
 	import { Button, Chip } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
 	import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
+	import { getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
@@ -14,59 +16,70 @@
 
 	merchantSession.initialize();
 
-	const merchantName = $derived(merchantSession.session?.merchantName ?? 'Merchant');
-	const displayOrgId = $derived(merchantSession.session?.displayOrgId ?? '');
-	const website = 'https://google.com';
-	const email = 'merchant@jubiliantpay.com';
-	const phone = '+916382303714';
-	const sessionEmail = $derived(merchantSession.session?.email ?? email);
+	const profile = $derived(data.profile);
+	const displayName = $derived(
+		profile?.displayName ?? merchantSession.session?.merchantName ?? 'Merchant'
+	);
+	const organizationId = $derived(profile?.orgId ?? merchantSession.session?.organizationId ?? '');
+	const website = $derived(profile?.website ?? '');
+	const email = $derived(profile?.email ?? merchantSession.session?.email ?? '');
+	const phone = $derived(profile?.phone ?? '');
+	const sessionEmail = $derived(email || merchantSession.session?.email || '');
 
 	let changePasswordOpen = $state(false);
 
-	const overviewFields = [
-		{ label: 'Company Name', value: 'wayne' },
-		{ label: 'Business Type', value: 'Private Limited' },
-		{ label: 'Country', value: 'India' },
-		{ label: 'Registered State', value: 'Tamil Nadu' },
-		{ label: 'Support Email', value: 'merchant@wayne.com', kind: 'email' as const },
-		{ label: 'Phone', value: '+91 XXXXX XXXXX' }
-	];
+	const overviewFields = $derived(
+		profile
+			? [
+					{ label: 'Company Name', value: profile.companyName },
+					{ label: 'Business Type', value: profile.businessType },
+					{ label: 'Country', value: profile.country },
+					{ label: 'Registered Date', value: profile.registeredDate },
+					...(profile.email
+						? [{ label: 'Support Email', value: profile.email, kind: 'email' as const }]
+						: []),
+					...(profile.phone ? [{ label: 'Phone', value: profile.phone }] : [])
+				]
+			: []
+	);
 
 	let activeTab = $state('overview');
-
-	function initials(name: string) {
-		return name
-			.split(' ')
-			.map((word) => word[0])
-			.slice(0, 2)
-			.join('')
-			.toUpperCase();
-	}
 </script>
 
 {#snippet overviewTab()}
-	<section class="overflow-hidden rounded-xl border border-border bg-card">
-		{#each overviewFields as field, index (field.label)}
-			<div
-				class={cn(
-					'flex min-h-11 flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5',
-					index < overviewFields.length - 1 && 'border-b border-border/40'
-				)}
-			>
-				<span class="shrink-0 text-sm text-muted-foreground">{field.label}</span>
-				{#if field.kind === 'email'}
-					<a
-						href="mailto:{field.value}"
-						class="text-sm font-medium text-foreground transition-colors hover:text-primary sm:text-right"
-					>
-						{field.value}
-					</a>
-				{:else}
-					<span class="text-sm font-medium text-foreground sm:text-right">{field.value}</span>
-				{/if}
+	{#if data.profileError}
+		<section class="overflow-hidden rounded-xl border border-border bg-card">
+			<div class="flex flex-col gap-3 px-4 py-4 sm:px-5">
+				<p class="text-sm text-destructive" role="alert">{data.profileError}</p>
+				<Button variant="outline" size="sm" class="w-fit" onclick={() => invalidateAll()}
+					>Retry</Button
+				>
 			</div>
-		{/each}
-	</section>
+		</section>
+	{:else}
+		<section class="overflow-hidden rounded-xl border border-border bg-card">
+			{#each overviewFields as field, index (field.label)}
+				<div
+					class={cn(
+						'flex min-h-11 flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5',
+						index < overviewFields.length - 1 && 'border-b border-border/40'
+					)}
+				>
+					<span class="shrink-0 text-sm text-muted-foreground">{field.label}</span>
+					{#if field.kind === 'email'}
+						<a
+							href="mailto:{field.value}"
+							class="text-sm font-medium text-foreground transition-colors hover:text-primary sm:text-right"
+						>
+							{field.value}
+						</a>
+					{:else}
+						<span class="text-sm font-medium text-foreground sm:text-right">{field.value}</span>
+					{/if}
+				</div>
+			{/each}
+		</section>
+	{/if}
 {/snippet}
 
 {#snippet configurationTab()}
@@ -76,9 +89,9 @@
 		>
 			<div class="min-w-0 flex-1">
 				<h3 class="text-sm font-semibold text-foreground">Webhook</h3>
-				<p class="mt-2 truncate text-sm text-muted-foreground">https://merchant.com/webhook</p>
+				<p class="mt-2 text-sm text-muted-foreground">No webhook configured yet.</p>
 			</div>
-			<Chip variant="success">Configured</Chip>
+			<Chip variant="secondary">Not configured</Chip>
 		</div>
 
 		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
@@ -106,48 +119,56 @@
 			<div class="absolute -top-10 left-4 sm:-top-12 sm:left-6">
 				<Avatar.Root class="size-20 border-4 border-card bg-muted sm:size-24">
 					<Avatar.Fallback class="bg-primary text-lg font-bold text-primary-foreground sm:text-xl">
-						{initials(merchantName)}
+						{getUserInitials(displayName)}
 					</Avatar.Fallback>
 				</Avatar.Root>
 			</div>
 
 			<div class="pt-12 sm:pt-14">
-				<h2 class="text-xl font-bold text-foreground">{merchantName}</h2>
-				{#if displayOrgId}
-					<p class="mt-0.5 text-sm text-muted-foreground">@{displayOrgId}</p>
+				<h2 class="text-xl font-bold text-foreground">{displayName}</h2>
+				{#if organizationId}
+					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
 				{/if}
 
-				<ul class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-					<li class="flex items-center gap-2 text-sm text-muted-foreground">
-						<Globe class="size-4 shrink-0" aria-hidden="true" />
-						<a
-							href={website}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="truncate text-foreground transition-colors hover:text-primary"
-						>
-							{website}
-						</a>
-					</li>
-					<li class="flex items-center gap-2 text-sm text-muted-foreground">
-						<MailIcon class="size-4 shrink-0" aria-hidden="true" />
-						<a
-							href="mailto:{email}"
-							class="truncate text-foreground transition-colors hover:text-primary"
-						>
-							{email}
-						</a>
-					</li>
-					<li class="flex items-center gap-2 text-sm text-muted-foreground">
-						<PhoneIcon class="size-4 shrink-0" aria-hidden="true" />
-						<a
-							href="tel:{phone}"
-							class="truncate text-foreground transition-colors hover:text-primary"
-						>
-							{phone}
-						</a>
-					</li>
-				</ul>
+				{#if website || email || phone}
+					<ul class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
+						{#if website}
+							<li class="flex items-center gap-2 text-sm text-muted-foreground">
+								<Globe class="size-4 shrink-0" aria-hidden="true" />
+								<a
+									href={website}
+									target="_blank"
+									rel="external noopener noreferrer"
+									class="truncate text-foreground transition-colors hover:text-primary"
+								>
+									{website}
+								</a>
+							</li>
+						{/if}
+						{#if email}
+							<li class="flex items-center gap-2 text-sm text-muted-foreground">
+								<MailIcon class="size-4 shrink-0" aria-hidden="true" />
+								<a
+									href="mailto:{email}"
+									class="truncate text-foreground transition-colors hover:text-primary"
+								>
+									{email}
+								</a>
+							</li>
+						{/if}
+						{#if phone}
+							<li class="flex items-center gap-2 text-sm text-muted-foreground">
+								<PhoneIcon class="size-4 shrink-0" aria-hidden="true" />
+								<a
+									href="tel:{phone}"
+									class="truncate text-foreground transition-colors hover:text-primary"
+								>
+									{phone}
+								</a>
+							</li>
+						{/if}
+					</ul>
+				{/if}
 			</div>
 		</div>
 	</section>

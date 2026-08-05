@@ -8,7 +8,9 @@ import {
 	ForgotPasswordRequestSchema,
 	ForgotPasswordResponseSchema,
 	ConfirmPasswordRequestSchema,
-	ConfirmPasswordResponseSchema
+	ConfirmPasswordResponseSchema,
+	ResetPasswordRequestSchema,
+	ResetPasswordResponseSchema
 } from './schema';
 
 export const authClient = {
@@ -113,5 +115,27 @@ export const authClient = {
 				newPassword
 			} satisfies v.InferOutput<typeof ConfirmPasswordRequestSchema>,
 			schema: ConfirmPasswordResponseSchema
+		}),
+
+	/** Authenticated password change (settings) — requires a valid session. */
+	resetPassword: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		oldPassword: string,
+		newPassword: string
+	) =>
+		apiFetch('/api/v1/user/password/reset', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			body: {
+				oldPassword,
+				newPassword
+			} satisfies v.InferOutput<typeof ResetPasswordRequestSchema>,
+			schema: ResetPasswordResponseSchema
 		})
 };

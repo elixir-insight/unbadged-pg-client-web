@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { apiCredentialsClient } from '$lib/server/domains/api-credentials/client';
 import { getValidSession } from '$lib/server/domains/auth/getValidSession';
+import { resetPasswordAction } from '$lib/server/domains/auth/reset-password';
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
@@ -103,5 +104,13 @@ export const actions = {
 		return fail(result.error.kind === 'http' ? result.error.status : 500, {
 			message: result.error.message || 'Something went wrong. Please try again.'
 		});
-	}
+	},
+
+	resetPassword: async ({ request, cookies, fetch, locals }) =>
+		resetPasswordAction({
+			request,
+			cookies,
+			fetch,
+			logger: locals.logger
+		})
 } satisfies Actions;
