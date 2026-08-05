@@ -115,3 +115,41 @@ export const ResetPasswordResponseSchema = v.object({
 	data: v.array(v.unknown())
 });
 export type ResetPasswordResponse = v.InferOutput<typeof ResetPasswordResponseSchema>;
+
+export const MfaMethodSchema = v.picklist(['EMAIL', 'SMS']);
+export type MfaMethod = v.InferOutput<typeof MfaMethodSchema>;
+
+export const MfaConfigSchema = v.object({
+	method: v.optional(MfaMethodSchema),
+	configured: v.boolean(),
+	enabled: v.boolean()
+});
+export type MfaConfig = v.InferOutput<typeof MfaConfigSchema>;
+
+export const MfaConfigResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(MfaConfigSchema)
+});
+export type MfaConfigResponse = v.InferOutput<typeof MfaConfigResponseSchema>;
+
+export const CreateMfaRequestSchema = v.object({
+	method: MfaMethodSchema
+});
+
+export const CreateMfaResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.optional(v.string()),
+	data: v.optional(v.array(MfaConfigSchema))
+});
+
+export const UpdateMfaRequestSchema = v.pipe(
+	v.object({
+		enabled: v.optional(v.boolean()),
+		method: v.optional(MfaMethodSchema)
+	}),
+	v.check(
+		(input) => input.enabled !== undefined || input.method !== undefined,
+		'Provide enabled or method to update'
+	)
+);

@@ -10,7 +10,12 @@ import {
 	ConfirmPasswordRequestSchema,
 	ConfirmPasswordResponseSchema,
 	ResetPasswordRequestSchema,
-	ResetPasswordResponseSchema
+	ResetPasswordResponseSchema,
+	CreateMfaRequestSchema,
+	CreateMfaResponseSchema,
+	MfaConfigResponseSchema,
+	UpdateMfaRequestSchema,
+	type MfaMethod
 } from './schema';
 
 export const authClient = {
@@ -137,5 +142,49 @@ export const authClient = {
 				newPassword
 			} satisfies v.InferOutput<typeof ResetPasswordRequestSchema>,
 			schema: ResetPasswordResponseSchema
+		}),
+
+	getMfa: (fetchFn: typeof fetch, logger: Logger, accessToken: string, gatewayToken: string) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: MfaConfigResponseSchema
+		}),
+
+	createMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		method: MfaMethod
+	) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			body: { method } satisfies v.InferOutput<typeof CreateMfaRequestSchema>,
+			schema: CreateMfaResponseSchema
+		}),
+
+	updateMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		body: v.InferOutput<typeof UpdateMfaRequestSchema>
+	) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'PATCH',
+			accessToken,
+			gatewayToken,
+			body,
+			schema: MfaConfigResponseSchema
 		})
 };
