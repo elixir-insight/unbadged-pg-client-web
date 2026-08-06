@@ -182,6 +182,26 @@ const businessTypeLabelMap: Record<OrganizationBusinessType, OrganizationKyb['bu
 	PRIVATE_LIMITED: 'Private Limited'
 };
 
+const businessTypeFromLabelMap: Record<string, OrganizationBusinessType> = {
+	'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
+	Partnership: 'PARTNERSHIP',
+	LLP: 'LLP',
+	'Private Limited': 'PRIVATE_LIMITED'
+};
+
+export function parseOrganizationBusinessType(label: string): OrganizationBusinessType {
+	return businessTypeFromLabelMap[label] ?? 'PRIVATE_LIMITED';
+}
+
+/** Generates a backend-shaped mock org id (e.g. `ORG_2bm`) for orgs created without a live API call. */
+export function generateMockOrganizationId(): string {
+	let id: string;
+	do {
+		id = `ORG_${Math.random().toString(36).slice(2, 8)}`;
+	} while (organizations.some((organization) => organization.id === id));
+	return id;
+}
+
 export const fixedRequiredDocuments: DocumentType[] = [
 	'GST certificate',
 	'Business PAN card',

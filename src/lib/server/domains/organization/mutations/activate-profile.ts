@@ -55,13 +55,9 @@ export async function activateProfileMutation(params: {
 
 	params.log.info({ orgId, category: params.category }, 'organization profile activated');
 
-	const redirectPath =
-		params.category === 'PARTNER'
-			? `/management/organizations/${orgId}/activate/partner`
-			: `/management/organizations/${orgId}/activate/merchant`;
-
+	// No VAN creation for either category — go straight to commission/fee configuration.
 	return {
 		ok: true,
-		redirectPath
+		redirectPath: `/management/organizations/${orgId}/activate/merchant`
 	};
 }
