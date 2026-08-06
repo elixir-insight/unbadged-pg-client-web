@@ -20,6 +20,14 @@ export async function loadOrganizationBankAccounts(params: {
 }> {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
 
+	// Partner onboarding isn't wired to the live API yet — always serve mock data.
+	if (organizationBase.category === 'PARTNER') {
+		return {
+			bankAccountsLoadError: null,
+			bankAccounts: organizationBase.bankAccounts
+		};
+	}
+
 	let tokens;
 	try {
 		tokens = await getValidSession(cookies, fetch, log);
