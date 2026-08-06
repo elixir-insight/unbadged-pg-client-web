@@ -3,7 +3,12 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { authClient } from './client';
 import { decodeJwt } from './jwt';
-import { AuthTokensSchema, SignInPasswordChangeResponseSchema } from './schema';
+import {
+	AuthTokensSchema,
+	SignInMfaChallengeResponseSchema,
+	SignInPasswordChangeResponseSchema,
+	type MfaChallengeName
+} from './schema';
 import { storeSession } from './session';
 import { resolvePortalHome } from '$lib/stores/auth/portal';
 import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
@@ -43,11 +48,31 @@ export type SignInPasswordChangeRequired = {
 	challengeSession: string;
 	userEmail: string;
 };
-export type SignInResult = SignInSuccess | SignInFailure | SignInPasswordChangeRequired;
+export type SignInMfaRequired = {
+	ok: false;
+	status: 202;
+	message: string;
+	requiresMfa: true;
+	userEmail: string;
+	challengeName: MfaChallengeName;
+	challengeSession: string;
+	challengeDestination: string;
+	challengeExpiresIn: number;
+};
+export type SignInResult =
+	SignInSuccess | SignInFailure | SignInPasswordChangeRequired | SignInMfaRequired;
+
+type SignInMfaChallengeItem = {
+	challengeName: MfaChallengeName;
+	challengeSession: string;
+	challengeDestination: string;
+	challengeExpiresIn: number;
+};
 
 type SignInDataItem =
 	| { sessionAlreadyExists: true }
 	| { challengeSession: string; requiresPasswordChange: true }
+	| SignInMfaChallengeItem
 	| { accessToken: string; gatewayToken: string; idToken: string; refreshToken: string };
 
 function isSessionAlreadyExists(item: SignInDataItem): item is { sessionAlreadyExists: true } {
@@ -58,6 +83,13 @@ function isPasswordChangeRequired(
 	item: SignInDataItem
 ): item is { challengeSession: string; requiresPasswordChange: true } {
 	return 'requiresPasswordChange' in item && item.requiresPasswordChange === true;
+}
+
+function isMfaChallenge(item: SignInDataItem): item is SignInMfaChallengeItem {
+	return (
+		'challengeName' in item &&
+		(item.challengeName === 'EMAIL_OTP' || item.challengeName === 'SMS_MFA')
+	);
 }
 export async function performSignIn(opts: {
 	fetch: typeof fetch;
@@ -72,20 +104,39 @@ export async function performSignIn(opts: {
 	log.info({ ip, userEmail }, 'sign-in attempt');
 	const result = await authClient.signIn(fetchFn, log, userEmail, password, force);
 	if (!result.ok) {
-		// The password-change challenge (202) can arrive through the error path
-		// when the body carries an exceptionCode — recover it from the raw body.
+		// 202 challenges can arrive through the error path when the body carries
+		// an exceptionCode — recover password-change or MFA challenge from the raw body.
 		if (result.error.kind === 'http') {
-			const challengeParse = v.safeParse(SignInPasswordChangeResponseSchema, result.error.body);
-			const challengeItem = challengeParse.success ? challengeParse.output.data[0] : undefined;
-			if (challengeItem) {
+			const pwParse = v.safeParse(SignInPasswordChangeResponseSchema, result.error.body);
+			const pwItem = pwParse.success ? pwParse.output.data[0] : undefined;
+			if (pwItem) {
 				log.info({ ip, userEmail }, 'sign-in requires password change — temporary password');
 				return {
 					ok: false,
 					status: 202,
-					message: challengeParse.success ? challengeParse.output.message : '',
+					message: pwParse.success ? pwParse.output.message : '',
 					requiresPasswordChange: true,
-					challengeSession: challengeItem.challengeSession,
+					challengeSession: pwItem.challengeSession,
 					userEmail
+				};
+			}
+			const mfaParse = v.safeParse(SignInMfaChallengeResponseSchema, result.error.body);
+			const mfaItem = mfaParse.success ? mfaParse.output.data[0] : undefined;
+			if (mfaItem) {
+				log.info(
+					{ ip, userEmail, challengeName: mfaItem.challengeName },
+					'sign-in requires MFA verification'
+				);
+				return {
+					ok: false,
+					status: 202,
+					message: mfaParse.success ? mfaParse.output.message : '',
+					requiresMfa: true,
+					userEmail,
+					challengeName: mfaItem.challengeName,
+					challengeSession: mfaItem.challengeSession,
+					challengeDestination: mfaItem.challengeDestination,
+					challengeExpiresIn: mfaItem.challengeExpiresIn
 				};
 			}
 		}
@@ -165,10 +216,37 @@ export async function performSignIn(opts: {
 			userEmail
 		};
 	}
-	const accessPayload = decodeJwt<AccessTokenPayload>(item.accessToken);
+	// { data: [{ challengeName, challengeSession, ... }], message: "OTP verification required", statusCode: 202 }
+	if (isMfaChallenge(item)) {
+		log.info(
+			{ ip, userEmail, challengeName: item.challengeName },
+			'sign-in requires MFA verification'
+		);
+		return {
+			ok: false,
+			status: 202,
+			message: result.data.message,
+			requiresMfa: true,
+			userEmail,
+			challengeName: item.challengeName,
+			challengeSession: item.challengeSession,
+			challengeDestination: item.challengeDestination,
+			challengeExpiresIn: item.challengeExpiresIn
+		};
+	}
+	const tokens = extractAuthTokens(item);
+	if (!tokens) {
+		log.error({ ip, userEmail }, 'sign-in succeeded but no tokens returned');
+		return {
+			ok: false,
+			status: 502,
+			message: 'Sign-in succeeded but no tokens were returned.'
+		};
+	}
+	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
 	const groups = accessPayload['cognito:groups'] ?? [];
 	const redirectTo = resolvePortalHome(groups);
 	log.info({ ip, userEmail, redirectTo, groups }, 'sign-in succeeded');
-	startAuthenticatedSession(cookies, item);
+	startAuthenticatedSession(cookies, tokens);
 	return { ok: true, redirectTo };
 }
