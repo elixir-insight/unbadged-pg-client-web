@@ -16,9 +16,9 @@
 	let { completed, initiated, failed, class: className }: Props = $props();
 
 	const segments = $derived([
-		{ label: 'Completed', value: completed, color: 'bg-green-500' },
-		{ label: 'Initiated', value: initiated, color: 'bg-orange-500' },
-		{ label: 'Failed', value: failed, color: 'bg-red-500' }
+		{ label: 'Completed', value: completed, color: 'bg-success' },
+		{ label: 'Initiated', value: initiated, color: 'bg-warning' },
+		{ label: 'Failed', value: failed, color: 'bg-destructive' }
 	]);
 
 	const total = $derived(completed + initiated + failed || 1);

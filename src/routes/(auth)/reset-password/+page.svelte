@@ -3,13 +3,14 @@
 	import * as v from 'valibot';
 	import { enhance } from '$app/forms';
 	import { Input, Button, toast } from '$lib/components/reusable';
-	import { CompanyLogoLight } from '$lib/assets/icons';
+	import { branding } from '$lib/branding';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
 	import { NewPasswordFormSchema } from '$lib/validation/password';
 	import type { PageProps } from './$types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 
+	const Logo = branding.assets.logoLight;
 	let { data, form }: PageProps = $props();
 
 	const userEmail = $derived(data.userEmail);
@@ -143,13 +144,13 @@
 <main class="flex flex-1 items-center justify-center px-10">
 	<div class="flex w-full max-w-md flex-col gap-17">
 		<div class="">
-			<CompanyLogoLight width="200" class="h-auto" />
+			<Logo width="280" class="h-auto w-52 sm:w-64" />
 		</div>
 
 		<div class="flex flex-col gap-10">
 			<div class="flex flex-col gap-2">
-				<h1 class="text-3xl font-semibold tracking-tight text-gray-700">Reset Password</h1>
-				<p class="text-base text-gray-700">Enter your login details to reset your password</p>
+				<h1 class="text-3xl font-semibold tracking-tight text-foreground">Reset Password</h1>
+				<p class="text-base text-foreground">Enter your login details to reset your password</p>
 			</div>
 
 			<form
@@ -168,7 +169,7 @@
 				{/if}
 
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="password">Password</label>
+					<label class="text-lg font-normal text-foreground" for="password">Password</label>
 					<div class="relative">
 						<Input
 							id="password"
@@ -199,7 +200,7 @@
 				</div>
 
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="confirm-password">
+					<label class="text-lg font-normal text-foreground" for="confirm-password">
 						Re-enter Password
 					</label>
 					<div class="relative">
@@ -232,7 +233,7 @@
 				</div>
 
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="verification-code">
+					<label class="text-lg font-normal text-foreground" for="verification-code">
 						Verification code
 					</label>
 					<Input
@@ -257,7 +258,7 @@
 					<button
 						type="submit"
 						formaction="?/resend"
-						class="self-start text-sm text-gray-700 underline underline-offset-4 disabled:opacity-50"
+						class="self-start text-sm text-foreground underline underline-offset-4 disabled:opacity-50"
 						disabled={resendSeconds > 0 || resending}
 					>
 						{#if resendSeconds > 0}
@@ -278,18 +279,20 @@
 
 <footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
 	<a
-		href="https://elixirpay.in/terms"
+		href={branding.urls.terms}
 		target="_blank"
+		rel="external noopener noreferrer"
 		class="underline underline-offset-4 hover:text-foreground"
 	>
-		Terms and Conditions
+		{branding.copy.termsLabel}
 	</a>
 	<span class="mx-3 text-border" aria-hidden="true">|</span>
 	<a
-		href="https://elixirpay.in/privacy"
+		href={branding.urls.privacy}
 		target="_blank"
+		rel="external noopener noreferrer"
 		class="underline underline-offset-4 hover:text-foreground"
 	>
-		Privacy Policy
+		{branding.copy.privacyLabel}
 	</a>
 </footer>

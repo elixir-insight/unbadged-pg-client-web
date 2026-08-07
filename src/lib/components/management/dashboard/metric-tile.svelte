@@ -34,10 +34,10 @@
 	}: MetricTileData & { variant?: 'default' | 'glass' | 'stat'; class?: string } = $props();
 
 	const TONE_CLASSES: Record<NonNullable<MetricTileData['tone']>, string> = {
-		violet: 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400',
-		amber: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
-		emerald: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
-		rose: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400'
+		violet: 'bg-chart-1/10 text-chart-1 dark:bg-chart-1/15 dark:text-chart-1',
+		amber: 'bg-warning/10 text-warning dark:bg-warning/15 dark:text-warning',
+		emerald: 'bg-success/10 text-success dark:bg-success/15 dark:text-success',
+		rose: 'bg-destructive/10 text-destructive dark:bg-destructive/15 dark:text-destructive'
 	};
 </script>
 
@@ -75,7 +75,7 @@
 						class={cn(
 							'inline-flex items-center gap-0.5 font-medium tabular-nums',
 							trendDirection === 'up'
-								? 'text-emerald-600/90 dark:text-emerald-400/90'
+								? 'text-success/90 dark:text-success/90'
 								: 'text-destructive/90'
 						)}
 					>
@@ -94,7 +94,7 @@
 {:else if variant === 'glass'}
 	<div
 		class={cn(
-			'flex flex-col gap-3 rounded-xl border border-white/50 bg-white/30 p-4 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-white/6',
+			'flex flex-col gap-3 rounded-xl border border-border/50 bg-card/30 p-4 shadow-lg backdrop-blur-xl dark:border-border/10 dark:bg-card/6',
 			className
 		)}
 	>
@@ -110,7 +110,7 @@
 			<div
 				class={cn(
 					'flex size-8 shrink-0 items-center justify-center rounded-lg shadow-sm backdrop-blur-sm',
-					tone ? TONE_CLASSES[tone] : 'bg-white/60 text-muted-foreground dark:bg-white/10'
+					tone ? TONE_CLASSES[tone] : 'bg-card/60 text-muted-foreground dark:bg-card/10'
 				)}
 				aria-hidden="true"
 			>
@@ -128,7 +128,7 @@
 					class={cn(
 						'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-semibold tabular-nums',
 						trendDirection === 'up'
-							? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+							? 'bg-success/15 text-success dark:text-success'
 							: 'bg-destructive/15 text-destructive'
 					)}
 				>
@@ -161,7 +161,7 @@
 				<span
 					class={cn(
 						'flex items-center gap-0.5 text-xs font-semibold tabular-nums',
-						trendDirection === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+						trendDirection === 'up' ? 'text-success dark:text-success' : 'text-destructive'
 					)}
 				>
 					{#if trendDirection === 'up'}

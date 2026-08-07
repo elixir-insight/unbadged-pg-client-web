@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import SecurityTrustBanner from '$lib/components/auth/security-trust-banner.svelte';
+	import { branding } from '$lib/branding';
 
 	let { children } = $props();
 
@@ -52,8 +53,8 @@
 		{#if !videoFailed}
 			<video
 				bind:this={videoEl}
-				src="/video/LoginVid.mp4"
-				class="pointer-events-none absolute inset-0 h-full w-full object-cover select-none [&::-webkit-media-controls]:hidden [&::-webkit-media-controls-enclosure]:hidden [&::-webkit-media-controls-panel]:hidden"
+				src={branding.assets.loginVideo}
+				class="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover select-none [&::-webkit-media-controls]:hidden [&::-webkit-media-controls-enclosure]:hidden [&::-webkit-media-controls-panel]:hidden"
 				preload="auto"
 				autoplay
 				muted
@@ -70,9 +71,9 @@
 			></video>
 		{/if}
 		<img
-			src="/images/LoginImage.jpg"
+			src={branding.assets.loginFallbackImage}
 			alt=""
-			class="absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out {videoReady
+			class="absolute inset-0 h-full w-full scale-110 object-cover transition-opacity duration-500 ease-out {videoReady
 				? 'pointer-events-none opacity-0'
 				: 'opacity-100'}"
 			aria-hidden="true"

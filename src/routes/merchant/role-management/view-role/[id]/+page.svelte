@@ -135,7 +135,7 @@
 				<Chip
 					variant="outline"
 					class={isDefaultRole
-						? 'border-amber-500/30 bg-amber-500/10 text-amber-500 shadow'
+						? 'border-warning/30 bg-warning/10 text-warning shadow'
 						: 'border-border text-muted-foreground shadow'}
 				>
 					{isDefaultRole ? 'Default' : 'Custom'}

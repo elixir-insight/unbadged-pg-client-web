@@ -9,8 +9,10 @@
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import ProfileCard from '../profile-card/profile-card.svelte';
-	import { CompanyLogoLight, X } from '$lib/assets/icons';
+	import { X } from '$lib/assets/icons';
+	import { branding } from '$lib/branding';
 
+	const Logo = branding.assets.logoLight;
 	let {
 		app,
 		isMobileOpen = $bindable(false)
@@ -76,7 +78,7 @@
 <!-- Mobile backdrop -->
 {#if isMobileOpen}
 	<div
-		class="fixed inset-0 z-40 bg-black/50 md:hidden"
+		class="fixed inset-0 z-40 bg-foreground/50 md:hidden"
 		role="presentation"
 		onclick={() => (isMobileOpen = false)}
 		onkeydown={(e) => {
@@ -94,14 +96,14 @@
 >
 	<!-- Sidebar header -->
 	<div
-		class="mt-4 flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
+		class="mt-4 flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
 	>
 		<a
 			href={resolve(...([rootRoutes[app]] as Parameters<typeof resolve>))}
 			aria-label="Go to dashboard"
 			class="flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 		>
-			<CompanyLogoLight class=" shrink-0" />
+			<Logo width="168" class="h-auto w-40 shrink-0" />
 		</a>
 
 		<!-- Mobile: close drawer -->

@@ -2,8 +2,10 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Input, Button } from '$lib/components/reusable';
-	import { CompanyLogoLight } from '$lib/assets/icons';
+	import { branding } from '$lib/branding';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
+
+	const Logo = branding.assets.logoLight;
 
 	let { data, form } = $props();
 
@@ -31,13 +33,13 @@
 <main class="flex flex-1 items-center justify-center px-10">
 	<div class="flex w-full max-w-md flex-col gap-17">
 		<div>
-			<CompanyLogoLight width="200" class="h-auto" />
+			<Logo width="280" class="h-auto w-52 sm:w-64" />
 		</div>
 
 		<div class="flex flex-col gap-10">
 			<div class="flex flex-col gap-2">
-				<h1 class="text-3xl font-semibold tracking-tight text-gray-700">Reset Password</h1>
-				<p class="text-base text-gray-700">
+				<h1 class="text-3xl font-semibold tracking-tight text-foreground">Reset Password</h1>
+				<p class="text-base text-foreground">
 					Set a new password for <span class="font-medium">{data.userEmail}</span>
 				</p>
 			</div>
@@ -48,7 +50,9 @@
 
 			<form method="POST" class="flex flex-col gap-6" use:enhance={onEnhance}>
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="new-password"> New Password </label>
+					<label class="text-lg font-normal text-foreground" for="new-password">
+						New Password
+					</label>
 					<div class="relative">
 						<Input
 							id="new-password"
@@ -77,7 +81,7 @@
 				</div>
 
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="confirm-password">
+					<label class="text-lg font-normal text-foreground" for="confirm-password">
 						Confirm New Password
 					</label>
 					<div class="relative">
@@ -116,19 +120,11 @@
 </main>
 
 <footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
-	<a
-		href="https://elixirpay.in/terms"
-		target="_blank"
-		class="underline underline-offset-4 hover:text-foreground"
-	>
-		Terms and Conditions
+	<a href={branding.urls.terms} target="_blank" rel="external noopener noreferrer">
+		{branding.copy.termsLabel}
 	</a>
 	<span class="mx-3 text-border" aria-hidden="true">|</span>
-	<a
-		href="https://elixirpay.in/privacy"
-		target="_blank"
-		class="underline underline-offset-4 hover:text-foreground"
-	>
-		Privacy Policy
+	<a href={branding.urls.privacy} target="_blank" rel="external noopener noreferrer">
+		{branding.copy.privacyLabel}
 	</a>
 </footer>

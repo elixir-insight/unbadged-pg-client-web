@@ -2,6 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 
 	type ClientType = 'Merchant' | 'Partner';
 
@@ -15,13 +16,13 @@
 			value: 'Merchant',
 			title: 'Merchant',
 			description: 'Sell your products or services and accept payments through our platform.',
-			image: '/images/MerchantCategory.png'
+			image: branding.assets.onboarding.merchant
 		},
 		{
 			value: 'Partner',
 			title: 'Partner',
 			description: 'Refer clients, integrate our solutions, or grow your business alongside us.',
-			image: '/images/handShaking.png'
+			image: branding.assets.onboarding.partner
 		}
 	];
 

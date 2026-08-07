@@ -233,13 +233,13 @@
 		<div class="flex flex-wrap items-center gap-2">
 			{#each activeFilters as filter (filter.key)}
 				<span
-					class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-white/10 dark:text-gray-400"
+					class="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground dark:border-border dark:bg-background/10 dark:text-muted-foreground"
 				>
 					{filter.label}
 					<button
 						type="button"
 						onclick={() => removeFilter(filter.key)}
-						class="text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+						class="text-muted-foreground transition-colors hover:text-foreground dark:hover:text-foreground"
 						aria-label="Remove {filter.label} filter"
 					>
 						<X class="size-3" />
@@ -249,7 +249,7 @@
 			<button
 				type="button"
 				onclick={clearFilters}
-				class="text-xs text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+				class="text-xs text-primary underline-offset-2 hover:text-primary/80 hover:underline dark:text-primary dark:hover:text-primary/80"
 			>
 				Clear all filters
 			</button>

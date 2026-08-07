@@ -19,10 +19,10 @@
 				warning:
 					'bg-warning/15 text-warning border-warning/20 dark:bg-warning/20 dark:text-warning dark:border-warning/30',
 				alert:
-					'bg-yellow-400/15 text-yellow-700 border-yellow-400/20 dark:bg-yellow-400/20 dark:text-yellow-400 dark:border-yellow-400/30',
-				info: 'bg-blue-500/15 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30',
+					'bg-warning/15 text-warning border-warning/20 dark:bg-warning/20 dark:text-warning dark:border-warning/30',
+				info: 'bg-primary/15 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30',
 				disabled:
-					'bg-gray-500/15 text-gray-500 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-400 dark:border-gray-500/30 cursor-not-allowed'
+					'bg-muted text-muted-foreground border-border dark:bg-muted dark:text-muted-foreground dark:border-border cursor-not-allowed'
 			}
 		},
 		defaultVariants: {

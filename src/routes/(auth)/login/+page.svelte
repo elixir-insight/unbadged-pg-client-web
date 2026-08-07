@@ -7,9 +7,10 @@
 	import type { PageProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input, Modal } from '$lib/components/reusable';
-	import { CompanyLogoLight } from '$lib/assets/icons';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
+	import { branding } from '$lib/branding';
 
+	const Logo = branding.assets.logoLight;
 	let { data, form }: PageProps = $props();
 
 	type MfaChallengeView = {
@@ -194,16 +195,16 @@
 	<div class="mx-auto w-full max-w-md shrink-0 py-2 sm:py-4">
 		<div class="flex w-full flex-col gap-6 sm:gap-8 [@media(max-height:700px)]:gap-4">
 			<div>
-				<CompanyLogoLight width="160" class="h-auto w-36 sm:w-40" />
+				<Logo width="280" class="h-auto w-52 sm:w-64" />
 			</div>
 
 			{#if showMfaStep && mfaChallenge}
 				<div class="flex flex-col gap-5 sm:gap-6 [@media(max-height:700px)]:gap-4">
 					<div class="flex flex-col gap-1.5 sm:gap-2">
-						<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">
+						<h1 class="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
 							Verify MFA
 						</h1>
-						<p class="text-sm text-gray-700 sm:text-base">
+						<p class="text-sm text-foreground sm:text-base">
 							Enter the 6-digit code sent to your {mfaChannelLabel}
 							<span class="font-medium">{mfaChallenge.challengeDestination}</span>
 						</p>
@@ -233,7 +234,7 @@
 							use:enhance={onMfaEnhance}
 						>
 							<div class="flex flex-col gap-2">
-								<label class="text-base font-normal text-gray-700 sm:text-lg" for="mfa-code">
+								<label class="text-base font-normal text-foreground sm:text-lg" for="mfa-code">
 									Verification code
 								</label>
 								<Input
@@ -277,8 +278,10 @@
 			{:else}
 				<div class="flex flex-col gap-5 sm:gap-6 [@media(max-height:700px)]:gap-4">
 					<div class="flex flex-col gap-1.5 sm:gap-2">
-						<h1 class="text-2xl font-semibold tracking-tight text-gray-700 sm:text-3xl">Sign in</h1>
-						<p class="text-sm text-gray-700 sm:text-base">
+						<h1 class="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+							Sign in
+						</h1>
+						<p class="text-sm text-foreground sm:text-base">
 							Enter your login details to access your dashboard
 						</p>
 					</div>
@@ -307,14 +310,14 @@
 						<input type="hidden" name="force" value="false" />
 
 						<div class="flex flex-col gap-2">
-							<label class="text-base font-normal text-gray-700 sm:text-lg" for="email">
+							<label class="text-base font-normal text-foreground sm:text-lg" for="email">
 								Email
 							</label>
 							<Input
 								id="email"
 								name="userEmail"
 								type="email"
-								placeholder="name@company.com"
+								placeholder={branding.emails.placeholder}
 								bind:value={email}
 								autocomplete="email"
 								required
@@ -325,7 +328,7 @@
 						</div>
 
 						<div class="flex flex-col gap-2">
-							<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
+							<label class="text-base font-normal text-foreground sm:text-lg" for="password">
 								Password
 							</label>
 							<div class="relative">
@@ -385,23 +388,25 @@
 >
 	<p class="text-xs text-muted-foreground sm:text-sm">
 		<a
-			href="https://elixirpay.in/terms"
+			href={branding.urls.terms}
 			target="_blank"
+			rel="external noopener noreferrer"
 			class="underline underline-offset-4 hover:text-foreground"
 		>
-			Terms and Conditions
+			{branding.copy.termsLabel}
 		</a>
 		<span class="mx-3 text-border" aria-hidden="true">|</span>
 		<a
-			href="https://elixirpay.in/privacy"
+			href={branding.urls.privacy}
 			target="_blank"
+			rel="external noopener noreferrer"
 			class="underline underline-offset-4 hover:text-foreground"
 		>
-			Privacy Policy
+			{branding.copy.privacyLabel}
 		</a>
 	</p>
 	<p class="text-xs text-muted-foreground sm:text-sm">
-		© 2026 ElixirPay • Secure Payment Gateway Platform
+		{branding.copy.footer}
 	</p>
 </footer>
 
