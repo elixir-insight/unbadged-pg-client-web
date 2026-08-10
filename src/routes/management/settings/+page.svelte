@@ -4,6 +4,7 @@
 	import type { TabItem } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
+	import NotificationPreferencesTab from '$lib/components/settings/notification-preferences-tab.svelte';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
@@ -48,6 +49,11 @@
 			value: 'mfa',
 			label: 'MFA',
 			content: mfa
+		},
+		{
+			value: 'notifications',
+			label: 'Notifications',
+			content: notificationsTab
 		}
 	];
 </script>
@@ -99,6 +105,10 @@
 
 {#snippet mfa()}
 	<MfaSection mfaConfig={data.mfaConfig} mfaError={data.mfaError} />
+{/snippet}
+
+{#snippet notificationsTab()}
+	<NotificationPreferencesTab portal="management" />
 {/snippet}
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
