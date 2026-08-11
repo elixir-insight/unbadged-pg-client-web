@@ -7,7 +7,7 @@
 	import type { PageProps } from './$types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 
-	const Logo = branding.assets.logoLight;
+	// const Logo = branding.assets.logoLight;
 	let { form }: PageProps = $props();
 
 	let email = $state('');
@@ -40,9 +40,7 @@
 <!-- Right Panel -->
 <main class="flex flex-1 items-center justify-center px-10">
 	<div class="flex w-full max-w-md flex-col gap-17">
-		<div class="">
-			<Logo width="280" class="h-auto w-52 sm:w-64" />
-		</div>
+		<div class="text-5xl font-semibold text-foreground">Payment Gateway</div>
 
 		<div class="flex flex-col gap-10">
 			<div class="flex flex-col gap-2">

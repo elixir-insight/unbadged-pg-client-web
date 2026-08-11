@@ -10,7 +10,7 @@
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
 	import { branding } from '$lib/branding';
 
-	const Logo = branding.assets.logoLight;
+	// const Logo = branding.assets.logoLight;
 	let { data, form }: PageProps = $props();
 
 	type MfaChallengeView = {
@@ -194,8 +194,8 @@
 	<div class="min-h-0 flex-1" aria-hidden="true"></div>
 	<div class="mx-auto w-full max-w-md shrink-0 py-2 sm:py-4">
 		<div class="flex w-full flex-col gap-6 sm:gap-8 [@media(max-height:700px)]:gap-4">
-			<div>
-				<Logo width="280" class="h-auto w-52 sm:w-64" />
+			<div class="text-5xl font-semibold text-foreground">
+				<!-- <Logo width="280" class="h-auto w-52 sm:w-64" /> --> Payment Gateway
 			</div>
 
 			{#if showMfaStep && mfaChallenge}

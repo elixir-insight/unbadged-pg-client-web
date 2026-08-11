@@ -10,9 +10,9 @@
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import ProfileCard from '../profile-card/profile-card.svelte';
 	import { X } from '$lib/assets/icons';
-	import { branding } from '$lib/branding';
+	// import { branding } from '$lib/branding';
 
-	const Logo = branding.assets.logoLight;
+	// const Logo = branding.assets.logoLight;
 	let {
 		app,
 		isMobileOpen = $bindable(false)
@@ -103,7 +103,7 @@
 			aria-label="Go to dashboard"
 			class="flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 		>
-			<Logo width="168" class="h-auto w-40 shrink-0" />
+			<!-- <Logo width="168" class="h-auto w-40 shrink-0" /> --> Payment Gateway
 		</a>
 
 		<!-- Mobile: close drawer -->

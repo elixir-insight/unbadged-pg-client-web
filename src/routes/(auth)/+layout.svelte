@@ -1,34 +1,34 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { theme } from '$lib/stores/theme.svelte';
-	import SecurityTrustBanner from '$lib/components/auth/security-trust-banner.svelte';
-	import { branding } from '$lib/branding';
+	// import SecurityTrustBanner from '$lib/components/auth/security-trust-banner.svelte';
+	// import { branding } from '$lib/branding';
 
 	let { children } = $props();
 
 	let videoEl = $state<HTMLVideoElement | null>(null);
-	let videoReady = $state(false);
+	// let videoReady = $state(false);
 	let videoFailed = $state(false);
 
 	$effect(() => {
 		const el = videoEl;
 		if (!el || videoFailed) return;
 
-		const reveal = () => {
-			videoReady = true;
-		};
+		// const reveal = () => {
+		// 	videoReady = true;
+		// };
 
 		const fail = () => {
 			videoFailed = true;
 		};
 
 		const startPlayback = () => {
-			void el.play().then(reveal).catch(fail);
+			// void el.play().then(reveal).catch(fail);
 		};
 
 		// Reveal on first decoded frame — canplay waits for a large buffer and feels slow.
 		el.addEventListener('loadeddata', startPlayback);
-		el.addEventListener('playing', reveal);
+		// el.addEventListener('playing', reveal);
 		el.addEventListener('error', fail);
 
 		if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
@@ -37,7 +37,7 @@
 
 		return () => {
 			el.removeEventListener('loadeddata', startPlayback);
-			el.removeEventListener('playing', reveal);
+			// el.removeEventListener('playing', reveal);
 			el.removeEventListener('error', fail);
 		};
 	});
@@ -49,8 +49,8 @@
 
 <div class="flex h-dvh w-full overflow-hidden p-0 lg:gap-3 lg:p-4">
 	<!-- Left Panel — desktop / large tablet only -->
-	<div class="relative hidden h-full w-1/2 overflow-hidden rounded-2xl shadow lg:block">
-		{#if !videoFailed}
+	<!-- <div class="relative hidden h-full w-1/2 overflow-hidden rounded-2xl  lg:block"> -->
+	<!-- {#if !videoFailed}
 			<video
 				bind:this={videoEl}
 				src={branding.assets.loginVideo}
@@ -82,8 +82,8 @@
 			class="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center px-6 xl:bottom-8 xl:px-10"
 		>
 			<SecurityTrustBanner class="pointer-events-auto" />
-		</div>
-	</div>
+		</div> -->
+	<!-- </div> -->
 
 	<!-- Right Panel — page content (locked to viewport; no page scroll) -->
 	<div

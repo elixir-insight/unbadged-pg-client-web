@@ -5,7 +5,7 @@ import favicon from '$lib/assets/favicon.svg';
 // import CompanyLogoLight from '$lib/assets/icons/company-logo-light.svelte';
 import CompanyLogo from '$lib/assets/icons/company-logo.svelte';
 
-const BRAND_NAME = 'PayWave';
+const BRAND_NAME = 'Payment Gateway';
 const COPYRIGHT_YEAR = 2026;
 
 export type BrandTrustBadge = {
@@ -63,10 +63,10 @@ export const branding: BrandingConfig = {
 		titleTemplate: (pageTitle) => `${pageTitle} | ${BRAND_NAME}`
 	},
 	urls: {
-		terms: 'https://paywave.in/terms',
-		privacy: 'https://paywave.in/privacy',
-		marketing: 'https://paywave.in',
-		website: 'https://paywave.com'
+		terms: 'https://PaymentGateway.in/terms',
+		privacy: 'https://PaymentGateway.in/privacy',
+		marketing: 'https://PaymentGateway.in',
+		website: 'https://PaymentGateway.com'
 	},
 	emails: {
 		support: 'admin@paywave.com',

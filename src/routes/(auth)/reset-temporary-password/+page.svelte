@@ -5,7 +5,7 @@
 	import { branding } from '$lib/branding';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
 
-	const Logo = branding.assets.logoLight;
+	// const Logo = branding.assets.logoLight;
 
 	let { data, form } = $props();
 
@@ -32,8 +32,8 @@
 
 <main class="flex flex-1 items-center justify-center px-10">
 	<div class="flex w-full max-w-md flex-col gap-17">
-		<div>
-			<Logo width="280" class="h-auto w-52 sm:w-64" />
+		<div class="text-5xl font-semibold text-foreground">
+			<!-- <Logo width="280" class="h-auto w-52 sm:w-64" /> --> Payment Gateway
 		</div>
 
 		<div class="flex flex-col gap-10">
