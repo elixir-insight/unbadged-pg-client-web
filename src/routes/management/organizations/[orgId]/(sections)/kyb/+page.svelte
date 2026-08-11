@@ -28,6 +28,7 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { deleteDirector, isPersistedDirectorId } from '$lib/organization/directors-api';
 
 	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
 	type AddressField = 'line1' | 'line2' | 'city' | 'state' | 'pincode' | 'country';
@@ -72,6 +73,7 @@
 		)
 	);
 	let expandedDirectorId = $state<string | null>(null);
+	let removingDirectorId = $state<string | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 	let saving = $state(false);
 	let formElement = $state<HTMLFormElement | null>(null);
@@ -336,8 +338,31 @@
 		expandedDirectorId = id;
 	}
 
-	function removeDirector(id: string) {
+	async function removeDirector(id: string) {
+		if (removingDirectorId) return;
+
+		if (isPersistedDirectorId(id)) {
+			removingDirectorId = id;
+			try {
+				const result = await deleteDirector(orgId, id);
+				toast.success('Director removed', { description: result.message });
+			} catch (error) {
+				toast.error('Could not remove director', {
+					description: error instanceof Error ? error.message : 'Could not delete director'
+				});
+				removingDirectorId = null;
+				return;
+			} finally {
+				removingDirectorId = null;
+			}
+		}
+
 		editableDirectors = editableDirectors.filter((director) => director.id !== id);
+		baselineDirectors = baselineDirectors.filter((director) => director.id !== id);
+		organization.directors = cloneOrganization(editableDirectors);
+		if (organization.kyb) {
+			organization.kyb.directors = organization.directors;
+		}
 		if (expandedDirectorId === id) {
 			expandedDirectorId = null;
 		}
@@ -665,6 +690,7 @@
 												size="icon-sm"
 												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 												aria-label="Remove director"
+												disabled={removingDirectorId === director.id}
 												onclick={() => removeDirector(director.id)}
 											>
 												<Trash2 class="size-4" />
@@ -731,6 +757,7 @@
 												size="icon-sm"
 												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 												aria-label="Remove director"
+												disabled={removingDirectorId === director.id}
 												onclick={() => removeDirector(director.id)}
 											>
 												<Trash2 class="size-4" />

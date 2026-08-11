@@ -14,6 +14,8 @@
 
 	let { data }: { data: PageData } = $props();
 
+	merchantSession.initialize();
+
 	const profile = $derived(data.profile);
 	const displayName = $derived(
 		profile?.displayName ?? merchantSession.session?.merchantName ?? 'Merchant'

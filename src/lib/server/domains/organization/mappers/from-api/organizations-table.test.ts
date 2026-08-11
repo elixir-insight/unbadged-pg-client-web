@@ -1,5 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { mapOrganizationsTableResponse } from './organizations-table';
+import { findOrganizationTableName, mapOrganizationsTableResponse } from './organizations-table';
+
+describe('findOrganizationTableName', () => {
+	it('returns the table name for a matching org id', () => {
+		expect(
+			findOrganizationTableName(
+				[
+					{
+						id: 'ORG_2bj',
+						name: 'Blankenship and Sharp Associates',
+						businessType: 'PRIVATE_LIMITED',
+						category: 'MERCHANT',
+						profileStatus: 'IN_PROGRESS',
+						createdAt: '2026-07-20'
+					}
+				],
+				'ORG_2bj'
+			)
+		).toBe('Blankenship and Sharp Associates');
+	});
+
+	it('returns null when the table name is the org id placeholder', () => {
+		expect(
+			findOrganizationTableName(
+				[
+					{
+						id: 'ORG_2bj',
+						name: 'ORG_2bj',
+						businessType: 'PRIVATE_LIMITED',
+						category: 'MERCHANT',
+						profileStatus: 'IN_PROGRESS',
+						createdAt: '2026-07-20'
+					}
+				],
+				'ORG_2bj'
+			)
+		).toBeNull();
+	});
+});
 
 describe('mapOrganizationsTableResponse', () => {
 	it('maps the upstream organizations table envelope', () => {
