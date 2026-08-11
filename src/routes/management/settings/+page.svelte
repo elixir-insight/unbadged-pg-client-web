@@ -8,6 +8,7 @@
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
+	import MfaSection from './mfa-section.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -42,6 +43,11 @@
 			value: 'configuration',
 			label: 'Configuration',
 			content: configurationTab
+		},
+		{
+			value: 'mfa',
+			label: 'MFA',
+			content: mfa
 		}
 	];
 </script>
@@ -90,6 +96,10 @@
 <!-- {#snippet ipWhitelistTab()}
 	<IpWhitelistTab portal="management" />
 {/snippet} -->
+
+{#snippet mfa()}
+	<MfaSection mfaConfig={data.mfaConfig} mfaError={data.mfaError} />
+{/snippet}
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">

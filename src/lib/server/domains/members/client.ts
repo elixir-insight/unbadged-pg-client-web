@@ -78,7 +78,7 @@ export const membersClient = {
 		query: OrgRolesListQuery = {},
 		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles`, {
+		apiFetch(`${membersBasePath(portal)}/roles`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -91,7 +91,7 @@ export const membersClient = {
 			schema: OrgRolesListResponseSchema
 		}),
 
-	/** GET /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	/** GET /api/v1/{portal}/roles/{roleId} */
 	getOrgRole: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -101,7 +101,7 @@ export const membersClient = {
 		roleId: number,
 		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+		apiFetch(`${membersBasePath(portal)}/roles/${roleId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -110,7 +110,7 @@ export const membersClient = {
 			schema: OrgRoleDetailResponseSchema
 		}),
 
-	/** POST /api/v1/{portal}/organizations/{orgId}/roles */
+	/** POST /api/v1/{portal}/roles */
 	createOrgRole: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -120,7 +120,7 @@ export const membersClient = {
 		body: CreateOrgRoleBody,
 		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles`, {
+		apiFetch(`${membersBasePath(portal)}/roles`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -130,7 +130,7 @@ export const membersClient = {
 			schema: CreateOrgRoleResponseSchema
 		}),
 
-	/** PATCH /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	/** PATCH /api/v1/{portal}/roles/{roleId} */
 	updateOrgRole: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -141,7 +141,7 @@ export const membersClient = {
 		body: UpdateOrgRoleBody,
 		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+		apiFetch(`${membersBasePath(portal)}/roles/${roleId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,
@@ -151,7 +151,7 @@ export const membersClient = {
 			schema: UpdateOrgRoleResponseSchema
 		}),
 
-	/** DELETE /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+	/** DELETE /api/v1/{portal}/roles/{roleId} */
 	deleteOrgRole: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -161,7 +161,7 @@ export const membersClient = {
 		roleId: number,
 		portal: MembersApiPortal = 'management'
 	) =>
-		apiFetch(`${membersBasePath(portal)}/organizations/${orgId}/roles/${roleId}`, {
+		apiFetch(`${membersBasePath(portal)}/roles/${roleId}`, {
 			fetch: fetchFn,
 			logger,
 			accessToken,

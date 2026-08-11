@@ -39,11 +39,29 @@ export const SignInPasswordChangeResponseSchema = v.object({
 	)
 });
 
-/** Tokens on success, or session-conflict / password-change payload on 202. */
+export const MfaChallengeNameSchema = v.picklist(['EMAIL_OTP', 'SMS_MFA']);
+export type MfaChallengeName = v.InferOutput<typeof MfaChallengeNameSchema>;
+
+export const SignInMfaChallengeItemSchema = v.object({
+	challengeName: MfaChallengeNameSchema,
+	challengeSession: v.string(),
+	challengeDestination: v.string(),
+	challengeExpiresIn: v.number()
+});
+
+// 202 "OTP verification required" — MFA challenge after password sign-in.
+export const SignInMfaChallengeResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(SignInMfaChallengeItemSchema)
+});
+
+/** Tokens on success, or session-conflict / password-change / MFA challenge on 202. */
 export const SignInResponseSchema = v.union([
 	SignInTokensResponseSchema,
 	SignInSessionExistsResponseSchema,
-	SignInPasswordChangeResponseSchema
+	SignInPasswordChangeResponseSchema,
+	SignInMfaChallengeResponseSchema
 ]);
 
 /** Refresh only returns tokens — not the session-conflict union. */
@@ -115,3 +133,50 @@ export const ResetPasswordResponseSchema = v.object({
 	data: v.array(v.unknown())
 });
 export type ResetPasswordResponse = v.InferOutput<typeof ResetPasswordResponseSchema>;
+
+export const MfaMethodSchema = v.picklist(['EMAIL', 'SMS']);
+export type MfaMethod = v.InferOutput<typeof MfaMethodSchema>;
+
+export const MfaConfigSchema = v.object({
+	method: v.optional(MfaMethodSchema),
+	configured: v.boolean(),
+	enabled: v.boolean()
+});
+export type MfaConfig = v.InferOutput<typeof MfaConfigSchema>;
+
+export const MfaConfigResponseSchema = v.object({
+	message: v.string(),
+	statusCode: v.number(),
+	data: v.array(MfaConfigSchema)
+});
+export type MfaConfigResponse = v.InferOutput<typeof MfaConfigResponseSchema>;
+
+export const CreateMfaRequestSchema = v.object({
+	method: MfaMethodSchema
+});
+
+export const CreateMfaResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.optional(v.string()),
+	data: v.optional(v.array(MfaConfigSchema))
+});
+
+export const UpdateMfaRequestSchema = v.pipe(
+	v.object({
+		enabled: v.optional(v.boolean()),
+		method: v.optional(MfaMethodSchema)
+	}),
+	v.check(
+		(input) => input.enabled !== undefined || input.method !== undefined,
+		'Provide enabled or method to update'
+	)
+);
+
+export const VerifyMfaRequestSchema = v.object({
+	userEmail: AuthEmailSchema,
+	challengeName: MfaChallengeNameSchema,
+	challengeSession: v.string(),
+	code: v.pipe(v.string(), v.trim(), v.length(6, 'Enter the 6-digit verification code'))
+});
+
+export const VerifyMfaResponseSchema = SignInTokensResponseSchema;

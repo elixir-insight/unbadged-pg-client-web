@@ -22,6 +22,16 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 
 	const mockOrganization = organizations.find((candidate) => candidate.id === orgId) ?? null;
 
+	// Partner onboarding isn't wired to the live API yet — always serve mock data.
+	if (mockOrganization?.category === 'PARTNER') {
+		return {
+			organization: mockOrganization,
+			orgId,
+			allowShell: false,
+			loadError: null
+		};
+	}
+
 	let tokens;
 	try {
 		tokens = await getValidSession(cookies, fetch, log);
