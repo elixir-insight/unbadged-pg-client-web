@@ -294,6 +294,9 @@
 	{:else if activeSection === 'legal'}
 		<div class="grid gap-4 md:grid-cols-2">
 			{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
+			{#if organization.category === 'PARTNER'}
+				{@render readOnlyField('Brand name', organization.kyb.brandName)}
+			{/if}
 			{@render readOnlyField('Business Type', organization.kyb.businessType)}
 			{@render readOnlyField('GSTIN', organization.kyb.gstin)}
 			{@render readOnlyField('Business PAN', organization.kyb.businessPan)}

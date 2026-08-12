@@ -23,6 +23,63 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 	return null;
 }
 
+function asRecordOrParsed(value: unknown): Record<string, unknown> {
+	const record = asRecord(value);
+	if (record) return record;
+	if (typeof value === 'string' && value.trim().startsWith('{')) {
+		try {
+			return asRecord(JSON.parse(value)) ?? {};
+		} catch {
+			return {};
+		}
+	}
+	return {};
+}
+
+const BRAND_NAME_KEYS = new Set([
+	'brandname',
+	'brand_name',
+	'brand',
+	'tradingname',
+	'trading_name',
+	'tradename',
+	'trade_name',
+	'orgbrandname',
+	'org_brand_name',
+	'dbaname',
+	'dba_name',
+	'dba'
+]);
+
+function isBrandNameKey(key: string): boolean {
+	const normalized = key.trim().toLowerCase();
+	if (normalized.includes('logo')) return false;
+	return BRAND_NAME_KEYS.has(normalized);
+}
+
+export function extractBrandName(value: unknown, depth = 0): string {
+	if (depth > 4) return '';
+
+	const record = asRecordOrParsed(value);
+	for (const [key, nested] of Object.entries(record)) {
+		if (!isBrandNameKey(key)) continue;
+		const found = asString(nested);
+		if (found) return found;
+	}
+
+	for (const nested of [
+		record.kyb,
+		record.kybDetails,
+		record.organizationKyb,
+		record.businessDetails
+	]) {
+		const found = extractBrandName(nested, depth + 1);
+		if (found) return found;
+	}
+
+	return '';
+}
+
 function asString(value: unknown, fallback = ''): string {
 	if (typeof value === 'string') return value.trim();
 	if (typeof value === 'number' && Number.isFinite(value)) return String(value);
@@ -65,8 +122,8 @@ function emptyPayoutConfiguration(): Organization['payoutConfiguration'] {
 	};
 }
 
-function pendingDocuments(): OrganizationDocument[] {
-	return [
+function pendingDocuments(category: OrganizationCategory): OrganizationDocument[] {
+	const documents: OrganizationDocument[] = [
 		...fixedRequiredDocuments.map((documentType) => ({
 			id: documentType.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
 			documentType,
@@ -81,6 +138,17 @@ function pendingDocuments(): OrganizationDocument[] {
 			optional: true
 		}
 	];
+
+	if (category === 'PARTNER') {
+		documents.push({
+			id: 'brand-logo',
+			documentType: 'Brand logo',
+			fileName: '',
+			status: 'Pending'
+		});
+	}
+
+	return documents;
 }
 
 function unwrapData(
@@ -122,7 +190,8 @@ function mapBusinessTypeLabel(type: OrganizationBusinessType): OrganizationKyb['
 
 function mapCategory(value: string): OrganizationCategory {
 	const normalized = value.trim().toUpperCase();
-	return normalized === 'PARTNER' ? 'PARTNER' : 'MERCHANT';
+	if (normalized === 'PARTNER' || normalized === 'AFFILIATE') return 'PARTNER';
+	return 'MERCHANT';
 }
 
 function mapStatus(value: string): OrganizationStatus {
@@ -281,7 +350,7 @@ function mapKyb(
 	phone: string,
 	email: string
 ): OrganizationKyb {
-	const kyb = asRecord(payload.kyb) ?? {};
+	const kyb = asRecordOrParsed(payload.kyb ?? payload.kybDetails ?? payload.organizationKyb);
 	const communication = mapCommunicationAddress(
 		kyb.communicationAddress ?? payload.communicationAddress,
 		registeredAddress
@@ -289,6 +358,7 @@ function mapKyb(
 
 	return {
 		legalCompanyName: asString(payload.legalCompanyName ?? kyb.legalCompanyName, name),
+		brandName: extractBrandName(payload),
 		businessType: mapBusinessTypeLabel(businessType),
 		cin: asString(kyb.cin ?? payload.cin),
 		tan: asString(kyb.tan ?? payload.tan ?? payload.orgTan),
@@ -318,7 +388,16 @@ export function mapGetOrganizationResponse(
 
 	const name = asString(payload.legalCompanyName ?? payload.name, orgId);
 	const businessType = mapBusinessType(asString(payload.businessType));
-	const category = mapCategory(asString(payload.profileType ?? payload.category, 'MERCHANT'));
+	const category = mapCategory(
+		asString(
+			payload.profileType ??
+				payload.category ??
+				payload.clientType ??
+				payload.organizationType ??
+				payload.type,
+			'MERCHANT'
+		)
+	);
 	const status = mapStatus(
 		asString(payload.profileStatus ?? payload.status ?? payload.organizationStatus, 'IN_PROGRESS')
 	);
@@ -352,7 +431,7 @@ export function mapGetOrganizationResponse(
 		addressDetails: registeredAddress,
 		directors,
 		bankAccounts,
-		documents: pendingDocuments(),
+		documents: pendingDocuments(category),
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
 		payoutConfiguration: emptyPayoutConfiguration(),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,

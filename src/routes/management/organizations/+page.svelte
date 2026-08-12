@@ -344,14 +344,14 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
 						Continue Editing
 					</Button>
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -360,7 +360,7 @@
 					</Button>
 				{:else if selectedOrg.status === 'APPROVED' || selectedOrg.status === 'ACTIVE' || selectedOrg.status === 'FROZEN'}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<Eye class="size-3.5" />
@@ -368,7 +368,7 @@
 					</Button>
 				{:else}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>

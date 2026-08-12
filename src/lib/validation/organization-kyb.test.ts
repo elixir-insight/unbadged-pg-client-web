@@ -36,8 +36,34 @@ describe('organization KYB validation', () => {
 		expect(validateLegalStep(validLegal)).toEqual({});
 	});
 
+	it('does not require brand name for merchants', () => {
+		expect(validateLegalStep({ ...validLegal, category: 'MERCHANT', brandName: '' })).toEqual({});
+	});
+
+	it('requires a valid brand name for partners', () => {
+		expect(validateLegalStep({ ...validLegal, category: 'PARTNER', brandName: '' }).brandName).toBe(
+			'Brand name is required'
+		);
+		expect(
+			validateLegalStep({ ...validLegal, category: 'PARTNER', brandName: '@@@' }).brandName
+		).toBe('Enter a valid brand name');
+		expect(
+			validateLegalStep({ ...validLegal, category: 'PARTNER', brandName: 'Lumen Health' })
+		).toEqual({});
+	});
+
 	it('accepts business PAN with spaces and lowercase', () => {
 		expect(validateLegalStep({ ...validLegal, businessPan: 'abcde 1234 f' })).toEqual({});
+	});
+
+	it('accepts a redacted business PAN returned from GET details', () => {
+		expect(validateLegalStep({ ...validLegal, businessPan: '**********' })).toEqual({});
+	});
+
+	it('still rejects a partially edited masked PAN', () => {
+		expect(
+			validateLegalStep({ ...validLegal, businessPan: '*********F' }).businessPan
+		).toBeTruthy();
 	});
 
 	it('rejects invalid GSTIN and PAN', () => {

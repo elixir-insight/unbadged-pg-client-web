@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 import { createOrganizationShell, organizations } from '$lib/data/mockData';
+import { applyOrganizationCategory } from '$lib/organization/category';
 
 export const load: LayoutLoad = ({ data, params }) => {
 	if (data.organization) {
@@ -18,14 +19,17 @@ export const load: LayoutLoad = ({ data, params }) => {
 	const seeded = organizations.find((candidate) => candidate.id === orgId);
 	if (seeded) {
 		return {
-			organization: seeded,
+			organization: applyOrganizationCategory(seeded, data.resolvedCategory ?? seeded.category),
 			loadError: data.loadError
 		};
 	}
 
 	if (data.allowShell) {
 		return {
-			organization: createOrganizationShell({ id: orgId }),
+			organization: createOrganizationShell({
+				id: orgId,
+				category: data.resolvedCategory ?? 'MERCHANT'
+			}),
 			loadError: data.loadError
 		};
 	}

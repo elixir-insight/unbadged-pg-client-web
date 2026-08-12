@@ -55,6 +55,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
+	const isPartner = $derived(organization.category === 'PARTNER');
 
 	let editableKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
 	let editableDirectors = $state(untrack(() => cloneOrganization(organization.directors)));
@@ -137,7 +138,9 @@
 				registeredYear: editableKyb.registeredYear,
 				cin: editableKyb.cin,
 				tan: editableKyb.tan,
-				businessType: editableKyb.businessType
+				businessType: editableKyb.businessType,
+				brandName: editableKyb.brandName,
+				category: organization.category
 			});
 		}
 
@@ -221,15 +224,20 @@
 			registeredYear: editableKyb.registeredYear,
 			cin: editableKyb.cin,
 			tan: editableKyb.tan,
+			category: organization.category,
+			...(isPartner ? { brandName: editableKyb.brandName } : {}),
 			registeredAddress: editableKyb.registeredAddress,
 			communicationAddress: editableKyb.communicationAddress,
-			directors: editableDirectors.map((director) => ({
-				name: director.name,
-				pan: director.pan,
-				email: director.email,
-				phone: director.phone,
-				aadhar: director.aadhar
-			}))
+			directors:
+				currentStep === 'directors'
+					? editableDirectors.map((director) => ({
+							name: director.name,
+							pan: director.pan,
+							email: director.email,
+							phone: director.phone,
+							aadhar: director.aadhar
+						}))
+					: []
 		};
 	}
 
@@ -504,6 +512,16 @@
 				},
 				'tan'
 			)}
+			{#if isPartner}
+				{@render textField(
+					'Brand name',
+					editableKyb.brandName ?? '',
+					(value) => {
+						editableKyb = { ...editableKyb, brandName: value };
+					},
+					'brandName'
+				)}
+			{/if}
 		</div>
 	{:else if currentStep === 'address'}
 		<div class="space-y-6">

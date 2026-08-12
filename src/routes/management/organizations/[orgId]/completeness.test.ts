@@ -148,6 +148,57 @@ describe('organization completeness', () => {
 		expect(documentsComplete(withoutTan)).toBe(false);
 	});
 
+	it('requires brand name and brand logo only for partners', () => {
+		const partner = createOrganization({
+			id: 'ORG-TEST-BRAND',
+			name: 'Brand Partner',
+			businessType: 'LLP',
+			category: 'PARTNER',
+			status: 'IN_PROGRESS',
+			kybStatus: 'Not Started',
+			createdAt: '2026-01-01',
+			assignedAdmin: 'Test Admin',
+			kybComplete: true,
+			documentsComplete: true
+		});
+
+		expect(legalComplete(partner)).toBe(true);
+		expect(documentsComplete(partner)).toBe(true);
+		expect(partner.documents.some((document) => document.documentType === 'Brand logo')).toBe(true);
+
+		const missingBrandName = {
+			...partner,
+			kyb: { ...partner.kyb, brandName: '' }
+		};
+		expect(legalComplete(missingBrandName)).toBe(false);
+
+		const missingBrandLogo = {
+			...partner,
+			documents: partner.documents.filter((document) => document.documentType !== 'Brand logo')
+		};
+		expect(documentsComplete(missingBrandLogo)).toBe(false);
+
+		const merchant = createOrganization({
+			id: 'ORG-TEST-BRAND-MERCHANT',
+			name: 'Brand Merchant',
+			businessType: 'LLP',
+			category: 'MERCHANT',
+			status: 'IN_PROGRESS',
+			kybStatus: 'Not Started',
+			createdAt: '2026-01-01',
+			assignedAdmin: 'Test Admin',
+			kybComplete: true,
+			documentsComplete: true
+		});
+
+		expect(merchant.kyb.brandName).toBe('');
+		expect(merchant.documents.some((document) => document.documentType === 'Brand logo')).toBe(
+			false
+		);
+		expect(legalComplete(merchant)).toBe(true);
+		expect(documentsComplete(merchant)).toBe(true);
+	});
+
 	it('includes director aadhar and pan uploads in documents completeness', () => {
 		const org = createOrganization({
 			id: 'ORG-TEST-DIR',
