@@ -12,6 +12,7 @@ export function parseMerchantSession(token: CognitoIdToken): MerchantSession {
 	return {
 		userId: token['custom:user_id'],
 		organizationId: token['custom:org_id'],
+		displayOrgId: token['custom:org_id'],
 		merchantName: token.preferred_username,
 		email: token.email,
 		userType: 'MEMBER',
@@ -47,9 +48,13 @@ export function parseMerchantSessionFromGateway(
 ): MerchantSession {
 	const serviceTypes = new Set(token.serviceTypes ?? []);
 
+	const organizationId = String(token.orgId);
+	const displayOrgId = token.displayOrgId?.trim() || organizationId;
+
 	return {
 		userId: String(token.userId),
-		organizationId: String(token.orgId),
+		organizationId,
+		displayOrgId,
 		merchantName: resolveMerchantDisplayName(token.userName, token.userEmail),
 		email: token.userEmail,
 		userType: token.userType,

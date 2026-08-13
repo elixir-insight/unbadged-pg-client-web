@@ -7,7 +7,18 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
-	import { BadgeCheck, ZapIcon } from '$lib/assets/icons';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
+	import * as UITooltip from '$lib/components/ui/tooltip';
+	import {
+		ArrowLeft,
+		BadgeCheck,
+		Coins,
+		MessageSquareWarning,
+		Pencil,
+		RotateCcw,
+		TriangleAlert,
+		ZapIcon
+	} from '$lib/assets/icons';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import type { OrganizationDocumentUpload } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
@@ -19,6 +30,7 @@
 	} from '../../completeness';
 	import {
 		createChipSnippet,
+		feesPath,
 		formatLabel,
 		formatRegisteredAddress,
 		isPreviewNavigation,
@@ -32,7 +44,6 @@
 	import ActivateProfileModal from './activate-profile-modal.svelte';
 	import { getContext } from 'svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';
-	import { MessageSquareWarning } from '$lib/assets/icons';
 
 	type PreviewSection = 'legal' | 'address' | 'directors' | 'bank' | 'documents';
 
@@ -74,6 +85,8 @@
 	const isActive = $derived(organization.status === 'ACTIVE');
 	const isOnHold = $derived(organization.status === 'ON_HOLD');
 	const isFrozen = $derived(organization.status === 'FROZEN');
+	const showViewFeesLink = $derived(isActive || isOnHold || isFrozen);
+	const viewFeesHref = $derived(feesPath(orgId) as ResolvedPathname);
 
 	const reviewOrganization = $derived.by(() => {
 		const org = data.organization;
@@ -255,6 +268,63 @@
 	</div>
 {/snippet}
 
+{#snippet profileNavigationButtons()}
+	<UITooltip.TooltipProvider delayDuration={0}>
+		<ButtonGroup.Root aria-label="Profile navigation">
+			<UITooltip.Tooltip>
+				<UITooltip.TooltipTrigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="outline"
+							size="icon"
+							href={continueEditingHref}
+							aria-label="Edit {activeSectionLabel}"
+						>
+							<Pencil class="size-4" />
+						</Button>
+					{/snippet}
+				</UITooltip.TooltipTrigger>
+				<UITooltip.TooltipContent>Edit {activeSectionLabel}</UITooltip.TooltipContent>
+			</UITooltip.Tooltip>
+			{#if showViewFeesLink}
+				<UITooltip.Tooltip>
+					<UITooltip.TooltipTrigger>
+						{#snippet child({ props })}
+							<Button
+								{...props}
+								variant="outline"
+								size="icon"
+								href={viewFeesHref}
+								aria-label="View fees"
+							>
+								<Coins class="size-4" />
+							</Button>
+						{/snippet}
+					</UITooltip.TooltipTrigger>
+					<UITooltip.TooltipContent>View fees</UITooltip.TooltipContent>
+				</UITooltip.Tooltip>
+			{/if}
+			<UITooltip.Tooltip>
+				<UITooltip.TooltipTrigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="outline"
+							size="icon"
+							href="/management/organizations"
+							aria-label="Back to organizations"
+						>
+							<ArrowLeft class="size-4" />
+						</Button>
+					{/snippet}
+				</UITooltip.TooltipTrigger>
+				<UITooltip.TooltipContent>Back to organizations</UITooltip.TooltipContent>
+			</UITooltip.Tooltip>
+		</ButtonGroup.Root>
+	</UITooltip.TooltipProvider>
+{/snippet}
+
 <div class="space-y-6">
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
@@ -418,16 +488,28 @@
 
 	<div class="border-t border-border/60 pt-4">
 		{#if isActive}
-			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="destructive" onclick={() => orgLayout.openPutOnHold()}>
-					<MessageSquareWarning class="size-4" />
-					Put on hold
-				</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="destructive"
+										size="icon"
+										aria-label="Put on hold"
+										onclick={() => orgLayout.openPutOnHold()}
+									>
+										<MessageSquareWarning class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent>Put on hold</UITooltip.TooltipContent>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isOnHold}
 			<p class="mb-4 text-sm text-muted-foreground">
@@ -435,20 +517,52 @@
 				above.
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="destructive" onclick={() => orgLayout.openFreeze()}>Freeze</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="destructive"
+										size="icon"
+										aria-label="Freeze organization"
+										onclick={() => orgLayout.openFreeze()}
+									>
+										<TriangleAlert class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent>Freeze</UITooltip.TooltipContent>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isFrozen}
 			<p class="mb-4 text-sm text-muted-foreground">This organization is frozen.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="outline" onclick={() => orgLayout.openReactivate()}>Reactivate</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="outline"
+										size="icon"
+										aria-label="Reactivate organization"
+										onclick={() => orgLayout.openReactivate()}
+									>
+										<RotateCcw class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent>Reactivate</UITooltip.TooltipContent>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isApproved}
 			<p class="mb-4 text-sm text-muted-foreground">

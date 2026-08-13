@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import type { Organization, OrganizationCategory } from '$lib/data/mockData';
-import { organizations } from '$lib/data/mockData';
+import { organizations, createOrganizationShell } from '$lib/data/mockData';
 import { applyOrganizationCategory, resolveOrganizationCategory } from '$lib/organization/category';
 import {
 	getValidSession,
@@ -18,6 +18,7 @@ import {
 	readRememberedOrgBrandName,
 	rememberOrgBrandName
 } from '$lib/server/domains/organization/utils/org-brand-name-cookie';
+import { resolveOrganizationDisplayName } from '$lib/server/domains/organization/utils/resolve-display-name';
 
 function withResolvedCategory(
 	organization: Organization | null,
@@ -35,6 +36,10 @@ function withResolvedCategory(
 			brandName: rememberedBrandName.trim()
 		}
 	};
+}
+
+function fallbackOrganization(orgId: string, mockOrganization: Organization | null): Organization {
+	return mockOrganization ?? createOrganizationShell({ id: orgId });
 }
 
 export const load: LayoutServerLoad = async ({ params, url, cookies, fetch, locals, depends }) => {
@@ -68,7 +73,11 @@ export const load: LayoutServerLoad = async ({ params, url, cookies, fetch, loca
 		if (e instanceof SessionInactiveError || e instanceof SessionError) {
 			const resolvedCategory = resolveCategory(null);
 			return {
-				organization: withResolvedCategory(mockOrganization, resolvedCategory, rememberedBrandName),
+				organization: withResolvedCategory(
+					fallbackOrganization(orgId, mockOrganization),
+					resolvedCategory,
+					rememberedBrandName
+				),
 				orgId,
 				allowShell: true,
 				resolvedCategory,
@@ -86,55 +95,61 @@ export const load: LayoutServerLoad = async ({ params, url, cookies, fetch, loca
 		orgId
 	);
 
+	let organization = fallbackOrganization(orgId, mockOrganization);
+	let allowShell = true;
+	let loadError: string | null;
+	let categoryFromApi: OrganizationCategory | null = null;
+
 	if (detailsResult.ok) {
-		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
-		if (organization) {
-			const resolvedCategory = resolveCategory(organization.category);
-			if (organization.kyb.brandName.trim()) {
-				rememberOrgBrandName(cookies, orgId, organization.kyb.brandName);
+		const mapped = mapGetOrganizationResponse(detailsResult.data, orgId);
+		if (mapped) {
+			organization = mapped;
+			allowShell = false;
+			loadError = null;
+			categoryFromApi = mapped.category;
+			if (mapped.kyb.brandName.trim()) {
+				rememberOrgBrandName(cookies, orgId, mapped.kyb.brandName);
 			}
-			return {
-				organization: withResolvedCategory(organization, resolvedCategory, rememberedBrandName),
-				orgId,
-				allowShell: false,
-				resolvedCategory,
-				loadError: null
-			};
+		} else {
+			log.warn(
+				{ orgId, upstream: detailsResult.data },
+				'GET organization details returned unmapped payload'
+			);
+			loadError = 'Unexpected organization details response shape';
 		}
+	} else {
+		const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
+		const exceptionCode =
+			detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
+
 		log.warn(
-			{ orgId, upstream: detailsResult.data },
-			'GET organization details returned unmapped payload'
+			{
+				orgId,
+				kind: detailsResult.error.kind,
+				status,
+				exceptionCode,
+				message: detailsResult.error.message
+			},
+			'GET organization details failed'
 		);
-		const resolvedCategory = resolveCategory(null);
-		return {
-			organization: withResolvedCategory(mockOrganization, resolvedCategory, rememberedBrandName),
-			orgId,
-			allowShell: true,
-			resolvedCategory,
-			loadError: 'Unexpected organization details response shape'
-		};
+		loadError = detailsResult.error.message;
 	}
 
-	const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
-	const exceptionCode = detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
-
-	log.warn(
-		{
-			orgId,
-			kind: detailsResult.error.kind,
-			status,
-			exceptionCode,
-			message: detailsResult.error.message
-		},
-		'GET organization details failed'
-	);
-
-	const resolvedCategory = resolveCategory(null);
-	return {
-		organization: withResolvedCategory(mockOrganization, resolvedCategory, rememberedBrandName),
+	organization = await resolveOrganizationDisplayName({
+		organization,
 		orgId,
-		allowShell: true,
+		fetch,
+		log,
+		accessToken: tokens.accessToken,
+		gatewayToken: tokens.gatewayToken
+	});
+
+	const resolvedCategory = resolveCategory(categoryFromApi);
+	return {
+		organization: withResolvedCategory(organization, resolvedCategory, rememberedBrandName),
+		orgId,
+		allowShell,
 		resolvedCategory,
-		loadError: detailsResult.error.message
+		loadError
 	};
 };

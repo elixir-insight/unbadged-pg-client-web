@@ -8,7 +8,7 @@ import { organizationClient } from '$lib/server/domains/organization/client';
 import type { OrganizationTableStatusCounts } from '$lib/organization/table';
 import { mapOrganizationsTableResponse } from '$lib/server/domains/organization/mappers/from-api/organizations-table';
 
-const DEFAULT_LIMIT = 5;
+const DEFAULT_LIMIT = 8;
 
 function emptyStatusCounts(): OrganizationTableStatusCounts {
 	return {

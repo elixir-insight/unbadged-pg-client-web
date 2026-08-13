@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { afterNavigate } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { setContext } from 'svelte';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/reusable';
 	import { MessageSquareWarning, XCircle } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
+	import { breadcrumb, type BreadcrumbItem } from '$lib/stores/breadcrumb.svelte';
 	import ChangeOrganizationStatusModal from './components/ChangeOrganizationStatusModal.svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from './layout-context';
 	import {
@@ -14,6 +17,7 @@
 		type OperationalProfileStatus,
 		type StatusTransition
 	} from './operational-status';
+	import { getOrganizationSectionBreadcrumbLabel } from './helpers';
 
 	let { data, children } = $props();
 
@@ -92,6 +96,24 @@
 		openPutOnHold,
 		openFreeze,
 		openReactivate
+	});
+
+	$effect(() => {
+		const org = organization;
+		const pathname = page.url.pathname.split('?')[0] ?? '';
+		const orgHref = resolve('/management/organizations/[orgId]', { orgId: org.id });
+		const items: BreadcrumbItem[] = [
+			{ label: 'Organizations', href: resolve('/management/organizations') },
+			{ label: org.name, href: orgHref }
+		];
+
+		const sectionLabel = getOrganizationSectionBreadcrumbLabel(pathname);
+		if (sectionLabel) {
+			items.push({ label: sectionLabel, href: pathname });
+		}
+
+		breadcrumb.set(items);
+		return () => breadcrumb.clear();
 	});
 </script>
 

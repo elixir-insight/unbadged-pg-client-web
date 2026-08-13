@@ -9,6 +9,7 @@
 	import Sidebar from '../sidebar/sidebar.svelte';
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
+	import { breadcrumb } from '$lib/stores/breadcrumb.svelte';
 	import { cn } from '$lib/utils';
 
 	let {
@@ -68,6 +69,10 @@
 	}
 
 	const breadcrumbItems = $derived.by(() => {
+		if (breadcrumb.items.length > 0) {
+			return breadcrumb.items;
+		}
+
 		const root = rootRoutes[app];
 		const rest = page.url.pathname.startsWith(root) ? page.url.pathname.slice(root.length) : '';
 

@@ -101,6 +101,9 @@ export const UpdateOrganizationResponseSchema = v.object({
 	data: v.optional(v.union([v.array(v.unknown()), v.null()]))
 });
 
+/** DELETE /api/v1/management/onboard/organization/{orgId}/directors/{directorId} */
+export const DeleteDirectorResponseSchema = UpdateOrganizationResponseSchema;
+
 export const OrganizationProfileStatusSchema = v.picklist([
 	'APPROVED',
 	'ACTIVE',
@@ -332,6 +335,7 @@ export type CreateOrganizationRequest = v.InferOutput<typeof CreateOrganizationR
 export type CreateOrganizationResponse = v.InferOutput<typeof CreateOrganizationResponseSchema>;
 export type UpdateOrganizationKybRequest = v.InferOutput<typeof UpdateOrganizationKybRequestSchema>;
 export type UpdateOrganizationResponse = v.InferOutput<typeof UpdateOrganizationResponseSchema>;
+export type DeleteDirectorResponse = v.InferOutput<typeof DeleteDirectorResponseSchema>;
 export type UpdateOrganizationStatusRequest = v.InferOutput<
 	typeof UpdateOrganizationStatusRequestSchema
 >;
