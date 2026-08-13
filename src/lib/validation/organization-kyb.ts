@@ -316,21 +316,13 @@ function collectIssues(issues: v.BaseIssue<unknown>[]): Record<string, string> {
 	return errors;
 }
 
-export function validateLegalStep(input: LegalStepInput): Record<string, string> {
-	const requireBrandName = input.category === 'PARTNER';
-	const schema =
-		input.businessType === 'Private Limited'
-			? v.object({
-					...legalBaseSchema.entries,
-					cin: requiredCinSchema,
-					...(requireBrandName ? { brandName: brandNameSchema } : {})
-				})
-			: v.object({
-					...legalBaseSchema.entries,
-					...(requireBrandName ? { brandName: brandNameSchema } : {})
-				});
+const legalPrivateLimitedSchema = v.object({
+	...legalBaseSchema.entries,
+	cin: requiredCinSchema
+});
 
-	const result = v.safeParse(schema, {
+export function validateLegalStep(input: LegalStepInput): Record<string, string> {
+	const legalInput = {
 		gstin: input.gstin,
 		businessPan: input.businessPan,
 		businessPhone: input.businessPhone,
@@ -338,11 +330,24 @@ export function validateLegalStep(input: LegalStepInput): Record<string, string>
 		organizationWebsite: input.organizationWebsite,
 		registeredYear: input.registeredYear,
 		cin: input.cin,
-		tan: input.tan,
-		...(requireBrandName ? { brandName: input.brandName ?? '' } : {})
-	});
+		tan: input.tan
+	};
 
-	return result.success ? {} : collectIssues(result.issues);
+	const result =
+		input.businessType === 'Private Limited'
+			? v.safeParse(legalPrivateLimitedSchema, legalInput)
+			: v.safeParse(legalBaseSchema, legalInput);
+
+	const errors = result.success ? {} : collectIssues(result.issues);
+
+	if (input.category === 'PARTNER') {
+		const brandResult = v.safeParse(brandNameSchema, input.brandName ?? '');
+		if (!brandResult.success && !errors.brandName) {
+			errors.brandName = brandResult.issues[0]?.message ?? 'Brand name is required';
+		}
+	}
+
+	return errors;
 }
 
 export function validateAddressStep(input: AddressStepInput): Record<string, string> {
