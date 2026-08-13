@@ -5,6 +5,7 @@ import { loadPaymentMethodConfigurations } from '$lib/server/domains/payment-met
 import { loadPayinPipelineOptions } from '$lib/server/domains/pipeline/loaders/payin-pipelines';
 import { resolveDefaultPipelineCode } from '$lib/server/domains/pipeline/resolve-default-pipeline';
 import { ensurePayinVirtualAccount } from '$lib/server/domains/virtual-account/loaders/ensure-payin-van';
+import { isUiOnlyMockOrganization } from '../utils/mock-platform-onboarding';
 
 export async function loadOrganizationFeeConfigurationPage(params: {
 	fetch: typeof fetch;
@@ -28,6 +29,23 @@ export async function loadOrganizationFeeConfigurationPage(params: {
 			chargeConfigurationsError: 'Organization id is required',
 			commissionConfigurations: [],
 			commissionConfigurationsError: 'Organization id is required'
+		};
+	}
+
+	if (isUiOnlyMockOrganization(orgId, params.cookies)) {
+		return {
+			payinVan: null,
+			vanError: null,
+			vanCreated: false,
+			pipelineOptions: [],
+			pipelinesError: null,
+			defaultPipelineCode: '',
+			methodConfigurations: [],
+			methodConfigurationsError: null,
+			chargeConfigurations: [],
+			chargeConfigurationsError: null,
+			commissionConfigurations: [],
+			commissionConfigurationsError: null
 		};
 	}
 

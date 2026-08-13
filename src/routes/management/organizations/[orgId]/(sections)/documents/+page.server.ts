@@ -9,6 +9,11 @@ import {
 	uploadOrgDocumentsMutation
 } from '$lib/server/domains/organization/mutations/upload-documents';
 import { failUploadAction } from '$lib/server/http/upload-action-error';
+import {
+	applyMockDocumentUploads,
+	ensureUiOnlyMockOrganization,
+	isUiOnlyMockOrganization
+} from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -42,6 +47,15 @@ export const actions = {
 
 		try {
 			const formData = await request.formData();
+
+			if (isUiOnlyMockOrganization(orgId, cookies)) {
+				applyMockDocumentUploads(ensureUiOnlyMockOrganization(orgId), formData);
+				log.info({ orgId }, 'mocked platform organization document upload');
+				return {
+					success: true,
+					message: 'Documents uploaded successfully'
+				};
+			}
 
 			const result = await uploadOrgDocumentsMutation({
 				fetch,
@@ -81,6 +95,15 @@ export const actions = {
 			for (const [fieldName, value] of formData.entries()) {
 				if (fieldName === 'directorId') continue;
 				uploadFormData.append(fieldName, value);
+			}
+
+			if (isUiOnlyMockOrganization(orgId, cookies)) {
+				applyMockDocumentUploads(ensureUiOnlyMockOrganization(orgId), uploadFormData, directorId);
+				log.info({ orgId, directorId }, 'mocked platform director document upload');
+				return {
+					success: true,
+					message: 'Director documents uploaded successfully'
+				};
 			}
 
 			const result = await uploadDirectorDocumentsMutation({

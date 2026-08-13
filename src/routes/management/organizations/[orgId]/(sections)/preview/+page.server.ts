@@ -8,6 +8,10 @@ import {
 import { activateProfileMutation } from '$lib/server/domains/organization/mutations/activate-profile';
 import { updateOrganizationStatusMutation } from '$lib/server/domains/organization/mutations/update-status';
 import { failUploadAction } from '$lib/server/http/upload-action-error';
+import {
+	ensureUiOnlyMockOrganization,
+	isUiOnlyMockOrganization
+} from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -58,6 +62,17 @@ export const actions = {
 	approve: async ({ params, cookies, fetch, locals }) => {
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
+
+		if (isUiOnlyMockOrganization(orgId, cookies)) {
+			const organization = ensureUiOnlyMockOrganization(orgId);
+			organization.status = 'APPROVED';
+			log.info({ orgId }, 'mocked platform organization approval');
+			return {
+				success: true,
+				message: 'Organization status updated successfully',
+				action: 'approve' as const
+			};
+		}
 
 		const result = await updateOrganizationStatusMutation({
 			fetch,

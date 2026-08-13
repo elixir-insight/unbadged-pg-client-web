@@ -219,6 +219,26 @@ describe('mapGetOrganizationResponse', () => {
 		]);
 	});
 
+	it('maps platform profile type', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2bp',
+						legalCompanyName: 'Platform Co',
+						profileType: 'PLATFORM'
+					}
+				]
+			},
+			'org_2bp'
+		);
+		expect(organization?.category).toBe('PLATFORM');
+		expect(organization?.documents.some((document) => document.documentType === 'Brand logo')).toBe(
+			true
+		);
+	});
+
 	it('maps top-level brandName from GET details', () => {
 		const organization = mapGetOrganizationResponse(
 			{

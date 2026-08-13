@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 
-export const OrganizationProfileTypeSchema = v.picklist(['MERCHANT', 'PARTNER']);
+export const OrganizationProfileTypeSchema = v.picklist(['MERCHANT', 'PARTNER', 'PLATFORM']);
 export const OrganizationBusinessTypeSchema = v.picklist([
 	'SOLE_PROPRIETORSHIP',
 	'PARTNERSHIP',

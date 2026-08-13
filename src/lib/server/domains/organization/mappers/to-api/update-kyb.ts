@@ -4,6 +4,7 @@ import {
 	type UpdateOrganizationKybRequest
 } from '../../schema';
 import { toE164IndianPhone } from './create-organization';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import {
 	aadharSchema,
 	addressSchema,
@@ -74,7 +75,7 @@ const sharedLegalFields = {
 	cin: optionalCinSchema,
 	tan: optionalTanSchema,
 	brandName: v.optional(v.string()),
-	category: v.optional(v.picklist(['MERCHANT', 'PARTNER']))
+	category: v.optional(v.picklist(['MERCHANT', 'PARTNER', 'PLATFORM']))
 };
 
 export const UpdateOrganizationLegalSectionSchema = v.object({
@@ -202,7 +203,7 @@ function resolveBrandName(
 	input: UpdateOrganizationFormBody,
 	section: KybUpdateSection
 ): string | undefined {
-	const isPartner = input.category === 'PARTNER';
+	const isPartner = isPartnerStyleCategory(input.category);
 	if (!isPartner && !input.brandName?.trim()) return undefined;
 
 	if (isPartner && section === 'legal') {

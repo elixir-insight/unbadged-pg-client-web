@@ -1,4 +1,4 @@
-export type OrganizationCategory = 'MERCHANT' | 'PARTNER';
+export type OrganizationCategory = 'MERCHANT' | 'PARTNER' | 'PLATFORM';
 export type OrganizationStatus =
 	'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
 export type OrganizationBusinessType =
@@ -306,7 +306,7 @@ function pendingDocuments(category: OrganizationCategory = 'MERCHANT'): Organiza
 		}
 	];
 
-	if (category === 'PARTNER') {
+	if (category === 'PARTNER' || category === 'PLATFORM') {
 		documents.push({
 			id: 'brand-logo',
 			documentType: 'Brand logo',
@@ -478,7 +478,7 @@ function createDocuments(
 		createOrgDocument('Organization logo', logoStatus, baseDate, { optional: true })
 	];
 
-	if (category === 'PARTNER') {
+	if (category === 'PARTNER' || category === 'PLATFORM') {
 		documents.push(createOrgDocument('Brand logo', requiredStatus, baseDate));
 	}
 
@@ -599,7 +599,10 @@ export function createOrganization(params: {
 		serviceTypes,
 		kyb: {
 			legalCompanyName: params.kybComplete ? `${params.name} Private Entity` : params.name,
-			brandName: params.category === 'PARTNER' && params.kybComplete ? `${params.name} Brand` : '',
+			brandName:
+				(params.category === 'PARTNER' || params.category === 'PLATFORM') && params.kybComplete
+					? `${params.name} Brand`
+					: '',
 			businessType: kybBusinessType,
 			cin: params.kybComplete ? cinValue : '',
 			tan: params.kybComplete ? tanValue : '',

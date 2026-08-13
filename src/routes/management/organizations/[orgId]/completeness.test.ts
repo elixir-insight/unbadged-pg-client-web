@@ -199,6 +199,34 @@ describe('organization completeness', () => {
 		expect(documentsComplete(merchant)).toBe(true);
 	});
 
+	it('requires brand name and brand logo for platforms like partners', () => {
+		const platform = createOrganization({
+			id: 'ORG-TEST-PLATFORM',
+			name: 'Brand Platform',
+			businessType: 'LLP',
+			category: 'PLATFORM',
+			status: 'IN_PROGRESS',
+			kybStatus: 'Not Started',
+			createdAt: '2026-01-01',
+			assignedAdmin: 'Test Admin',
+			kybComplete: true,
+			documentsComplete: true
+		});
+
+		expect(legalComplete(platform)).toBe(true);
+		expect(documentsComplete(platform)).toBe(true);
+		expect(platform.documents.some((document) => document.documentType === 'Brand logo')).toBe(
+			true
+		);
+
+		expect(
+			legalComplete({
+				...platform,
+				kyb: { ...platform.kyb, brandName: '' }
+			})
+		).toBe(false);
+	});
+
 	it('includes director aadhar and pan uploads in documents completeness', () => {
 		const org = createOrganization({
 			id: 'ORG-TEST-DIR',

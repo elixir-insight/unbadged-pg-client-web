@@ -21,6 +21,7 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
@@ -43,7 +44,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const isPartner = $derived(organization.category === 'PARTNER');
+	const isPartner = $derived(isPartnerStyleCategory(organization.category));
 	const isPrivateLimited = $derived(organization.kyb?.businessType === 'Private Limited');
 	const documentsLoadError = $derived(data.documentsLoadError);
 

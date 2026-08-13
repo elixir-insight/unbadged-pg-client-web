@@ -2,7 +2,12 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import type { Organization, OrganizationCategory } from '$lib/data/mockData';
 import { organizations, createOrganizationShell } from '$lib/data/mockData';
-import { applyOrganizationCategory, resolveOrganizationCategory } from '$lib/organization/category';
+import {
+	applyOrganizationCategory,
+	isUiOnlyOnboardingCategory,
+	resolveOrganizationCategory
+} from '$lib/organization/category';
+import { ensureUiOnlyMockOrganization } from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 import {
 	getValidSession,
 	SessionError,
@@ -54,17 +59,39 @@ export const load: LayoutServerLoad = async ({ params, url, cookies, fetch, loca
 
 	const mockOrganization = organizations.find((candidate) => candidate.id === orgId) ?? null;
 	const rememberedBrandName = readRememberedOrgBrandName(cookies, orgId);
+	const rememberedCategory = readRememberedOrgCategory(cookies, orgId);
 
 	const resolveCategory = (fromApi: OrganizationCategory | null = null): OrganizationCategory => {
 		const category = resolveOrganizationCategory({
 			fromUrl: url.searchParams.get('category'),
-			fromMemory: readRememberedOrgCategory(cookies, orgId),
+			fromMemory: rememberedCategory,
 			fromMock: mockOrganization?.category ?? null,
 			fromApi
 		});
 		rememberOrgCategory(cookies, orgId, category);
 		return category;
 	};
+
+	const uiOnlyCategory = resolveOrganizationCategory({
+		fromUrl: url.searchParams.get('category'),
+		fromMemory: rememberedCategory,
+		fromMock: mockOrganization?.category ?? null
+	});
+
+	if (isUiOnlyOnboardingCategory(uiOnlyCategory)) {
+		rememberOrgCategory(cookies, orgId, 'PLATFORM');
+		return {
+			organization: withResolvedCategory(
+				ensureUiOnlyMockOrganization(orgId, { name: mockOrganization?.name }),
+				'PLATFORM',
+				rememberedBrandName
+			),
+			orgId,
+			allowShell: false,
+			resolvedCategory: 'PLATFORM',
+			loadError: null
+		};
+	}
 
 	let tokens;
 	try {
