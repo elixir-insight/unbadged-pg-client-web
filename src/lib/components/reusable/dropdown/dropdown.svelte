@@ -25,6 +25,7 @@
 		onValueChange,
 		name,
 		required,
+		ariaLabel,
 		bordered = false,
 		search = false
 	}: {
@@ -37,6 +38,7 @@
 		onValueChange?: (value: string) => void;
 		name?: string;
 		required?: boolean;
+		ariaLabel?: string;
 		bordered?: boolean;
 		search?: boolean;
 	} = $props();
@@ -84,6 +86,7 @@
 	<PopoverPrimitive.Root bind:open {onOpenChange}>
 		<PopoverTrigger
 			{disabled}
+			aria-label={ariaLabel}
 			data-size={size}
 			class={cn(
 				'flex w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none',
@@ -188,7 +191,11 @@
 {:else}
 	<!-- Standard select (no search) -->
 	<SelectPrimitive.Root type="single" bind:value {disabled} {onValueChange} {name} {required}>
-		<SelectTrigger {size} class={cn('w-full', bordered && 'border-border', className)}>
+		<SelectTrigger
+			{size}
+			aria-label={ariaLabel}
+			class={cn('w-full', bordered && 'border-border', className)}
+		>
 			<span class={cn('truncate', !selectedLabel && 'text-muted-foreground')}>
 				{selectedLabel || placeholder}
 			</span>

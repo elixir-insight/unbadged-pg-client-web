@@ -7,6 +7,7 @@ import {
 	// Wallet,
 	// Send,
 	ArrowLeftRight,
+	MessageSquareWarning,
 	// TrendingUp,
 	Landmark,
 	FileText
@@ -96,6 +97,18 @@ export const managementNav: NavGroup[] = [
 					{
 						matcher: /^\/management\/transactions\/disbursements\/[^/]+$/,
 						title: 'Transaction Details'
+					}
+				]
+			},
+			{
+				title: 'Disputes',
+				href: '/management/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/dispute\/[^/]+$/,
+						title: 'View Dispute'
 					}
 				]
 			},
