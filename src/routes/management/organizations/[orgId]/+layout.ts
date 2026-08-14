@@ -1,7 +1,18 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
-import { createOrganizationShell, organizations } from '$lib/data/mockData';
-import { applyOrganizationCategory } from '$lib/organization/category';
+import {
+	createOrganizationShell,
+	organizations,
+	type OrganizationCategory
+} from '$lib/data/mockData';
+import { applyOrganizationCategory, parseOrganizationCategory } from '$lib/organization/category';
+
+function layoutCategory(
+	value: string | null | undefined,
+	fallback: OrganizationCategory
+): OrganizationCategory {
+	return parseOrganizationCategory(value) ?? fallback;
+}
 
 export const load: LayoutLoad = ({ data, params }) => {
 	if (data.organization) {
@@ -19,7 +30,10 @@ export const load: LayoutLoad = ({ data, params }) => {
 	const seeded = organizations.find((candidate) => candidate.id === orgId);
 	if (seeded) {
 		return {
-			organization: applyOrganizationCategory(seeded, data.resolvedCategory ?? seeded.category),
+			organization: applyOrganizationCategory(
+				seeded,
+				layoutCategory(data.resolvedCategory, seeded.category)
+			),
 			loadError: data.loadError
 		};
 	}
@@ -28,7 +42,7 @@ export const load: LayoutLoad = ({ data, params }) => {
 		return {
 			organization: createOrganizationShell({
 				id: orgId,
-				category: data.resolvedCategory ?? 'MERCHANT'
+				category: layoutCategory(data.resolvedCategory, 'MERCHANT')
 			}),
 			loadError: data.loadError
 		};

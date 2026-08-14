@@ -47,7 +47,22 @@ function fallbackOrganization(orgId: string, mockOrganization: Organization | nu
 	return mockOrganization ?? createOrganizationShell({ id: orgId });
 }
 
-export const load: LayoutServerLoad = async ({ params, url, cookies, fetch, locals, depends }) => {
+type OrganizationLayoutData = {
+	organization: Organization | null;
+	orgId: string;
+	allowShell: boolean;
+	resolvedCategory: OrganizationCategory;
+	loadError: string | null;
+};
+
+export const load: LayoutServerLoad = async ({
+	params,
+	url,
+	cookies,
+	fetch,
+	locals,
+	depends
+}): Promise<OrganizationLayoutData> => {
 	depends('org');
 
 	const log = locals.logger;
