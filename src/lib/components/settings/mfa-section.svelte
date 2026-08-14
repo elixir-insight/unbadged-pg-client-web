@@ -40,6 +40,7 @@
 
 	const statusLabel = $derived(!configured ? 'Not configured' : enabled ? 'Enabled' : 'Disabled');
 	const statusVariant = $derived(!configured ? 'secondary' : enabled ? 'success' : 'secondary');
+	const methodControlsDisabled = $derived(submitting || (configured && !enabled));
 
 	const handleResult: SubmitFunction = () => {
 		submitting = true;
@@ -118,7 +119,11 @@
 
 			<div class="flex flex-col gap-3">
 				<p class="text-sm font-medium text-foreground">Verification method</p>
-				<Radio bind:value={selectedMethod} options={methodOptions} disabled={submitting} />
+				<Radio
+					bind:value={selectedMethod}
+					options={methodOptions}
+					disabled={methodControlsDisabled}
+				/>
 			</div>
 
 			{#if configured && mfaConfig?.method}
@@ -149,7 +154,7 @@
 					<Button
 						type="submit"
 						variant="outline"
-						disabled={submitting || selectedMethod === mfaConfig?.method}
+						disabled={methodControlsDisabled || selectedMethod === mfaConfig?.method}
 					>
 						{submitting ? 'Saving…' : 'Update method'}
 					</Button>
