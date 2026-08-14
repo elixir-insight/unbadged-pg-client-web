@@ -2,7 +2,13 @@
 	import { Paperclip } from '$lib/assets/icons';
 	import SupportingDocumentPanel from './supporting-document-panel.svelte';
 
-	const documentGroups = [
+	interface Props {
+		mode?: 'management' | 'merchant';
+	}
+
+	let { mode = 'management' }: Props = $props();
+
+	const managementGroups = [
 		{
 			title: 'Merchant Proof',
 			description: 'Upload invoices, receipts, screenshots and customer proofs.',
@@ -19,6 +25,16 @@
 			showMerchantVisibility: true
 		}
 	];
+
+	const merchantGroups = [
+		{
+			title: 'Merchant Proof',
+			description: 'Upload invoices, receipts, screenshots and customer proofs.',
+			showMerchantVisibility: false
+		}
+	];
+
+	const documentGroups = $derived(mode === 'merchant' ? merchantGroups : managementGroups);
 </script>
 
 <section class="rounded-xl border border-border bg-background p-6 shadow-sm">
@@ -29,7 +45,7 @@
 		<h2 class="text-base font-semibold text-foreground">Supporting Documents</h2>
 	</div>
 
-	<div class="mt-6 grid gap-4 lg:grid-cols-3">
+	<div class={mode === 'merchant' ? 'mt-6 grid gap-4' : 'mt-6 grid gap-4 lg:grid-cols-3'}>
 		{#each documentGroups as group (group.title)}
 			<SupportingDocumentPanel
 				title={group.title}
