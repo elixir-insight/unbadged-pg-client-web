@@ -44,9 +44,18 @@ export { default as Tooltip } from './tooltip/tooltip.svelte';
 export { default as SearchField } from './search-field/search-field.svelte';
 export type { SearchFieldOption } from './search-field/search-field.svelte';
 export { default as Calendar } from './calendar/calendar.svelte';
-export { default as SearchWithDropdown } from './search-with-dropdown/SearchWithDropdown.svelte';
+export { default as CardData } from './card-data/card-data.svelte';
+export type { CardDataTrend } from './card-data/card-data.svelte';
+export { default as AreaChartCard } from './area-chart-card/area-chart-card.svelte';
+export { default as DonutChart } from './donut-chart/donut-chart.svelte';
+export type { ChartPoint, DonutSegment } from './chart/chart-utils';
+export { default as SearchWithDropdown } from './search-with-dropdown/search-with-dropdown.svelte';
+export type {
+	SearchWithDropdownGroup,
+	SearchWithDropdownOption
+} from './search-with-dropdown/search-with-dropdown.svelte';
+export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
 export { default as StatusStatCard } from './status-stat-card/StatusStatCard.svelte';
 export type { StatusStatCardColor } from './status-stat-card/StatusStatCard.svelte';
-export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
 export { default as DatePicker } from './date-picker/date-picker.svelte';
 export { default as ErrorPage } from './error-page/error-page.svelte';

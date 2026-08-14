@@ -8,6 +8,7 @@
 		title?: string;
 		description?: string;
 		direction?: 'bottom' | 'top' | 'left' | 'right';
+		class?: string;
 		scrollable?: boolean;
 		trigger?: Snippet;
 		children?: Snippet;
@@ -19,6 +20,7 @@
 		title,
 		description,
 		direction = 'bottom',
+		class: className,
 		scrollable = true,
 		trigger,
 		children,
@@ -32,7 +34,7 @@
 			{@render trigger()}
 		</Drawer.Trigger>
 	{/if}
-	<Drawer.Content>
+	<Drawer.Content class={className}>
 		{#if title || description}
 			<Drawer.Header>
 				{#if title}

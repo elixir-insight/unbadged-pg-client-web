@@ -9,6 +9,12 @@ import {
 } from '$lib/server/domains/auth/getValidSession';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
+import {
+	createOrganization,
+	generateMockOrganizationId,
+	organizations,
+	parseOrganizationBusinessType
+} from '$lib/data/mockData';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	const log = locals.logger;
@@ -55,6 +61,26 @@ export const actions = {
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid organization payload'
 			});
+		}
+
+		// Partner onboarding isn't wired to the live API yet — create a mock org instead.
+		if (parsed.output.selectedCategory === 'Partner') {
+			const organizationId = generateMockOrganizationId();
+			organizations.push(
+				createOrganization({
+					id: organizationId,
+					name: parsed.output.orgName,
+					businessType: parseOrganizationBusinessType(parsed.output.orgBusinessType),
+					category: 'PARTNER',
+					status: 'IN_PROGRESS',
+					kybStatus: 'Not Started',
+					createdAt: new Date().toISOString().slice(0, 10),
+					assignedAdmin: '',
+					serviceTypes: []
+				})
+			);
+			log.info({ organizationId }, 'created mock partner organization');
+			redirect(303, `/management/organizations/${organizationId}/kyb`);
 		}
 
 		const result = await createOrganizationMutation({

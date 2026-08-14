@@ -10,6 +10,7 @@ function tokenWithGroups(groups: string[]): CognitoIdToken {
 function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayTokenPayload {
 	return {
 		orgId: 10002,
+		displayOrgId: 'ORG_2bV',
 		userId: 100002,
 		userName: 'Elixir Pay',
 		userEmail: 'admin@elixirpay.com',
@@ -51,9 +52,17 @@ describe('parseMerchantSessionFromGateway', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
 		expect(session.userId).toBe('100002');
 		expect(session.organizationId).toBe('10002');
+		expect(session.displayOrgId).toBe('ORG_2bV');
 		expect(session.merchantName).toBe('Elixir Pay');
 		expect(session.email).toBe('admin@elixirpay.com');
 		expect(session.userType).toBe('ROOT');
+	});
+
+	it('falls back displayOrgId to organizationId when absent from token', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken({ displayOrgId: undefined }), [
+			'MERCHANT'
+		]);
+		expect(session.displayOrgId).toBe('10002');
 	});
 
 	it('uses portal groups from the access token only', () => {

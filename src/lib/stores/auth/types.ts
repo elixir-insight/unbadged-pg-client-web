@@ -46,6 +46,8 @@ export interface AccessTokenPayload {
 
 export interface GatewayTokenPayload {
 	orgId: number;
+	/** Human-readable org identifier for UI (e.g. ORG_2bV). */
+	displayOrgId?: string;
 	userId: number;
 	/** Backend may return null for ROOT / incomplete profiles. */
 	userName: string | null;
@@ -63,6 +65,8 @@ export interface GatewayTokenPayload {
 export interface MerchantSession {
 	userId: string;
 	organizationId: string;
+	/** Human-readable org identifier shown in merchant UI. */
+	displayOrgId: string;
 	merchantName: string;
 	email: string;
 	userType: string;

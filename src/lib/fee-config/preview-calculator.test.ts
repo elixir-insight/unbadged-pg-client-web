@@ -4,27 +4,40 @@ import {
 	createCommissionDefaultSlabs,
 	createDefaultSlabRows,
 	createPartnerDefaultSlabs,
+	suggestNextSlabBaseAmount,
 	validateSlabs
 } from './slab-validation';
 
 describe('slab-validation', () => {
-	it('accepts valid ascending slabs with open-ended last row', () => {
+	it('accepts valid bounded slabs', () => {
 		const result = validateSlabs(createDefaultSlabRows());
 		expect(result.valid).toBe(true);
 	});
 
-	it('rejects duplicate thresholds', () => {
+	it('accepts non-ascending base amounts', () => {
+		const slabs = createDefaultSlabRows();
+		slabs[0].baseAmount = '100';
+		slabs[1].baseAmount = '50';
+		const result = validateSlabs(slabs);
+		expect(result.valid).toBe(true);
+	});
+
+	it('accepts duplicate base amounts', () => {
 		const slabs = createDefaultSlabRows();
 		slabs[1].baseAmount = '10000';
 		const result = validateSlabs(slabs);
-		expect(result.valid).toBe(false);
-		expect(result.errors.length).toBeGreaterThan(0);
+		expect(result.valid).toBe(true);
 	});
 
-	it('rejects missing open-ended row', () => {
-		const slabs = createDefaultSlabRows().filter((slab) => slab.baseAmount !== '');
+	it('rejects rows without base amount', () => {
+		const slabs = createDefaultSlabRows();
+		slabs[0].baseAmount = '';
 		const result = validateSlabs(slabs);
 		expect(result.valid).toBe(false);
+	});
+
+	it('suggests the next base amount from the highest slab', () => {
+		expect(suggestNextSlabBaseAmount(createDefaultSlabRows())).toBe('1000000');
 	});
 });
 

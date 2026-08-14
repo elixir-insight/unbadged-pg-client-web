@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { organizations } from '$lib/data/mockData';
+import { organizations, createOrganizationShell } from '$lib/data/mockData';
 import {
 	getValidSession,
 	SessionError,
@@ -8,6 +8,7 @@ import {
 } from '$lib/server/domains/auth/getValidSession';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
+import { resolveOrganizationDisplayName } from '$lib/server/domains/organization/utils/resolve-display-name';
 
 export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
 	depends('org');
@@ -21,13 +22,24 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 
 	const mockOrganization = organizations.find((candidate) => candidate.id === orgId) ?? null;
 
+	// Partner onboarding isn't wired to the live API yet — always serve mock data.
+	if (mockOrganization?.category === 'PARTNER') {
+		return {
+			organization: mockOrganization,
+			orgId,
+			allowShell: false,
+			loadError: null
+		};
+	}
+
 	let tokens;
 	try {
 		tokens = await getValidSession(cookies, fetch, log);
 	} catch (e) {
 		if (e instanceof SessionInactiveError || e instanceof SessionError) {
+			const organization = mockOrganization ?? createOrganizationShell({ id: orgId });
 			return {
-				organization: mockOrganization,
+				organization,
 				orgId,
 				allowShell: true,
 				loadError: e.message
@@ -44,46 +56,54 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		orgId
 	);
 
+	let organization = mockOrganization ?? createOrganizationShell({ id: orgId });
+	let allowShell = true;
+	let loadError: string | null;
+
 	if (detailsResult.ok) {
-		const organization = mapGetOrganizationResponse(detailsResult.data, orgId);
-		if (organization) {
-			return {
-				organization,
-				orgId,
-				allowShell: false,
-				loadError: null
-			};
+		const mapped = mapGetOrganizationResponse(detailsResult.data, orgId);
+		if (mapped) {
+			organization = mapped;
+			allowShell = false;
+			loadError = null;
+		} else {
+			log.warn(
+				{ orgId, upstream: detailsResult.data },
+				'GET organization details returned unmapped payload'
+			);
+			loadError = 'Unexpected organization details response shape';
 		}
+	} else {
+		const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
+		const exceptionCode =
+			detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
+
 		log.warn(
-			{ orgId, upstream: detailsResult.data },
-			'GET organization details returned unmapped payload'
+			{
+				orgId,
+				kind: detailsResult.error.kind,
+				status,
+				exceptionCode,
+				message: detailsResult.error.message
+			},
+			'GET organization details failed'
 		);
-		return {
-			organization: mockOrganization,
-			orgId,
-			allowShell: true,
-			loadError: 'Unexpected organization details response shape'
-		};
+		loadError = detailsResult.error.message;
 	}
 
-	const status = detailsResult.error.kind === 'http' ? detailsResult.error.status : undefined;
-	const exceptionCode = detailsResult.error.kind === 'http' ? detailsResult.error.code : undefined;
-
-	log.warn(
-		{
-			orgId,
-			kind: detailsResult.error.kind,
-			status,
-			exceptionCode,
-			message: detailsResult.error.message
-		},
-		'GET organization details failed'
-	);
+	organization = await resolveOrganizationDisplayName({
+		organization,
+		orgId,
+		fetch,
+		log,
+		accessToken: tokens.accessToken,
+		gatewayToken: tokens.gatewayToken
+	});
 
 	return {
-		organization: mockOrganization,
+		organization,
 		orgId,
-		allowShell: true,
-		loadError: detailsResult.error.message
+		allowShell,
+		loadError
 	};
 };

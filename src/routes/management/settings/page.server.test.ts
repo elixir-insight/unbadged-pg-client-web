@@ -8,6 +8,8 @@ import { load, actions } from './+page.server';
 type SettingsLoadResult = {
 	apiCredential: { id: string; clientId: string } | null;
 	apiCredentialError: string | null;
+	mfaConfig: { method?: 'EMAIL' | 'SMS'; configured: boolean; enabled: boolean } | null;
+	mfaError: string | null;
 };
 
 async function callLoad(event: Parameters<typeof load>[0]): Promise<SettingsLoadResult> {
@@ -55,11 +57,27 @@ function jsonResponse(status: number, body: unknown) {
 	});
 }
 
+function mockSettingsFetch(credentialResponse: Response, mfaResponse?: Response) {
+	const defaultMfa = jsonResponse(200, {
+		data: [{ configured: false, enabled: false }],
+		message: 'MFA Configuration Fetched Successfully',
+		statusCode: 200
+	});
+
+	return vi.fn().mockImplementation((input: RequestInfo | URL) => {
+		const url = String(input);
+		if (url.includes('/api/v1/user/mfa')) {
+			return Promise.resolve(mfaResponse ?? defaultMfa);
+		}
+		return Promise.resolve(credentialResponse);
+	});
+}
+
 describe('settings +page.server load (GET api-credentials)', () => {
 	it('returns apiCredential: null when the org has no credential yet', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(jsonResponse(200, { data: [], message: 'ok', statusCode: 200 }));
+		const fetchFn = mockSettingsFetch(
+			jsonResponse(200, { data: [], message: 'ok', statusCode: 200 })
+		);
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -69,10 +87,12 @@ describe('settings +page.server load (GET api-credentials)', () => {
 
 		expect(result.apiCredential).toBeNull();
 		expect(result.apiCredentialError).toBeNull();
+		expect(result.mfaConfig).toEqual({ configured: false, enabled: false });
+		expect(result.mfaError).toBeNull();
 	});
 
 	it('returns only id/clientId when a credential exists — never clientSecret', async () => {
-		const fetchFn = vi.fn().mockResolvedValue(
+		const fetchFn = mockSettingsFetch(
 			jsonResponse(200, {
 				data: [{ id: 'cred-1', clientId: 'client-1', clientSecret: 'super-secret' }],
 				message: 'ok',
@@ -92,7 +112,7 @@ describe('settings +page.server load (GET api-credentials)', () => {
 	});
 
 	it('accepts the real backend shape — numeric id, no clientSecret on GET at all', async () => {
-		const fetchFn = vi.fn().mockResolvedValue(
+		const fetchFn = mockSettingsFetch(
 			jsonResponse(200, {
 				message: 'API credentials retrieved successfully',
 				data: [{ clientId: 'ELXhVfw0FIyo4_zs0Fis8-LEA', id: 1 }],
@@ -111,11 +131,9 @@ describe('settings +page.server load (GET api-credentials)', () => {
 	});
 
 	it('returns a retryable error message on a 500', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(
-				jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
-			);
+		const fetchFn = mockSettingsFetch(
+			jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		);
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -128,11 +146,9 @@ describe('settings +page.server load (GET api-credentials)', () => {
 	});
 
 	it('redirects to login on a 401', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(
-				jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
-			);
+		const fetchFn = mockSettingsFetch(
+			jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
+		);
 
 		await expect(
 			load({
@@ -141,6 +157,26 @@ describe('settings +page.server load (GET api-credentials)', () => {
 				locals: { logger: fakeLogger() }
 			} as never)
 		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
+	});
+
+	it('returns configured MFA when the backend has EMAIL MFA enabled', async () => {
+		const fetchFn = mockSettingsFetch(
+			jsonResponse(200, { data: [], message: 'ok', statusCode: 200 }),
+			jsonResponse(200, {
+				data: [{ method: 'EMAIL', configured: true, enabled: true }],
+				message: 'MFA Configuration Fetched Successfully',
+				statusCode: 200
+			})
+		);
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toEqual({ method: 'EMAIL', configured: true, enabled: true });
+		expect(result.mfaError).toBeNull();
 	});
 });
 
