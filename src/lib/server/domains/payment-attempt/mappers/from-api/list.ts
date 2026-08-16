@@ -53,7 +53,11 @@ export interface PaymentAttemptDetailView {
 	txnId: string;
 	orderId: string;
 	clientOrderId: string;
+	orgId: string;
+	pipelineTransactionId: string;
+	disputeId: string;
 	transactionAmount: string;
+	amountValue: string;
 	paymentMethod: string;
 	paymentChannel: string;
 	paymentMode: string;
@@ -149,7 +153,11 @@ export function mapPaymentAttemptDetail(item: PaymentAttemptItem): PaymentAttemp
 		txnId: item.payinAttemptId,
 		orderId: item.orderId?.trim() || '—',
 		clientOrderId: item.clientOrderId?.trim() || '—',
+		orgId: item.orgId?.trim() || '',
+		pipelineTransactionId: item.pipelineTransactionId?.trim() || item.payinAttemptId,
+		disputeId: item.disputeId?.trim() || '',
 		transactionAmount: formatAmount(item.transactionAmount),
+		amountValue: formatApiAmount(item.transactionAmount),
 		paymentMethod: formatSnakeCaseLabel(item.paymentMethod?.trim() || '—'),
 		paymentChannel: formatSnakeCaseLabel(item.paymentChannel?.trim() || '—'),
 		paymentMode: formatSnakeCaseLabel(item.paymentMode?.trim() || '—'),
@@ -216,6 +224,12 @@ function formatAmount(value: string | null | undefined): string {
 	if (!normalized) return '—';
 	const amount = Number(normalized);
 	return Number.isFinite(amount) ? amountFormatter.format(amount) : value || '—';
+}
+
+function formatApiAmount(value: string | null | undefined): string {
+	const normalized = value?.replace(/,/g, '').trim() ?? '';
+	const amount = Number(normalized);
+	return Number.isFinite(amount) ? amount.toFixed(2) : '';
 }
 
 function formatDate(value: string): string {

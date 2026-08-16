@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/reusable';
 	import { Clock, TriangleAlert } from '$lib/assets/icons';
 	import {
@@ -13,12 +10,12 @@
 		Timeline,
 		type DetailSection
 	} from '$lib/components/transactions/collections';
+	import RaiseDisputeModal from '$lib/components/transactions/disputes/raise-dispute-modal.svelte';
 	import {
 		getCurrentScope,
 		gotoScopedPath,
 		scopeQueryString
 	} from '$lib/utils/transaction-scope.svelte';
-	import { hasDisputeForTransaction } from '$lib/utils/management-disputes';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -26,7 +23,10 @@
 	const scope = $derived(getCurrentScope());
 	const scopeQuery = $derived(scopeQueryString(scope));
 	const payment = $derived(data.payment);
-	let disputeAlreadyRaised = $state(false);
+	const orgId = $derived(payment?.orgId || scope.orgId);
+	let locallyRaised = $state(false);
+	const disputeAlreadyRaised = $derived(Boolean(payment?.disputeId) || locallyRaised);
+	let raiseDisputeOpen = $state(false);
 
 	function parseAmount(value: string): number {
 		return Number(value.replace(/[₹,\s]/g, '')) || 0;
@@ -42,21 +42,12 @@
 
 	function raiseDispute(): void {
 		if (!payment || disputeAlreadyRaised) return;
-
-		const params = new URLSearchParams({
-			orderId: payment.orderId,
-			transactionId: payment.txnId,
-			amount: payment.transactionAmount,
-			raisedOn: new Date().toISOString()
-		});
-
-		goto(resolve(`/management/dispute?${params.toString()}`));
+		raiseDisputeOpen = true;
 	}
 
-	onMount(() => {
-		if (!payment) return;
-		disputeAlreadyRaised = hasDisputeForTransaction(payment.txnId);
-	});
+	function onDisputeRaised(): void {
+		locallyRaised = true;
+	}
 
 	const totalFees = $derived(
 		payment
@@ -198,4 +189,14 @@
 			{/if}
 		{/snippet}
 	</DetailPageLayout>
+
+	<RaiseDisputeModal
+		bind:open={raiseDisputeOpen}
+		{orgId}
+		orderId={payment.orderId}
+		pipelineTransactionId={payment.pipelineTransactionId}
+		amountValue={payment.amountValue}
+		amountDisplay={payment.transactionAmount}
+		onsuccess={onDisputeRaised}
+	/>
 {/if}
