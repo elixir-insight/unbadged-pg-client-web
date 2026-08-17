@@ -3,10 +3,10 @@
 	import { Bell, Calendar, Check, Clock, FileText, Search, ShieldCheck } from '$lib/assets/icons';
 	import { Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
-	import type { DisputeStatus } from '$lib/utils/management-disputes';
+	import { disputeTimelineStep, formatDisputeStatusLabel } from '$lib/utils/dispute-status';
 
 	interface Props {
-		status: DisputeStatus;
+		status: string;
 		raisedOn: string;
 		evidenceDueBy: string;
 	}
@@ -31,9 +31,7 @@
 		}).format(date);
 	}
 
-	const currentStep = $derived(
-		status === 'Raised' ? 0 : status === 'Open' ? 3 : status === 'Under review' ? 4 : 5
-	);
+	const currentStep = $derived(disputeTimelineStep(status));
 
 	const steps = $derived<TimelineStep[]>([
 		{
@@ -68,7 +66,7 @@
 		},
 		{
 			title: 'Resolved',
-			date: currentStep === 5 ? status : 'Pending',
+			date: currentStep === 5 ? formatDisputeStatusLabel(status) : 'Pending',
 			description: 'Final decision posted to settlement ledger.',
 			icon: ShieldCheck
 		}

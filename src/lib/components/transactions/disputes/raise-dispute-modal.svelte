@@ -101,21 +101,24 @@
 
 		isSubmitting = true;
 		try {
+			const payload = {
+				actorType: 'user',
+				amount: amountValue,
+				assignedTo,
+				currency: 'INR',
+				orderId,
+				pipelineTransactionId,
+				source,
+				status: 'DISPUTE_RAISED'
+			};
+			console.log('raise dispute request', { orgId, payload });
+
 			const response = await fetch(
 				resolve('/api/management/organizations/[orgId]/disputes', { orgId }),
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						actorType: 'user',
-						amount: amountValue,
-						assignedTo,
-						currency: 'INR',
-						orderId,
-						pipelineTransactionId,
-						source,
-						status: 'DISPUTE_RAISED'
-					})
+					body: JSON.stringify(payload)
 				}
 			);
 

@@ -49,3 +49,21 @@ export function disputeStatusChipVariant(status: string): DisputeStatusChipVaria
 	if (normalized === 'LOST') return 'error';
 	return 'outline';
 }
+
+export function disputeCurrentStage(status: string): string {
+	const normalized = normalizeDisputeStatusKey(status);
+	if (normalized === 'RAISED') return 'Dispute Raised';
+	if (normalized === 'OPEN') return 'Evidence Collection';
+	if (normalized === 'UNDER_REVIEW') return 'Network Review';
+	if (normalized === 'WON' || normalized === 'LOST') return 'Resolved';
+	return formatDisputeStatusLabel(status);
+}
+
+export function disputeTimelineStep(status: string): number {
+	const normalized = normalizeDisputeStatusKey(status);
+	if (normalized === 'RAISED') return 0;
+	if (normalized === 'OPEN') return 3;
+	if (normalized === 'UNDER_REVIEW') return 4;
+	if (normalized === 'WON' || normalized === 'LOST') return 5;
+	return 0;
+}

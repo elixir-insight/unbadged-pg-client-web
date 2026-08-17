@@ -39,6 +39,27 @@ export const disputeClient = {
 			schema: DisputeListResponseSchema
 		}),
 
+	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId} */
+	getById: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				schema: DisputeListResponseSchema
+			}
+		),
+
 	/** POST /api/v1/management/organizations/{orgId}/disputes */
 	create: (
 		fetchFn: typeof fetch,
