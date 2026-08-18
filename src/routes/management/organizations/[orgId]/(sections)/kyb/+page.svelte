@@ -28,6 +28,8 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
+	import { deleteDirector, isPersistedDirectorId } from '$lib/organization/directors-api';
 
 	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
 	type AddressField = 'line1' | 'line2' | 'city' | 'state' | 'pincode' | 'country';
@@ -55,6 +57,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
+	const isPartner = $derived(isPartnerStyleCategory(organization.category));
 
 	let editableKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
 	let editableDirectors = $state(untrack(() => cloneOrganization(organization.directors)));
@@ -72,6 +75,7 @@
 		)
 	);
 	let expandedDirectorId = $state<string | null>(null);
+	let removingDirectorId = $state<string | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 	let saving = $state(false);
 	let formElement = $state<HTMLFormElement | null>(null);
@@ -137,7 +141,9 @@
 				registeredYear: editableKyb.registeredYear,
 				cin: editableKyb.cin,
 				tan: editableKyb.tan,
-				businessType: editableKyb.businessType
+				businessType: editableKyb.businessType,
+				brandName: editableKyb.brandName,
+				category: organization.category
 			});
 		}
 
@@ -221,15 +227,20 @@
 			registeredYear: editableKyb.registeredYear,
 			cin: editableKyb.cin,
 			tan: editableKyb.tan,
+			category: organization.category,
+			...(isPartner ? { brandName: editableKyb.brandName } : {}),
 			registeredAddress: editableKyb.registeredAddress,
 			communicationAddress: editableKyb.communicationAddress,
-			directors: editableDirectors.map((director) => ({
-				name: director.name,
-				pan: director.pan,
-				email: director.email,
-				phone: director.phone,
-				aadhar: director.aadhar
-			}))
+			directors:
+				currentStep === 'directors'
+					? editableDirectors.map((director) => ({
+							name: director.name,
+							pan: director.pan,
+							email: director.email,
+							phone: director.phone,
+							aadhar: director.aadhar
+						}))
+					: []
 		};
 	}
 
@@ -336,8 +347,31 @@
 		expandedDirectorId = id;
 	}
 
-	function removeDirector(id: string) {
+	async function removeDirector(id: string) {
+		if (removingDirectorId) return;
+
+		if (isPersistedDirectorId(id)) {
+			removingDirectorId = id;
+			try {
+				const result = await deleteDirector(orgId, id);
+				toast.success('Director removed', { description: result.message });
+			} catch (error) {
+				toast.error('Could not remove director', {
+					description: error instanceof Error ? error.message : 'Could not delete director'
+				});
+				removingDirectorId = null;
+				return;
+			} finally {
+				removingDirectorId = null;
+			}
+		}
+
 		editableDirectors = editableDirectors.filter((director) => director.id !== id);
+		baselineDirectors = baselineDirectors.filter((director) => director.id !== id);
+		organization.directors = cloneOrganization(editableDirectors);
+		if (organization.kyb) {
+			organization.kyb.directors = organization.directors;
+		}
 		if (expandedDirectorId === id) {
 			expandedDirectorId = null;
 		}
@@ -504,6 +538,16 @@
 				},
 				'tan'
 			)}
+			{#if isPartner}
+				{@render textField(
+					'Brand name',
+					editableKyb.brandName ?? '',
+					(value) => {
+						editableKyb = { ...editableKyb, brandName: value };
+					},
+					'brandName'
+				)}
+			{/if}
 		</div>
 	{:else if currentStep === 'address'}
 		<div class="space-y-6">
@@ -665,6 +709,7 @@
 												size="icon-sm"
 												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 												aria-label="Remove director"
+												disabled={removingDirectorId === director.id}
 												onclick={() => removeDirector(director.id)}
 											>
 												<Trash2 class="size-4" />
@@ -731,6 +776,7 @@
 												size="icon-sm"
 												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 												aria-label="Remove director"
+												disabled={removingDirectorId === director.id}
 												onclick={() => removeDirector(director.id)}
 											>
 												<Trash2 class="size-4" />

@@ -21,6 +21,7 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
@@ -43,6 +44,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
+	const isPartner = $derived(isPartnerStyleCategory(organization.category));
 	const isPrivateLimited = $derived(organization.kyb?.businessType === 'Private Limited');
 	const documentsLoadError = $derived(data.documentsLoadError);
 
@@ -101,11 +103,13 @@
 			: []
 	);
 	const organizationLogoDoc = $derived(ensureOrgDocument('Organization logo', documents));
+	const brandLogoDoc = $derived(isPartner ? ensureOrgDocument('Brand logo', documents) : null);
 	const otherDocs = $derived(
 		documents.filter(
 			(document) =>
 				(document.activationGate || document.optional) &&
-				document.documentType !== 'Organization logo'
+				document.documentType !== 'Organization logo' &&
+				document.documentType !== 'Brand logo'
 		)
 	);
 
@@ -498,6 +502,18 @@
 				false,
 				(file) => applyOrgUpload(organizationLogoDoc, file),
 				() => deleteOrgDocument(organizationLogoDoc)
+			)}
+		</section>
+	{/if}
+
+	{#if brandLogoDoc}
+		<section class="space-y-1">
+			{@render documentRow(
+				brandLogoDoc,
+				'Brand logo',
+				true,
+				(file) => applyOrgUpload(brandLogoDoc, file),
+				() => deleteOrgDocument(brandLogoDoc)
 			)}
 		</section>
 	{/if}

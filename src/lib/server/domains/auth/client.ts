@@ -8,7 +8,16 @@ import {
 	ForgotPasswordRequestSchema,
 	ForgotPasswordResponseSchema,
 	ConfirmPasswordRequestSchema,
-	ConfirmPasswordResponseSchema
+	ConfirmPasswordResponseSchema,
+	ResetPasswordRequestSchema,
+	ResetPasswordResponseSchema,
+	CreateMfaRequestSchema,
+	CreateMfaResponseSchema,
+	MfaConfigResponseSchema,
+	UpdateMfaRequestSchema,
+	VerifyMfaRequestSchema,
+	VerifyMfaResponseSchema,
+	type MfaMethod
 } from './schema';
 
 export const authClient = {
@@ -113,5 +122,85 @@ export const authClient = {
 				newPassword
 			} satisfies v.InferOutput<typeof ConfirmPasswordRequestSchema>,
 			schema: ConfirmPasswordResponseSchema
+		}),
+
+	/** Authenticated password change (settings) — requires a valid session. */
+	resetPassword: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		oldPassword: string,
+		newPassword: string
+	) =>
+		apiFetch('/api/v1/user/password/reset', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			body: {
+				oldPassword,
+				newPassword
+			} satisfies v.InferOutput<typeof ResetPasswordRequestSchema>,
+			schema: ResetPasswordResponseSchema
+		}),
+
+	getMfa: (fetchFn: typeof fetch, logger: Logger, accessToken: string, gatewayToken: string) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: MfaConfigResponseSchema
+		}),
+
+	createMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		method: MfaMethod
+	) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			body: { method } satisfies v.InferOutput<typeof CreateMfaRequestSchema>,
+			schema: CreateMfaResponseSchema
+		}),
+
+	updateMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		body: v.InferOutput<typeof UpdateMfaRequestSchema>
+	) =>
+		apiFetch('/api/v1/user/mfa', {
+			fetch: fetchFn,
+			logger,
+			method: 'PATCH',
+			accessToken,
+			gatewayToken,
+			body,
+			schema: MfaConfigResponseSchema
+		}),
+
+	verifyMfa: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		body: v.InferOutput<typeof VerifyMfaRequestSchema>
+	) =>
+		apiFetch('/api/v1/user/mfa/verify', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body,
+			schema: VerifyMfaResponseSchema
 		})
 };

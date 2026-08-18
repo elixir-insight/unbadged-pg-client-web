@@ -20,6 +20,7 @@ export function storeSession(
 }
 
 const PW_CHALLENGE_COOKIE = 'pwChallenge';
+const MFA_CHALLENGE_COOKIE = 'mfaChallenge';
 
 /**
  * Short-lived challenge from a "Password change required" (202) sign-in.
@@ -58,6 +59,57 @@ export function readPasswordChallenge(
 
 export function clearPasswordChallenge(cookies: Cookies) {
 	cookies.delete(PW_CHALLENGE_COOKIE, { path: '/' });
+}
+
+export type StoredMfaChallenge = {
+	userEmail: string;
+	challengeName: 'EMAIL_OTP' | 'SMS_MFA';
+	challengeSession: string;
+	challengeDestination: string;
+	challengeExpiresIn: number;
+};
+
+/** Short-lived MFA challenge from a 202 sign-in — kept httpOnly until OTP verify. */
+export function storeMfaChallenge(cookies: Cookies, data: StoredMfaChallenge) {
+	const maxAge = Math.max(30, Math.min(data.challengeExpiresIn || 180, 60 * 10));
+	cookies.set(MFA_CHALLENGE_COOKIE, JSON.stringify(data), { ...COOKIE_OPTS, maxAge });
+}
+
+export function readMfaChallenge(cookies: Cookies): StoredMfaChallenge | null {
+	const raw = cookies.get(MFA_CHALLENGE_COOKIE);
+	if (!raw) return null;
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (
+			parsed &&
+			typeof parsed === 'object' &&
+			'userEmail' in parsed &&
+			'challengeName' in parsed &&
+			'challengeSession' in parsed &&
+			'challengeDestination' in parsed &&
+			'challengeExpiresIn' in parsed &&
+			typeof parsed.userEmail === 'string' &&
+			(parsed.challengeName === 'EMAIL_OTP' || parsed.challengeName === 'SMS_MFA') &&
+			typeof parsed.challengeSession === 'string' &&
+			typeof parsed.challengeDestination === 'string' &&
+			typeof parsed.challengeExpiresIn === 'number'
+		) {
+			return {
+				userEmail: parsed.userEmail,
+				challengeName: parsed.challengeName,
+				challengeSession: parsed.challengeSession,
+				challengeDestination: parsed.challengeDestination,
+				challengeExpiresIn: parsed.challengeExpiresIn
+			};
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+export function clearMfaChallenge(cookies: Cookies) {
+	cookies.delete(MFA_CHALLENGE_COOKIE, { path: '/' });
 }
 
 export function clearAuthCookies(cookies: Cookies) {

@@ -35,6 +35,21 @@ describe('mapGetDocumentsResponse', () => {
 		});
 	});
 
+	it('maps brand logo as a required organization document', () => {
+		const organization = createOrganizationShell({ id: 'org_2bL', category: 'PARTNER' });
+		const { documents } = mapGetDocumentsResponse(
+			[record({ id: 12, fileName: 'brandLogo' })],
+			organization
+		);
+
+		const brandLogo = documents.find((document) => document.documentType === 'Brand logo');
+		expect(brandLogo).toMatchObject({
+			id: '12',
+			status: 'Uploaded'
+		});
+		expect(brandLogo?.optional).not.toBe(true);
+	});
+
 	it('marks organization logo as optional', () => {
 		const organization = createOrganizationShell({ id: 'org_2bL' });
 		const { documents } = mapGetDocumentsResponse(

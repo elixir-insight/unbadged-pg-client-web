@@ -23,7 +23,7 @@ export const actions: Actions = {
 		const confirmPassword = String(data.get('confirmPassword') ?? '');
 
 		if (newPassword !== confirmPassword) {
-			return fail(400, { error: 'Passwords do not match.', userEmail });
+			return fail(400, { error: 'Passwords do not match.', errorField: 'password', userEmail });
 		}
 
 		const parsed = v.safeParse(ConfirmPasswordRequestSchema, {
@@ -32,8 +32,10 @@ export const actions: Actions = {
 			newPassword
 		});
 		if (!parsed.success) {
+			const invalidField = parsed.issues[0]?.path?.[0]?.key;
 			return fail(400, {
 				error: parsed.issues[0]?.message ?? 'Invalid details.',
+				errorField: invalidField === 'confirmationCode' ? 'otp' : 'password',
 				userEmail
 			});
 		}
@@ -47,11 +49,13 @@ export const actions: Actions = {
 		);
 
 		if (!result.ok) {
-			console.log(result, 'fail');
 			const httpStatus = result.error.kind === 'http' ? result.error.status : 502;
 			const status = httpStatus >= 400 && httpStatus < 500 ? httpStatus : 502;
+			const errorCode = result.error.kind === 'http' ? result.error.code : '';
+			const isOtpError = /code|otp|confirmation/i.test(`${errorCode} ${result.error.message}`);
 			return fail(status, {
 				error: result.error.message,
+				errorField: isOtpError ? 'otp' : 'password',
 				userEmail
 			});
 		}

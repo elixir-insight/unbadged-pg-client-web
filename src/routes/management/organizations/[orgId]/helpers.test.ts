@@ -22,9 +22,10 @@ describe('organization flow nav helpers', () => {
 			'Profile overview',
 			'KYB',
 			'Bank',
-			'Documents'
+			'Documents',
+			'Fees'
 		]);
-		expect(getPostOnboardingSteps()).toHaveLength(4);
+		expect(getPostOnboardingSteps()).toHaveLength(5);
 	});
 
 	it('maps KYB sub-steps to the KYB tab for post-onboarding orgs', () => {

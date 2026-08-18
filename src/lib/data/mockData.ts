@@ -1,4 +1,4 @@
-export type OrganizationCategory = 'MERCHANT' | 'PARTNER';
+export type OrganizationCategory = 'MERCHANT' | 'PARTNER' | 'PLATFORM';
 export type OrganizationStatus =
 	'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
 export type OrganizationBusinessType =
@@ -22,7 +22,8 @@ export type DocumentType =
 	| 'Memorandum of Association (MOA)'
 	| 'UBO Declaration'
 	| 'Board Resolution for Authorized Signatory'
-	| 'Organization logo';
+	| 'Organization logo'
+	| 'Brand logo';
 
 export interface OrganizationAddress {
 	line1: string;
@@ -71,6 +72,7 @@ export interface OrganizationDirector {
 
 export interface OrganizationKyb {
 	legalCompanyName: string;
+	brandName: string;
 	businessType: 'Sole Proprietorship' | 'Partnership' | 'LLP' | 'Private Limited';
 	cin: string;
 	tan: string;
@@ -182,6 +184,26 @@ const businessTypeLabelMap: Record<OrganizationBusinessType, OrganizationKyb['bu
 	PRIVATE_LIMITED: 'Private Limited'
 };
 
+const businessTypeFromLabelMap: Record<string, OrganizationBusinessType> = {
+	'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
+	Partnership: 'PARTNERSHIP',
+	LLP: 'LLP',
+	'Private Limited': 'PRIVATE_LIMITED'
+};
+
+export function parseOrganizationBusinessType(label: string): OrganizationBusinessType {
+	return businessTypeFromLabelMap[label] ?? 'PRIVATE_LIMITED';
+}
+
+/** Generates a backend-shaped mock org id (e.g. `ORG_2bm`) for orgs created without a live API call. */
+export function generateMockOrganizationId(): string {
+	let id: string;
+	do {
+		id = `ORG_${Math.random().toString(36).slice(2, 8)}`;
+	} while (organizations.some((organization) => organization.id === id));
+	return id;
+}
+
 export const fixedRequiredDocuments: DocumentType[] = [
 	'GST certificate',
 	'Business PAN card',
@@ -267,8 +289,8 @@ function emptyPayoutConfiguration(): OrganizationPayoutConfiguration {
 	};
 }
 
-function pendingDocuments(): OrganizationDocument[] {
-	return [
+function pendingDocuments(category: OrganizationCategory = 'MERCHANT'): OrganizationDocument[] {
+	const documents: OrganizationDocument[] = [
 		...fixedRequiredDocuments.map((documentType) => ({
 			id: documentType.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
 			documentType,
@@ -283,6 +305,17 @@ function pendingDocuments(): OrganizationDocument[] {
 			optional: true
 		}
 	];
+
+	if (category === 'PARTNER' || category === 'PLATFORM') {
+		documents.push({
+			id: 'brand-logo',
+			documentType: 'Brand logo',
+			fileName: '',
+			status: 'Pending'
+		});
+	}
+
+	return documents;
 }
 
 /** Minimal org used when GET-by-id is unavailable but onboarding must continue. */
@@ -311,6 +344,7 @@ export function createOrganizationShell(params: {
 		serviceTypes,
 		kyb: {
 			legalCompanyName: name,
+			brandName: '',
 			businessType: businessTypeLabelMap[businessType],
 			cin: '',
 			tan: '',
@@ -335,7 +369,7 @@ export function createOrganizationShell(params: {
 		addressDetails: address,
 		directors: [],
 		bankAccounts: [],
-		documents: pendingDocuments(),
+		documents: pendingDocuments(category),
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
 		payoutConfiguration: emptyPayoutConfiguration(),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
@@ -426,7 +460,8 @@ function createDocuments(
 	baseDate: string,
 	requiredStatus: DocumentStatus,
 	businessAgreementStatus: DocumentStatus,
-	logoStatus: DocumentStatus
+	logoStatus: DocumentStatus,
+	category: OrganizationCategory
 ): OrganizationDocument[] {
 	const requiredTypes: DocumentType[] = [
 		...fixedRequiredDocuments,
@@ -438,10 +473,16 @@ function createDocuments(
 		createOrgDocument(documentType, requiredStatus, baseDate)
 	);
 
-	return [
+	const documents: OrganizationDocument[] = [
 		...requiredDocs,
 		createOrgDocument('Organization logo', logoStatus, baseDate, { optional: true })
 	];
+
+	if (category === 'PARTNER' || category === 'PLATFORM') {
+		documents.push(createOrgDocument('Brand logo', requiredStatus, baseDate));
+	}
+
+	return documents;
 }
 
 function createIntegration(seed: number, configured: boolean): OrganizationIntegration | null {
@@ -531,7 +572,8 @@ export function createOrganization(params: {
 		params.createdAt,
 		requiredDocStatus,
 		businessAgreementStatus,
-		params.documentsComplete ? 'Uploaded' : 'Pending'
+		params.documentsComplete ? 'Uploaded' : 'Pending',
+		params.category
 	);
 
 	const panDigits = String(1000 + seed).slice(-4);
@@ -557,6 +599,10 @@ export function createOrganization(params: {
 		serviceTypes,
 		kyb: {
 			legalCompanyName: params.kybComplete ? `${params.name} Private Entity` : params.name,
+			brandName:
+				(params.category === 'PARTNER' || params.category === 'PLATFORM') && params.kybComplete
+					? `${params.name} Brand`
+					: '',
 			businessType: kybBusinessType,
 			cin: params.kybComplete ? cinValue : '',
 			tan: params.kybComplete ? tanValue : '',

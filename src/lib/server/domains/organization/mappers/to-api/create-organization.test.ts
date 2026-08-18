@@ -60,6 +60,24 @@ describe('buildCreateOrganizationRequest', () => {
 			serviceTypes: []
 		});
 	});
+
+	it('omits service types for platforms', () => {
+		expect(
+			buildCreateOrganizationRequest({
+				selectedCategory: 'Platform',
+				orgName: 'Platform Co',
+				orgPhone: '9876543210',
+				orgEmail: 'platform@example.com',
+				orgBusinessType: 'LLP',
+				affiliateId: '',
+				selectedServiceTypes: [],
+				servicePipelines: {}
+			})
+		).toMatchObject({
+			profileType: 'PLATFORM',
+			serviceTypes: []
+		});
+	});
 });
 
 describe('extractOrganizationId', () => {

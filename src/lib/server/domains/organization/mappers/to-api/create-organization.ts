@@ -18,11 +18,12 @@ const serviceTypeLabelMap: Record<
 
 const profileTypeLabelMap: Record<string, CreateOrganizationRequest['profileType']> = {
 	Merchant: 'MERCHANT',
-	Partner: 'PARTNER'
+	Partner: 'PARTNER',
+	Platform: 'PLATFORM'
 };
 
 export const CreateOrganizationFormBodySchema = v.object({
-	selectedCategory: v.picklist(['Merchant', 'Partner']),
+	selectedCategory: v.picklist(['Merchant', 'Partner', 'Platform']),
 	orgName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization name is required')),
 	orgPhone: v.pipe(v.string(), v.trim(), v.minLength(1, 'Mobile number is required')),
 	orgEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),

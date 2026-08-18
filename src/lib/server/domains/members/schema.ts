@@ -66,7 +66,7 @@ export const MemberDetailResponseSchema = v.object({
 	data: v.array(MemberDetailItemSchema)
 });
 
-/** Role from GET /api/v1/{management|merchant}/organizations/{orgId}/roles */
+/** Role from GET /api/v1/{management|merchant}/roles */
 export const OrgRoleItemSchema = v.object({
 	roleId: v.number(),
 	roleName: v.string(),
@@ -152,7 +152,7 @@ export const PermissionsCatalogResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
-/** Role detail from GET /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+/** Role detail from GET /api/v1/{portal}/roles/{roleId} */
 export const OrgRoleDetailPermissionSchema = v.object({
 	id: v.number(),
 	name: v.string(),
@@ -185,7 +185,7 @@ export const OrgRoleDetailResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
-/** POST /api/v1/{portal}/organizations/{orgId}/roles */
+/** POST /api/v1/{portal}/roles */
 export const CreateOrgRoleBodySchema = v.object({
 	roleName: v.string(),
 	description: v.string(),
@@ -199,7 +199,7 @@ export const CreateOrgRoleResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
-/** PATCH /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+/** PATCH /api/v1/{portal}/roles/{roleId} */
 export const UpdateOrgRoleBodySchema = v.object({
 	roleName: v.string(),
 	description: v.string(),
@@ -214,7 +214,7 @@ export const UpdateOrgRoleResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
-/** DELETE /api/v1/{portal}/organizations/{orgId}/roles/{roleId} */
+/** DELETE /api/v1/{portal}/roles/{roleId} */
 export const DeleteOrgRoleResponseSchema = UpdateOrgRoleResponseSchema;
 
 export type MemberListItem = v.InferOutput<typeof MemberListItemSchema>;

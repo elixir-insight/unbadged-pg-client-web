@@ -8,6 +8,7 @@ import {
 	// Send,
 	ArrowLeftRight,
 	TrendingUp,
+	MessageSquareWarning,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -107,6 +108,18 @@ export const managementNav: NavGroup[] = [
 					{
 						matcher: /^\/management\/transaction-insights\/[^/]+$/,
 						title: 'Merchant Calendar'
+					}
+				]
+			},
+			{
+				title: 'Disputes',
+				href: '/management/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/dispute\/[^/]+$/,
+						title: 'View Dispute'
 					}
 				]
 			},

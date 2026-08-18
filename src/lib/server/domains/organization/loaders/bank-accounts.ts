@@ -1,4 +1,5 @@
-import type { Organization, OrganizationBankAccount } from '$lib/data/mockData';
+import { organizations, type Organization, type OrganizationBankAccount } from '$lib/data/mockData';
+import { isUiOnlyOnboardingCategory } from '$lib/organization/category';
 import {
 	getValidSession,
 	SessionError,
@@ -19,6 +20,15 @@ export async function loadOrganizationBankAccounts(params: {
 	bankAccounts: OrganizationBankAccount[];
 }> {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
+
+	if (isUiOnlyOnboardingCategory(organizationBase.category)) {
+		const mockOrganization =
+			organizations.find((candidate) => candidate.id === orgId) ?? organizationBase;
+		return {
+			bankAccountsLoadError: null,
+			bankAccounts: mockOrganization.bankAccounts
+		};
+	}
 
 	let tokens;
 	try {

@@ -27,6 +27,7 @@
 		ArrowRight,
 		MailIcon,
 		PhoneIcon,
+		Hash,
 		X
 	} from '$lib/assets/icons';
 	import type { OrganizationStatus } from '$lib/data/mockData';
@@ -94,12 +95,16 @@
 	let selectedOrg = $state<OrganizationTableRow | null>(null);
 	let drawerOpen = $state(false);
 	let organizationProfile = $state<{ email: string; phone: string } | null>(null);
+	let virtualAccounts = $state<{ vanNumber: string; pipelineRole: string; status: string }[]>([]);
 	let profileLoading = $state(false);
+	let vansLoading = $state(false);
 	let profileRequestId = 0;
+	let vansRequestId = 0;
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
-		{ value: 'PARTNER', label: 'Partner' }
+		{ value: 'PARTNER', label: 'Partner' },
+		{ value: 'PLATFORM', label: 'Platform' }
 	];
 
 	const columns: ColumnDef<OrganizationTableRow>[] = [
@@ -140,7 +145,7 @@
 	const tableError = $derived(data.tableError);
 
 	const pagination = createUrlPagination({
-		defaultLimit: 5,
+		defaultLimit: 8,
 		total: () => data.pagination.total
 	});
 	const searchInput = $derived(pagination.search);
@@ -236,10 +241,48 @@
 		}
 	}
 
+	async function loadOrganizationVirtualAccounts(orgId: string) {
+		const requestId = ++vansRequestId;
+		vansLoading = true;
+		virtualAccounts = [];
+
+		try {
+			const response = await fetch(
+				resolve('/api/management/organizations/[orgId]/virtual-accounts', { orgId })
+			);
+			const body: unknown = await response.json().catch(() => null);
+			if (!response.ok) {
+				return;
+			}
+
+			if (requestId === vansRequestId && isRecord(body) && Array.isArray(body.virtualAccounts)) {
+				virtualAccounts = body.virtualAccounts.flatMap((entry) => {
+					if (!isRecord(entry) || typeof entry.vanNumber !== 'string') return [];
+					return [
+						{
+							vanNumber: entry.vanNumber,
+							pipelineRole: typeof entry.pipelineRole === 'string' ? entry.pipelineRole : '—',
+							status: typeof entry.status === 'string' ? entry.status : '—'
+						}
+					];
+				});
+			}
+		} catch {
+			if (requestId === vansRequestId) {
+				virtualAccounts = [];
+			}
+		} finally {
+			if (requestId === vansRequestId) {
+				vansLoading = false;
+			}
+		}
+	}
+
 	function openOrgDrawer(org: OrganizationTableRow) {
 		selectedOrg = org;
 		drawerOpen = true;
 		void loadOrganizationProfile(org.id);
+		void loadOrganizationVirtualAccounts(org.id);
 	}
 </script>
 
@@ -344,14 +387,14 @@
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'IN_PROGRESS'}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<ArrowRight class="size-3.5" />
 						Continue Editing
 					</Button>
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -360,7 +403,7 @@
 					</Button>
 				{:else if selectedOrg.status === 'APPROVED' || selectedOrg.status === 'ACTIVE' || selectedOrg.status === 'FROZEN'}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<Eye class="size-3.5" />
@@ -368,7 +411,7 @@
 					</Button>
 				{:else}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -422,6 +465,27 @@
 							>
 								{organizationProfile.phone}
 							</a>
+						{:else}
+							<p class="text-sm font-medium">—</p>
+						{/if}
+					</div>
+				</div>
+				<div
+					class="flex items-center gap-3 rounded-xl border border-white/10 bg-muted/30 px-4 py-3"
+				>
+					<Hash class="size-4 shrink-0 text-muted-foreground" />
+					<div class="min-w-0">
+						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+							VAN Number
+						</p>
+						{#if vansLoading}
+							<p class="text-sm text-muted-foreground">Loading...</p>
+						{:else if virtualAccounts.length > 0}
+							<ul class="space-y-1">
+								{#each virtualAccounts as van (van.vanNumber)}
+									<li class="truncate font-mono text-sm font-medium">{van.vanNumber}</li>
+								{/each}
+							</ul>
 						{:else}
 							<p class="text-sm font-medium">—</p>
 						{/if}

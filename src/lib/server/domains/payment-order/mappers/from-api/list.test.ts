@@ -3,6 +3,7 @@ import * as v from 'valibot';
 import {
 	PaymentOrderCountsResponseSchema,
 	PaymentOrderListItemSchema,
+	PaymentOrderListResponseSchema,
 	PaymentOrderTimelineItemSchema
 } from '../../schema';
 import {
@@ -48,8 +49,56 @@ describe('payment order list mapper', () => {
 
 	it('maps UI status filters to comma-separated API statuses', () => {
 		expect(mapPaymentOrderUiStatus('success')).toBe('CAPTURED');
-		expect(mapPaymentOrderUiStatus('pending')).toBe('INITIATED,AUTHORIZED,SUSPECTED');
+		expect(mapPaymentOrderUiStatus('pending')).toBe('INITIATED,AUTHORIZED,SUSPECTED,ATTEMPTED');
 		expect(mapPaymentOrderUiStatus(undefined)).toBeUndefined();
+	});
+
+	it('accepts live payin order list responses with object redirectUrl', () => {
+		const result = v.safeParse(PaymentOrderListResponseSchema, {
+			statusCode: 200,
+			message: 'Successfully fetched payin orders',
+			data: [
+				{
+					id: '1105',
+					orderId: 'ORD_FudSPOO4qu',
+					status: 'CREATED',
+					transactionAmount: '5',
+					redirectUrl: {
+						successUrl: 'https://chatgpt.com',
+						cancelUrl: 'https://www.youtube.com',
+						failureUrl: 'https://www.google.com'
+					},
+					allowedPaymentMethods: ['UPI']
+				},
+				{
+					id: '1104',
+					orderId: 'ORD_FudMr8vgPo',
+					status: 'ATTEMPTED',
+					transactionAmount: '65',
+					redirectUrl: {
+						successUrl: 'https://frontoff-stg.elixrretailpos.com/dashboard',
+						cancelUrl: 'https://frontoff-stg.elixrretailpos.com/dashboard',
+						failureUrl: 'https://frontoff-stg.elixrretailpos.com/dashboard'
+					},
+					allowedPaymentMethods: []
+				},
+				{
+					id: '1099',
+					orderId: 'ORD_FtXazgU5ku',
+					status: 'ATTEMPTED',
+					transactionAmount: '10000',
+					redirectUrl: {
+						successUrl: 'https://www.google.com/',
+						cancelUrl: 'https://chatgpt.com/',
+						failureUrl: 'https://www.youtube.com/'
+					},
+					allowedPaymentMethods: null
+				}
+			],
+			pagination: { total: 1067, page: 0, limit: 10 }
+		});
+
+		expect(result.success).toBe(true);
 	});
 
 	it('maps API fields into a table row', () => {
@@ -72,6 +121,7 @@ describe('payment order list mapper', () => {
 			paymentLink: '',
 			pipelineClass: '',
 			redirectUrl: '',
+			allowedPaymentMethods: [],
 			requestIpAddress: '',
 			status: 'CAPTURED',
 			transactionAmount: '4500',

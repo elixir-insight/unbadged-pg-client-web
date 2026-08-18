@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
 	import { Input, Button, toast } from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
 	import { theme } from '$lib/stores/theme.svelte';
@@ -82,11 +81,19 @@
 </main>
 
 <footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
-	<a href={resolve('/login')} class="underline underline-offset-4 hover:text-foreground">
+	<a
+		href="https://elixirpay.in/terms"
+		target="_blank"
+		class="underline underline-offset-4 hover:text-foreground"
+	>
 		Terms and Conditions
 	</a>
 	<span class="mx-3 text-border" aria-hidden="true">|</span>
-	<a href={resolve('/login')} class="underline underline-offset-4 hover:text-foreground">
+	<a
+		href="https://elixirpay.in/privacy"
+		target="_blank"
+		class="underline underline-offset-4 hover:text-foreground"
+	>
 		Privacy Policy
 	</a>
 </footer>

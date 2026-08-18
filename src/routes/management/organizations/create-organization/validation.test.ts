@@ -28,6 +28,17 @@ describe('validateCreateOrganization', () => {
 		expect(errors).toEqual({});
 	});
 
+	it('returns no merchant-specific errors for a valid platform payload', () => {
+		const errors = validateCreateOrganization({
+			...validBase,
+			selectedCategory: 'Platform',
+			selectedServiceTypes: [],
+			servicePipelines: {}
+		});
+
+		expect(errors).toEqual({});
+	});
+
 	it('requires organization name', () => {
 		const errors = validateCreateOrganization({ ...validBase, orgName: '   ' });
 

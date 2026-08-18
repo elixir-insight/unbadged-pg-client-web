@@ -1,4 +1,6 @@
 import type { Logger } from 'pino';
+import { isPartnerStyleCategory, isUiOnlyOnboardingCategory } from '$lib/organization/category';
+import { ensureUiOnlyMockOrganization } from '../utils/mock-platform-onboarding';
 import { validateOrganizationActivation } from '$lib/validation/organization-activation';
 import { updateOrganizationStatusMutation } from './update-status';
 import { mutationFailure, type MutationResult } from './types';
@@ -29,7 +31,8 @@ export async function activateProfileMutation(params: {
 		apiKey,
 		saltKey,
 		businessCertificateType,
-		file: fileEntry instanceof File ? fileEntry : null
+		file: fileEntry instanceof File ? fileEntry : null,
+		category: params.category
 	});
 
 	if (!validation.valid) {
@@ -38,6 +41,18 @@ export async function activateProfileMutation(params: {
 	}
 
 	// TODO: upload business certificate and persist gateway credentials when upstream endpoints exist.
+	if (isUiOnlyOnboardingCategory(params.category)) {
+		const organization = ensureUiOnlyMockOrganization(orgId);
+		organization.status = 'ACTIVE';
+		organization.kybStatus = 'VERIFIED';
+		organization.kyb.verificationStatus = 'Verified';
+		params.log.info({ orgId, category: params.category }, 'mocked platform profile activation');
+		return {
+			ok: true,
+			redirectPath: `/management/organizations`
+		};
+	}
+
 	const statusResult = await updateOrganizationStatusMutation({
 		fetch: params.fetch,
 		log: params.log,
@@ -55,13 +70,12 @@ export async function activateProfileMutation(params: {
 
 	params.log.info({ orgId, category: params.category }, 'organization profile activated');
 
-	const redirectPath =
-		params.category === 'PARTNER'
-			? `/management/organizations/${orgId}/activate/partner`
-			: `/management/organizations/${orgId}/activate/merchant`;
+	const isPartner = isPartnerStyleCategory(params.category);
 
 	return {
 		ok: true,
-		redirectPath
+		redirectPath: isPartner
+			? `/management/organizations`
+			: `/management/organizations/${orgId}/activate/merchant`
 	};
 }

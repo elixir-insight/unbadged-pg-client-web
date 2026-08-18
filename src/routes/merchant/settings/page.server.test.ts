@@ -8,6 +8,22 @@ import { load, actions } from './+page.server';
 type SettingsLoadResult = {
 	apiCredential: { id: string; clientId: string } | null;
 	apiCredentialError: string | null;
+	profile: {
+		orgId: string;
+		displayName: string;
+		companyName: string;
+		orgName: string;
+		email: string;
+		phone: string;
+		businessType: string;
+		country: string;
+		registeredDate: string;
+		website: string;
+		username: string;
+	} | null;
+	profileError: string | null;
+	mfaConfig: { method?: 'EMAIL' | 'SMS'; configured: boolean; enabled: boolean } | null;
+	mfaError: string | null;
 };
 
 async function callLoad(event: Parameters<typeof load>[0]): Promise<SettingsLoadResult> {
@@ -55,11 +71,59 @@ function jsonResponse(status: number, body: unknown) {
 	});
 }
 
-describe('merchant settings +page.server load (GET api-credentials)', () => {
+const profilePayload = {
+	data: [
+		{
+			orgId: 'ORG_2bV',
+			companyName: 'Elixir global',
+			orgName: 'Elixir global',
+			email: 'raghul.r@elixirpay.in',
+			phone: '+916382303714',
+			businessType: 'PRIVATE_LIMITED',
+			country: 'India',
+			registeredDate: '2026-07-21',
+			website: 'https://www.elixirglobal.in',
+			username: 'Elixir global'
+		}
+	],
+	message: 'Organization profile fetched successfully',
+	statusCode: 200
+};
+
+function mockSettingsFetch(handlers: {
+	credentials?: Response | unknown;
+	profile?: Response | unknown;
+	mfa?: Response | unknown;
+}) {
+	return vi.fn().mockImplementation((input: RequestInfo | URL) => {
+		const url = String(input);
+
+		if (url.includes('/api/v1/merchant/organizations/api-credentials')) {
+			const response = handlers.credentials ?? { data: [], message: 'ok', statusCode: 200 };
+			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
+		}
+
+		if (url.includes('/api/v1/merchant/profile')) {
+			const response = handlers.profile ?? profilePayload;
+			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
+		}
+
+		if (url.includes('/api/v1/user/mfa')) {
+			const response = handlers.mfa ?? {
+				data: [{ configured: false, enabled: false }],
+				message: 'ok',
+				statusCode: 200
+			};
+			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
+		}
+
+		return Promise.resolve(jsonResponse(404, { message: 'not found', statusCode: 404 }));
+	});
+}
+
+describe('merchant settings +page.server load', () => {
 	it('returns apiCredential: null when the org has no credential yet', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(jsonResponse(200, { data: [], message: 'ok', statusCode: 200 }));
+		const fetchFn = mockSettingsFetch({});
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -69,16 +133,24 @@ describe('merchant settings +page.server load (GET api-credentials)', () => {
 
 		expect(result.apiCredential).toBeNull();
 		expect(result.apiCredentialError).toBeNull();
+		expect(result.profile).toMatchObject({
+			orgId: 'ORG_2bV',
+			companyName: 'Elixir global',
+			email: 'raghul.r@elixirpay.in'
+		});
+		expect(result.profileError).toBeNull();
+		expect(result.mfaConfig).toEqual({ configured: false, enabled: false });
+		expect(result.mfaError).toBeNull();
 	});
 
 	it('returns only id/clientId when a credential exists — never clientSecret', async () => {
-		const fetchFn = vi.fn().mockResolvedValue(
-			jsonResponse(200, {
+		const fetchFn = mockSettingsFetch({
+			credentials: {
 				data: [{ id: 'cred-1', clientId: 'client-1', clientSecret: 'super-secret' }],
 				message: 'ok',
 				statusCode: 200
-			})
-		);
+			}
+		});
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -92,13 +164,13 @@ describe('merchant settings +page.server load (GET api-credentials)', () => {
 	});
 
 	it('accepts the real backend shape — numeric id, no clientSecret on GET at all', async () => {
-		const fetchFn = vi.fn().mockResolvedValue(
-			jsonResponse(200, {
+		const fetchFn = mockSettingsFetch({
+			credentials: {
 				message: 'API credentials retrieved successfully',
 				data: [{ clientId: 'ELXhVfw0FIyo4_zs0Fis8-LEA', id: 1 }],
 				statusCode: 200
-			})
-		);
+			}
+		});
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -110,12 +182,10 @@ describe('merchant settings +page.server load (GET api-credentials)', () => {
 		expect(result.apiCredentialError).toBeNull();
 	});
 
-	it('returns a retryable error message on a 500', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(
-				jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
-			);
+	it('returns a retryable error message when credentials fail with 500', async () => {
+		const fetchFn = mockSettingsFetch({
+			credentials: jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		});
 
 		const result = await callLoad({
 			cookies: fakeCookies(),
@@ -125,14 +195,109 @@ describe('merchant settings +page.server load (GET api-credentials)', () => {
 
 		expect(result.apiCredential).toBeNull();
 		expect(result.apiCredentialError).toBeTruthy();
+		expect(result.profile).not.toBeNull();
 	});
 
-	it('redirects to login on a 401', async () => {
-		const fetchFn = vi
-			.fn()
-			.mockResolvedValue(
-				jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
-			);
+	it('returns a profile error when profile fetch fails with 500', async () => {
+		const fetchFn = mockSettingsFetch({
+			profile: jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.profile).toBeNull();
+		expect(result.profileError).toBeTruthy();
+	});
+
+	it('returns profileError when profile data is empty', async () => {
+		const fetchFn = mockSettingsFetch({
+			profile: { data: [], message: 'ok', statusCode: 200 }
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.profile).toBeNull();
+		expect(result.profileError).toBe('Organization profile not found.');
+	});
+
+	it('redirects to login on a 401 from credentials', async () => {
+		const fetchFn = mockSettingsFetch({
+			credentials: jsonResponse(401, {
+				message: 'Unauthorized',
+				statusCode: 401,
+				exceptionCode: 'X'
+			})
+		});
+
+		await expect(
+			load({
+				cookies: fakeCookies(),
+				fetch: fetchFn,
+				locals: { logger: fakeLogger() }
+			} as never)
+		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
+	});
+
+	it('redirects to login on a 401 from profile', async () => {
+		const fetchFn = mockSettingsFetch({
+			profile: jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
+		});
+
+		await expect(
+			load({
+				cookies: fakeCookies(),
+				fetch: fetchFn,
+				locals: { logger: fakeLogger() }
+			} as never)
+		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
+	});
+
+	it('returns configured MFA from /api/v1/user/mfa', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: {
+				data: [{ method: 'EMAIL', configured: true, enabled: true }],
+				message: 'ok',
+				statusCode: 200
+			}
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toEqual({ method: 'EMAIL', configured: true, enabled: true });
+		expect(result.mfaError).toBeNull();
+	});
+
+	it('returns mfaError when MFA fetch fails with 500', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toBeNull();
+		expect(result.mfaError).toBeTruthy();
+	});
+
+	it('redirects to login on a 401 from MFA', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
+		});
 
 		await expect(
 			load({

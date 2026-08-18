@@ -38,6 +38,16 @@ function mapRecord(record: OrganizationTableRecord): OrganizationTableRow {
 	};
 }
 
+/** Resolve display name from table API rows when onboard details only return orgId. */
+export function findOrganizationTableName(
+	records: OrganizationTableRecord[] | undefined,
+	orgId: string
+): string | null {
+	const name = records?.find((record) => record.id === orgId)?.name?.trim() ?? '';
+	if (!name || name === orgId) return null;
+	return name;
+}
+
 function emptyStatusCounts(): OrganizationTableStatusCounts {
 	return {
 		all: 0,

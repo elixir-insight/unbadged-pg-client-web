@@ -1,40 +1,35 @@
 <script lang="ts">
-	import { ChevronDown, Globe, MailIcon, PhoneIcon } from '$lib/assets/icons';
-
+	import { ChevronDown, Globe, MailIcon } from '$lib/assets/icons';
+	import { Button, Chip, Tabs } from '$lib/components/reusable';
+	import type { TabItem } from '$lib/components/reusable';
+	import * as Avatar from '$lib/components/ui/avatar';
+	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
+	import NotificationPreferencesTab from '$lib/components/settings/notification-preferences-tab.svelte';
+	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
+	import MfaSection from '$lib/components/settings/mfa-section.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	merchantSession.initialize();
 
-	import { Button, Chip, Tabs } from '$lib/components/reusable';
-	import type { TabItem } from '$lib/components/reusable';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
-	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
-	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import { cn } from '$lib/utils';
-	// import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
-
-	merchantSession.initialize();
-
 	const displayName = $derived(merchantSession.session?.merchantName ?? 'Admin');
-	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
+	const displayOrgId = $derived(merchantSession.session?.displayOrgId ?? '');
 	const userRole = $derived(formatUserType(merchantSession.session?.userType ?? 'MEMBER'));
 	const sessionEmail = $derived(merchantSession.session?.email ?? 'admin@elixirpay.com');
 	const website = 'https://elixirpay.com';
-	const phone = '+91 XXXXX XXXXX';
 
 	let changePasswordOpen = $state(false);
 
 	const overviewFields = $derived([
 		{ label: 'Display Name', value: displayName },
 		{ label: 'Role', value: userRole },
-		{ label: 'Organization ID', value: organizationId || '—' },
+		{ label: 'Organization ID', value: displayOrgId || '—' },
 		{ label: 'Portal', value: 'Management' },
-		{ label: 'Support Email', value: sessionEmail, kind: 'email' as const },
-		{ label: 'Phone', value: phone }
+		{ label: 'Support Email', value: sessionEmail, kind: 'email' as const }
 	]);
 
 	let activeTab = $state('overview');
@@ -49,12 +44,17 @@
 			value: 'configuration',
 			label: 'Configuration',
 			content: configurationTab
+		},
+		{
+			value: 'mfa',
+			label: 'MFA',
+			content: mfa
+		},
+		{
+			value: 'notifications',
+			label: 'Notifications',
+			content: notificationsTab
 		}
-		// {
-		// 	value: 'ip-whitelist',
-		// 	label: 'Whitelisted IP Address',
-		// 	content: ipWhitelistTab
-		// }
 	];
 </script>
 
@@ -90,11 +90,9 @@
 		>
 			<div class="min-w-0 flex-1">
 				<h3 class="text-sm font-semibold text-foreground">Webhook</h3>
-				<p class="mt-2 truncate text-sm text-muted-foreground">
-					https://management.elixirpay.com/webhook
-				</p>
+				<p class="mt-2 text-sm text-muted-foreground">No webhook configured yet.</p>
 			</div>
-			<Chip variant="success">Configured</Chip>
+			<Chip variant="secondary">Not configured</Chip>
 		</div>
 
 		<ApiCredentialSection credential={data.apiCredential} loadError={data.apiCredentialError} />
@@ -104,6 +102,14 @@
 <!-- {#snippet ipWhitelistTab()}
 	<IpWhitelistTab portal="management" />
 {/snippet} -->
+
+{#snippet mfa()}
+	<MfaSection mfaConfig={data.mfaConfig} mfaError={data.mfaError} />
+{/snippet}
+
+{#snippet notificationsTab()}
+	<NotificationPreferencesTab portal="management" />
+{/snippet}
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">
@@ -129,8 +135,8 @@
 
 			<div class="pt-12 sm:pt-14">
 				<h2 class="text-xl font-bold text-foreground">{displayName}</h2>
-				{#if organizationId}
-					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
+				{#if displayOrgId}
+					<p class="mt-0.5 text-sm text-muted-foreground">@{displayOrgId}</p>
 				{/if}
 				<p class="mt-0.5 text-sm text-muted-foreground">{userRole}</p>
 
@@ -153,15 +159,6 @@
 							class="truncate text-foreground transition-colors hover:text-primary"
 						>
 							{sessionEmail}
-						</a>
-					</li>
-					<li class="flex items-center gap-2 text-sm text-muted-foreground">
-						<PhoneIcon class="size-4 shrink-0" aria-hidden="true" />
-						<a
-							href="tel:{phone}"
-							class="truncate text-foreground transition-colors hover:text-primary"
-						>
-							{phone}
 						</a>
 					</li>
 				</ul>

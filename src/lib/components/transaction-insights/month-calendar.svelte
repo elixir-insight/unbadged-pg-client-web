@@ -23,7 +23,6 @@
 	let { merchant, daySummaries, year, month, onMonthChange }: Props = $props();
 
 	const now = today(getLocalTimeZone());
-	let selectedDay = $state<CalendarDate | null>(null);
 
 	const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
@@ -67,22 +66,7 @@
 
 	function shiftMonth(delta: number) {
 		const next = visibleMonth.add({ months: delta });
-		selectedDay = null;
 		onMonthChange(next.year, next.month);
-	}
-
-	function selectDay(date: CalendarDate) {
-		selectedDay = date;
-	}
-
-	$effect(() => {
-		void year;
-		void month;
-		selectedDay = null;
-	});
-
-	function isSelected(date: CalendarDate): boolean {
-		return selectedDay?.compare(date) === 0;
 	}
 
 	function isToday(date: CalendarDate): boolean {
@@ -154,23 +138,13 @@
 			{#each calendarCells as cell (cell.key)}
 				{#if cell.date}
 					{@const summary = summaryByDate.get(dayKey(cell.date))}
-					<button
-						type="button"
+					<div
 						class={cn(
-							'flex min-h-24 flex-col gap-2 border-r border-b border-border p-2 text-left transition-colors last:border-r-0 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset',
-							isSelected(cell.date) && 'bg-primary/5 ring-1 ring-primary/40 ring-inset',
-							isToday(cell.date) && !isSelected(cell.date) && 'bg-muted/30'
+							'flex min-h-24 flex-col gap-2 border-r border-b border-border p-2 last:border-r-0',
+							isToday(cell.date) && 'bg-muted/30'
 						)}
-						aria-pressed={isSelected(cell.date)}
-						aria-label={`Select ${cell.date.toString()}`}
-						onclick={() => selectDay(cell.date!)}
 					>
-						<span
-							class={cn(
-								'text-xs font-medium text-muted-foreground',
-								isSelected(cell.date) && 'text-primary'
-							)}
-						>
+						<span class="text-xs font-medium text-muted-foreground">
 							{cell.date.day}
 						</span>
 						{#if summary}
@@ -183,34 +157,11 @@
 								</p>
 							</div>
 						{/if}
-					</button>
+					</div>
 				{:else}
 					<div class="min-h-24 border-r border-b border-border bg-muted/10 last:border-r-0"></div>
 				{/if}
 			{/each}
 		</div>
 	</div>
-
-	{#if selectedDay}
-		{@const selectedSummary = summaryByDate.get(dayKey(selectedDay))}
-		<section class="rounded-xl border border-border bg-card p-4">
-			<h2 class="text-sm font-semibold text-foreground">
-				{selectedDay.toDate(getLocalTimeZone()).toLocaleDateString('en-IN', {
-					weekday: 'long',
-					day: 'numeric',
-					month: 'long',
-					year: 'numeric'
-				})}
-			</h2>
-			{#if selectedSummary}
-				<p class="mt-2 text-sm text-muted-foreground">
-					{selectedSummary.transactionCount} transactions · {currency.format(
-						selectedSummary.volume
-					)}
-				</p>
-			{:else}
-				<p class="mt-2 text-sm text-muted-foreground">No transactions recorded for this day.</p>
-			{/if}
-		</section>
-	{/if}
 </div>
