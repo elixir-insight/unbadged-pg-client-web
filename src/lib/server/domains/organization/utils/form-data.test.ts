@@ -74,6 +74,58 @@ describe('parseUpdateKybSectionFormData', () => {
 		expect(parsed.output.section).toBe('legal');
 		expect(parsed.output.gstin).toBe('27AABCU9603R1ZM');
 	});
+
+	it('accepts a legal payload that still includes incomplete directors', () => {
+		const formData = new FormData();
+		formData.set('section', 'legal');
+		formData.set(
+			'payload',
+			JSON.stringify({
+				businessType: 'Partnership',
+				gstin: '33AABCF1234M1ZX',
+				businessPan: '**********',
+				businessPhone: '9123456789',
+				industry: 'E-Commerce',
+				organizationWebsite: 'https://www.shopnest.in',
+				registeredYear: 2020,
+				cin: '',
+				tan: '',
+				category: 'PARTNER',
+				brandName: 'NexaPay',
+				registeredAddress: {
+					line1: '',
+					line2: '',
+					city: '',
+					state: '',
+					pincode: '',
+					country: ''
+				},
+				communicationAddress: {
+					line1: '',
+					line2: '',
+					city: '',
+					state: '',
+					pincode: '',
+					country: ''
+				},
+				directors: [
+					{
+						name: 'Jane Doe',
+						pan: '**********',
+						email: 'jane@example.com',
+						phone: '9876543210',
+						aadhar: ''
+					}
+				]
+			})
+		);
+
+		const parsed = parseUpdateKybSectionFormData(formData);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+		expect(parsed.output.section).toBe('legal');
+		expect(parsed.output.brandName).toBe('NexaPay');
+	});
 });
 
 describe('parseBankAccountFormData', () => {
@@ -103,5 +155,13 @@ describe('remapUploadFormData', () => {
 
 		const remapped = remapUploadFormData(source);
 		expect(remapped.get('gstCertificate')).toBeInstanceOf(File);
+	});
+
+	it('maps brand logo field names to the upstream key', () => {
+		const source = new FormData();
+		source.append('BRAND_LOGO', new File(['x'], 'brand.png'));
+
+		const remapped = remapUploadFormData(source);
+		expect(remapped.get('brandLogo')).toBeInstanceOf(File);
 	});
 });

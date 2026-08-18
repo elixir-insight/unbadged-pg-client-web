@@ -22,7 +22,8 @@ export type DocumentType =
 	| 'Memorandum of Association (MOA)'
 	| 'UBO Declaration'
 	| 'Board Resolution for Authorized Signatory'
-	| 'Organization logo';
+	| 'Organization logo'
+	| 'Brand logo';
 
 export interface OrganizationAddress {
 	line1: string;
@@ -71,6 +72,7 @@ export interface OrganizationDirector {
 
 export interface OrganizationKyb {
 	legalCompanyName: string;
+	brandName: string;
 	businessType: 'Sole Proprietorship' | 'Partnership' | 'LLP' | 'Private Limited';
 	cin: string;
 	tan: string;
@@ -287,8 +289,8 @@ function emptyPayoutConfiguration(): OrganizationPayoutConfiguration {
 	};
 }
 
-function pendingDocuments(): OrganizationDocument[] {
-	return [
+function pendingDocuments(category: OrganizationCategory = 'MERCHANT'): OrganizationDocument[] {
+	const documents: OrganizationDocument[] = [
 		...fixedRequiredDocuments.map((documentType) => ({
 			id: documentType.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
 			documentType,
@@ -303,6 +305,17 @@ function pendingDocuments(): OrganizationDocument[] {
 			optional: true
 		}
 	];
+
+	if (category === 'PARTNER') {
+		documents.push({
+			id: 'brand-logo',
+			documentType: 'Brand logo',
+			fileName: '',
+			status: 'Pending'
+		});
+	}
+
+	return documents;
 }
 
 /** Minimal org used when GET-by-id is unavailable but onboarding must continue. */
@@ -331,6 +344,7 @@ export function createOrganizationShell(params: {
 		serviceTypes,
 		kyb: {
 			legalCompanyName: name,
+			brandName: '',
 			businessType: businessTypeLabelMap[businessType],
 			cin: '',
 			tan: '',
@@ -355,7 +369,7 @@ export function createOrganizationShell(params: {
 		addressDetails: address,
 		directors: [],
 		bankAccounts: [],
-		documents: pendingDocuments(),
+		documents: pendingDocuments(category),
 		integration: category === 'MERCHANT' ? { callbackUrl: '', whitelistedIp: '' } : null,
 		payoutConfiguration: emptyPayoutConfiguration(),
 		payinConfiguration: serviceTypes.includes('Pay-Ins') ? { configured: false } : null,
@@ -446,7 +460,8 @@ function createDocuments(
 	baseDate: string,
 	requiredStatus: DocumentStatus,
 	businessAgreementStatus: DocumentStatus,
-	logoStatus: DocumentStatus
+	logoStatus: DocumentStatus,
+	category: OrganizationCategory
 ): OrganizationDocument[] {
 	const requiredTypes: DocumentType[] = [
 		...fixedRequiredDocuments,
@@ -458,10 +473,16 @@ function createDocuments(
 		createOrgDocument(documentType, requiredStatus, baseDate)
 	);
 
-	return [
+	const documents: OrganizationDocument[] = [
 		...requiredDocs,
 		createOrgDocument('Organization logo', logoStatus, baseDate, { optional: true })
 	];
+
+	if (category === 'PARTNER') {
+		documents.push(createOrgDocument('Brand logo', requiredStatus, baseDate));
+	}
+
+	return documents;
 }
 
 function createIntegration(seed: number, configured: boolean): OrganizationIntegration | null {
@@ -551,7 +572,8 @@ export function createOrganization(params: {
 		params.createdAt,
 		requiredDocStatus,
 		businessAgreementStatus,
-		params.documentsComplete ? 'Uploaded' : 'Pending'
+		params.documentsComplete ? 'Uploaded' : 'Pending',
+		params.category
 	);
 
 	const panDigits = String(1000 + seed).slice(-4);
@@ -577,6 +599,7 @@ export function createOrganization(params: {
 		serviceTypes,
 		kyb: {
 			legalCompanyName: params.kybComplete ? `${params.name} Private Entity` : params.name,
+			brandName: params.category === 'PARTNER' && params.kybComplete ? `${params.name} Brand` : '',
 			businessType: kybBusinessType,
 			cin: params.kybComplete ? cinValue : '',
 			tan: params.kybComplete ? tanValue : '',

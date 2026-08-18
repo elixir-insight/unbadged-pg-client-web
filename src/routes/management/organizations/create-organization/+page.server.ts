@@ -9,12 +9,7 @@ import {
 } from '$lib/server/domains/auth/getValidSession';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
-import {
-	createOrganization,
-	generateMockOrganizationId,
-	organizations,
-	parseOrganizationBusinessType
-} from '$lib/data/mockData';
+import { rememberOrgCategory } from '$lib/server/domains/organization/utils/org-category-cookie';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	const log = locals.logger;
@@ -63,26 +58,6 @@ export const actions = {
 			});
 		}
 
-		// Partner onboarding isn't wired to the live API yet — create a mock org instead.
-		if (parsed.output.selectedCategory === 'Partner') {
-			const organizationId = generateMockOrganizationId();
-			organizations.push(
-				createOrganization({
-					id: organizationId,
-					name: parsed.output.orgName,
-					businessType: parseOrganizationBusinessType(parsed.output.orgBusinessType),
-					category: 'PARTNER',
-					status: 'IN_PROGRESS',
-					kybStatus: 'Not Started',
-					createdAt: new Date().toISOString().slice(0, 10),
-					assignedAdmin: '',
-					serviceTypes: []
-				})
-			);
-			log.info({ organizationId }, 'created mock partner organization');
-			redirect(303, `/management/organizations/${organizationId}/kyb`);
-		}
-
 		const result = await createOrganizationMutation({
 			fetch,
 			log,
@@ -94,6 +69,9 @@ export const actions = {
 			return fail(result.status, { message: result.message });
 		}
 
-		redirect(303, `/management/organizations/${result.organizationId}/kyb`);
+		const category = parsed.output.selectedCategory === 'Partner' ? 'PARTNER' : 'MERCHANT';
+		rememberOrgCategory(cookies, result.organizationId, category);
+		const categoryQuery = category === 'PARTNER' ? '?category=PARTNER' : '';
+		redirect(303, `/management/organizations/${result.organizationId}/kyb${categoryQuery}`);
 	}
 } satisfies Actions;

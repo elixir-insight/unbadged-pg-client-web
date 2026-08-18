@@ -32,6 +32,33 @@ describe('organization activation validation', () => {
 		expect(result.errors.saltKey).toBeTruthy();
 	});
 
+	it('does not require apiKey and saltKey for partners', () => {
+		const result = validateOrganizationActivation({
+			apiKey: '',
+			saltKey: '',
+			businessCertificateType: 'Incorporation certificate',
+			file: createFile('certificate.pdf', 1024),
+			category: 'PARTNER'
+		});
+
+		expect(result.valid).toBe(true);
+		expect(result.errors).toEqual({});
+	});
+
+	it('still requires apiKey and saltKey for merchants', () => {
+		const result = validateOrganizationActivation({
+			apiKey: '',
+			saltKey: '',
+			businessCertificateType: 'Incorporation certificate',
+			file: createFile('certificate.pdf', 1024),
+			category: 'MERCHANT'
+		});
+
+		expect(result.valid).toBe(false);
+		expect(result.errors.apiKey).toBeTruthy();
+		expect(result.errors.saltKey).toBeTruthy();
+	});
+
 	it('rejects missing business certificate file', () => {
 		const result = validateOrganizationActivation({
 			apiKey: 'test-api-key',

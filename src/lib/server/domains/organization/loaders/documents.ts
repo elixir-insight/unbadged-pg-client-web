@@ -36,15 +36,6 @@ export async function loadOrganizationDocuments(params: {
 }) {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
 
-	// Partner onboarding isn't wired to the live API yet — always serve mock data.
-	if (organizationBase.category === 'PARTNER') {
-		return {
-			documentsLoadError: null,
-			documents: organizationBase.documents,
-			directors: organizationBase.directors
-		};
-	}
-
 	try {
 		let tokens;
 		try {

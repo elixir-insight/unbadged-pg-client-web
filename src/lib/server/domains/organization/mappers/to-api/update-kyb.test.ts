@@ -157,6 +157,121 @@ describe('buildUpdateOrganizationKybRequest', () => {
 		expect(upstream.directors).toEqual([]);
 		expect(upstream.kyb.gstNumber).toBe('29ABCDE1234F1Z5');
 		expect(upstream.addressDetails.city).toBe('-');
+		expect(upstream.kyb).not.toHaveProperty('brandName');
+	});
+
+	it('does not require director Aadhar when saving the legal section', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'legal',
+			...validFormBody,
+			category: 'PARTNER',
+			brandName: 'NexaPay',
+			registeredAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			communicationAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			directors: [
+				{
+					name: 'Jane Doe',
+					pan: '**********',
+					email: 'jane@example.com',
+					phone: '9876543210',
+					aadhar: ''
+				}
+			]
+		});
+
+		expect(upstream.directors).toEqual([]);
+		expect(upstream.brandName).toBe('NexaPay');
+		expect(upstream.kyb).not.toHaveProperty('brandName');
+	});
+
+	it('omits a redacted business PAN so GET masking is not saved back', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'legal',
+			...validFormBody,
+			businessPan: '**********',
+			registeredAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			communicationAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			directors: []
+		});
+
+		expect(upstream.kyb).not.toHaveProperty('businessPan');
+	});
+
+	it('includes brand name on partner legal updates', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'legal',
+			businessType: 'Partnership',
+			gstin: '29ABCDE1234F1Z5',
+			businessPan: 'ABCDE1234F',
+			businessPhone: '9876543210',
+			industry: 'Technology',
+			organizationWebsite: 'https://www.example.com',
+			registeredYear: 2018,
+			cin: '',
+			tan: '',
+			category: 'PARTNER',
+			brandName: 'Lumen Health',
+			registeredAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			communicationAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			directors: []
+		});
+
+		expect(upstream.brandName).toBe('Lumen Health');
+		expect(upstream.kyb).not.toHaveProperty('brandName');
+	});
+
+	it('rejects a missing brand name on partner legal updates', () => {
+		expect(() =>
+			buildUpdateOrganizationSectionRequest({
+				section: 'legal',
+				...validFormBody,
+				category: 'PARTNER',
+				brandName: '',
+				directors: []
+			})
+		).toThrow();
 	});
 
 	it('builds an address section request with validated addresses', () => {

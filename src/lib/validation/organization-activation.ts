@@ -9,6 +9,7 @@ export type OrganizationActivationInput = {
 	saltKey: string;
 	businessCertificateType: string;
 	file: File | null;
+	category?: string;
 };
 
 export type OrganizationActivationField =
@@ -21,13 +22,16 @@ export function validateOrganizationActivation(input: OrganizationActivationInpu
 	errors: OrganizationActivationErrors;
 } {
 	const errors: OrganizationActivationErrors = {};
+	const requireGatewayCredentials = input.category?.trim().toUpperCase() !== 'PARTNER';
 
-	if (!input.apiKey.trim()) {
-		errors.apiKey = 'API key is required';
-	}
+	if (requireGatewayCredentials) {
+		if (!input.apiKey.trim()) {
+			errors.apiKey = 'API key is required';
+		}
 
-	if (!input.saltKey.trim()) {
-		errors.saltKey = 'Salt key is required';
+		if (!input.saltKey.trim()) {
+			errors.saltKey = 'Salt key is required';
+		}
 	}
 
 	if (!input.businessCertificateType.trim()) {
