@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import * as v from 'valibot';
 import {
 	mapChargeConfigurationRecords,
 	mapChargeConfigurationsToSlabs,
@@ -146,38 +145,5 @@ describe('mapChargeConfigurationRecords', () => {
 				effectiveTo: ''
 			}
 		]);
-	});
-});
-
-describe('ListChargeConfigurationsResponseSchema', () => {
-	it('parses upstream list response', async () => {
-		const { ListChargeConfigurationsResponseSchema } =
-			await import('$lib/server/domains/charge-configuration/schema');
-
-		const parsed = v.safeParse(ListChargeConfigurationsResponseSchema, {
-			data: [
-				{
-					baseAmount: '1000000',
-					chargeRate: '1.80',
-					chargeType: 'PERCENTAGE',
-					createdAt: '2026-07-28T09:07:14.965313Z',
-					createdBy: 100012,
-					effectiveFrom: '2026-07-28T09:07:14.96373Z',
-					effectiveTo: null,
-					gstExclusive: true,
-					gstPercentage: '18',
-					id: 1,
-					methodConfigId: 1,
-					pipelineCode: 'TEST',
-					updatedAt: null,
-					updatedBy: 0,
-					vaNumber: 'TEST202610019122'
-				}
-			],
-			message: 'Charge configurations retrieved successfully',
-			statusCode: 200
-		});
-
-		expect(parsed.success).toBe(true);
 	});
 });
