@@ -1,7 +1,8 @@
 import { formatAbsoluteTime } from '$lib/utils/format-time';
 import {
 	disputeStatusDescription,
-	formatDisputeStatusLabel,
+	disputeStatusLabel,
+	type DisputeStatusOption,
 	type DisputeTimelineEventView
 } from '$lib/utils/dispute-status';
 import type { DisputeEventItem } from '../../schema';
@@ -18,20 +19,26 @@ function formatEventDate(value: string): string {
 	return formatted || '—';
 }
 
-export function mapDisputeEvent(item: DisputeEventItem): DisputeTimelineEventView {
+export function mapDisputeEvent(
+	item: DisputeEventItem,
+	statuses: DisputeStatusOption[] = []
+): DisputeTimelineEventView {
 	const status = asText(item.toStatus);
 	const note = asText(item.note);
 
 	return {
 		id: asText(item.id) || `${status}-${asText(item.createdAt)}`,
 		status,
-		title: formatDisputeStatusLabel(status),
-		description: note || disputeStatusDescription(status),
+		title: disputeStatusLabel(status, statuses),
+		description: note || disputeStatusDescription(status, statuses),
 		date: formatEventDate(asText(item.createdAt))
 	};
 }
 
-export function mapDisputeEvents(items: DisputeEventItem[]): DisputeTimelineEventView[] {
+export function mapDisputeEvents(
+	items: DisputeEventItem[],
+	statuses: DisputeStatusOption[] = []
+): DisputeTimelineEventView[] {
 	return [...items]
 		.sort((left, right) => {
 			const leftTime = Date.parse(asText(left.createdAt));
@@ -40,5 +47,5 @@ export function mapDisputeEvents(items: DisputeEventItem[]): DisputeTimelineEven
 			const safeRight = Number.isFinite(rightTime) ? rightTime : 0;
 			return safeLeft - safeRight;
 		})
-		.map(mapDisputeEvent);
+		.map((item) => mapDisputeEvent(item, statuses));
 }

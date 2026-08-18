@@ -1,5 +1,5 @@
 import { formatDate } from '$lib/utils/format-time';
-import { formatDisputeStatusLabel } from '$lib/utils/dispute-status';
+import { disputeStatusLabel, type DisputeStatusOption } from '$lib/utils/dispute-status';
 import { formatSnakeCaseLabel } from '$lib/utils/format-display';
 import type { DisputeListItem } from '../../schema';
 import { formatDisputeAmount } from './amount';
@@ -48,7 +48,8 @@ function formatDisplayDate(value: string): string {
 
 export function mapDisputeDetail(
 	item: DisputeListItem,
-	organizationName?: string
+	organizationName?: string,
+	statuses: DisputeStatusOption[] = []
 ): DisputeDetailView {
 	const status = asText(item.status);
 	const source = asText(item.source);
@@ -66,7 +67,7 @@ export function mapDisputeDetail(
 		source,
 		sourceLabel: source ? formatSnakeCaseLabel(source) : '—',
 		status,
-		statusLabel: formatDisputeStatusLabel(status),
+		statusLabel: disputeStatusLabel(status, statuses),
 		bankRefNumber: displayValue(asText(item.bankRefNumber)),
 		raisedOn: formatDisplayDate(asText(item.createdAt)),
 		evidenceDueBy: formatDisplayDate(evidenceDueByRaw),

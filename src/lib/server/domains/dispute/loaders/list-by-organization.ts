@@ -3,6 +3,7 @@ import {
 	isSessionFailure,
 	requireSession
 } from '$lib/server/domains/organization/mutations/session';
+import type { DisputeStatusOption } from '$lib/utils/dispute-status';
 import { disputeClient, type DisputeListQuery } from '../client';
 import {
 	emptyDisputePagination,
@@ -23,6 +24,7 @@ export async function loadDisputesByOrganization(params: {
 	cookies: Parameters<typeof requireSession>[0]['cookies'];
 	orgId: string;
 	query: DisputeListQuery;
+	statuses?: DisputeStatusOption[];
 }): Promise<DisputesLoadResult> {
 	const orgId = params.orgId.trim();
 	const limit = params.query.limit ?? 10;
@@ -69,7 +71,7 @@ export async function loadDisputesByOrganization(params: {
 	}
 
 	return {
-		disputes: mapDisputeListResponse(result.data.data),
+		disputes: mapDisputeListResponse(result.data.data, params.statuses),
 		pagination: result.data.pagination,
 		disputesError: null
 	};

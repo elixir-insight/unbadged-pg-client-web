@@ -8,7 +8,7 @@
 	import { Dropdown, Table, createUrlPagination } from '$lib/components/reusable';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import { X } from '$lib/assets/icons';
-	import { DISPUTE_SOURCE_FILTERS, DISPUTE_STATUS_FILTERS } from '$lib/utils/dispute-status';
+	import { DISPUTE_SOURCE_FILTERS } from '$lib/utils/dispute-status';
 	import { getCurrentDisputeMerchantId, setDisputeMerchant } from './dispute-scope.svelte';
 	import type { PageData } from './$types';
 
@@ -24,16 +24,18 @@
 	});
 	const sourceFilter = $derived(page.url.searchParams.get('source') ?? '');
 
-	const statusOptions = DISPUTE_STATUS_FILTERS.map((option) => ({
-		value: option.value,
-		label: option.label
-	}));
+	const statusOptions = $derived(
+		data.statusOptions.map((option) => ({
+			value: option.value,
+			label: option.label
+		}))
+	);
 	const sourceOptions = DISPUTE_SOURCE_FILTERS.map((option) => ({
 		value: option.value,
 		label: option.label
 	}));
 
-	const columns: ColumnDef<DisputeRow>[] = [
+	const columns = $derived<ColumnDef<DisputeRow>[]>([
 		{ accessorKey: 'disputeId', header: 'Dispute ID' },
 		{ accessorKey: 'orderId', header: 'Order ID' },
 		{ accessorKey: 'transactionId', header: 'Transaction ID' },
@@ -41,11 +43,15 @@
 		{
 			accessorKey: 'status',
 			header: 'Status',
-			cell: (info) => renderComponent(DisputeStatusBadge, { status: info.getValue<string>() })
+			cell: (info) =>
+				renderComponent(DisputeStatusBadge, {
+					status: info.getValue<string>(),
+					catalog: data.statusOptions
+				})
 		},
 		{ accessorKey: 'raisedOn', header: 'Raised on' },
 		{ accessorKey: 'evidenceDueBy', header: 'Evidence due by' }
-	];
+	]);
 
 	function updateParams(updates: Record<string, string | null>): void {
 		const url = new SvelteURL(page.url.toString());
@@ -131,6 +137,7 @@
 				<Dropdown
 					value={pagination.status || undefined}
 					placeholder="Status"
+					disabled={data.statusOptions.length === 0}
 					options={statusOptions}
 					onValueChange={onStatusChange}
 				/>
@@ -148,6 +155,9 @@
 			<p class="text-xs text-destructive">Unable to load merchants. Please try again.</p>
 		{:else if data.merchantOptions.length === 0}
 			<p class="text-xs text-muted-foreground">No merchants are available.</p>
+		{/if}
+		{#if data.statusesError}
+			<p class="text-xs text-destructive">Unable to load dispute statuses. Please try again.</p>
 		{/if}
 
 		{#if activeFilters.length > 0}

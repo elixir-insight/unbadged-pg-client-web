@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { ActivityIcon, Clock } from '$lib/assets/icons';
-	import { disputeCurrentStage } from '$lib/utils/dispute-status';
+	import { disputeCurrentStage, type DisputeStatusOption } from '$lib/utils/dispute-status';
 
 	interface Props {
 		status: string;
+		catalog?: DisputeStatusOption[];
 		evidenceDueBy: string;
 	}
 
-	let { status, evidenceDueBy }: Props = $props();
+	let { status, catalog = [], evidenceDueBy }: Props = $props();
 
-	const currentStage = $derived(disputeCurrentStage(status));
+	const currentStage = $derived(disputeCurrentStage(status, catalog));
 
 	const evidenceDueDate = $derived.by(() => {
 		const date = new Date(evidenceDueBy);

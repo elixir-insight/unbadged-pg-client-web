@@ -106,3 +106,18 @@ export const DisputeEventsResponseSchema = v.object({
 
 export type DisputeEventItem = v.InferOutput<typeof DisputeEventItemSchema>;
 export type DisputeEventsResponse = v.InferOutput<typeof DisputeEventsResponseSchema>;
+
+export const DisputeStatusItemSchema = v.object({
+	status: v.string(),
+	description: OptionalStringSchema
+});
+
+export const DisputeStatusesResponseSchema = v.object({
+	data: v.optional(v.array(DisputeStatusItemSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type DisputeStatusItem = v.InferOutput<typeof DisputeStatusItemSchema>;
+export type DisputeStatusesResponse = v.InferOutput<typeof DisputeStatusesResponseSchema>;

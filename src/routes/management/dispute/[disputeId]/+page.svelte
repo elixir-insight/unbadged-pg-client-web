@@ -53,7 +53,7 @@
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<div class="flex flex-wrap items-center gap-3">
 				<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
-				<DisputeStatusBadge status={dispute.status} />
+				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
 			</div>
 			<Button variant="outline" onclick={backToList}>Back to disputes</Button>
 		</div>
@@ -149,7 +149,11 @@
 			</div>
 
 			<div class="flex flex-col gap-5 xl:sticky xl:top-4">
-				<DisputeStatusOverview status={dispute.status} evidenceDueBy={dispute.evidenceDueByRaw} />
+				<DisputeStatusOverview
+					status={dispute.status}
+					catalog={data.statusOptions}
+					evidenceDueBy={dispute.evidenceDueByRaw}
+				/>
 				<DisputeTimeline events={data.events} eventsError={data.eventsError} />
 			</div>
 		</div>

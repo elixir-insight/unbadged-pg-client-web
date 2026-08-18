@@ -48,7 +48,8 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		log,
 		cookies,
 		orgId,
-		query: { status, source, limit, page }
+		query: { status, source, limit, page },
+		statuses: parentData.statusOptions
 	});
 
 	return {

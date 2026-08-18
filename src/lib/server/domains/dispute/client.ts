@@ -5,6 +5,7 @@ import {
 	CreateDisputeResponseSchema,
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
+	DisputeStatusesResponseSchema,
 	type CreateDisputeRequest
 } from './schema';
 
@@ -81,6 +82,22 @@ export const disputeClient = {
 				schema: DisputeEventsResponseSchema
 			}
 		),
+
+	/** GET /api/v1/management/disputes/statuses */
+	listStatuses: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string
+	) =>
+		apiFetch('api/v1/management/disputes/statuses', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: DisputeStatusesResponseSchema
+		}),
 
 	/** POST /api/v1/management/organizations/{orgId}/disputes */
 	create: (

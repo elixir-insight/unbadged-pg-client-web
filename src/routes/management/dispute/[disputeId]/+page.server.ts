@@ -55,7 +55,8 @@ export const load: PageServerLoad = async ({
 		cookies,
 		orgId,
 		disputeId,
-		organizationName
+		organizationName,
+		statuses: parentData.statusOptions
 	});
 
 	return {

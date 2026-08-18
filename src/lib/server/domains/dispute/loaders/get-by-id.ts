@@ -3,7 +3,7 @@ import {
 	isSessionFailure,
 	requireSession
 } from '$lib/server/domains/organization/mutations/session';
-import type { DisputeTimelineEventView } from '$lib/utils/dispute-status';
+import type { DisputeStatusOption, DisputeTimelineEventView } from '$lib/utils/dispute-status';
 import { disputeClient } from '../client';
 import { mapDisputeDetail, type DisputeDetailView } from '../mappers/from-api/details';
 import { mapDisputeEvents } from '../mappers/from-api/events';
@@ -22,6 +22,7 @@ export async function loadDisputeById(params: {
 	orgId: string;
 	disputeId: string;
 	organizationName?: string;
+	statuses?: DisputeStatusOption[];
 }): Promise<DisputeDetailLoadResult> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
@@ -79,7 +80,7 @@ export async function loadDisputeById(params: {
 		if (!item) {
 			empty.disputeError = 'Dispute not found';
 		} else {
-			empty.dispute = mapDisputeDetail(item, params.organizationName);
+			empty.dispute = mapDisputeDetail(item, params.organizationName, params.statuses);
 		}
 	}
 
@@ -90,7 +91,7 @@ export async function loadDisputeById(params: {
 		);
 		empty.eventsError = eventsResult.error.message;
 	} else {
-		empty.events = mapDisputeEvents(eventsResult.data.data);
+		empty.events = mapDisputeEvents(eventsResult.data.data, params.statuses);
 	}
 
 	return empty;

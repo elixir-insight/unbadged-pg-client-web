@@ -1,5 +1,5 @@
 import { formatDate } from '$lib/utils/format-time';
-import { formatDisputeStatusLabel } from '$lib/utils/dispute-status';
+import { disputeStatusLabel, type DisputeStatusOption } from '$lib/utils/dispute-status';
 import type { DisputeListItem, DisputePagination } from '../../schema';
 import { formatDisputeAmount } from './amount';
 
@@ -27,7 +27,10 @@ function formatListDate(value: string): string {
 	return formatted || '—';
 }
 
-export function mapDisputeListItem(item: DisputeListItem): DisputeListRow {
+export function mapDisputeListItem(
+	item: DisputeListItem,
+	statuses: DisputeStatusOption[] = []
+): DisputeListRow {
 	const status = asText(item.status);
 
 	return {
@@ -36,15 +39,18 @@ export function mapDisputeListItem(item: DisputeListItem): DisputeListRow {
 		transactionId: asText(item.pipelineTransactionId) || '—',
 		amount: formatDisputeAmount(asText(item.amount), asText(item.currency)),
 		status,
-		statusLabel: formatDisputeStatusLabel(status),
+		statusLabel: disputeStatusLabel(status, statuses),
 		raisedOn: formatListDate(asText(item.createdAt)),
 		evidenceDueBy: formatListDate(asText(item.evidenceDueBy)),
 		source: asText(item.source)
 	};
 }
 
-export function mapDisputeListResponse(items: DisputeListItem[]): DisputeListRow[] {
-	return items.map(mapDisputeListItem);
+export function mapDisputeListResponse(
+	items: DisputeListItem[],
+	statuses: DisputeStatusOption[] = []
+): DisputeListRow[] {
+	return items.map((item) => mapDisputeListItem(item, statuses));
 }
 
 export function emptyDisputePagination(limit: number, page: number): DisputePagination {

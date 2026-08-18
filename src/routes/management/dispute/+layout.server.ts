@@ -4,8 +4,11 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { disputeClient } from '$lib/server/domains/dispute/client';
+import { mapDisputeStatuses } from '$lib/server/domains/dispute/mappers/from-api/statuses';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { mapDashboardMerchantsToOptions } from '$lib/server/domains/organization/mappers/from-api/dashboard-merchants';
+import type { DisputeStatusOption } from '$lib/utils/dispute-status';
 
 export interface DisputeMerchantOption {
 	value: string;
@@ -14,11 +17,14 @@ export interface DisputeMerchantOption {
 
 export const load: LayoutServerLoad = async ({ cookies, fetch, locals, depends }) => {
 	depends('management-disputes:merchants');
+	depends('management-disputes:statuses');
 
-	const log = locals.logger.child({ action: 'management-disputes-merchants' });
+	const log = locals.logger.child({ action: 'management-disputes-layout' });
 	const empty = {
 		merchantOptions: [] as DisputeMerchantOption[],
-		merchantsError: null as string | null
+		merchantsError: null as string | null,
+		statusOptions: [] as DisputeStatusOption[],
+		statusesError: null as string | null
 	};
 
 	let tokens;
@@ -26,31 +32,40 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, depends }
 		tokens = await getValidSession(cookies, fetch, log);
 	} catch (error) {
 		if (error instanceof SessionInactiveError || error instanceof SessionError) {
-			return { ...empty, merchantsError: error.message };
+			return { ...empty, merchantsError: error.message, statusesError: error.message };
 		}
 		throw error;
 	}
 
-	const result = await organizationClient.listDashboardMerchants(
-		fetch,
-		log,
-		tokens.accessToken,
-		tokens.gatewayToken
-	);
+	const [merchantsResult, statusesResult] = await Promise.all([
+		organizationClient.listDashboardMerchants(fetch, log, tokens.accessToken, tokens.gatewayToken),
+		disputeClient.listStatuses(fetch, log, tokens.accessToken, tokens.gatewayToken)
+	]);
 
-	if (!result.ok) {
+	if (!merchantsResult.ok) {
 		log.warn(
-			{ kind: result.error.kind, message: result.error.message },
+			{ kind: merchantsResult.error.kind, message: merchantsResult.error.message },
 			'GET management dashboard merchants failed'
 		);
-		return { ...empty, merchantsError: result.error.message };
+		empty.merchantsError = merchantsResult.error.message;
+	} else {
+		empty.merchantOptions = mapDashboardMerchantsToOptions(merchantsResult.data.data).map(
+			(merchant) => ({
+				value: merchant.orgId,
+				label: merchant.merchantName
+			})
+		);
 	}
 
-	return {
-		merchantOptions: mapDashboardMerchantsToOptions(result.data.data).map((merchant) => ({
-			value: merchant.orgId,
-			label: merchant.merchantName
-		})),
-		merchantsError: null
-	};
+	if (!statusesResult.ok) {
+		log.warn(
+			{ kind: statusesResult.error.kind, message: statusesResult.error.message },
+			'GET dispute statuses failed'
+		);
+		empty.statusesError = statusesResult.error.message;
+	} else {
+		empty.statusOptions = mapDisputeStatuses(statusesResult.data.data);
+	}
+
+	return empty;
 };
