@@ -2,12 +2,7 @@ import { formatDate } from '$lib/utils/format-time';
 import { formatDisputeStatusLabel } from '$lib/utils/dispute-status';
 import { formatSnakeCaseLabel } from '$lib/utils/format-display';
 import type { DisputeListItem } from '../../schema';
-
-const amountFormatter = new Intl.NumberFormat('en-IN', {
-	style: 'currency',
-	currency: 'INR',
-	maximumFractionDigits: 2
-});
+import { formatDisputeAmount } from './amount';
 
 export interface DisputeDetailView {
 	disputeId: string;
@@ -44,13 +39,6 @@ function displayValue(value: string): string {
 	return value || '—';
 }
 
-function formatAmount(value: string): string {
-	const normalized = value.replace(/,/g, '').trim();
-	if (!normalized) return '—';
-	const amount = Number(normalized);
-	return Number.isFinite(amount) ? amountFormatter.format(amount) : value;
-}
-
 function formatDisplayDate(value: string): string {
 	const trimmed = value.trim();
 	if (!trimmed) return '—';
@@ -73,8 +61,8 @@ export function mapDisputeDetail(
 		transactionId: displayValue(asText(item.pipelineTransactionId)),
 		orgId,
 		organization: displayValue(organizationName?.trim() || orgId),
-		amount: formatAmount(asText(item.amount)),
-		currency: asText(item.currency) || 'INR',
+		amount: formatDisputeAmount(asText(item.amount), asText(item.currency)),
+		currency: asText(item.currency),
 		source,
 		sourceLabel: source ? formatSnakeCaseLabel(source) : '—',
 		status,

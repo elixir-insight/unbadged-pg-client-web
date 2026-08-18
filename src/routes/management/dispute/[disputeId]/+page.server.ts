@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { loadDisputeById } from '$lib/server/domains/dispute/loaders/get-by-id';
 import type { DisputeDetailView } from '$lib/server/domains/dispute/mappers/from-api/details';
+import type { DisputeTimelineEventView } from '$lib/utils/dispute-status';
 
 function resolveOrgId(
 	raw: string | null,
@@ -32,7 +33,9 @@ export const load: PageServerLoad = async ({
 		disputeId,
 		orgId,
 		dispute: null as DisputeDetailView | null,
-		disputeError: null as string | null
+		disputeError: null as string | null,
+		events: [] as DisputeTimelineEventView[],
+		eventsError: null as string | null
 	};
 
 	if (!disputeId) {
@@ -59,6 +62,8 @@ export const load: PageServerLoad = async ({
 		disputeId,
 		orgId,
 		dispute: result.dispute,
-		disputeError: result.disputeError
+		disputeError: result.disputeError,
+		events: result.events,
+		eventsError: result.eventsError
 	};
 };

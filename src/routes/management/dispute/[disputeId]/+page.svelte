@@ -26,7 +26,7 @@
 
 {#snippet copyableValue(label: string, value: string)}
 	<div class="flex items-center justify-end gap-2 sm:justify-start">
-		<span class="font-medium text-foreground">{value}</span>
+		<span class="text-sm font-medium text-foreground">{value}</span>
 		{#if value !== '—'}
 			<CopyButton {value} label="Copy {label}" />
 		{/if}
@@ -150,11 +150,7 @@
 
 			<div class="flex flex-col gap-5 xl:sticky xl:top-4">
 				<DisputeStatusOverview status={dispute.status} evidenceDueBy={dispute.evidenceDueByRaw} />
-				<DisputeTimeline
-					status={dispute.status}
-					evidenceDueBy={dispute.evidenceDueByRaw}
-					raisedOn={dispute.raisedOn}
-				/>
+				<DisputeTimeline events={data.events} eventsError={data.eventsError} />
 			</div>
 		</div>
 	</div>

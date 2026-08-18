@@ -3,6 +3,7 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	CreateDisputeRequestSchema,
 	CreateDisputeResponseSchema,
+	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	type CreateDisputeRequest
 } from './schema';
@@ -57,6 +58,27 @@ export const disputeClient = {
 				accessToken,
 				gatewayToken,
 				schema: DisputeListResponseSchema
+			}
+		),
+
+	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/events */
+	listEvents: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/events`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				schema: DisputeEventsResponseSchema
 			}
 		),
 

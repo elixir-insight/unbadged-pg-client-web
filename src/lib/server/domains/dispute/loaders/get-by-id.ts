@@ -3,12 +3,16 @@ import {
 	isSessionFailure,
 	requireSession
 } from '$lib/server/domains/organization/mutations/session';
+import type { DisputeTimelineEventView } from '$lib/utils/dispute-status';
 import { disputeClient } from '../client';
 import { mapDisputeDetail, type DisputeDetailView } from '../mappers/from-api/details';
+import { mapDisputeEvents } from '../mappers/from-api/events';
 
 export type DisputeDetailLoadResult = {
 	dispute: DisputeDetailView | null;
 	disputeError: string | null;
+	events: DisputeTimelineEventView[];
+	eventsError: string | null;
 };
 
 export async function loadDisputeById(params: {
@@ -21,13 +25,19 @@ export async function loadDisputeById(params: {
 }): Promise<DisputeDetailLoadResult> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
+	const empty = {
+		dispute: null as DisputeDetailView | null,
+		disputeError: null as string | null,
+		events: [] as DisputeTimelineEventView[],
+		eventsError: null as string | null
+	};
 
 	if (!orgId) {
-		return { dispute: null, disputeError: 'Organization id is required' };
+		return { ...empty, disputeError: 'Organization id is required' };
 	}
 
 	if (!disputeId) {
-		return { dispute: null, disputeError: 'Dispute id is required' };
+		return { ...empty, disputeError: 'Dispute id is required' };
 	}
 
 	const session = await requireSession({
@@ -36,33 +46,52 @@ export async function loadDisputeById(params: {
 		log: params.log
 	});
 	if (isSessionFailure(session)) {
-		return { dispute: null, disputeError: session.message };
+		return { ...empty, disputeError: session.message, eventsError: session.message };
 	}
 
-	const result = await disputeClient.getById(
-		params.fetch,
-		params.log,
-		session.accessToken,
-		session.gatewayToken,
-		orgId,
-		disputeId
-	);
+	const [detailResult, eventsResult] = await Promise.all([
+		disputeClient.getById(
+			params.fetch,
+			params.log,
+			session.accessToken,
+			session.gatewayToken,
+			orgId,
+			disputeId
+		),
+		disputeClient.listEvents(
+			params.fetch,
+			params.log,
+			session.accessToken,
+			session.gatewayToken,
+			orgId,
+			disputeId
+		)
+	]);
 
-	if (!result.ok) {
+	if (!detailResult.ok) {
 		params.log.warn(
-			{ orgId, disputeId, message: result.error.message, kind: result.error.kind },
+			{ orgId, disputeId, message: detailResult.error.message, kind: detailResult.error.kind },
 			'GET dispute detail failed'
 		);
-		return { dispute: null, disputeError: result.error.message };
+		empty.disputeError = detailResult.error.message;
+	} else {
+		const item = detailResult.data.data[0];
+		if (!item) {
+			empty.disputeError = 'Dispute not found';
+		} else {
+			empty.dispute = mapDisputeDetail(item, params.organizationName);
+		}
 	}
 
-	const item = result.data.data[0];
-	if (!item) {
-		return { dispute: null, disputeError: 'Dispute not found' };
+	if (!eventsResult.ok) {
+		params.log.warn(
+			{ orgId, disputeId, message: eventsResult.error.message, kind: eventsResult.error.kind },
+			'GET dispute events failed'
+		);
+		empty.eventsError = eventsResult.error.message;
+	} else {
+		empty.events = mapDisputeEvents(eventsResult.data.data);
 	}
 
-	return {
-		dispute: mapDisputeDetail(item, params.organizationName),
-		disputeError: null
-	};
+	return empty;
 }

@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { renderComponent } from '$lib/components/ui/data-table';
-	import { Button, Dropdown, Table, createUrlPagination } from '$lib/components/reusable';
+	import { Dropdown, Table, createUrlPagination } from '$lib/components/reusable';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
-	import { RefreshCw, X } from '$lib/assets/icons';
+	import { X } from '$lib/assets/icons';
 	import { DISPUTE_SOURCE_FILTERS, DISPUTE_STATUS_FILTERS } from '$lib/utils/dispute-status';
-	import { getCurrentDisputeMerchantId } from './dispute-scope.svelte';
+	import { getCurrentDisputeMerchantId, setDisputeMerchant } from './dispute-scope.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -17,12 +17,12 @@
 	type DisputeRow = PageData['disputes'][number];
 
 	const merchantId = $derived(getCurrentDisputeMerchantId(data.merchantOptions));
+	const listPath = resolve('/management/dispute');
 	const pagination = createUrlPagination({
 		defaultLimit: 10,
 		total: () => data.pagination.total
 	});
 	const sourceFilter = $derived(page.url.searchParams.get('source') ?? '');
-	let refreshing = $state(false);
 
 	const statusOptions = DISPUTE_STATUS_FILTERS.map((option) => ({
 		value: option.value,
@@ -75,15 +75,6 @@
 		updateParams({ status: null, source: null, skip: null });
 	}
 
-	async function refreshList(): Promise<void> {
-		refreshing = true;
-		try {
-			await invalidate('management-disputes:list');
-		} finally {
-			refreshing = false;
-		}
-	}
-
 	function openDispute(disputeId: string): void {
 		const params = new SvelteURLSearchParams();
 		if (merchantId) params.set('merchantId', merchantId);
@@ -122,14 +113,20 @@
 			<h1 class="text-lg font-semibold text-foreground">Disputes</h1>
 			<p class="mt-1 text-sm text-muted-foreground">Review and manage payment disputes.</p>
 		</div>
-		<Button variant="outline" size="sm" onclick={refreshList} disabled={refreshing}>
-			<RefreshCw class={refreshing ? 'size-4 animate-spin' : 'size-4'} />
-			Refresh
-		</Button>
 	</div>
 
 	<div class="flex flex-col gap-3">
 		<div class="flex flex-wrap items-center gap-2">
+			<div class="w-full sm:w-64">
+				<Dropdown
+					value={merchantId}
+					placeholder="Merchant"
+					disabled={data.merchantOptions.length === 0}
+					search={true}
+					options={data.merchantOptions}
+					onValueChange={(value) => setDisputeMerchant(value, listPath)}
+				/>
+			</div>
 			<div class="w-full sm:w-50">
 				<Dropdown
 					value={pagination.status || undefined}
@@ -147,6 +144,11 @@
 				/>
 			</div>
 		</div>
+		{#if data.merchantsError}
+			<p class="text-xs text-destructive">Unable to load merchants. Please try again.</p>
+		{:else if data.merchantOptions.length === 0}
+			<p class="text-xs text-muted-foreground">No merchants are available.</p>
+		{/if}
 
 		{#if activeFilters.length > 0}
 			<div class="flex flex-wrap items-center gap-2">

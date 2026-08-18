@@ -1,12 +1,7 @@
 import { formatDate } from '$lib/utils/format-time';
 import { formatDisputeStatusLabel } from '$lib/utils/dispute-status';
 import type { DisputeListItem, DisputePagination } from '../../schema';
-
-const amountFormatter = new Intl.NumberFormat('en-IN', {
-	style: 'currency',
-	currency: 'INR',
-	maximumFractionDigits: 2
-});
+import { formatDisputeAmount } from './amount';
 
 export interface DisputeListRow extends Record<string, unknown> {
 	disputeId: string;
@@ -25,13 +20,6 @@ function asText(value: string | number | null | undefined): string {
 	return String(value).trim();
 }
 
-function formatAmount(value: string): string {
-	const normalized = value.replace(/,/g, '').trim();
-	if (!normalized) return '—';
-	const amount = Number(normalized);
-	return Number.isFinite(amount) ? amountFormatter.format(amount) : value;
-}
-
 function formatListDate(value: string): string {
 	const trimmed = value.trim();
 	if (!trimmed) return '—';
@@ -46,7 +34,7 @@ export function mapDisputeListItem(item: DisputeListItem): DisputeListRow {
 		disputeId: item.disputeId,
 		orderId: asText(item.orderId) || '—',
 		transactionId: asText(item.pipelineTransactionId) || '—',
-		amount: formatAmount(asText(item.amount)),
+		amount: formatDisputeAmount(asText(item.amount), asText(item.currency)),
 		status,
 		statusLabel: formatDisputeStatusLabel(status),
 		raisedOn: formatListDate(asText(item.createdAt)),
