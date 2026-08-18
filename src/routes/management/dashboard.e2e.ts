@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { authenticateManagementSession } from '../e2e/mock-session';
 
 test.describe('Management dashboard tabs', () => {
+	test.beforeEach(async ({ context, baseURL }) => {
+		if (!baseURL) throw new Error('Playwright baseURL is required for authenticated e2e tests');
+		await authenticateManagementSession(context, baseURL);
+	});
+
 	test('shows the overview tab by default', async ({ page }) => {
 		await page.goto('/management');
 
