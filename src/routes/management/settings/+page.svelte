@@ -9,7 +9,7 @@
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
-	import MfaSection from './mfa-section.svelte';
+	import MfaSection from '$lib/components/settings/mfa-section.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -17,7 +17,7 @@
 	merchantSession.initialize();
 
 	const displayName = $derived(merchantSession.session?.merchantName ?? 'Admin');
-	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
+	const displayOrgId = $derived(merchantSession.session?.displayOrgId ?? '');
 	const userRole = $derived(formatUserType(merchantSession.session?.userType ?? 'MEMBER'));
 	const sessionEmail = $derived(merchantSession.session?.email ?? 'admin@elixirpay.com');
 	const website = 'https://elixirpay.com';
@@ -27,7 +27,7 @@
 	const overviewFields = $derived([
 		{ label: 'Display Name', value: displayName },
 		{ label: 'Role', value: userRole },
-		{ label: 'Organization ID', value: organizationId || '—' },
+		{ label: 'Organization ID', value: displayOrgId || '—' },
 		{ label: 'Portal', value: 'Management' },
 		{ label: 'Support Email', value: sessionEmail, kind: 'email' as const }
 	]);
@@ -135,8 +135,8 @@
 
 			<div class="pt-12 sm:pt-14">
 				<h2 class="text-xl font-bold text-foreground">{displayName}</h2>
-				{#if organizationId}
-					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
+				{#if displayOrgId}
+					<p class="mt-0.5 text-sm text-muted-foreground">@{displayOrgId}</p>
 				{/if}
 				<p class="mt-0.5 text-sm text-muted-foreground">{userRole}</p>
 

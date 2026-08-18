@@ -7,6 +7,7 @@
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
 	import IpWhitelistTab from '$lib/components/settings/ip-whitelist-tab.svelte';
 	import NotificationPreferencesTab from '$lib/components/settings/notification-preferences-tab.svelte';
+	import MfaSection from '$lib/components/settings/mfa-section.svelte';
 	import { getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
@@ -14,6 +15,8 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	merchantSession.initialize();
 
 	const profile = $derived(data.profile);
 	const displayName = $derived(
@@ -105,6 +108,10 @@
 	<NotificationPreferencesTab portal="merchant" />
 {/snippet}
 
+{#snippet mfaTab()}
+	<MfaSection mfaConfig={data.mfaConfig} mfaError={data.mfaError} />
+{/snippet}
+
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">
 		<div class="relative h-28 bg-muted sm:h-32">
@@ -182,6 +189,7 @@
 			<Tabs.Trigger value="configuration">Configuration</Tabs.Trigger>
 			<Tabs.Trigger value="ip-whitelist">Whitelisted IP Address</Tabs.Trigger>
 			<Tabs.Trigger value="notifications">Notifications</Tabs.Trigger>
+			<Tabs.Trigger value="mfa">MFA</Tabs.Trigger>
 		</Tabs.List>
 		<Tabs.Content value="overview">
 			{@render overviewTab()}
@@ -194,6 +202,9 @@
 		</Tabs.Content>
 		<Tabs.Content value="notifications">
 			{@render notificationsTab()}
+		</Tabs.Content>
+		<Tabs.Content value="mfa">
+			{@render mfaTab()}
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

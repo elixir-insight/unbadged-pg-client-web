@@ -81,9 +81,9 @@ export function formatPaymentPathLabel(
 
 export function formatLivePreviewPath(selection: {
 	pipeline: string;
-	method: PaymentMethod | '';
-	instrument: PaymentInstrument | '';
-	paymentRails: PaymentRails | '';
+	method: string;
+	instrument: string;
+	paymentRails: string;
 }): string {
 	const pipeline = (selection.pipeline || 'omiware').toLowerCase();
 	if (!selection.method) return pipeline;

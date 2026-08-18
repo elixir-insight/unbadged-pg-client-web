@@ -22,6 +22,8 @@ type SettingsLoadResult = {
 		username: string;
 	} | null;
 	profileError: string | null;
+	mfaConfig: { method?: 'EMAIL' | 'SMS'; configured: boolean; enabled: boolean } | null;
+	mfaError: string | null;
 };
 
 async function callLoad(event: Parameters<typeof load>[0]): Promise<SettingsLoadResult> {
@@ -91,6 +93,7 @@ const profilePayload = {
 function mockSettingsFetch(handlers: {
 	credentials?: Response | unknown;
 	profile?: Response | unknown;
+	mfa?: Response | unknown;
 }) {
 	return vi.fn().mockImplementation((input: RequestInfo | URL) => {
 		const url = String(input);
@@ -102,6 +105,15 @@ function mockSettingsFetch(handlers: {
 
 		if (url.includes('/api/v1/merchant/profile')) {
 			const response = handlers.profile ?? profilePayload;
+			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
+		}
+
+		if (url.includes('/api/v1/user/mfa')) {
+			const response = handlers.mfa ?? {
+				data: [{ configured: false, enabled: false }],
+				message: 'ok',
+				statusCode: 200
+			};
 			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
 		}
 
@@ -127,6 +139,8 @@ describe('merchant settings +page.server load', () => {
 			email: 'raghul.r@elixirpay.in'
 		});
 		expect(result.profileError).toBeNull();
+		expect(result.mfaConfig).toEqual({ configured: false, enabled: false });
+		expect(result.mfaError).toBeNull();
 	});
 
 	it('returns only id/clientId when a credential exists — never clientSecret', async () => {
@@ -235,6 +249,54 @@ describe('merchant settings +page.server load', () => {
 	it('redirects to login on a 401 from profile', async () => {
 		const fetchFn = mockSettingsFetch({
 			profile: jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
+		});
+
+		await expect(
+			load({
+				cookies: fakeCookies(),
+				fetch: fetchFn,
+				locals: { logger: fakeLogger() }
+			} as never)
+		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
+	});
+
+	it('returns configured MFA from /api/v1/user/mfa', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: {
+				data: [{ method: 'EMAIL', configured: true, enabled: true }],
+				message: 'ok',
+				statusCode: 200
+			}
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toEqual({ method: 'EMAIL', configured: true, enabled: true });
+		expect(result.mfaError).toBeNull();
+	});
+
+	it('returns mfaError when MFA fetch fails with 500', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toBeNull();
+		expect(result.mfaError).toBeTruthy();
+	});
+
+	it('redirects to login on a 401 from MFA', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
 		});
 
 		await expect(

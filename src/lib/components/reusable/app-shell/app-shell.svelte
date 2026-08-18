@@ -10,6 +10,8 @@
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
 	import NotificationBell from '$lib/components/reusable/notification-bell/notification-bell.svelte';
+	import { breadcrumb } from '$lib/stores/breadcrumb.svelte';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 
 	let {
@@ -61,6 +63,8 @@
 			allItems.find((i) => page.url.pathname.startsWith(i.href + '/'))?.title ??
 			appLabels[app]
 	);
+
+	const userName = $derived(merchantSession.session?.merchantName ?? 'User');
 	const breadcrumbRoutes = $derived(
 		allItems.flatMap((item) =>
 			(item.breadcrumbChildren ?? []).map((child) => ({
@@ -77,6 +81,10 @@
 	}
 
 	const breadcrumbItems = $derived.by(() => {
+		if (breadcrumb.items.length > 0) {
+			return breadcrumb.items;
+		}
+
 		const root = rootRoutes[app];
 		const rest = page.url.pathname.startsWith(root) ? page.url.pathname.slice(root.length) : '';
 
@@ -127,7 +135,7 @@
 	<Sidebar {app} bind:isMobileOpen />
 
 	<main
-		class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:bg-muted md:p-4"
+		class="flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden bg-background md:bg-muted md:p-4"
 	>
 		<div
 			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
@@ -146,6 +154,12 @@
 				>
 					<Menu class="h-4 w-4" />
 				</button>
+
+				{#if isDashboard && (app === 'management' || app === 'merchant')}
+					<p class="min-w-0 truncate text-sm text-muted-foreground">
+						Welcome, <span class="font-bold text-foreground">{userName}</span>
+					</p>
+				{/if}
 
 				{#if !isDashboard}
 					<Breadcrumb items={breadcrumbItems} class="text-sm font-semibold" />

@@ -10,6 +10,7 @@ function sessionWithPermissions(
 	return {
 		userId: 'user-1',
 		organizationId: 'org-1',
+		displayOrgId: 'ORG_1',
 		merchantName: 'Acme',
 		email: 'acme@example.com',
 		userType: 'MEMBER',

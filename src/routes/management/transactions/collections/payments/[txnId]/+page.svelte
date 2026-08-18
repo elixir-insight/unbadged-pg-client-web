@@ -1,4 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
+	import { Button } from '$lib/components/reusable';
+	import { Clock, TriangleAlert } from '$lib/assets/icons';
 	import {
 		DetailPageLayout,
 		DetailSummaryCard,
@@ -13,6 +18,7 @@
 		gotoScopedPath,
 		scopeQueryString
 	} from '$lib/utils/transaction-scope.svelte';
+	import { hasDisputeForTransaction } from '$lib/utils/management-disputes';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -20,6 +26,7 @@
 	const scope = $derived(getCurrentScope());
 	const scopeQuery = $derived(scopeQueryString(scope));
 	const payment = $derived(data.payment);
+	let disputeAlreadyRaised = $state(false);
 
 	function parseAmount(value: string): number {
 		return Number(value.replace(/[₹,\s]/g, '')) || 0;
@@ -32,6 +39,24 @@
 			maximumFractionDigits: 2
 		}).format(value);
 	}
+
+	function raiseDispute(): void {
+		if (!payment || disputeAlreadyRaised) return;
+
+		const params = new URLSearchParams({
+			orderId: payment.orderId,
+			transactionId: payment.txnId,
+			amount: payment.transactionAmount,
+			raisedOn: new Date().toISOString()
+		});
+
+		goto(resolve(`/management/dispute?${params.toString()}`));
+	}
+
+	onMount(() => {
+		if (!payment) return;
+		disputeAlreadyRaised = hasDisputeForTransaction(payment.txnId);
+	});
 
 	const totalFees = $derived(
 		payment
@@ -156,6 +181,20 @@
 				<p class="text-sm text-destructive">{data.timelineError}</p>
 			{:else}
 				<Timeline entries={data.timeline} />
+			{/if}
+		{/snippet}
+
+		{#snippet sidebarActions()}
+			{#if disputeAlreadyRaised}
+				<Button variant="outline" class="w-full" disabled>
+					<Clock class="size-4" />
+					Dispute in review
+				</Button>
+			{:else}
+				<Button variant="destructive" class="w-full" onclick={raiseDispute}>
+					<TriangleAlert class="size-4" />
+					Raise a dispute
+				</Button>
 			{/if}
 		{/snippet}
 	</DetailPageLayout>
