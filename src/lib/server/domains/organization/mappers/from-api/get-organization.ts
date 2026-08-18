@@ -13,6 +13,7 @@ import {
 	type OrganizationStatus,
 	type OrganizationServiceType
 } from '$lib/data/mockData';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { mapDirectors } from './directors';
 import type { GetOrganizationDetailsResponse, GetOrganizationResponse } from '../../schema';
 
@@ -139,7 +140,7 @@ function pendingDocuments(category: OrganizationCategory): OrganizationDocument[
 		}
 	];
 
-	if (category === 'PARTNER') {
+	if (isPartnerStyleCategory(category)) {
 		documents.push({
 			id: 'brand-logo',
 			documentType: 'Brand logo',
@@ -191,6 +192,7 @@ function mapBusinessTypeLabel(type: OrganizationBusinessType): OrganizationKyb['
 function mapCategory(value: string): OrganizationCategory {
 	const normalized = value.trim().toUpperCase();
 	if (normalized === 'PARTNER' || normalized === 'AFFILIATE') return 'PARTNER';
+	if (normalized === 'PLATFORM') return 'PLATFORM';
 	return 'MERCHANT';
 }
 

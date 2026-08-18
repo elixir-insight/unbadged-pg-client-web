@@ -6,6 +6,7 @@ import {
 	UpdateOrganizationSectionFormBodySchema,
 	type UpdateOrganizationSectionFormBody
 } from '$lib/server/domains/organization/mappers/to-api/update-kyb';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { readRememberedOrgBrandName, rememberOrgBrandName } from '../utils/org-brand-name-cookie';
 import { isSessionFailure, requireSession, type SessionTokens } from './session';
 import { mutationFailure, upstreamErrorToFailure, type MutationResult } from './types';
@@ -41,11 +42,13 @@ export async function updateKybSectionMutation(params: {
 
 	const rememberedBrandName = readRememberedOrgBrandName(params.cookies, orgId);
 	const output =
-		parsed.output.category === 'PARTNER' && !parsed.output.brandName?.trim() && rememberedBrandName
+		isPartnerStyleCategory(parsed.output.category) &&
+		!parsed.output.brandName?.trim() &&
+		rememberedBrandName
 			? { ...parsed.output, brandName: rememberedBrandName }
 			: parsed.output;
 
-	if (output.category === 'PARTNER' && output.brandName?.trim()) {
+	if (isPartnerStyleCategory(output.category) && output.brandName?.trim()) {
 		rememberOrgBrandName(params.cookies, orgId, output.brandName);
 	}
 

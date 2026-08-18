@@ -262,6 +262,34 @@ describe('buildUpdateOrganizationKybRequest', () => {
 		expect(upstream.kyb).not.toHaveProperty('brandName');
 	});
 
+	it('includes brand name on platform legal updates', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'legal',
+			...validFormBody,
+			category: 'PLATFORM',
+			brandName: 'NexaPay',
+			registeredAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			communicationAddress: {
+				line1: '',
+				line2: '',
+				city: '',
+				state: '',
+				pincode: '',
+				country: ''
+			},
+			directors: []
+		});
+
+		expect(upstream.brandName).toBe('NexaPay');
+	});
+
 	it('rejects a missing brand name on partner legal updates', () => {
 		expect(() =>
 			buildUpdateOrganizationSectionRequest({

@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 
 const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -208,7 +209,7 @@ export interface LegalStepInput {
 	tan: string;
 	businessType: string;
 	brandName?: string;
-	category?: 'MERCHANT' | 'PARTNER';
+	category?: 'MERCHANT' | 'PARTNER' | 'PLATFORM';
 }
 
 export interface AddressStepInput {
@@ -340,7 +341,7 @@ export function validateLegalStep(input: LegalStepInput): Record<string, string>
 
 	const errors = result.success ? {} : collectIssues(result.issues);
 
-	if (input.category === 'PARTNER') {
+	if (isPartnerStyleCategory(input.category)) {
 		const brandResult = v.safeParse(brandNameSchema, input.brandName ?? '');
 		if (!brandResult.success && !errors.brandName) {
 			errors.brandName = brandResult.issues[0]?.message ?? 'Brand name is required';

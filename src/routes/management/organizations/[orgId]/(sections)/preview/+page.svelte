@@ -37,6 +37,7 @@
 		isPreviewSectionParamChange,
 		maskAccountNumber
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { formatDate } from '$lib/utils/format-time';
 	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
@@ -364,7 +365,7 @@
 	{:else if activeSection === 'legal'}
 		<div class="grid gap-4 md:grid-cols-2">
 			{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
-			{#if organization.category === 'PARTNER'}
+			{#if isPartnerStyleCategory(organization.category)}
 				{@render readOnlyField('Brand name', organization.kyb.brandName)}
 			{/if}
 			{@render readOnlyField('Business Type', organization.kyb.businessType)}

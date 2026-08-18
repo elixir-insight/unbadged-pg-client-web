@@ -6,6 +6,7 @@
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { ZapIcon } from '$lib/assets/icons';
 	import { documentChoiceGroups } from '$lib/data/mockData';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { validateOrganizationActivation } from '$lib/validation/organization-activation';
 
 	let {
@@ -25,7 +26,7 @@
 	let fieldErrors = $state<Record<string, string>>({});
 	let activating = $state(false);
 
-	const isPartner = $derived(category.trim().toUpperCase() === 'PARTNER');
+	const isPartner = $derived(isPartnerStyleCategory(category));
 	const modalDescription = $derived(
 		isPartner
 			? 'Upload the business certificate to activate this organization.'

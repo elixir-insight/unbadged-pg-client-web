@@ -1,4 +1,5 @@
 import type { DocumentStatus, DocumentType, Organization } from '$lib/data/mockData';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import {
 	documentChoiceGroups,
 	fixedRequiredDocuments,
@@ -18,7 +19,7 @@ function findDocByType(org: Organization, type: DocumentType) {
 export function legalComplete(org: Organization): boolean {
 	const { kyb } = org;
 	const cinRequired = kyb.businessType === 'Private Limited';
-	const brandNameRequired = org.category === 'PARTNER';
+	const brandNameRequired = isPartnerStyleCategory(org.category);
 	return Boolean(
 		kyb.legalCompanyName &&
 		kyb.businessType &&
@@ -96,7 +97,7 @@ export function documentsComplete(org: Organization): boolean {
 		(director) => isReady(director.aadharDocument.status) && isReady(director.panDocument.status)
 	);
 	const brandLogoOk =
-		org.category !== 'PARTNER' ||
+		!isPartnerStyleCategory(org.category) ||
 		(() => {
 			const brandLogo = findDocByType(org, 'Brand logo');
 			return brandLogo ? isReady(brandLogo.status) : false;

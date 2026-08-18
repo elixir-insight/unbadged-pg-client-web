@@ -103,7 +103,8 @@
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
-		{ value: 'PARTNER', label: 'Partner' }
+		{ value: 'PARTNER', label: 'Partner' },
+		{ value: 'PLATFORM', label: 'Platform' }
 	];
 
 	const columns: ColumnDef<OrganizationTableRow>[] = [

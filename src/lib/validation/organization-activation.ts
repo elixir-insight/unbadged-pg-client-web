@@ -1,4 +1,5 @@
 import { documentChoiceGroups, type DocumentType } from '$lib/data/mockData';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_FILE_SIZE_LABEL } from './file-upload';
 
 const businessCertificateTypes: DocumentType[] =
@@ -22,7 +23,7 @@ export function validateOrganizationActivation(input: OrganizationActivationInpu
 	errors: OrganizationActivationErrors;
 } {
 	const errors: OrganizationActivationErrors = {};
-	const requireGatewayCredentials = input.category?.trim().toUpperCase() !== 'PARTNER';
+	const requireGatewayCredentials = !isPartnerStyleCategory(input.category);
 
 	if (requireGatewayCredentials) {
 		if (!input.apiKey.trim()) {

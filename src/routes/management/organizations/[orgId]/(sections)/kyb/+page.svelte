@@ -28,6 +28,7 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { deleteDirector, isPersistedDirectorId } from '$lib/organization/directors-api';
 
 	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
@@ -56,7 +57,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
-	const isPartner = $derived(organization.category === 'PARTNER');
+	const isPartner = $derived(isPartnerStyleCategory(organization.category));
 
 	let editableKyb = $state(untrack(() => cloneOrganization(organization.kyb)));
 	let editableDirectors = $state(untrack(() => cloneOrganization(organization.directors)));

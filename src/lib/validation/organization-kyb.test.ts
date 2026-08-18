@@ -52,6 +52,15 @@ describe('organization KYB validation', () => {
 		).toEqual({});
 	});
 
+	it('requires a valid brand name for platforms', () => {
+		expect(
+			validateLegalStep({ ...validLegal, category: 'PLATFORM', brandName: '' }).brandName
+		).toBe('Brand name is required');
+		expect(
+			validateLegalStep({ ...validLegal, category: 'PLATFORM', brandName: 'NexaPay' })
+		).toEqual({});
+	});
+
 	it('accepts business PAN with spaces and lowercase', () => {
 		expect(validateLegalStep({ ...validLegal, businessPan: 'abcde 1234 f' })).toEqual({});
 	});
