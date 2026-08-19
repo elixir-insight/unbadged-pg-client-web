@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FileText, Landmark } from '$lib/assets/icons';
-	import { Button, Chip, CopyButton } from '$lib/components/reusable';
+	import { Chip, CopyButton } from '$lib/components/reusable';
+	import ChangeDisputeStatusModal from '$lib/components/transactions/disputes/change-dispute-status-modal.svelte';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
@@ -12,16 +10,7 @@
 	let { data }: { data: PageData } = $props();
 
 	const dispute = $derived(data.dispute);
-
-	function backToList(): void {
-		const params = new SvelteURLSearchParams();
-		if (data.orgId) params.set('merchantId', data.orgId);
-		const listPath = resolve('/management/dispute');
-		const href = params.size
-			? (`${listPath}?${params.toString()}` as `${typeof listPath}?${string}`)
-			: listPath;
-		goto(resolve(href as '/'));
-	}
+	let statusChangeOpen = $state(false);
 </script>
 
 {#snippet copyableValue(label: string, value: string)}
@@ -46,7 +35,6 @@
 		<p class="mt-1 text-xs text-muted-foreground">
 			{data.disputeError ?? 'This dispute is not available.'}
 		</p>
-		<Button variant="outline" class="mt-4" onclick={backToList}>Back to disputes</Button>
 	</div>
 {:else}
 	<div class="flex flex-col gap-5">
@@ -55,7 +43,6 @@
 				<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
 				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
 			</div>
-			<Button variant="outline" onclick={backToList}>Back to disputes</Button>
 		</div>
 
 		<div class="grid items-stretch gap-5 xl:grid-cols-3">
@@ -70,8 +57,8 @@
 						<h2 class="text-base font-semibold text-foreground">Dispute Information</h2>
 					</div>
 
-					<div class="mt-6 grid gap-8 lg:grid-cols-2 lg:divide-x lg:divide-border">
-						<div class="flex flex-col gap-5 lg:pr-8">
+					<div class="mt-6 grid min-w-0 gap-8 lg:grid-cols-2 lg:divide-x lg:divide-border">
+						<div class="flex min-w-0 flex-col gap-5 lg:pr-8">
 							<div class="grid grid-cols-2 items-center gap-6">
 								<p class="text-sm text-muted-foreground">Dispute ID</p>
 								<p>{@render copyableValue('Dispute ID', dispute.disputeId)}</p>
@@ -98,8 +85,7 @@
 							</div>
 						</div>
 
-						<div class="flex flex-col gap-5 lg:pl-8">
-							{@render detailRow('Status', dispute.statusLabel)}
+						<div class="flex min-w-0 flex-col gap-5 lg:pl-8">
 							{@render detailRow('Bank reference number', dispute.bankRefNumber)}
 							{@render detailRow('Raised on', dispute.raisedOn)}
 							{@render detailRow('Evidence due by', dispute.evidenceDueBy)}
@@ -153,9 +139,19 @@
 					status={dispute.status}
 					catalog={data.statusOptions}
 					evidenceDueBy={dispute.evidenceDueByRaw}
+					changeDisabled={data.statusOptions.length === 0}
+					onChangeStatus={() => (statusChangeOpen = true)}
 				/>
 				<DisputeTimeline events={data.events} eventsError={data.eventsError} />
 			</div>
 		</div>
 	</div>
+	<ChangeDisputeStatusModal
+		bind:open={statusChangeOpen}
+		orgId={data.orgId}
+		disputeId={dispute.disputeId}
+		currentStatus={dispute.status}
+		currentStatusLabel={dispute.statusLabel}
+		statuses={data.statusOptions}
+	/>
 {/if}

@@ -6,7 +6,10 @@ import {
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
-	type CreateDisputeRequest
+	UpdateDisputeStatusRequestSchema,
+	UpdateDisputeStatusResponseSchema,
+	type CreateDisputeRequest,
+	type UpdateDisputeStatusRequest
 } from './schema';
 
 export type DisputeListQuery = {
@@ -99,6 +102,29 @@ export const disputeClient = {
 			schema: DisputeStatusesResponseSchema
 		}),
 
+	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/events */
+	createEvent: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		body: UpdateDisputeStatusRequest
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/events`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'POST',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: UpdateDisputeStatusResponseSchema
+			}
+		),
+
 	/** POST /api/v1/management/organizations/{orgId}/disputes */
 	create: (
 		fetchFn: typeof fetch,
@@ -119,4 +145,4 @@ export const disputeClient = {
 		})
 };
 
-export { CreateDisputeRequestSchema };
+export { CreateDisputeRequestSchema, UpdateDisputeStatusRequestSchema };

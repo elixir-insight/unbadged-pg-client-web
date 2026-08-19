@@ -121,3 +121,19 @@ export const DisputeStatusesResponseSchema = v.object({
 
 export type DisputeStatusItem = v.InferOutput<typeof DisputeStatusItemSchema>;
 export type DisputeStatusesResponse = v.InferOutput<typeof DisputeStatusesResponseSchema>;
+
+export const UpdateDisputeStatusRequestSchema = v.object({
+	fromStatus: v.optional(v.string(), ''),
+	toStatus: v.pipe(v.string(), v.trim(), v.minLength(1, 'Status is required')),
+	actorType: v.optional(v.literal('user'), 'user'),
+	note: v.optional(v.string(), '')
+});
+
+export const UpdateDisputeStatusResponseSchema = v.object({
+	data: v.optional(v.array(DisputeEventItemSchema), []),
+	message: v.optional(v.string(), ''),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type UpdateDisputeStatusRequest = v.InferOutput<typeof UpdateDisputeStatusRequestSchema>;
+export type UpdateDisputeStatusResponse = v.InferOutput<typeof UpdateDisputeStatusResponseSchema>;

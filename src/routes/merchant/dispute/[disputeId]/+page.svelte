@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { FileText, Landmark } from '$lib/assets/icons';
-	import { Button, Chip, CopyButton } from '$lib/components/reusable';
+	import { Chip, CopyButton } from '$lib/components/reusable';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
@@ -51,9 +49,6 @@
 		<p class="mt-1 text-xs text-muted-foreground">
 			This dispute is not available in browser storage.
 		</p>
-		<Button variant="outline" class="mt-4" onclick={() => goto(resolve('/merchant/dispute'))}>
-			Back to disputes
-		</Button>
 	</div>
 {:else if dispute}
 	<div class="flex flex-col gap-5">
