@@ -8,7 +8,7 @@ import {
 	type DisputeDocumentsByType
 } from '$lib/utils/dispute-documents';
 import type { DisputeStatusOption, DisputeTimelineEventView } from '$lib/utils/dispute-status';
-import { disputeClient } from '../client';
+import { disputeClient, type DisputePortal } from '../client';
 import { mapDisputeDetail, type DisputeDetailView } from '../mappers/from-api/details';
 import { mapDisputeDocumentsGrouped } from '../mappers/from-api/documents';
 import { mapDisputeEvents } from '../mappers/from-api/events';
@@ -30,9 +30,15 @@ export async function loadDisputeById(params: {
 	disputeId: string;
 	organizationName?: string;
 	statuses?: DisputeStatusOption[];
+	portal?: DisputePortal;
+	includeEvents?: boolean;
+	includeDocuments?: boolean;
 }): Promise<DisputeDetailLoadResult> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
+	const portal = params.portal ?? 'management';
+	const includeEvents = params.includeEvents ?? portal === 'management';
+	const includeDocuments = params.includeDocuments ?? portal === 'management';
 	const empty = {
 		dispute: null as DisputeDetailView | null,
 		disputeError: null as string | null,
@@ -59,8 +65,8 @@ export async function loadDisputeById(params: {
 		return {
 			...empty,
 			disputeError: session.message,
-			eventsError: session.message,
-			documentsError: session.message
+			eventsError: includeEvents ? session.message : null,
+			documentsError: includeDocuments ? session.message : null
 		};
 	}
 
@@ -71,29 +77,40 @@ export async function loadDisputeById(params: {
 			session.accessToken,
 			session.gatewayToken,
 			orgId,
-			disputeId
+			disputeId,
+			portal
 		),
-		disputeClient.listEvents(
-			params.fetch,
-			params.log,
-			session.accessToken,
-			session.gatewayToken,
-			orgId,
-			disputeId
-		),
-		disputeClient.listDocuments(
-			params.fetch,
-			params.log,
-			session.accessToken,
-			session.gatewayToken,
-			orgId,
-			disputeId
-		)
+		includeEvents
+			? disputeClient.listEvents(
+					params.fetch,
+					params.log,
+					session.accessToken,
+					session.gatewayToken,
+					orgId,
+					disputeId
+				)
+			: Promise.resolve(null),
+		includeDocuments
+			? disputeClient.listDocuments(
+					params.fetch,
+					params.log,
+					session.accessToken,
+					session.gatewayToken,
+					orgId,
+					disputeId
+				)
+			: Promise.resolve(null)
 	]);
 
 	if (!detailResult.ok) {
 		params.log.warn(
-			{ orgId, disputeId, message: detailResult.error.message, kind: detailResult.error.kind },
+			{
+				orgId,
+				disputeId,
+				portal,
+				message: detailResult.error.message,
+				kind: detailResult.error.kind
+			},
 			'GET dispute detail failed'
 		);
 		empty.disputeError = detailResult.error.message;
@@ -106,29 +123,38 @@ export async function loadDisputeById(params: {
 		}
 	}
 
-	if (!eventsResult.ok) {
-		params.log.warn(
-			{ orgId, disputeId, message: eventsResult.error.message, kind: eventsResult.error.kind },
-			'GET dispute events failed'
-		);
-		empty.eventsError = eventsResult.error.message;
-	} else {
-		empty.events = mapDisputeEvents(eventsResult.data.data, params.statuses);
+	if (eventsResult) {
+		if (!eventsResult.ok) {
+			params.log.warn(
+				{
+					orgId,
+					disputeId,
+					message: eventsResult.error.message,
+					kind: eventsResult.error.kind
+				},
+				'GET dispute events failed'
+			);
+			empty.eventsError = eventsResult.error.message;
+		} else {
+			empty.events = mapDisputeEvents(eventsResult.data.data, params.statuses);
+		}
 	}
 
-	if (!documentsResult.ok) {
-		params.log.warn(
-			{
-				orgId,
-				disputeId,
-				message: documentsResult.error.message,
-				kind: documentsResult.error.kind
-			},
-			'GET dispute documents failed'
-		);
-		empty.documentsError = documentsResult.error.message;
-	} else {
-		empty.documents = mapDisputeDocumentsGrouped(documentsResult.data.data[0]);
+	if (documentsResult) {
+		if (!documentsResult.ok) {
+			params.log.warn(
+				{
+					orgId,
+					disputeId,
+					message: documentsResult.error.message,
+					kind: documentsResult.error.kind
+				},
+				'GET dispute documents failed'
+			);
+			empty.documentsError = documentsResult.error.message;
+		} else {
+			empty.documents = mapDisputeDocumentsGrouped(documentsResult.data.data[0]);
+		}
 	}
 
 	return empty;

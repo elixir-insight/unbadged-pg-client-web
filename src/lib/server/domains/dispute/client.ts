@@ -61,17 +61,18 @@ export const disputeClient = {
 			schema: DisputeListResponseSchema
 		}),
 
-	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId} */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId} */
 	getById: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		disputeId: string
+		disputeId: string,
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}`,
 			{
 				fetch: fetchFn,
 				logger,
