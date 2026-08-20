@@ -6,15 +6,20 @@ import {
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
+	UpdateDisputeRequestSchema,
+	UpdateDisputeResponseSchema,
 	UpdateDisputeStatusRequestSchema,
 	UpdateDisputeStatusResponseSchema,
 	type CreateDisputeRequest,
+	type UpdateDisputeRequest,
 	type UpdateDisputeStatusRequest
 } from './schema';
 
 export type DisputeListQuery = {
 	status?: string;
 	source?: string;
+	orderId?: string;
+	pipelineTransactionId?: string;
 	limit?: number;
 	page?: number;
 };
@@ -38,6 +43,8 @@ export const disputeClient = {
 			query: {
 				status: query.status,
 				source: query.source,
+				orderId: query.orderId,
+				pipelineTransactionId: query.pipelineTransactionId,
 				limit: query.limit,
 				page: query.page
 			},
@@ -102,6 +109,29 @@ export const disputeClient = {
 			schema: DisputeStatusesResponseSchema
 		}),
 
+	/** PATCH /api/v1/management/organizations/{orgId}/disputes/{disputeId} */
+	update: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		body: UpdateDisputeRequest
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'PATCH',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: UpdateDisputeResponseSchema
+			}
+		),
+
 	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/events */
 	createEvent: (
 		fetchFn: typeof fetch,
@@ -145,4 +175,4 @@ export const disputeClient = {
 		})
 };
 
-export { CreateDisputeRequestSchema, UpdateDisputeStatusRequestSchema };
+export { CreateDisputeRequestSchema, UpdateDisputeRequestSchema, UpdateDisputeStatusRequestSchema };

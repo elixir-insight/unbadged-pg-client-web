@@ -54,7 +54,7 @@
 		<h2 class="text-base font-semibold text-foreground">Status Overview</h2>
 	</div>
 
-	<div class="mt-4 flex flex-col gap-8">
+	<div class="mt-4 flex flex-col gap-4">
 		<div class="flex items-start justify-between gap-3">
 			<div class="min-w-0">
 				<p class="text-xs font-medium tracking-wider text-muted-foreground uppercase">Status</p>

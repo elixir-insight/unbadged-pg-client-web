@@ -68,19 +68,16 @@
 		isSubmitting = true;
 		try {
 			const payload = {
-				fromStatus: currentStatus,
-				toStatus: pendingStatus,
-				actorType: 'user',
-				note: ''
+				status: pendingStatus
 			};
 
 			const response = await fetch(
-				resolve('/api/management/organizations/[orgId]/disputes/[disputeId]/events', {
+				resolve('/api/management/organizations/[orgId]/disputes/[disputeId]', {
 					orgId,
 					disputeId
 				}),
 				{
-					method: 'POST',
+					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload)
 				}

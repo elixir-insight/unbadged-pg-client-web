@@ -68,17 +68,17 @@ export function mapDisputeDetail(
 		sourceLabel: source ? formatSnakeCaseLabel(source) : '—',
 		status,
 		statusLabel: disputeStatusLabel(status, statuses),
-		bankRefNumber: displayValue(asText(item.bankRefNumber)),
+		bankRefNumber: asText(item.bankRefNumber),
 		raisedOn: formatDisplayDate(asText(item.createdAt)),
 		evidenceDueBy: formatDisplayDate(evidenceDueByRaw),
 		evidenceDueByRaw,
-		reasonCode: displayValue(asText(item.reasonCode)),
-		resolvedBy: displayValue(asText(item.resolvedBy)),
+		reasonCode: asText(item.reasonCode),
+		resolvedBy: asText(item.resolvedBy),
 		assignedTo: displayValue(asText(item.assignedTo)),
 		raisedBy: displayValue(asText(item.raisedBy)),
 		pipelineCode: displayValue(asText(item.pipelineCode)),
-		gatewayDescription: displayValue(asText(item.gatewayDescription)),
-		pipelineDescription: displayValue(asText(item.pipelineDescription)),
-		resolutionNotes: displayValue(asText(item.resolutionNotes))
+		gatewayDescription: asText(item.gatewayDescription),
+		pipelineDescription: asText(item.pipelineDescription),
+		resolutionNotes: asText(item.resolutionNotes)
 	};
 }

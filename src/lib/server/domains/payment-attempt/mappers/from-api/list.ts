@@ -56,6 +56,7 @@ export interface PaymentAttemptDetailView {
 	orgId: string;
 	pipelineTransactionId: string;
 	disputeId: string;
+	disputeStatus: string;
 	transactionAmount: string;
 	amountValue: string;
 	paymentMethod: string;
@@ -156,6 +157,7 @@ export function mapPaymentAttemptDetail(item: PaymentAttemptItem): PaymentAttemp
 		orgId: item.orgId?.trim() || '',
 		pipelineTransactionId: item.pipelineTransactionId?.trim() || item.payinAttemptId,
 		disputeId: item.disputeId?.trim() || '',
+		disputeStatus: item.disputeStatus?.trim() || '',
 		transactionAmount: formatAmount(item.transactionAmount),
 		amountValue: formatApiAmount(item.transactionAmount),
 		paymentMethod: formatSnakeCaseLabel(item.paymentMethod?.trim() || '—'),

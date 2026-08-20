@@ -15,6 +15,7 @@
 		status?: string;
 		raisedOn?: string;
 		evidenceDueBy?: string;
+		class?: string;
 	}
 
 	interface TimelineStep {
@@ -30,7 +31,8 @@
 		eventsError = null,
 		status = '',
 		raisedOn = '',
-		evidenceDueBy = ''
+		evidenceDueBy = '',
+		class: className
 	}: Props = $props();
 
 	function formatDeadline(value: string): string {
@@ -107,8 +109,13 @@
 	);
 </script>
 
-<section class="rounded-xl border border-border bg-background p-6 shadow-sm">
-	<div class="flex items-center gap-3">
+<section
+	class={cn(
+		'flex h-full min-h-0 flex-col rounded-xl border border-border bg-background p-6 shadow-sm',
+		className
+	)}
+>
+	<div class="flex shrink-0 items-center gap-3">
 		<span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
 			<Clock class="size-5" />
 		</span>
@@ -120,7 +127,10 @@
 	{:else if steps.length === 0}
 		<p class="mt-6 text-sm text-muted-foreground">No timeline events yet.</p>
 	{:else}
-		<ol class="relative mt-6" aria-label="Dispute progress">
+		<ol
+			class="relative mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain"
+			aria-label="Dispute progress"
+		>
 			{#each steps as step, index (step.id)}
 				{@const Icon = step.icon}
 				{@const isCompleted = index < currentStep}

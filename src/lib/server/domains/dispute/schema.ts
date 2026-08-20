@@ -137,3 +137,38 @@ export const UpdateDisputeStatusResponseSchema = v.object({
 
 export type UpdateDisputeStatusRequest = v.InferOutput<typeof UpdateDisputeStatusRequestSchema>;
 export type UpdateDisputeStatusResponse = v.InferOutput<typeof UpdateDisputeStatusResponseSchema>;
+
+const OptionalTrimmedStringSchema = v.optional(v.pipe(v.string(), v.trim()));
+
+export const UpdateDisputeRequestSchema = v.pipe(
+	v.object({
+		bankRefNumber: OptionalTrimmedStringSchema,
+		evidenceDueBy: OptionalTrimmedStringSchema,
+		gatewayDescription: OptionalTrimmedStringSchema,
+		pipelineDescription: OptionalTrimmedStringSchema,
+		reasonCode: OptionalTrimmedStringSchema,
+		resolutionNotes: OptionalTrimmedStringSchema,
+		status: OptionalTrimmedStringSchema
+	}),
+	v.check(
+		(value) =>
+			value.bankRefNumber !== undefined ||
+			value.evidenceDueBy !== undefined ||
+			value.gatewayDescription !== undefined ||
+			value.pipelineDescription !== undefined ||
+			value.reasonCode !== undefined ||
+			value.resolutionNotes !== undefined ||
+			value.status !== undefined,
+		'No changes to update'
+	)
+);
+
+export const UpdateDisputeResponseSchema = v.object({
+	data: v.optional(v.array(CreateDisputeItemSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type UpdateDisputeRequest = v.InferOutput<typeof UpdateDisputeRequestSchema>;
+export type UpdateDisputeResponse = v.InferOutput<typeof UpdateDisputeResponseSchema>;

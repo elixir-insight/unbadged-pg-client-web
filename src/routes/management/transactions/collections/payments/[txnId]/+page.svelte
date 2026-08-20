@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/reusable';
 	import { Clock, TriangleAlert } from '$lib/assets/icons';
 	import {
@@ -11,6 +13,7 @@
 		type DetailSection
 	} from '$lib/components/transactions/collections';
 	import RaiseDisputeModal from '$lib/components/transactions/disputes/raise-dispute-modal.svelte';
+	import { paymentDisputeActionLabel } from '$lib/utils/dispute-status';
 	import {
 		getCurrentScope,
 		gotoScopedPath,
@@ -24,8 +27,8 @@
 	const scopeQuery = $derived(scopeQueryString(scope));
 	const payment = $derived(data.payment);
 	const orgId = $derived(payment?.orgId || scope.orgId);
-	let locallyRaised = $state(false);
-	const disputeAlreadyRaised = $derived(Boolean(payment?.disputeId) || locallyRaised);
+	const disputeAlreadyRaised = $derived(Boolean(payment?.disputeId) || Boolean(data.disputeStatus));
+	const disputeActionLabel = $derived(paymentDisputeActionLabel(data.disputeStatus));
 	let raiseDisputeOpen = $state(false);
 
 	function parseAmount(value: string): number {
@@ -46,7 +49,15 @@
 	}
 
 	function onDisputeRaised(): void {
-		locallyRaised = true;
+		const listPath = resolve('/management/dispute');
+		if (!orgId) {
+			void goto(listPath);
+			return;
+		}
+
+		const href =
+			`${listPath}?merchantId=${encodeURIComponent(orgId)}` as `${typeof listPath}?${string}`;
+		void goto(resolve(href as '/'));
 	}
 
 	const totalFees = $derived(
@@ -179,7 +190,7 @@
 			{#if disputeAlreadyRaised}
 				<Button variant="outline" class="w-full" disabled>
 					<Clock class="size-4" />
-					Dispute in review
+					{disputeActionLabel}
 				</Button>
 			{:else}
 				<Button variant="destructive" class="w-full" onclick={raiseDispute}>

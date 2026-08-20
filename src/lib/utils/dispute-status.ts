@@ -90,3 +90,10 @@ export function disputeTimelineStep(status: string): number {
 	if (normalized === 'WON' || normalized === 'LOST') return 5;
 	return 0;
 }
+
+export function paymentDisputeActionLabel(status: string): string {
+	const normalized = normalizeDisputeStatusKey(status);
+	if (normalized.includes('WON')) return 'Dispute won';
+	if (normalized.includes('LOST')) return 'Dispute lost';
+	return 'Dispute raised';
+}
