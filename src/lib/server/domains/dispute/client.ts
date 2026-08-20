@@ -6,6 +6,7 @@ import {
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
+	DeleteDisputeDocumentResponseSchema,
 	GetDisputeDocumentsResponseSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeDocumentResponseSchema,
@@ -225,6 +226,28 @@ export const disputeClient = {
 				gatewayToken,
 				body,
 				schema: UpdateDisputeDocumentResponseSchema
+			}
+		),
+
+	/** DELETE /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents/{documentId} */
+	deleteDocument: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		documentId: string
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'DELETE',
+				accessToken,
+				gatewayToken,
+				schema: DeleteDisputeDocumentResponseSchema
 			}
 		),
 

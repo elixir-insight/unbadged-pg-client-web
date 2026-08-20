@@ -267,3 +267,14 @@ export type UpdateDisputeDocumentRequest = v.InferOutput<typeof UpdateDisputeDoc
 export type UpdateDisputeDocumentResponse = v.InferOutput<
 	typeof UpdateDisputeDocumentResponseSchema
 >;
+
+export const DeleteDisputeDocumentResponseSchema = v.object({
+	data: v.optional(v.array(v.record(v.string(), v.unknown())), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type DeleteDisputeDocumentResponse = v.InferOutput<
+	typeof DeleteDisputeDocumentResponseSchema
+>;

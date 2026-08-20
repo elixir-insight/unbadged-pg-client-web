@@ -98,6 +98,7 @@
 	let syncedDocumentsKey = $state('');
 	let isUploading = $state(false);
 	let deleteOpen = $state(false);
+	let isDeleting = $state(false);
 	let documentPendingDelete = $state<SessionDocument | null>(null);
 
 	const acceptedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
@@ -514,16 +515,55 @@
 	}
 
 	function closeDeleteModal(): void {
+		if (isDeleting) return;
 		deleteOpen = false;
 		documentPendingDelete = null;
 	}
 
-	function confirmDelete(): void {
-		if (!documentPendingDelete) return;
-		const fileName = documentPendingDelete.fileName;
-		documents = documents.filter((document) => document.id !== documentPendingDelete?.id);
-		closeDeleteModal();
-		toast.success(`${fileName} deleted`);
+	async function confirmDelete(): Promise<void> {
+		if (!documentPendingDelete || isDeleting) return;
+
+		const pending = documentPendingDelete;
+		const fileName = pending.fileName;
+
+		if (!canUploadToApi) {
+			documents = documents.filter((document) => document.id !== pending.id);
+			closeDeleteModal();
+			toast.success(`${fileName} deleted`);
+			return;
+		}
+
+		isDeleting = true;
+		try {
+			const response = await fetch(
+				resolve(
+					'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]',
+					{
+						orgId,
+						disputeId,
+						documentId: pending.id
+					}
+				),
+				{ method: 'DELETE' }
+			);
+
+			const body: { message?: string } = await response.json().catch(() => ({}));
+			if (!response.ok) {
+				throw new Error(body.message ?? 'Could not delete document');
+			}
+
+			documents = documents.filter((document) => document.id !== pending.id);
+			deleteOpen = false;
+			documentPendingDelete = null;
+			toast.success(body.message ?? `${fileName} deleted`);
+			await invalidate('management-disputes:detail');
+		} catch (error) {
+			toast.error('Could not delete document', {
+				description: error instanceof Error ? error.message : 'Delete failed'
+			});
+		} finally {
+			isDeleting = false;
+		}
 	}
 
 	function isReviewStatus(value: string): value is DocumentReviewStatus {
@@ -729,8 +769,23 @@
 		{/if}
 
 		{#snippet footer()}
-			<Button variant="outline" onclick={closeDeleteModal}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
+			<Button variant="outline" disabled={isDeleting} onclick={closeDeleteModal}>Cancel</Button>
+			<Button
+				variant="destructive"
+				disabled={isDeleting}
+				onclick={() => {
+					void confirmDelete();
+				}}
+			>
+				{#if isDeleting}
+					<span
+						class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+					></span>
+					Deleting…
+				{:else}
+					Delete
+				{/if}
+			</Button>
 		{/snippet}
 	</Modal>
 </section>
