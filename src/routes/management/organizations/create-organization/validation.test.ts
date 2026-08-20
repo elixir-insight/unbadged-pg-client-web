@@ -7,6 +7,7 @@ const validBase = {
 	orgPhone: '9876543210',
 	orgEmail: 'acme@example.com',
 	orgBusinessType: 'Private Limited',
+	profileType: '',
 	selectedServiceTypes: ['Pay-Ins'],
 	servicePipelines: { 'Pay-Ins': 'HDFC Bank' }
 };
@@ -21,6 +22,7 @@ describe('validateCreateOrganization', () => {
 		const errors = validateCreateOrganization({
 			...validBase,
 			selectedCategory: 'Partner',
+			profileType: 'PARTNER',
 			selectedServiceTypes: [],
 			servicePipelines: {}
 		});
@@ -28,15 +30,28 @@ describe('validateCreateOrganization', () => {
 		expect(errors).toEqual({});
 	});
 
-	it('returns no merchant-specific errors for a valid platform payload', () => {
+	it('returns no merchant-specific errors for a partner with platform profile type', () => {
 		const errors = validateCreateOrganization({
 			...validBase,
-			selectedCategory: 'Platform',
+			selectedCategory: 'Partner',
+			profileType: 'PLATFORM',
 			selectedServiceTypes: [],
 			servicePipelines: {}
 		});
 
 		expect(errors).toEqual({});
+	});
+
+	it('requires profile type for partners', () => {
+		const errors = validateCreateOrganization({
+			...validBase,
+			selectedCategory: 'Partner',
+			profileType: '',
+			selectedServiceTypes: [],
+			servicePipelines: {}
+		});
+
+		expect(errors.profileType).toBe('Profile type is required');
 	});
 
 	it('requires organization name', () => {

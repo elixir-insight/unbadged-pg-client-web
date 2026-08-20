@@ -39,6 +39,7 @@ export function parseCreateOrganizationFormData(
 			formData,
 			'selectedCategory'
 		) as CreateOrganizationFormBody['selectedCategory'],
+		profileType: readString(formData, 'profileType') as CreateOrganizationFormBody['profileType'],
 		orgName: readString(formData, 'orgName'),
 		orgPhone: readString(formData, 'orgPhone'),
 		orgEmail: readString(formData, 'orgEmail'),

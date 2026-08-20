@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildCreateOrganizationRequest, toE164IndianPhone } from './create-organization';
+import {
+	buildCreateOrganizationRequest,
+	resolveCreateOrganizationProfileType,
+	toE164IndianPhone
+} from './create-organization';
 import { extractOrganizationId } from '$lib/server/domains/organization/utils/extract-id';
 
 describe('toE164IndianPhone', () => {
@@ -22,6 +26,7 @@ describe('buildCreateOrganizationRequest', () => {
 				orgEmail: 'admin@acme.com',
 				orgBusinessType: 'Private Limited',
 				affiliateId: '',
+				profileType: '',
 				selectedServiceTypes: ['Pay-Ins'],
 				servicePipelines: { 'Pay-Ins': 'PIPE001' }
 			})
@@ -50,6 +55,7 @@ describe('buildCreateOrganizationRequest', () => {
 				orgEmail: 'partner@example.com',
 				orgBusinessType: 'LLP',
 				affiliateId: 'AFF-01',
+				profileType: 'PARTNER',
 				selectedServiceTypes: [],
 				servicePipelines: {}
 			})
@@ -61,15 +67,37 @@ describe('buildCreateOrganizationRequest', () => {
 		});
 	});
 
+	it('maps the partner profile type dropdown to the onboard payload', () => {
+		expect(
+			resolveCreateOrganizationProfileType({
+				selectedCategory: 'Partner',
+				profileType: 'PARTNER'
+			})
+		).toBe('PARTNER');
+		expect(
+			resolveCreateOrganizationProfileType({
+				selectedCategory: 'Partner',
+				profileType: 'PLATFORM'
+			})
+		).toBe('PLATFORM');
+		expect(
+			resolveCreateOrganizationProfileType({
+				selectedCategory: 'Merchant',
+				profileType: 'PLATFORM'
+			})
+		).toBe('MERCHANT');
+	});
+
 	it('omits service types for platforms', () => {
 		expect(
 			buildCreateOrganizationRequest({
-				selectedCategory: 'Platform',
+				selectedCategory: 'Partner',
 				orgName: 'Platform Co',
 				orgPhone: '9876543210',
 				orgEmail: 'platform@example.com',
 				orgBusinessType: 'LLP',
 				affiliateId: '',
+				profileType: 'PLATFORM',
 				selectedServiceTypes: [],
 				servicePipelines: {}
 			})

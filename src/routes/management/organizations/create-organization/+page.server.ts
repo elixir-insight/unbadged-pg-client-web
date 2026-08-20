@@ -10,12 +10,7 @@ import {
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 import { rememberOrgCategory } from '$lib/server/domains/organization/utils/org-category-cookie';
-import {
-	createOrganization,
-	generateMockOrganizationId,
-	organizations,
-	parseOrganizationBusinessType
-} from '$lib/data/mockData';
+import { resolveCreateOrganizationProfileType } from '$lib/server/domains/organization/mappers/to-api/create-organization';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	const log = locals.logger;
@@ -64,27 +59,6 @@ export const actions = {
 			});
 		}
 
-		// Platform onboarding is UI-only until the live onboard APIs are wired.
-		if (parsed.output.selectedCategory === 'Platform') {
-			const organizationId = generateMockOrganizationId();
-			organizations.push(
-				createOrganization({
-					id: organizationId,
-					name: parsed.output.orgName,
-					businessType: parseOrganizationBusinessType(parsed.output.orgBusinessType),
-					category: 'PLATFORM',
-					status: 'IN_PROGRESS',
-					kybStatus: 'Not Started',
-					createdAt: new Date().toISOString().slice(0, 10),
-					assignedAdmin: '',
-					serviceTypes: []
-				})
-			);
-			rememberOrgCategory(cookies, organizationId, 'PLATFORM');
-			log.info({ organizationId }, 'created mock platform organization');
-			redirect(303, `/management/organizations/${organizationId}/kyb?category=PLATFORM`);
-		}
-
 		const result = await createOrganizationMutation({
 			fetch,
 			log,
@@ -96,7 +70,7 @@ export const actions = {
 			return fail(result.status, { message: result.message });
 		}
 
-		const category = parsed.output.selectedCategory === 'Partner' ? 'PARTNER' : 'MERCHANT';
+		const category = resolveCreateOrganizationProfileType(parsed.output);
 		rememberOrgCategory(cookies, result.organizationId, category);
 		const categoryQuery = category === 'MERCHANT' ? '' : `?category=${category}`;
 		redirect(303, `/management/organizations/${result.organizationId}/kyb${categoryQuery}`);

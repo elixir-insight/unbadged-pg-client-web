@@ -26,6 +26,7 @@ export interface CreateOrganizationInput {
 	orgPhone: string;
 	orgEmail: string;
 	orgBusinessType: string;
+	profileType: string;
 	selectedServiceTypes: string[];
 	servicePipelines: Record<string, string>;
 }
@@ -56,6 +57,12 @@ export function validateCreateOrganization(input: CreateOrganizationInput): Reco
 			if (!input.servicePipelines[serviceType]) {
 				e[`bankPipeline_${serviceType}`] = 'Select a bank pipeline';
 			}
+		}
+	}
+
+	if (input.selectedCategory === 'Partner') {
+		if (input.profileType !== 'PARTNER' && input.profileType !== 'PLATFORM') {
+			e.profileType = 'Profile type is required';
 		}
 	}
 
