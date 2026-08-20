@@ -15,6 +15,7 @@
 	import ChangeDisputeStatusModal from '$lib/components/transactions/disputes/change-dispute-status-modal.svelte';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
+	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
 	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
 	import type { PageData } from './$types';
@@ -393,6 +394,14 @@
 				</div>
 			</div>
 		</div>
+
+		<DisputeSupportingDocuments
+			mode="management"
+			orgId={data.orgId}
+			disputeId={dispute.disputeId}
+			documents={data.documents}
+			documentsError={data.documentsError}
+		/>
 	</div>
 	<ChangeDisputeStatusModal
 		bind:open={statusChangeOpen}

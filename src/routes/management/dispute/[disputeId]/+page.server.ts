@@ -1,6 +1,10 @@
 import type { PageServerLoad } from './$types';
 import { loadDisputeById } from '$lib/server/domains/dispute/loaders/get-by-id';
 import type { DisputeDetailView } from '$lib/server/domains/dispute/mappers/from-api/details';
+import {
+	emptyDisputeDocumentsByType,
+	type DisputeDocumentsByType
+} from '$lib/utils/dispute-documents';
 import type { DisputeTimelineEventView } from '$lib/utils/dispute-status';
 
 function resolveOrgId(
@@ -35,7 +39,9 @@ export const load: PageServerLoad = async ({
 		dispute: null as DisputeDetailView | null,
 		disputeError: null as string | null,
 		events: [] as DisputeTimelineEventView[],
-		eventsError: null as string | null
+		eventsError: null as string | null,
+		documents: emptyDisputeDocumentsByType() as DisputeDocumentsByType,
+		documentsError: null as string | null
 	};
 
 	if (!disputeId) {
@@ -65,6 +71,8 @@ export const load: PageServerLoad = async ({
 		dispute: result.dispute,
 		disputeError: result.disputeError,
 		events: result.events,
-		eventsError: result.eventsError
+		eventsError: result.eventsError,
+		documents: result.documents,
+		documentsError: result.documentsError
 	};
 };

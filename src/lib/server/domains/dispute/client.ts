@@ -6,10 +6,12 @@ import {
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
+	GetDisputeDocumentsResponseSchema,
 	UpdateDisputeRequestSchema,
 	UpdateDisputeResponseSchema,
 	UpdateDisputeStatusRequestSchema,
 	UpdateDisputeStatusResponseSchema,
+	UploadDisputeDocumentsResponseSchema,
 	type CreateDisputeRequest,
 	type UpdateDisputeRequest,
 	type UpdateDisputeStatusRequest
@@ -152,6 +154,50 @@ export const disputeClient = {
 				gatewayToken,
 				body,
 				schema: UpdateDisputeStatusResponseSchema
+			}
+		),
+
+	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents */
+	listDocuments: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				schema: GetDisputeDocumentsResponseSchema
+			}
+		),
+
+	/** PUT /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents */
+	uploadDocuments: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		body: FormData
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'PUT',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: UploadDisputeDocumentsResponseSchema
 			}
 		),
 

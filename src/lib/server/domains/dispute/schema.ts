@@ -172,3 +172,69 @@ export const UpdateDisputeResponseSchema = v.object({
 
 export type UpdateDisputeRequest = v.InferOutput<typeof UpdateDisputeRequestSchema>;
 export type UpdateDisputeResponse = v.InferOutput<typeof UpdateDisputeResponseSchema>;
+
+export const DISPUTE_DOCUMENT_TYPES = [
+	'MERCHANT_PROOF',
+	'AGGREGATOR_CORRESPONDENCE',
+	'FINAL_RESOLUTION_DOC'
+] as const;
+export type DisputeDocumentType = (typeof DISPUTE_DOCUMENT_TYPES)[number];
+
+export const DisputeDocumentItemSchema = v.object({
+	documentId: v.string(),
+	disputeId: OptionalStringSchema,
+	documentType: OptionalStringSchema,
+	fileName: OptionalStringSchema,
+	fileSizeBytes: v.optional(v.nullable(v.number()), 0),
+	mimeType: OptionalStringSchema,
+	uploadedByRole: OptionalStringSchema,
+	uploadedById: OptionalStringSchema,
+	visibleToMerchant: v.optional(v.nullable(v.boolean()), false),
+	version: v.optional(v.nullable(v.number()), 0),
+	reviewStatus: OptionalStringSchema,
+	reviewNote: OptionalStringSchema,
+	reviewedBy: OptionalStringSchema,
+	reviewedAt: OptionalStringSchema,
+	createdAt: OptionalStringSchema
+});
+
+export const DisputeDocumentUploadFailureSchema = v.object({
+	fileName: OptionalStringSchema,
+	reason: OptionalStringSchema
+});
+
+export const DisputeDocumentUploadResultSchema = v.object({
+	uploaded: v.optional(v.nullable(v.array(DisputeDocumentItemSchema)), []),
+	failed: v.optional(v.nullable(v.array(DisputeDocumentUploadFailureSchema)), [])
+});
+
+export const UploadDisputeDocumentsResponseSchema = v.object({
+	data: v.optional(v.array(DisputeDocumentUploadResultSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 201)
+});
+
+export type DisputeDocumentItem = v.InferOutput<typeof DisputeDocumentItemSchema>;
+export type DisputeDocumentUploadFailure = v.InferOutput<typeof DisputeDocumentUploadFailureSchema>;
+export type UploadDisputeDocumentsResponse = v.InferOutput<
+	typeof UploadDisputeDocumentsResponseSchema
+>;
+
+const OptionalDocumentListSchema = v.optional(v.nullable(v.array(DisputeDocumentItemSchema)), []);
+
+export const DisputeDocumentsGroupedSchema = v.object({
+	merchantProof: OptionalDocumentListSchema,
+	aggregatorCorrespondence: OptionalDocumentListSchema,
+	finalResolutionDoc: OptionalDocumentListSchema
+});
+
+export const GetDisputeDocumentsResponseSchema = v.object({
+	data: v.optional(v.array(DisputeDocumentsGroupedSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type DisputeDocumentsGrouped = v.InferOutput<typeof DisputeDocumentsGroupedSchema>;
+export type GetDisputeDocumentsResponse = v.InferOutput<typeof GetDisputeDocumentsResponseSchema>;
