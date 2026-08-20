@@ -7,12 +7,15 @@ import {
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
 	GetDisputeDocumentsResponseSchema,
+	UpdateDisputeDocumentRequestSchema,
+	UpdateDisputeDocumentResponseSchema,
 	UpdateDisputeRequestSchema,
 	UpdateDisputeResponseSchema,
 	UpdateDisputeStatusRequestSchema,
 	UpdateDisputeStatusResponseSchema,
 	UploadDisputeDocumentsResponseSchema,
 	type CreateDisputeRequest,
+	type UpdateDisputeDocumentRequest,
 	type UpdateDisputeRequest,
 	type UpdateDisputeStatusRequest
 } from './schema';
@@ -201,6 +204,30 @@ export const disputeClient = {
 			}
 		),
 
+	/** PATCH /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents/{documentId}/visibility */
+	updateDocument: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		documentId: string,
+		body: UpdateDisputeDocumentRequest
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}/visibility`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'PATCH',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: UpdateDisputeDocumentResponseSchema
+			}
+		),
+
 	/** POST /api/v1/management/organizations/{orgId}/disputes */
 	create: (
 		fetchFn: typeof fetch,
@@ -221,4 +248,9 @@ export const disputeClient = {
 		})
 };
 
-export { CreateDisputeRequestSchema, UpdateDisputeRequestSchema, UpdateDisputeStatusRequestSchema };
+export {
+	CreateDisputeRequestSchema,
+	UpdateDisputeDocumentRequestSchema,
+	UpdateDisputeRequestSchema,
+	UpdateDisputeStatusRequestSchema
+};

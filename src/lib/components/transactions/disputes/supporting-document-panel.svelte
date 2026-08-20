@@ -27,6 +27,7 @@
 	import { cn } from '$lib/utils';
 	import {
 		mapDocumentReviewStatus,
+		toApiDocumentReviewStatus,
 		type DisputeDocumentType,
 		type DisputeDocumentView,
 		type DocumentReviewStatus
@@ -52,6 +53,10 @@
 		shownToMerchant: boolean;
 		reviewStatus: DocumentReviewStatus;
 		reviewNote: string;
+		savedReviewStatus: DocumentReviewStatus;
+		savedReviewNote: string;
+		isSavingReview: boolean;
+		isSavingVisibility: boolean;
 	}
 
 	interface ReviewStatusMeta {
@@ -161,7 +166,11 @@
 			uploadedAt: parseCreatedAt(document.createdAt),
 			shownToMerchant: document.shownToMerchant,
 			reviewStatus: document.reviewStatus,
-			reviewNote: document.reviewNote
+			reviewNote: document.reviewNote,
+			savedReviewStatus: document.reviewStatus,
+			savedReviewNote: document.reviewNote,
+			isSavingReview: false,
+			isSavingVisibility: false
 		};
 	}
 
@@ -179,9 +188,22 @@
 		if (nextKey === syncedDocumentsKey) return;
 
 		const existingById = new Map(documents.map((document) => [document.id, document]));
-		documents = initialDocuments.map((item) =>
-			viewToSession(item, existingById.get(item.id)?.file ?? null)
-		);
+		documents = initialDocuments.map((item) => {
+			const existing = existingById.get(item.id);
+			const next = viewToSession(item, existing?.file ?? null);
+			if (
+				existing &&
+				(existing.reviewStatus !== existing.savedReviewStatus ||
+					existing.reviewNote !== existing.savedReviewNote)
+			) {
+				return {
+					...next,
+					reviewStatus: existing.reviewStatus,
+					reviewNote: existing.reviewNote
+				};
+			}
+			return next;
+		});
 		syncedDocumentsKey = nextKey;
 	});
 
@@ -201,6 +223,8 @@
 	}
 
 	function toSessionDocument(item: UploadedApiDocument, file: File | null): SessionDocument {
+		const reviewStatus = mapDocumentReviewStatus(item.reviewStatus);
+		const reviewNote = item.reviewNote?.trim() ?? '';
 		return {
 			id: item.documentId?.trim() || crypto.randomUUID(),
 			file,
@@ -208,8 +232,12 @@
 			fileSizeBytes: item.fileSizeBytes ?? file?.size ?? 0,
 			uploadedAt: parseCreatedAt(item.createdAt),
 			shownToMerchant: Boolean(item.visibleToMerchant),
-			reviewStatus: mapDocumentReviewStatus(item.reviewStatus),
-			reviewNote: item.reviewNote?.trim() ?? ''
+			reviewStatus,
+			reviewNote,
+			savedReviewStatus: reviewStatus,
+			savedReviewNote: reviewNote,
+			isSavingReview: false,
+			isSavingVisibility: false
 		};
 	}
 
@@ -284,7 +312,11 @@
 				uploadedAt: new Date(),
 				shownToMerchant: false,
 				reviewStatus: 'pending' as const,
-				reviewNote: ''
+				reviewNote: '',
+				savedReviewStatus: 'pending' as const,
+				savedReviewNote: '',
+				isSavingReview: false,
+				isSavingVisibility: false
 			}));
 
 		documents = [...documents, ...newDocuments];
@@ -314,10 +346,82 @@
 		}
 	}
 
-	function setMerchantVisibility(documentId: string, shownToMerchant: boolean): void {
-		documents = documents.map((document) =>
-			document.id === documentId ? { ...document, shownToMerchant } : document
+	function hasReviewChanges(document: SessionDocument): boolean {
+		return (
+			document.reviewStatus !== document.savedReviewStatus ||
+			document.reviewNote !== document.savedReviewNote
 		);
+	}
+
+	async function patchDocument(
+		documentId: string,
+		body: {
+			reviewNote?: string;
+			reviewStatus?: string;
+			visibleToMerchant?: boolean;
+		}
+	): Promise<string> {
+		const response = await fetch(
+			resolve(
+				'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]/visibility',
+				{
+					orgId,
+					disputeId,
+					documentId
+				}
+			),
+			{
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			}
+		);
+
+		const payload: { message?: string } = await response.json().catch(() => ({}));
+		if (!response.ok) {
+			throw new Error(payload.message ?? 'Could not update document');
+		}
+		return payload.message ?? 'Document updated successfully';
+	}
+
+	async function setMerchantVisibility(
+		documentId: string,
+		shownToMerchant: boolean
+	): Promise<void> {
+		const current = documents.find((document) => document.id === documentId);
+		if (!current || current.isSavingVisibility) return;
+
+		const previous = current.shownToMerchant;
+		documents = documents.map((document) =>
+			document.id === documentId
+				? { ...document, shownToMerchant, isSavingVisibility: true }
+				: document
+		);
+
+		if (!canUploadToApi) {
+			documents = documents.map((document) =>
+				document.id === documentId ? { ...document, isSavingVisibility: false } : document
+			);
+			return;
+		}
+
+		try {
+			const message = await patchDocument(documentId, { visibleToMerchant: shownToMerchant });
+			documents = documents.map((document) =>
+				document.id === documentId ? { ...document, isSavingVisibility: false } : document
+			);
+			toast.success(message);
+			await invalidate('management-disputes:detail');
+		} catch (error) {
+			documents = documents.map((document) =>
+				document.id === documentId
+					? { ...document, shownToMerchant: previous, isSavingVisibility: false }
+					: document
+			);
+			toast.error('Could not update visibility', {
+				description: error instanceof Error ? error.message : 'Update failed'
+			});
+		}
 	}
 
 	function setReviewStatus(documentId: string, reviewStatus: DocumentReviewStatus): void {
@@ -330,6 +434,55 @@
 		documents = documents.map((document) =>
 			document.id === documentId ? { ...document, reviewNote } : document
 		);
+	}
+
+	async function saveReview(documentId: string): Promise<void> {
+		const current = documents.find((document) => document.id === documentId);
+		if (!current || !hasReviewChanges(current) || current.isSavingReview) return;
+
+		if (!canUploadToApi) {
+			documents = documents.map((document) =>
+				document.id === documentId
+					? {
+							...document,
+							savedReviewStatus: document.reviewStatus,
+							savedReviewNote: document.reviewNote
+						}
+					: document
+			);
+			toast.success('Review saved');
+			return;
+		}
+
+		documents = documents.map((document) =>
+			document.id === documentId ? { ...document, isSavingReview: true } : document
+		);
+
+		try {
+			const message = await patchDocument(documentId, {
+				reviewStatus: toApiDocumentReviewStatus(current.reviewStatus),
+				reviewNote: current.reviewNote
+			});
+			documents = documents.map((document) =>
+				document.id === documentId
+					? {
+							...document,
+							savedReviewStatus: document.reviewStatus,
+							savedReviewNote: document.reviewNote,
+							isSavingReview: false
+						}
+					: document
+			);
+			toast.success(message);
+			await invalidate('management-disputes:detail');
+		} catch (error) {
+			documents = documents.map((document) =>
+				document.id === documentId ? { ...document, isSavingReview: false } : document
+			);
+			toast.error('Could not save review', {
+				description: error instanceof Error ? error.message : 'Update failed'
+			});
+		}
 	}
 
 	function openFile(document: SessionDocument): void {
@@ -483,6 +636,27 @@
 						{/if}
 					</div>
 
+					{#if reviewEditable}
+						<div class="mt-3 flex justify-end">
+							<Button
+								size="sm"
+								disabled={!hasReviewChanges(document) || document.isSavingReview}
+								onclick={() => {
+									void saveReview(document.id);
+								}}
+							>
+								{#if document.isSavingReview}
+									<span
+										class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+									></span>
+									Saving…
+								{:else}
+									Save review
+								{/if}
+							</Button>
+						</div>
+					{/if}
+
 					<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
 						<div class="flex items-center gap-1">
 							<Button
@@ -517,7 +691,8 @@
 									'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
 									document.shownToMerchant
 										? 'border-primary bg-primary/10 text-primary'
-										: 'border-border text-muted-foreground'
+										: 'border-border text-muted-foreground',
+									document.isSavingVisibility && 'pointer-events-none opacity-60'
 								)}
 							>
 								<Store class="size-3.5 shrink-0" aria-hidden="true" />
@@ -532,7 +707,10 @@
 								<Switch
 									size="sm"
 									checked={document.shownToMerchant}
-									onCheckedChange={(checked) => setMerchantVisibility(document.id, checked)}
+									disabled={document.isSavingVisibility}
+									onCheckedChange={(checked) => {
+										void setMerchantVisibility(document.id, checked);
+									}}
 								/>
 							</label>
 						{/if}

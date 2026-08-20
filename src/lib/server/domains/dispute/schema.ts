@@ -238,3 +238,32 @@ export const GetDisputeDocumentsResponseSchema = v.object({
 
 export type DisputeDocumentsGrouped = v.InferOutput<typeof DisputeDocumentsGroupedSchema>;
 export type GetDisputeDocumentsResponse = v.InferOutput<typeof GetDisputeDocumentsResponseSchema>;
+
+const OptionalTrimmedReviewStringSchema = v.optional(v.pipe(v.string(), v.trim()));
+
+export const UpdateDisputeDocumentRequestSchema = v.pipe(
+	v.object({
+		reviewNote: OptionalTrimmedReviewStringSchema,
+		reviewStatus: OptionalTrimmedReviewStringSchema,
+		visibleToMerchant: v.optional(v.boolean())
+	}),
+	v.check(
+		(value) =>
+			value.reviewNote !== undefined ||
+			value.reviewStatus !== undefined ||
+			value.visibleToMerchant !== undefined,
+		'No document fields to update'
+	)
+);
+
+export const UpdateDisputeDocumentResponseSchema = v.object({
+	data: v.optional(v.array(v.record(v.string(), v.unknown())), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type UpdateDisputeDocumentRequest = v.InferOutput<typeof UpdateDisputeDocumentRequestSchema>;
+export type UpdateDisputeDocumentResponse = v.InferOutput<
+	typeof UpdateDisputeDocumentResponseSchema
+>;

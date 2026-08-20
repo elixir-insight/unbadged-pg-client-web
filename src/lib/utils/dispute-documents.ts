@@ -26,6 +26,10 @@ export function mapDocumentReviewStatus(status: string | undefined): DocumentRev
 	return 'pending';
 }
 
+export function toApiDocumentReviewStatus(status: DocumentReviewStatus): string {
+	return status.toUpperCase();
+}
+
 export function emptyDisputeDocumentsByType(): DisputeDocumentsByType {
 	return {
 		merchantProof: [],
