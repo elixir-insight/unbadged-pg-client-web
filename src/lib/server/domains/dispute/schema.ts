@@ -278,3 +278,22 @@ export const DeleteDisputeDocumentResponseSchema = v.object({
 export type DeleteDisputeDocumentResponse = v.InferOutput<
 	typeof DeleteDisputeDocumentResponseSchema
 >;
+
+export const DisputeDocumentDownloadUrlItemSchema = v.object({
+	url: v.string(),
+	expiresAt: OptionalStringSchema
+});
+
+export const GetDisputeDocumentDownloadUrlResponseSchema = v.object({
+	data: v.optional(v.array(DisputeDocumentDownloadUrlItemSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type DisputeDocumentDownloadUrlItem = v.InferOutput<
+	typeof DisputeDocumentDownloadUrlItemSchema
+>;
+export type GetDisputeDocumentDownloadUrlResponse = v.InferOutput<
+	typeof GetDisputeDocumentDownloadUrlResponseSchema
+>;

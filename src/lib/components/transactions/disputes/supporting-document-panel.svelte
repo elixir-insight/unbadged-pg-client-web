@@ -486,27 +486,97 @@
 		}
 	}
 
-	function openFile(document: SessionDocument): void {
-		if (!document.file) {
-			toast.error('Preview is unavailable for this document');
-			return;
+	async function fetchDocumentDownloadUrl(
+		documentId: string,
+		disposition: 'inline' | 'attachment'
+	): Promise<string> {
+		const response = await fetch(
+			resolve(
+				'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]/download-url',
+				{
+					orgId,
+					disputeId,
+					documentId
+				}
+			) + `?disposition=${disposition}`
+		);
+
+		const body: { message?: string; url?: string } = await response.json().catch(() => ({}));
+		if (!response.ok) {
+			throw new Error(body.message ?? 'Could not get document URL');
 		}
-		const url = URL.createObjectURL(document.file);
+
+		const url = body.url?.trim() ?? '';
+		if (!url) {
+			throw new Error('Download URL was not returned');
+		}
+		return url;
+	}
+
+	function openLocalFile(file: File): void {
+		const url = URL.createObjectURL(file);
 		window.open(url, '_blank', 'noopener,noreferrer');
 		setTimeout(() => URL.revokeObjectURL(url), 60_000);
 	}
 
-	function downloadFile(document: SessionDocument): void {
+	function downloadLocalFile(file: File, fileName: string): void {
+		const url = URL.createObjectURL(file);
+		const anchor = window.document.createElement('a');
+		anchor.href = url;
+		anchor.download = fileName;
+		anchor.click();
+		URL.revokeObjectURL(url);
+	}
+
+	async function openFile(document: SessionDocument): Promise<void> {
+		if (canUploadToApi) {
+			try {
+				const url = await fetchDocumentDownloadUrl(document.id, 'inline');
+				window.open(url, '_blank', 'noopener,noreferrer');
+				return;
+			} catch (error) {
+				if (!document.file) {
+					toast.error('Could not preview document', {
+						description: error instanceof Error ? error.message : 'Preview failed'
+					});
+					return;
+				}
+			}
+		}
+
+		if (!document.file) {
+			toast.error('Preview is unavailable for this document');
+			return;
+		}
+		openLocalFile(document.file);
+	}
+
+	async function downloadFile(document: SessionDocument): Promise<void> {
+		if (canUploadToApi) {
+			try {
+				const url = await fetchDocumentDownloadUrl(document.id, 'attachment');
+				const anchor = window.document.createElement('a');
+				anchor.href = url;
+				anchor.download = document.fileName;
+				anchor.rel = 'noopener noreferrer';
+				anchor.target = '_blank';
+				anchor.click();
+				return;
+			} catch (error) {
+				if (!document.file) {
+					toast.error('Could not download document', {
+						description: error instanceof Error ? error.message : 'Download failed'
+					});
+					return;
+				}
+			}
+		}
+
 		if (!document.file) {
 			toast.error('Download is unavailable for this document');
 			return;
 		}
-		const url = URL.createObjectURL(document.file);
-		const anchor = window.document.createElement('a');
-		anchor.href = url;
-		anchor.download = document.fileName;
-		anchor.click();
-		URL.revokeObjectURL(url);
+		downloadLocalFile(document.file, document.fileName);
 	}
 
 	function openDeleteModal(document: SessionDocument): void {
@@ -703,7 +773,9 @@
 								variant="outline"
 								size="icon-sm"
 								aria-label="Preview {document.fileName}"
-								onclick={() => openFile(document)}
+								onclick={() => {
+									void openFile(document);
+								}}
 							>
 								<Eye class="size-4" />
 							</Button>
@@ -711,7 +783,9 @@
 								variant="outline"
 								size="icon-sm"
 								aria-label="Download {document.fileName}"
-								onclick={() => downloadFile(document)}
+								onclick={() => {
+									void downloadFile(document);
+								}}
 							>
 								<Download class="size-4" />
 							</Button>

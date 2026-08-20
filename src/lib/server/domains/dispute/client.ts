@@ -3,10 +3,11 @@ import { apiFetch } from '../../http/fetchClient';
 import {
 	CreateDisputeRequestSchema,
 	CreateDisputeResponseSchema,
+	DeleteDisputeDocumentResponseSchema,
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
-	DeleteDisputeDocumentResponseSchema,
+	GetDisputeDocumentDownloadUrlResponseSchema,
 	GetDisputeDocumentsResponseSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeDocumentResponseSchema,
@@ -248,6 +249,30 @@ export const disputeClient = {
 				accessToken,
 				gatewayToken,
 				schema: DeleteDisputeDocumentResponseSchema
+			}
+		),
+
+	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents/{documentId}/download-url */
+	getDocumentDownloadUrl: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		documentId: string,
+		disposition: 'inline' | 'attachment' = 'inline'
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}/download-url`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				query: { disposition },
+				schema: GetDisputeDocumentDownloadUrlResponseSchema
 			}
 		),
 
