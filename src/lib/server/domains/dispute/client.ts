@@ -31,17 +31,20 @@ export type DisputeListQuery = {
 	page?: number;
 };
 
+export type DisputePortal = 'merchant' | 'management';
+
 export const disputeClient = {
-	/** GET /api/v1/management/organizations/{orgId}/disputes */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes */
 	listByOrganization: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		query: DisputeListQuery = {}
+		query: DisputeListQuery = {},
+		portal: DisputePortal = 'management'
 	) =>
-		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes`, {
+		apiFetch(`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes`, {
 			fetch: fetchFn,
 			logger,
 			method: 'GET',

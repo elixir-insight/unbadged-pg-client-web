@@ -4,7 +4,7 @@ import {
 	requireSession
 } from '$lib/server/domains/organization/mutations/session';
 import type { DisputeStatusOption } from '$lib/utils/dispute-status';
-import { disputeClient, type DisputeListQuery } from '../client';
+import { disputeClient, type DisputeListQuery, type DisputePortal } from '../client';
 import {
 	emptyDisputePagination,
 	mapDisputeListResponse,
@@ -25,10 +25,12 @@ export async function loadDisputesByOrganization(params: {
 	orgId: string;
 	query: DisputeListQuery;
 	statuses?: DisputeStatusOption[];
+	portal?: DisputePortal;
 }): Promise<DisputesLoadResult> {
 	const orgId = params.orgId.trim();
 	const limit = params.query.limit ?? 10;
 	const page = params.query.page ?? 0;
+	const portal = params.portal ?? 'management';
 	const empty = {
 		disputes: [] as DisputeListRow[],
 		pagination: emptyDisputePagination(limit, page),
@@ -59,12 +61,13 @@ export async function loadDisputesByOrganization(params: {
 			source: params.query.source,
 			limit,
 			page
-		}
+		},
+		portal
 	);
 
 	if (!result.ok) {
 		params.log.warn(
-			{ orgId, message: result.error.message, kind: result.error.kind },
+			{ orgId, portal, message: result.error.message, kind: result.error.kind },
 			'GET disputes failed'
 		);
 		return { ...empty, disputesError: result.error.message };
