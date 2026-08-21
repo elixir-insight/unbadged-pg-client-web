@@ -137,9 +137,9 @@
 			<Table
 				data={data.disputes}
 				{columns}
-				pageNumber={pagination.pageNumber}
-				totalPages={pagination.totalPages}
-				setPageNumber={pagination.setPageNumber}
+				pageNumber={pagination.currentPage}
+				totalPages={pagination.pageCount}
+				setPageNumber={pagination.setPage}
 				variant="borderless"
 				onRowClick={openDisputeRow}
 				{getRowAriaLabel}
