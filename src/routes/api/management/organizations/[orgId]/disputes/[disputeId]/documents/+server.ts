@@ -31,7 +31,8 @@ export const PUT: RequestHandler = async ({ params, request, cookies, locals, fe
 		cookies,
 		orgId,
 		disputeId,
-		formData
+		formData,
+		portal: 'management'
 	});
 
 	if (!result.ok) {

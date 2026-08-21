@@ -12,7 +12,7 @@ import {
 	MAX_UPLOAD_FILE_SIZE_BYTES,
 	MAX_UPLOAD_FILE_SIZE_LABEL
 } from '$lib/validation/file-upload';
-import { disputeClient } from '../client';
+import { disputeClient, type DisputePortal } from '../client';
 import {
 	DISPUTE_DOCUMENT_TYPES,
 	type DisputeDocumentItem,
@@ -39,9 +39,11 @@ export async function uploadDisputeDocumentsMutation(params: {
 	orgId: string;
 	disputeId: string;
 	formData: FormData;
+	portal?: DisputePortal;
 }): Promise<MutationResult<UploadDisputeDocumentsSuccess>> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
+	const portal = params.portal ?? 'management';
 
 	if (!orgId) {
 		return mutationFailure(400, 'Organization id is required');
@@ -56,16 +58,6 @@ export async function uploadDisputeDocumentsMutation(params: {
 		log: params.log
 	});
 	if (isSessionFailure(session)) return session;
-
-	const documentTypeRaw = params.formData.get('documentType');
-	const documentType =
-		typeof documentTypeRaw === 'string' ? documentTypeRaw.trim().toUpperCase() : '';
-	if (!isDisputeDocumentType(documentType)) {
-		return mutationFailure(
-			400,
-			'documentType must be MERCHANT_PROOF, AGGREGATOR_CORRESPONDENCE, or FINAL_RESOLUTION_DOC'
-		);
-	}
 
 	const files = params.formData
 		.getAll('files')
@@ -89,7 +81,23 @@ export async function uploadDisputeDocumentsMutation(params: {
 	}
 
 	const upstreamFormData = new FormData();
-	upstreamFormData.append('documentType', documentType);
+	let documentType: DisputeDocumentType | null = null;
+
+	// Management requires documentType; merchant upload accepts files only.
+	if (portal === 'management') {
+		const documentTypeRaw = params.formData.get('documentType');
+		const documentTypeValue =
+			typeof documentTypeRaw === 'string' ? documentTypeRaw.trim().toUpperCase() : '';
+		if (!isDisputeDocumentType(documentTypeValue)) {
+			return mutationFailure(
+				400,
+				'documentType must be MERCHANT_PROOF, AGGREGATOR_CORRESPONDENCE, or FINAL_RESOLUTION_DOC'
+			);
+		}
+		documentType = documentTypeValue;
+		upstreamFormData.append('documentType', documentType);
+	}
+
 	for (const file of files) {
 		upstreamFormData.append('files', file, file.name);
 	}
@@ -98,6 +106,7 @@ export async function uploadDisputeDocumentsMutation(params: {
 		{
 			orgId,
 			disputeId,
+			portal,
 			documentType,
 			fileCount: files.length,
 			fileNames: files.map((file) => file.name)
@@ -112,12 +121,19 @@ export async function uploadDisputeDocumentsMutation(params: {
 		session.gatewayToken,
 		orgId,
 		disputeId,
-		upstreamFormData
+		upstreamFormData,
+		portal
 	);
 
 	if (!result.ok) {
 		params.log.warn(
-			{ orgId, disputeId, message: result.error.message, kind: result.error.kind },
+			{
+				orgId,
+				disputeId,
+				portal,
+				message: result.error.message,
+				kind: result.error.kind
+			},
 			'upload dispute documents — upstream failed'
 		);
 		return upstreamErrorToFailure(result.error);
@@ -131,6 +147,7 @@ export async function uploadDisputeDocumentsMutation(params: {
 		{
 			orgId,
 			disputeId,
+			portal,
 			documentType,
 			uploadedCount: uploaded.length,
 			failedCount: failed.length,

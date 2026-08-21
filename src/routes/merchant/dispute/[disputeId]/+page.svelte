@@ -146,6 +146,8 @@
 
 		<DisputeSupportingDocuments
 			mode="merchant"
+			orgId={data.orgId}
+			disputeId={data.disputeId}
 			documents={data.documents}
 			documentsError={data.documentsError}
 		/>

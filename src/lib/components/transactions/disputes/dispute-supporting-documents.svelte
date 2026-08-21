@@ -114,6 +114,7 @@
 				title={group.title}
 				description={group.description}
 				documentType={group.documentType}
+				{mode}
 				{orgId}
 				{disputeId}
 				initialDocuments={group.documents}

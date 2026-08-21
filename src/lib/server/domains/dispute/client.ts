@@ -189,7 +189,7 @@ export const disputeClient = {
 			}
 		),
 
-	/** PUT /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents */
+	/** PUT /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/documents */
 	uploadDocuments: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -197,10 +197,11 @@ export const disputeClient = {
 		gatewayToken: string,
 		orgId: string,
 		disputeId: string,
-		body: FormData
+		body: FormData,
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
 			{
 				fetch: fetchFn,
 				logger,

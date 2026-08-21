@@ -37,6 +37,7 @@
 		title: string;
 		description: string;
 		documentType: DisputeDocumentType;
+		mode?: 'management' | 'merchant';
 		orgId?: string;
 		disputeId?: string;
 		initialDocuments?: DisputeDocumentView[];
@@ -87,6 +88,7 @@
 		title,
 		description,
 		documentType,
+		mode = 'management',
 		orgId = '',
 		disputeId = '',
 		initialDocuments = [],
@@ -106,6 +108,10 @@
 	const acceptedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
 	const maxFileSize = 20 * 1024 * 1024;
 	const canUploadToApi = $derived(Boolean(orgId.trim() && disputeId.trim()));
+	const canUseManagementDocumentApis = $derived(mode === 'management' && canUploadToApi);
+	const detailInvalidateKey = $derived(
+		mode === 'merchant' ? 'merchant-disputes:detail' : 'management-disputes:detail'
+	);
 
 	const reviewStatusOptions: DropdownOption[] = [
 		{ value: 'accepted', label: 'Accepted' },
@@ -246,21 +252,28 @@
 
 	async function uploadFiles(files: File[]): Promise<void> {
 		const formData = new FormData();
-		formData.append('documentType', documentType);
+		if (mode === 'management') {
+			formData.append('documentType', documentType);
+		}
 		for (const file of files) {
 			formData.append('files', file, file.name);
 		}
 
-		const response = await fetch(
-			resolve('/api/management/organizations/[orgId]/disputes/[disputeId]/documents', {
-				orgId,
-				disputeId
-			}),
-			{
-				method: 'PUT',
-				body: formData
-			}
-		);
+		const uploadPath =
+			mode === 'merchant'
+				? resolve('/api/merchant/organizations/[orgId]/disputes/[disputeId]/documents', {
+						orgId,
+						disputeId
+					})
+				: resolve('/api/management/organizations/[orgId]/disputes/[disputeId]/documents', {
+						orgId,
+						disputeId
+					});
+
+		const response = await fetch(uploadPath, {
+			method: 'PUT',
+			body: formData
+		});
 
 		const body: UploadApiResponse = await response.json().catch(() => ({}));
 		if (!response.ok) {
@@ -281,7 +294,7 @@
 			toast.success(
 				body.message ?? `${uploaded.length} document${uploaded.length === 1 ? '' : 's'} uploaded`
 			);
-			await invalidate('management-disputes:detail');
+			await invalidate(detailInvalidateKey);
 		}
 
 		for (const failure of failed) {
@@ -292,7 +305,7 @@
 
 		if (uploaded.length === 0 && failed.length === 0) {
 			toast.success(body.message ?? 'Documents uploaded successfully');
-			await invalidate('management-disputes:detail');
+			await invalidate(detailInvalidateKey);
 		}
 	}
 
@@ -401,7 +414,7 @@
 				: document
 		);
 
-		if (!canUploadToApi) {
+		if (!canUseManagementDocumentApis) {
 			documents = documents.map((document) =>
 				document.id === documentId ? { ...document, isSavingVisibility: false } : document
 			);
@@ -443,7 +456,7 @@
 		const current = documents.find((document) => document.id === documentId);
 		if (!current || !hasReviewChanges(current) || current.isSavingReview) return;
 
-		if (!canUploadToApi) {
+		if (!canUseManagementDocumentApis) {
 			documents = documents.map((document) =>
 				document.id === documentId
 					? {
@@ -531,7 +544,7 @@
 	}
 
 	async function openFile(document: SessionDocument): Promise<void> {
-		if (canUploadToApi) {
+		if (canUseManagementDocumentApis) {
 			try {
 				const url = await fetchDocumentDownloadUrl(document.id, 'inline');
 				window.open(url, '_blank', 'noopener,noreferrer');
@@ -554,7 +567,7 @@
 	}
 
 	async function downloadFile(document: SessionDocument): Promise<void> {
-		if (canUploadToApi) {
+		if (canUseManagementDocumentApis) {
 			try {
 				const url = await fetchDocumentDownloadUrl(document.id, 'attachment');
 				const anchor = window.document.createElement('a');
@@ -598,7 +611,7 @@
 		const pending = documentPendingDelete;
 		const fileName = pending.fileName;
 
-		if (!canUploadToApi) {
+		if (!canUseManagementDocumentApis) {
 			documents = documents.filter((document) => document.id !== pending.id);
 			closeDeleteModal();
 			toast.success(`${fileName} deleted`);
@@ -793,7 +806,7 @@
 							>
 								<Download class="size-4" />
 							</Button>
-							{#if allowUpload || reviewEditable}
+							{#if reviewEditable}
 								<Button
 									variant="outline"
 									size="icon-sm"
