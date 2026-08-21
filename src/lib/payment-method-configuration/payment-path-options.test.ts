@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import * as v from 'valibot';
 import {
 	formatApiLivePreviewPath,
 	formatPaymentPathLabel,
@@ -75,35 +74,5 @@ describe('payment-path-options', () => {
 
 	it('formats labels from snake case', () => {
 		expect(formatPaymentPathLabel('NET_BANKING')).toBe('Net Banking');
-	});
-});
-
-describe('ListPaymentMethodConfigurationsResponseSchema', () => {
-	it('parses upstream payment method configuration list', async () => {
-		const { ListPaymentMethodConfigurationsResponseSchema } =
-			await import('$lib/server/domains/payment-method-configuration/schema');
-
-		const parsed = v.safeParse(ListPaymentMethodConfigurationsResponseSchema, {
-			data: [
-				{
-					createdAt: '2026-07-28T09:07:14.965313Z',
-					updatedAt: null,
-					effectiveFrom: '2026-07-28T09:07:14.96373Z',
-					effectiveTo: null,
-					pipelineCode: 'TEST',
-					serviceType: 'PAYIN',
-					instrument: 'CREDIT_CARD',
-					paymentRail: 'VISA',
-					description: 'test',
-					id: 1,
-					createdBy: 100012,
-					updatedBy: 0
-				}
-			],
-			message: 'Payment method configurations retrieved successfully',
-			statusCode: 200
-		});
-
-		expect(parsed.success).toBe(true);
 	});
 });

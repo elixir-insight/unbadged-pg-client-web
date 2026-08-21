@@ -1,6 +1,13 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
+import type { Organization, OrganizationCategory } from '$lib/data/mockData';
 import { organizations, createOrganizationShell } from '$lib/data/mockData';
+import {
+	applyOrganizationCategory,
+	isUiOnlyOnboardingCategory,
+	resolveOrganizationCategory
+} from '$lib/organization/category';
+import { ensureUiOnlyMockOrganization } from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 import {
 	getValidSession,
 	SessionError,
@@ -9,9 +16,54 @@ import {
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
+import {
+	readRememberedOrgCategory,
+	rememberOrgCategory
+} from '$lib/server/domains/organization/utils/org-category-cookie';
+import {
+	readRememberedOrgBrandName,
+	rememberOrgBrandName
+} from '$lib/server/domains/organization/utils/org-brand-name-cookie';
 import { resolveOrganizationDisplayName } from '$lib/server/domains/organization/utils/resolve-display-name';
 
-export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
+function withResolvedCategory(
+	organization: Organization | null,
+	category: OrganizationCategory,
+	rememberedBrandName = ''
+): Organization | null {
+	if (!organization) return null;
+	const next = applyOrganizationCategory(organization, category);
+	if (next.kyb.brandName.trim()) return next;
+	if (!rememberedBrandName.trim()) return next;
+	return {
+		...next,
+		kyb: {
+			...next.kyb,
+			brandName: rememberedBrandName.trim()
+		}
+	};
+}
+
+function fallbackOrganization(orgId: string, mockOrganization: Organization | null): Organization {
+	return mockOrganization ?? createOrganizationShell({ id: orgId });
+}
+
+type OrganizationLayoutData = {
+	organization: Organization | null;
+	orgId: string;
+	allowShell: boolean;
+	resolvedCategory: OrganizationCategory;
+	loadError: string | null;
+};
+
+export const load: LayoutServerLoad = async ({
+	params,
+	url,
+	cookies,
+	fetch,
+	locals,
+	depends
+}): Promise<OrganizationLayoutData> => {
 	depends('org');
 	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 
@@ -23,13 +75,37 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 	}
 
 	const mockOrganization = organizations.find((candidate) => candidate.id === orgId) ?? null;
+	const rememberedBrandName = readRememberedOrgBrandName(cookies, orgId);
+	const rememberedCategory = readRememberedOrgCategory(cookies, orgId);
 
-	// Partner onboarding isn't wired to the live API yet — always serve mock data.
-	if (mockOrganization?.category === 'PARTNER') {
+	const resolveCategory = (fromApi: OrganizationCategory | null = null): OrganizationCategory => {
+		const category = resolveOrganizationCategory({
+			fromUrl: url.searchParams.get('category'),
+			fromMemory: rememberedCategory,
+			fromMock: mockOrganization?.category ?? null,
+			fromApi
+		});
+		rememberOrgCategory(cookies, orgId, category);
+		return category;
+	};
+
+	const uiOnlyCategory = resolveOrganizationCategory({
+		fromUrl: url.searchParams.get('category'),
+		fromMemory: rememberedCategory,
+		fromMock: mockOrganization?.category ?? null
+	});
+
+	if (isUiOnlyOnboardingCategory(uiOnlyCategory)) {
+		rememberOrgCategory(cookies, orgId, 'PLATFORM');
 		return {
-			organization: mockOrganization,
+			organization: withResolvedCategory(
+				ensureUiOnlyMockOrganization(orgId, { name: mockOrganization?.name }),
+				'PLATFORM',
+				rememberedBrandName
+			),
 			orgId,
 			allowShell: false,
+			resolvedCategory: 'PLATFORM',
 			loadError: null
 		};
 	}
@@ -39,11 +115,16 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		tokens = await getValidSession(cookies, fetch, log);
 	} catch (e) {
 		if (e instanceof SessionInactiveError || e instanceof SessionError) {
-			const organization = mockOrganization ?? createOrganizationShell({ id: orgId });
+			const resolvedCategory = resolveCategory(null);
 			return {
-				organization,
+				organization: withResolvedCategory(
+					fallbackOrganization(orgId, mockOrganization),
+					resolvedCategory,
+					rememberedBrandName
+				),
 				orgId,
 				allowShell: true,
+				resolvedCategory,
 				loadError: e.message
 			};
 		}
@@ -58,9 +139,10 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		orgId
 	);
 
-	let organization = mockOrganization ?? createOrganizationShell({ id: orgId });
+	let organization = fallbackOrganization(orgId, mockOrganization);
 	let allowShell = true;
 	let loadError: string | null;
+	let categoryFromApi: OrganizationCategory | null = null;
 
 	if (detailsResult.ok) {
 		const mapped = mapGetOrganizationResponse(detailsResult.data, orgId);
@@ -68,6 +150,10 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 			organization = mapped;
 			allowShell = false;
 			loadError = null;
+			categoryFromApi = mapped.category;
+			if (mapped.kyb.brandName.trim()) {
+				rememberOrgBrandName(cookies, orgId, mapped.kyb.brandName);
+			}
 		} else {
 			log.warn(
 				{ orgId, upstream: detailsResult.data },
@@ -102,10 +188,12 @@ export const load: LayoutServerLoad = async ({ params, cookies, fetch, locals, d
 		gatewayToken: tokens.gatewayToken
 	});
 
+	const resolvedCategory = resolveCategory(categoryFromApi);
 	return {
-		organization,
+		organization: withResolvedCategory(organization, resolvedCategory, rememberedBrandName),
 		orgId,
 		allowShell,
+		resolvedCategory,
 		loadError
 	};
 };

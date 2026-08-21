@@ -1,9 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { organizations } from '$lib/data/mockData';
 import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/utils/form-data';
 import { updateKybSectionMutation } from '$lib/server/domains/organization/mutations/update-kyb-section';
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
+import {
+	applyMockKybSection,
+	ensureUiOnlyMockOrganization,
+	isUiOnlyMockOrganization
+} from '$lib/server/domains/organization/utils/mock-platform-onboarding';
+import { rememberOrgBrandName } from '$lib/server/domains/organization/utils/org-brand-name-cookie';
 
 export const actions = {
 	saveSection: async ({ request, params, cookies, fetch, locals }) => {
@@ -20,10 +25,13 @@ export const actions = {
 			});
 		}
 
-		// Partner KYB isn't wired to the live API yet — mock a successful save.
-		const mockOrganization = organizations.find((organization) => organization.id === orgId);
-		if (mockOrganization?.category === 'PARTNER') {
-			log.info({ orgId }, 'mocked partner KYB section save');
+		if (isUiOnlyMockOrganization(orgId, cookies, parsed.output.category)) {
+			const organization = ensureUiOnlyMockOrganization(orgId);
+			applyMockKybSection(organization, parsed.output);
+			if (parsed.output.brandName?.trim()) {
+				rememberOrgBrandName(cookies, orgId, parsed.output.brandName);
+			}
+			log.info({ orgId }, 'mocked platform KYB section save');
 			return {
 				success: true,
 				message: 'Organization updated successfully',

@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 
-export const OrganizationProfileTypeSchema = v.picklist(['MERCHANT', 'PARTNER']);
+export const OrganizationProfileTypeSchema = v.picklist(['MERCHANT', 'PARTNER', 'PLATFORM']);
 export const OrganizationBusinessTypeSchema = v.picklist([
 	'SOLE_PROPRIETORSHIP',
 	'PARTNERSHIP',
@@ -61,7 +61,7 @@ export const UpdateOrganizationAddressDetailsSchema = v.object({
 });
 
 export const UpdateOrganizationKybDetailsSchema = v.object({
-	businessPan: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	businessPan: v.optional(v.pipe(v.string(), v.trim(), v.minLength(1))),
 	businessPhone: v.pipe(v.string(), v.trim(), v.minLength(1)),
 	cin: v.string(),
 	communicationAddress: v.pipe(v.string(), v.trim(), v.minLength(1)),
@@ -73,20 +73,24 @@ export const UpdateOrganizationKybDetailsSchema = v.object({
 });
 
 export const UpdateOrganizationDirectorSchema = v.object({
-	aadhar: v.pipe(
-		v.string(),
-		v.transform((value) => value.replace(/\D/g, '')),
-		v.minLength(12),
-		v.check((value) => /^[2-9]\d{11}$/.test(value), 'Enter a valid 12-digit Aadhar number')
+	aadhar: v.optional(
+		v.pipe(
+			v.string(),
+			v.transform((value) => value.replace(/\D/g, '')),
+			v.minLength(12),
+			v.check((value) => /^[2-9]\d{11}$/.test(value), 'Enter a valid 12-digit Aadhar number')
+		)
 	),
 	email: v.pipe(v.string(), v.trim(), v.email()),
+	id: v.optional(v.union([v.number(), v.string()])),
 	name: v.pipe(v.string(), v.trim(), v.minLength(1)),
-	pan: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	pan: v.optional(v.pipe(v.string(), v.trim(), v.minLength(1))),
 	phoneNumber: v.pipe(v.string(), v.trim(), v.minLength(1))
 });
 
 export const UpdateOrganizationKybRequestSchema = v.object({
 	addressDetails: UpdateOrganizationAddressDetailsSchema,
+	brandName: v.optional(v.pipe(v.string(), v.trim())),
 	directors: v.array(UpdateOrganizationDirectorSchema),
 	kyb: UpdateOrganizationKybDetailsSchema
 });
@@ -233,9 +237,12 @@ export const OrganizationDetailsRecordSchema = v.object({
 	industry: v.optional(v.string()),
 	organizationWebsite: v.optional(v.string()),
 	registeredYear: v.optional(v.number()),
+	brandName: v.optional(v.string()),
 	communicationAddress: v.optional(v.string()),
 	serviceTypes: v.optional(v.array(v.string())),
 	address: v.optional(OrganizationDetailsAddressSchema),
+	addressDetails: v.optional(OrganizationDetailsAddressSchema),
+	kyb: v.optional(v.unknown()),
 	directors: v.optional(v.array(OrganizationDetailsDirectorRecordSchema))
 });
 
@@ -253,9 +260,7 @@ export const GetOrganizationResponseSchema = v.object({
 export const GetOrganizationDetailsResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),
-	data: v.optional(
-		v.union([v.array(OrganizationDetailsRecordSchema), OrganizationDetailsRecordSchema, v.null()])
-	)
+	data: v.optional(v.union([v.array(v.unknown()), v.unknown(), v.null()]))
 });
 
 export const OrganizationProfileRecordSchema = v.object({

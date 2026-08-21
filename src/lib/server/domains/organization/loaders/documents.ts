@@ -1,4 +1,5 @@
 import { createOrganizationShell, organizations, type Organization } from '$lib/data/mockData';
+import { isUiOnlyOnboardingCategory } from '$lib/organization/category';
 import {
 	getValidSession,
 	SessionError,
@@ -36,12 +37,13 @@ export async function loadOrganizationDocuments(params: {
 }) {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
 
-	// Partner onboarding isn't wired to the live API yet — always serve mock data.
-	if (organizationBase.category === 'PARTNER') {
+	if (isUiOnlyOnboardingCategory(organizationBase.category)) {
+		const mockOrganization =
+			organizations.find((candidate) => candidate.id === orgId) ?? organizationBase;
 		return {
 			documentsLoadError: null,
-			documents: organizationBase.documents,
-			directors: organizationBase.directors
+			documents: mockOrganization.documents,
+			directors: mockOrganization.directors
 		};
 	}
 

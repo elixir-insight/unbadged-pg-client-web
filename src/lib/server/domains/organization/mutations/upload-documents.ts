@@ -27,6 +27,7 @@ const backendFieldNameMap: Record<string, string> = {
 	MOA: 'moa',
 	MEMORANDUM_OF_ASSOCIATION_MOA: 'moa',
 	ORG_LOGO: 'orgLogo',
+	BRAND_LOGO: 'brandLogo',
 	PROFILE_PICTURE: 'profilePicture',
 	APK_FILE: 'apkFile',
 	VOIDED_CHEQUE: 'voidedCheque',

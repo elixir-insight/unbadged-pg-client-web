@@ -7,7 +7,7 @@
 	import { Button, Input, Dropdown, PhoneInput } from '$lib/components/reusable';
 	import MerchantConfigSection from './MerchantConfigSection.svelte';
 
-	type ClientType = 'Merchant' | 'Partner';
+	type ClientType = 'Merchant' | 'Partner' | 'Platform';
 
 	interface ServiceType {
 		value: string;

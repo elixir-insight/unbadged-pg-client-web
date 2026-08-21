@@ -104,7 +104,8 @@
 
 	const categoryOptions = [
 		{ value: 'MERCHANT', label: 'Merchant' },
-		{ value: 'PARTNER', label: 'Partner' }
+		{ value: 'PARTNER', label: 'Partner' },
+		{ value: 'PLATFORM', label: 'Platform' }
 	];
 
 	const columns: ColumnDef<OrganizationTableRow>[] = [
@@ -390,7 +391,7 @@
 				{#if selectedOrg.status === 'IN_PROGRESS'}
 					{#if userPermissions.can('ORGANIZATION', 'write')}
 						<Button
-							href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+							href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 							class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 						>
 							<ArrowRight class="size-3.5" />
@@ -398,7 +399,7 @@
 						</Button>
 					{/if}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>
@@ -407,7 +408,7 @@
 					</Button>
 				{:else if selectedOrg.status === 'APPROVED' || selectedOrg.status === 'ACTIVE' || selectedOrg.status === 'FROZEN'}
 					<Button
-						href={resolve(`/management/organizations/${selectedOrg.id}/preview`)}
+						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
 					>
 						<Eye class="size-3.5" />
@@ -415,7 +416,7 @@
 					</Button>
 				{:else}
 					<Button
-						href={resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}
+						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
 						variant="outline"
 						class="flex-1 gap-1.5"
 					>

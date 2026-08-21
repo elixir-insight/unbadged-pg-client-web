@@ -1,4 +1,5 @@
-import type { Organization, OrganizationBankAccount } from '$lib/data/mockData';
+import { organizations, type Organization, type OrganizationBankAccount } from '$lib/data/mockData';
+import { isUiOnlyOnboardingCategory } from '$lib/organization/category';
 import {
 	getValidSession,
 	SessionError,
@@ -20,11 +21,12 @@ export async function loadOrganizationBankAccounts(params: {
 }> {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
 
-	// Partner onboarding isn't wired to the live API yet — always serve mock data.
-	if (organizationBase.category === 'PARTNER') {
+	if (isUiOnlyOnboardingCategory(organizationBase.category)) {
+		const mockOrganization =
+			organizations.find((candidate) => candidate.id === orgId) ?? organizationBase;
 		return {
 			bankAccountsLoadError: null,
-			bankAccounts: organizationBase.bankAccounts
+			bankAccounts: mockOrganization.bankAccounts
 		};
 	}
 

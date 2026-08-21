@@ -2,6 +2,7 @@ import type { Logger } from 'pino';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { isSessionFailure, requireSession } from './session';
 import { mutationFailure, upstreamErrorToFailure, type MutationResult } from './types';
+import { isUiOnlyMockOrganization } from '../utils/mock-platform-onboarding';
 
 export type DeleteDirectorSuccess = {
 	message: string;
@@ -23,6 +24,14 @@ export async function deleteDirectorMutation(params: {
 	if (!directorId) {
 		return mutationFailure(400, 'Director id is required');
 	}
+	if (isUiOnlyMockOrganization(orgId, params.cookies)) {
+		params.log.info({ orgId, directorId }, 'mocked platform director delete');
+		return {
+			ok: true,
+			message: 'Director deleted successfully'
+		};
+	}
+
 	if (!/^\d+$/.test(directorId)) {
 		return mutationFailure(400, 'Invalid director id');
 	}

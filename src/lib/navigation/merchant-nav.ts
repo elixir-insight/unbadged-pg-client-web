@@ -5,6 +5,7 @@ import {
 	MessageSquareWarning,
 	Landmark,
 	FileText,
+	TrendingUp,
 	Users,
 	ShieldCheck
 } from '$lib/assets/icons';
@@ -70,6 +71,17 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Analytics',
 		items: [
+			{
+				title: 'Transaction Insights',
+				href: '/merchant/transaction-insights',
+				icon: TrendingUp,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/transaction-insights\/[^/]+$/,
+						title: 'Merchant Calendar'
+					}
+				]
+			},
 			{
 				title: 'Reports',
 				href: '/merchant/reports',

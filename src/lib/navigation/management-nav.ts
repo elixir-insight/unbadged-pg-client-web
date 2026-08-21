@@ -7,8 +7,8 @@ import {
 	// Wallet,
 	// Send,
 	ArrowLeftRight,
+	TrendingUp,
 	MessageSquareWarning,
-	// TrendingUp,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -114,6 +114,17 @@ export const managementNav: NavGroup[] = [
 				]
 			},
 			{
+				title: 'Transaction Insights',
+				href: '/management/transaction-insights',
+				icon: TrendingUp,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/transaction-insights\/[^/]+$/,
+						title: 'Merchant Calendar'
+					}
+				]
+			},
+			{
 				title: 'Disputes',
 				href: '/management/dispute',
 				icon: MessageSquareWarning,
@@ -126,7 +137,6 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			},
-			// { title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
 			{
 				title: 'Settlements',
 				href: '/management/settlements',

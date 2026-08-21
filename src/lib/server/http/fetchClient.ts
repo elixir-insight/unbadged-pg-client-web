@@ -101,10 +101,13 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 
 		const parsed = v.safeParse(opts.schema, json);
 		if (!parsed.success) {
-			log.warn(
-				{ status: res.status, durationMs, issues: parsed.issues },
-				'response validation failed'
-			);
+			const issues = parsed.issues.map((issue) => ({
+				path: issue.path?.map((segment) => segment.key).join('.'),
+				message: issue.message,
+				expected: issue.expected,
+				received: issue.received
+			}));
+			log.warn({ status: res.status, durationMs, issues }, 'response validation failed');
 			return {
 				ok: false,
 				error: {

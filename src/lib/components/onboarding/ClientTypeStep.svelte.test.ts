@@ -12,12 +12,17 @@ const clientTypes = [
 		value: 'Partner',
 		title: 'Partner',
 		image: '/images/handShaking.png'
+	},
+	{
+		value: 'Platform',
+		title: 'Platform',
+		image: '/images/handShaking.png'
 	}
 ] as const;
 
 async function renderStep(
 	overrides: {
-		selectedCategory?: 'Merchant' | 'Partner' | null;
+		selectedCategory?: 'Merchant' | 'Partner' | 'Platform' | null;
 		onNext?: () => void;
 	} = {}
 ) {

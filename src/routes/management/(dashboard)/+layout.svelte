@@ -9,8 +9,6 @@
 
 	let { children }: { children: Snippet } = $props();
 
-	const userName = $derived(merchantSession.session?.merchantName ?? 'User');
-
 	const tabPaths = {
 		overview: resolve('/management'),
 		collections: resolve('/management/collections')
@@ -42,17 +40,9 @@
 		onValueChange={handleValueChange}
 		class="flex h-full min-h-0 flex-col"
 	>
-		<!-- Sticky header: greeting, subtitle, tabs -->
+		<!-- Sticky header: tabs -->
 
 		<div class="flex shrink-0 flex-col gap-3">
-			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-				<div class="min-w-0">
-					<h1 class="text-lg font-bold whitespace-nowrap text-foreground">
-						Welcome, {userName}
-					</h1>
-				</div>
-			</div>
-
 			<Tabs.List variant="line" class="shrink-0">
 				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
 				{#if merchantSession.hasPayinAccess() && userPermissions.can('PAYINS', 'read')}

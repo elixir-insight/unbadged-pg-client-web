@@ -16,6 +16,7 @@ const KNOWN_DOCUMENT_FIELDS: Record<string, string> = {
 	ubodeclaration: 'UBO_DECLARATION',
 	boardresolutionforauthorizedsignatory: 'BOARD_RESOLUTION_FOR_AUTHORIZED_SIGNATORY',
 	organizationlogo: 'ORG_LOGO',
+	brandlogo: 'BRAND_LOGO',
 	profilepicture: 'PROFILE_PICTURE',
 	apkfile: 'APK_FILE',
 	cancelledcheque: 'VOIDED_CHEQUE',

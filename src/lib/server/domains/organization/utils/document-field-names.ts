@@ -16,7 +16,8 @@ export const backendFileNameToDocumentType: Record<string, DocumentType> = {
 	moa: 'Memorandum of Association (MOA)',
 	uboDeclaration: 'UBO Declaration',
 	brDocument: 'Board Resolution for Authorized Signatory',
-	orgLogo: 'Organization logo'
+	orgLogo: 'Organization logo',
+	brandLogo: 'Brand logo'
 };
 
 export type DirectorDocumentField = 'aadharDocument' | 'panDocument';

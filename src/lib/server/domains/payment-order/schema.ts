@@ -1,5 +1,11 @@
 import * as v from 'valibot';
 
+export const PaymentOrderRedirectUrlSchema = v.object({
+	successUrl: v.optional(v.nullable(v.string()), ''),
+	cancelUrl: v.optional(v.nullable(v.string()), ''),
+	failureUrl: v.optional(v.nullable(v.string()), '')
+});
+
 export const PaymentOrderListItemSchema = v.object({
 	bankPipelineCode: v.optional(v.nullable(v.string()), ''),
 	checkoutExpiry: v.optional(v.nullable(v.string()), ''),
@@ -18,7 +24,8 @@ export const PaymentOrderListItemSchema = v.object({
 	payinAttemptId: v.optional(v.nullable(v.string()), ''),
 	paymentLink: v.optional(v.nullable(v.string()), ''),
 	pipelineClass: v.optional(v.nullable(v.string()), ''),
-	redirectUrl: v.optional(v.nullable(v.string()), ''),
+	redirectUrl: v.optional(v.nullable(v.union([PaymentOrderRedirectUrlSchema, v.string()])), ''),
+	allowedPaymentMethods: v.optional(v.nullable(v.array(v.string())), []),
 	requestIpAddress: v.optional(v.nullable(v.string()), ''),
 	status: v.string(),
 	transactionAmount: v.string(),
@@ -87,6 +94,7 @@ export const PaymentOrderTimelineResponseSchema = v.object({
 	pagination: v.optional(PaymentOrderPaginationSchema)
 });
 
+export type PaymentOrderRedirectUrl = v.InferOutput<typeof PaymentOrderRedirectUrlSchema>;
 export type PaymentOrderListItem = v.InferOutput<typeof PaymentOrderListItemSchema>;
 export type PaymentOrderCounts = v.InferOutput<typeof PaymentOrderCountsSchema>;
 export type PaymentOrderTimelineItem = v.InferOutput<typeof PaymentOrderTimelineItemSchema>;

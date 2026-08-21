@@ -7,8 +7,12 @@ import {
 	addBankAccountMutation,
 	updateBankAccountMutation
 } from '$lib/server/domains/organization/mutations/bank-account';
-import { organizations } from '$lib/data/mockData';
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
+import {
+	applyMockBankAccount,
+	ensureUiOnlyMockOrganization,
+	isUiOnlyMockOrganization
+} from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-bank-accounts');
@@ -49,15 +53,9 @@ export const actions = {
 			});
 		}
 
-		// Partner onboarding isn't wired to the live API yet — mock a successful save.
-		const mockOrganization = organizations.find((organization) => organization.id === orgId);
-		if (mockOrganization?.category === 'PARTNER') {
-			const accountId = `bank-${Date.now()}`;
-			mockOrganization.bankAccounts = [
-				...mockOrganization.bankAccounts,
-				{ id: accountId, ...parsed.output }
-			];
-			log.info({ orgId, accountId }, 'mocked partner bank account create');
+		if (isUiOnlyMockOrganization(orgId, cookies)) {
+			const accountId = applyMockBankAccount(ensureUiOnlyMockOrganization(orgId), parsed.output);
+			log.info({ orgId, accountId }, 'mocked platform bank account create');
 			return {
 				success: true,
 				message: 'Bank account added successfully',
@@ -104,14 +102,9 @@ export const actions = {
 			});
 		}
 
-		// Partner onboarding isn't wired to the live API yet — mock a successful save.
-		const mockOrganization = organizations.find((organization) => organization.id === orgId);
-		if (mockOrganization?.category === 'PARTNER') {
-			const index = mockOrganization.bankAccounts.findIndex((account) => account.id === accountId);
-			if (index >= 0) {
-				mockOrganization.bankAccounts[index] = { id: accountId, ...parsed.output };
-			}
-			log.info({ orgId, accountId }, 'mocked partner bank account update');
+		if (isUiOnlyMockOrganization(orgId, cookies)) {
+			applyMockBankAccount(ensureUiOnlyMockOrganization(orgId), parsed.output, accountId);
+			log.info({ orgId, accountId }, 'mocked platform bank account update');
 			return {
 				success: true,
 				message: 'Bank account updated successfully'
