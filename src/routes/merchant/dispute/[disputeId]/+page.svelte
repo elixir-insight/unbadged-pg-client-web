@@ -10,6 +10,9 @@
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
 	import { getStoredDispute, type StoredDispute } from '$lib/utils/management-disputes';
+	import { userPermissions } from '$lib/stores/rbac';
+
+	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
 
 	let loaded = $state(false);
 	let dispute = $state<StoredDispute | null>(null);
@@ -149,7 +152,7 @@
 						</div>
 					</div>
 				</div>
-				<DisputeSupportingDocuments mode="merchant" />
+				<DisputeSupportingDocuments mode="merchant" readOnly={!canEdit} />
 			</div>
 
 			<div class="flex flex-col gap-5 xl:sticky xl:top-4">

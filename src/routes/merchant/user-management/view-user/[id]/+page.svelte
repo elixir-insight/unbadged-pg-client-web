@@ -8,6 +8,7 @@
 	import { createUserFormStore } from '$lib/stores/user-management/user-form.svelte';
 	import { formatPhoneDisplay } from '$lib/stores/user-management/user-mapper';
 	import { deleteUser } from '$lib/stores/user-management/users-api';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { toast } from 'svelte-sonner';
 	import type { PageData } from './$types';
 
@@ -80,23 +81,27 @@
 	{getUserHref}
 >
 	{#snippet actions()}
-		{#if deleteDisabledReason}
-			<Tooltip content={deleteDisabledReason}>
-				<Button variant="destructive" class="gap-2" disabled>
+		{#if userPermissions.can('USER_MANAGEMENT', 'delete')}
+			{#if deleteDisabledReason}
+				<Tooltip content={deleteDisabledReason}>
+					<Button variant="destructive" class="gap-2" disabled>
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				</Tooltip>
+			{:else}
+				<Button variant="destructive" class="gap-2" onclick={() => (deleteOpen = true)}>
 					<Trash2 class="h-4 w-4" />
 					Delete
 				</Button>
-			</Tooltip>
-		{:else}
-			<Button variant="destructive" class="gap-2" onclick={() => (deleteOpen = true)}>
-				<Trash2 class="h-4 w-4" />
-				Delete
+			{/if}
+		{/if}
+		{#if userPermissions.can('USER_MANAGEMENT', 'write')}
+			<Button variant="outline" class="gap-2" onclick={handleEdit}>
+				<Pencil class="h-4 w-4" />
+				Edit
 			</Button>
 		{/if}
-		<Button variant="outline" class="gap-2" onclick={handleEdit}>
-			<Pencil class="h-4 w-4" />
-			Edit
-		</Button>
 	{/snippet}
 </UserDetailProfile>
 

@@ -13,6 +13,7 @@ import {
 	UpdateMemberResponseSchema,
 	UpdateOrgRoleResponseSchema,
 	UserDirectoryListResponseSchema,
+	UserPermissionsResponseSchema,
 	type CreateMemberBody,
 	type CreateOrgRoleBody,
 	type UpdateMemberBody,
@@ -206,6 +207,26 @@ export const membersClient = {
 			gatewayToken,
 			method: 'GET',
 			schema: PermissionsCatalogResponseSchema
+		}),
+
+	/**
+	 * GET /api/v1/user/permissions — the CURRENT user's own granted permissions
+	 * (for RBAC enforcement), as opposed to `listPermissions` which returns the
+	 * full catalog of assignable permissions for role management.
+	 */
+	getMyPermissions: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string
+	) =>
+		apiFetch('/api/v1/user/permissions', {
+			fetch: fetchFn,
+			logger,
+			accessToken,
+			gatewayToken,
+			method: 'GET',
+			schema: UserPermissionsResponseSchema
 		}),
 
 	create: (

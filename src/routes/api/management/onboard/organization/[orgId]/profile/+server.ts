@@ -2,9 +2,11 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
 import { requirePortalAccess } from '$lib/server/domains/auth/requirePortalAccess';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 
 export const GET: RequestHandler = async ({ params, cookies, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 	const orgId = params.orgId?.trim();
 	if (!orgId) {
 		error(400, { message: 'Organization id is required' });

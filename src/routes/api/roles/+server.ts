@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import { CreateOrgRoleBodySchema } from '$lib/server/domains/members/schema';
@@ -24,6 +25,7 @@ async function requireSession(
 
 export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'read');
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {
@@ -72,6 +74,7 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 
 export const POST: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'write');
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {

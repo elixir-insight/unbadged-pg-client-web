@@ -7,6 +7,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 import {
@@ -17,6 +18,7 @@ import {
 } from '$lib/data/mockData';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 	const log = locals.logger;
 
 	let tokens;
@@ -52,6 +54,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 
 export const actions = {
 	create: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const formData = await request.formData();
 		const parsed = parseCreateOrganizationFormData(formData);

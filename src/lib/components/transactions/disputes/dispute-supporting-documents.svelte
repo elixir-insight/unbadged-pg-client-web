@@ -4,9 +4,10 @@
 
 	interface Props {
 		mode?: 'management' | 'merchant';
+		readOnly?: boolean;
 	}
 
-	let { mode = 'management' }: Props = $props();
+	let { mode = 'management', readOnly = false }: Props = $props();
 
 	const managementGroups = [
 		{
@@ -51,6 +52,7 @@
 				title={group.title}
 				description={group.description}
 				showMerchantVisibility={group.showMerchantVisibility}
+				{readOnly}
 			/>
 		{/each}
 	</div>

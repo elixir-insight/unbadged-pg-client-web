@@ -29,6 +29,8 @@
 		type FlowStepKey
 	} from '../../helpers';
 	import { deleteDirector, isPersistedDirectorId } from '$lib/organization/directors-api';
+	import { userPermissions } from '$lib/stores/rbac';
+	import { LockIcon } from '$lib/assets/icons';
 
 	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
 	type AddressField = 'line1' | 'line2' | 'city' | 'state' | 'pincode' | 'country';
@@ -77,6 +79,8 @@
 	let fieldErrors = $state<Record<string, string>>({});
 	let saving = $state(false);
 	let formElement = $state<HTMLFormElement | null>(null);
+
+	const canEdit = $derived(userPermissions.can('ORGANIZATION', 'write'));
 
 	function captureBaseline() {
 		baselineKyb = cloneOrganization(editableKyb);
@@ -453,334 +457,350 @@
 		<p class="mt-1 text-sm text-muted-foreground">{meta.description}</p>
 	</div>
 
-	{#if currentStep === 'legal'}
-		<div class="grid gap-4 md:grid-cols-2">
-			{@render textField(
-				'GSTIN',
-				editableKyb.gstin,
-				(value) => {
-					editableKyb = {
-						...editableKyb,
-						gstin: value.replace(/\s/g, '').toUpperCase()
-					};
-				},
-				'gstin'
-			)}
-			{@render textField(
-				'Business PAN',
-				editableKyb.businessPan,
-				(value) => {
-					editableKyb = { ...editableKyb, businessPan: normalizePanInput(value) };
-				},
-				'businessPan'
-			)}
-			{@render phoneField(
-				'Business phone',
-				editableKyb.businessPhone,
-				(value) => {
-					editableKyb = { ...editableKyb, businessPhone: value };
-				},
-				'businessPhone'
-			)}
-			{@render textField(
-				'Industry',
-				editableKyb.industry,
-				(value) => {
-					editableKyb = { ...editableKyb, industry: value };
-				},
-				'industry'
-			)}
-			{@render textField(
-				'Organization website',
-				editableKyb.organizationWebsite,
-				(value) => {
-					editableKyb = { ...editableKyb, organizationWebsite: value };
-				},
-				'organizationWebsite',
-				'',
-				'url'
-			)}
-			{@render textField(
-				'Registered year',
-				editableKyb.registeredYear == null ? '' : String(editableKyb.registeredYear),
-				(value) => {
-					editableKyb = {
-						...editableKyb,
-						registeredYear: value === '' ? null : Number(value)
-					};
-				},
-				'registeredYear',
-				'',
-				'number'
-			)}
-			{@render textField(
-				editableKyb.businessType === 'Private Limited' ? 'CIN' : 'CIN (optional)',
-				editableKyb.cin,
-				(value) => {
-					editableKyb = { ...editableKyb, cin: value.replace(/\s/g, '').toUpperCase() };
-				},
-				'cin'
-			)}
-			{@render textField(
-				'TAN (optional)',
-				editableKyb.tan,
-				(value) => {
-					editableKyb = { ...editableKyb, tan: value.replace(/\s/g, '').toUpperCase() };
-				},
-				'tan'
-			)}
-		</div>
-	{:else if currentStep === 'address'}
-		<div class="space-y-6">
-			<div class="space-y-4">
-				<h3 class="text-sm font-medium">Registered Address</h3>
-				<div class="grid gap-4 md:grid-cols-2">
-					{@render textField(
-						'Address Line 1',
-						editableKyb.registeredAddress.line1,
-						(value) => {
-							updateRegisteredAddress('line1', value);
-						},
-						'registeredAddress.line1'
-					)}
-					{@render textField(
-						'Address Line 2',
-						editableKyb.registeredAddress.line2,
-						(value) => {
-							updateRegisteredAddress('line2', value);
-						},
-						'registeredAddress.line2'
-					)}
-					{@render textField(
-						'City',
-						editableKyb.registeredAddress.city,
-						(value) => {
-							updateRegisteredAddress('city', value);
-						},
-						'registeredAddress.city'
-					)}
-					{@render textField(
-						'State',
-						editableKyb.registeredAddress.state,
-						(value) => {
-							updateRegisteredAddress('state', value);
-						},
-						'registeredAddress.state'
-					)}
-					{@render textField(
-						'Pincode',
-						editableKyb.registeredAddress.pincode,
-						(value) => {
-							updateRegisteredAddress('pincode', value);
-						},
-						'registeredAddress.pincode'
-					)}
-					{@render textField(
-						'Country',
-						editableKyb.registeredAddress.country,
-						(value) => {
-							updateRegisteredAddress('country', value);
-						},
-						'registeredAddress.country'
-					)}
-				</div>
-			</div>
-
-			<div class="space-y-4">
-				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<h3 class="text-sm font-medium">Communication Address</h3>
-					<Checkbox label="Same as registered address" bind:checked={sameAsRegistered} />
-				</div>
-				<div class="grid gap-4 md:grid-cols-2">
-					{@render textField(
-						'Address Line 1',
-						editableKyb.communicationAddress.line1,
-						(value) => {
-							updateCommunicationAddress('line1', value);
-						},
-						'communicationAddress.line1',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-					{@render textField(
-						'Address Line 2',
-						editableKyb.communicationAddress.line2,
-						(value) => {
-							updateCommunicationAddress('line2', value);
-						},
-						'communicationAddress.line2',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-					{@render textField(
-						'City',
-						editableKyb.communicationAddress.city,
-						(value) => {
-							updateCommunicationAddress('city', value);
-						},
-						'communicationAddress.city',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-					{@render textField(
-						'State',
-						editableKyb.communicationAddress.state,
-						(value) => {
-							updateCommunicationAddress('state', value);
-						},
-						'communicationAddress.state',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-					{@render textField(
-						'Pincode',
-						editableKyb.communicationAddress.pincode,
-						(value) => {
-							updateCommunicationAddress('pincode', value);
-						},
-						'communicationAddress.pincode',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-					{@render textField(
-						'Country',
-						editableKyb.communicationAddress.country,
-						(value) => {
-							updateCommunicationAddress('country', value);
-						},
-						'communicationAddress.country',
-						'',
-						'text',
-						sameAsRegistered
-					)}
-				</div>
-			</div>
-		</div>
-	{:else}
-		<div class="space-y-4">
-			<div class="flex items-center justify-end">
-				<Button variant="outline" size="sm" onclick={addDirector}>
-					<Plus class="size-4" />
-					Add Director
-				</Button>
-			</div>
-
-			{#if editableDirectors.length === 0}
-				<p class="text-sm text-muted-foreground">Add at least one director before approval.</p>
-			{:else}
-				<div class="space-y-3">
-					{#each editableDirectors as director, index (director.id)}
-						{@const isExpanded = expandedDirectorId === director.id}
-						<div class="rounded-xl border border-border/60 p-4">
-							{#if isExpanded}
-								<div class="mb-4 flex items-center justify-between">
-									<p class="text-sm font-medium">{director.name || 'New director'}</p>
-									<div class="flex flex-wrap gap-2">
-										<Button variant="ghost" size="sm" onclick={() => (expandedDirectorId = null)}>
-											Done
-										</Button>
-										{#if editableDirectors.length > 1}
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-												aria-label="Remove director"
-												disabled={removingDirectorId === director.id}
-												onclick={() => removeDirector(director.id)}
-											>
-												<Trash2 class="size-4" />
-											</Button>
-										{/if}
-									</div>
-								</div>
-								<div class="grid gap-4 md:grid-cols-2">
-									{@render textField(
-										'Name',
-										director.name,
-										(value) => updateDirector(director.id, 'name', value),
-										`directors.${index}.name`
-									)}
-									{@render textField(
-										'PAN',
-										director.pan,
-										(value) => updateDirector(director.id, 'pan', value),
-										`directors.${index}.pan`,
-										'ABCDE1234F'
-									)}
-									{@render textField(
-										'Aadhar',
-										director.aadhar,
-										(value) => updateDirector(director.id, 'aadhar', value),
-										`directors.${index}.aadhar`,
-										'XXXX XXXX XXXX'
-									)}
-									{@render textField(
-										'Email',
-										director.email,
-										(value) => updateDirector(director.id, 'email', value),
-										`directors.${index}.email`,
-										'',
-										'email'
-									)}
-									{@render phoneField(
-										'Phone',
-										director.phone,
-										(value) => updateDirector(director.id, 'phone', value),
-										`directors.${index}.phone`
-									)}
-								</div>
-							{:else}
-								<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-									<div class="space-y-0.5">
-										<p class="text-sm font-medium">{director.name || 'New director'}</p>
-										<p class="text-sm text-muted-foreground">
-											PAN {director.pan || '—'} · Aadhar {director.aadhar || '—'}
-										</p>
-									</div>
-									<div class="flex flex-wrap gap-2">
-										<Button
-											variant="outline"
-											size="icon-sm"
-											aria-label="Edit director"
-											onclick={() => (expandedDirectorId = director.id)}
-										>
-											<Pencil class="size-4" />
-										</Button>
-										{#if editableDirectors.length > 1}
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-												aria-label="Remove director"
-												disabled={removingDirectorId === director.id}
-												onclick={() => removeDirector(director.id)}
-											>
-												<Trash2 class="size-4" />
-											</Button>
-										{/if}
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			{/if}
+	{#if !canEdit}
+		<div
+			class="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
+		>
+			<LockIcon class="size-4 shrink-0" />
+			<p>
+				You have read-only access to this organization. Contact an administrator to request edit
+				permissions.
+			</p>
 		</div>
 	{/if}
 
-	<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
-		<Button variant="outline" href="/management/organizations">Cancel</Button>
-		<Button type="button" disabled={saving} onclick={handleNext}>
-			{saving
-				? 'Saving…'
-				: adjacent.next?.key === 'review' || !adjacent.next
-					? 'Review & approve'
-					: 'Next step'}
-		</Button>
-	</div>
+	<fieldset disabled={!canEdit} class="contents">
+		{#if currentStep === 'legal'}
+			<div class="grid gap-4 md:grid-cols-2">
+				{@render textField(
+					'GSTIN',
+					editableKyb.gstin,
+					(value) => {
+						editableKyb = {
+							...editableKyb,
+							gstin: value.replace(/\s/g, '').toUpperCase()
+						};
+					},
+					'gstin'
+				)}
+				{@render textField(
+					'Business PAN',
+					editableKyb.businessPan,
+					(value) => {
+						editableKyb = { ...editableKyb, businessPan: normalizePanInput(value) };
+					},
+					'businessPan'
+				)}
+				{@render phoneField(
+					'Business phone',
+					editableKyb.businessPhone,
+					(value) => {
+						editableKyb = { ...editableKyb, businessPhone: value };
+					},
+					'businessPhone'
+				)}
+				{@render textField(
+					'Industry',
+					editableKyb.industry,
+					(value) => {
+						editableKyb = { ...editableKyb, industry: value };
+					},
+					'industry'
+				)}
+				{@render textField(
+					'Organization website',
+					editableKyb.organizationWebsite,
+					(value) => {
+						editableKyb = { ...editableKyb, organizationWebsite: value };
+					},
+					'organizationWebsite',
+					'',
+					'url'
+				)}
+				{@render textField(
+					'Registered year',
+					editableKyb.registeredYear == null ? '' : String(editableKyb.registeredYear),
+					(value) => {
+						editableKyb = {
+							...editableKyb,
+							registeredYear: value === '' ? null : Number(value)
+						};
+					},
+					'registeredYear',
+					'',
+					'number'
+				)}
+				{@render textField(
+					editableKyb.businessType === 'Private Limited' ? 'CIN' : 'CIN (optional)',
+					editableKyb.cin,
+					(value) => {
+						editableKyb = { ...editableKyb, cin: value.replace(/\s/g, '').toUpperCase() };
+					},
+					'cin'
+				)}
+				{@render textField(
+					'TAN (optional)',
+					editableKyb.tan,
+					(value) => {
+						editableKyb = { ...editableKyb, tan: value.replace(/\s/g, '').toUpperCase() };
+					},
+					'tan'
+				)}
+			</div>
+		{:else if currentStep === 'address'}
+			<div class="space-y-6">
+				<div class="space-y-4">
+					<h3 class="text-sm font-medium">Registered Address</h3>
+					<div class="grid gap-4 md:grid-cols-2">
+						{@render textField(
+							'Address Line 1',
+							editableKyb.registeredAddress.line1,
+							(value) => {
+								updateRegisteredAddress('line1', value);
+							},
+							'registeredAddress.line1'
+						)}
+						{@render textField(
+							'Address Line 2',
+							editableKyb.registeredAddress.line2,
+							(value) => {
+								updateRegisteredAddress('line2', value);
+							},
+							'registeredAddress.line2'
+						)}
+						{@render textField(
+							'City',
+							editableKyb.registeredAddress.city,
+							(value) => {
+								updateRegisteredAddress('city', value);
+							},
+							'registeredAddress.city'
+						)}
+						{@render textField(
+							'State',
+							editableKyb.registeredAddress.state,
+							(value) => {
+								updateRegisteredAddress('state', value);
+							},
+							'registeredAddress.state'
+						)}
+						{@render textField(
+							'Pincode',
+							editableKyb.registeredAddress.pincode,
+							(value) => {
+								updateRegisteredAddress('pincode', value);
+							},
+							'registeredAddress.pincode'
+						)}
+						{@render textField(
+							'Country',
+							editableKyb.registeredAddress.country,
+							(value) => {
+								updateRegisteredAddress('country', value);
+							},
+							'registeredAddress.country'
+						)}
+					</div>
+				</div>
+
+				<div class="space-y-4">
+					<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<h3 class="text-sm font-medium">Communication Address</h3>
+						<Checkbox label="Same as registered address" bind:checked={sameAsRegistered} />
+					</div>
+					<div class="grid gap-4 md:grid-cols-2">
+						{@render textField(
+							'Address Line 1',
+							editableKyb.communicationAddress.line1,
+							(value) => {
+								updateCommunicationAddress('line1', value);
+							},
+							'communicationAddress.line1',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+						{@render textField(
+							'Address Line 2',
+							editableKyb.communicationAddress.line2,
+							(value) => {
+								updateCommunicationAddress('line2', value);
+							},
+							'communicationAddress.line2',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+						{@render textField(
+							'City',
+							editableKyb.communicationAddress.city,
+							(value) => {
+								updateCommunicationAddress('city', value);
+							},
+							'communicationAddress.city',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+						{@render textField(
+							'State',
+							editableKyb.communicationAddress.state,
+							(value) => {
+								updateCommunicationAddress('state', value);
+							},
+							'communicationAddress.state',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+						{@render textField(
+							'Pincode',
+							editableKyb.communicationAddress.pincode,
+							(value) => {
+								updateCommunicationAddress('pincode', value);
+							},
+							'communicationAddress.pincode',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+						{@render textField(
+							'Country',
+							editableKyb.communicationAddress.country,
+							(value) => {
+								updateCommunicationAddress('country', value);
+							},
+							'communicationAddress.country',
+							'',
+							'text',
+							sameAsRegistered
+						)}
+					</div>
+				</div>
+			</div>
+		{:else}
+			<div class="space-y-4">
+				<div class="flex items-center justify-end">
+					<Button variant="outline" size="sm" onclick={addDirector}>
+						<Plus class="size-4" />
+						Add Director
+					</Button>
+				</div>
+
+				{#if editableDirectors.length === 0}
+					<p class="text-sm text-muted-foreground">Add at least one director before approval.</p>
+				{:else}
+					<div class="space-y-3">
+						{#each editableDirectors as director, index (director.id)}
+							{@const isExpanded = expandedDirectorId === director.id}
+							<div class="rounded-xl border border-border/60 p-4">
+								{#if isExpanded}
+									<div class="mb-4 flex items-center justify-between">
+										<p class="text-sm font-medium">{director.name || 'New director'}</p>
+										<div class="flex flex-wrap gap-2">
+											<Button variant="ghost" size="sm" onclick={() => (expandedDirectorId = null)}>
+												Done
+											</Button>
+											{#if editableDirectors.length > 1}
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+													aria-label="Remove director"
+													disabled={removingDirectorId === director.id}
+													onclick={() => removeDirector(director.id)}
+												>
+													<Trash2 class="size-4" />
+												</Button>
+											{/if}
+										</div>
+									</div>
+									<div class="grid gap-4 md:grid-cols-2">
+										{@render textField(
+											'Name',
+											director.name,
+											(value) => updateDirector(director.id, 'name', value),
+											`directors.${index}.name`
+										)}
+										{@render textField(
+											'PAN',
+											director.pan,
+											(value) => updateDirector(director.id, 'pan', value),
+											`directors.${index}.pan`,
+											'ABCDE1234F'
+										)}
+										{@render textField(
+											'Aadhar',
+											director.aadhar,
+											(value) => updateDirector(director.id, 'aadhar', value),
+											`directors.${index}.aadhar`,
+											'XXXX XXXX XXXX'
+										)}
+										{@render textField(
+											'Email',
+											director.email,
+											(value) => updateDirector(director.id, 'email', value),
+											`directors.${index}.email`,
+											'',
+											'email'
+										)}
+										{@render phoneField(
+											'Phone',
+											director.phone,
+											(value) => updateDirector(director.id, 'phone', value),
+											`directors.${index}.phone`
+										)}
+									</div>
+								{:else}
+									<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+										<div class="space-y-0.5">
+											<p class="text-sm font-medium">{director.name || 'New director'}</p>
+											<p class="text-sm text-muted-foreground">
+												PAN {director.pan || '—'} · Aadhar {director.aadhar || '—'}
+											</p>
+										</div>
+										<div class="flex flex-wrap gap-2">
+											<Button
+												variant="outline"
+												size="icon-sm"
+												aria-label="Edit director"
+												onclick={() => (expandedDirectorId = director.id)}
+											>
+												<Pencil class="size-4" />
+											</Button>
+											{#if editableDirectors.length > 1}
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+													aria-label="Remove director"
+													disabled={removingDirectorId === director.id}
+													onclick={() => removeDirector(director.id)}
+												>
+													<Trash2 class="size-4" />
+												</Button>
+											{/if}
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+			<Button variant="outline" href="/management/organizations">Cancel</Button>
+			{#if canEdit}
+				<Button type="button" disabled={saving} onclick={handleNext}>
+					{saving
+						? 'Saving…'
+						: adjacent.next?.key === 'review' || !adjacent.next
+							? 'Review & approve'
+							: 'Next step'}
+				</Button>
+			{/if}
+		</div>
+	</fieldset>
 </form>

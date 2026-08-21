@@ -19,9 +19,12 @@
 		scopeQueryString
 	} from '$lib/utils/transaction-scope.svelte';
 	import { hasDisputeForTransaction } from '$lib/utils/management-disputes';
+	import { userPermissions } from '$lib/stores/rbac';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	const canRaiseDispute = $derived(userPermissions.can('PAYINS', 'write'));
 
 	const scope = $derived(getCurrentScope());
 	const scopeQuery = $derived(scopeQueryString(scope));
@@ -190,7 +193,7 @@
 					<Clock class="size-4" />
 					Dispute in review
 				</Button>
-			{:else}
+			{:else if canRaiseDispute}
 				<Button variant="destructive" class="w-full" onclick={raiseDispute}>
 					<TriangleAlert class="size-4" />
 					Raise a dispute

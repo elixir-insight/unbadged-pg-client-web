@@ -3,6 +3,7 @@ import type { Actions } from './$types';
 import { updateOrganizationStatusMutation } from '$lib/server/domains/organization/mutations/update-status';
 import { statusChangeRequiresRemarks } from './operational-status';
 import type { OperationalProfileStatus } from './operational-status';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 const ALLOWED_STATUSES: OperationalProfileStatus[] = ['ACTIVE', 'ON_HOLD', 'FROZEN'];
 
@@ -12,6 +13,7 @@ function isOperationalProfileStatus(value: string): value is OperationalProfileS
 
 export const actions = {
 	updateStatus: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'approve');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 		const formData = await request.formData();

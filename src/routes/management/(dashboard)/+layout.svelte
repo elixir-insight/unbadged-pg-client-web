@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -54,7 +55,7 @@
 
 			<Tabs.List variant="line" class="shrink-0">
 				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-				{#if merchantSession.hasPayinAccess()}
+				{#if merchantSession.hasPayinAccess() && userPermissions.can('PAYINS', 'read')}
 					<Tabs.Trigger value="collections">Collections</Tabs.Trigger>
 				{/if}
 				<!-- {#if merchantSession.hasPayoutAccess()}

@@ -6,6 +6,7 @@ import { merchantApiCredentialsClient } from '$lib/server/domains/merchant-api-c
 import { merchantProfileClient } from '$lib/server/domains/merchant-profile/client';
 import { mapMerchantProfile } from '$lib/server/domains/merchant-profile/mappers/from-api/profile';
 import { getValidSession } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { resetPasswordAction } from '$lib/server/domains/auth/reset-password';
 import {
 	CreateMfaRequestSchema,
@@ -100,6 +101,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 
 export const actions = {
 	generate: async ({ cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'PROFILE', 'write');
 		const tokens = await getValidSession(cookies, fetch, locals.logger);
 		const result = await merchantApiCredentialsClient.create(
 			fetch,
@@ -137,6 +139,7 @@ export const actions = {
 	},
 
 	revoke: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'PROFILE', 'delete');
 		const formData = await request.formData();
 		const id = String(formData.get('id') ?? '').trim();
 		if (!id) {
@@ -168,6 +171,7 @@ export const actions = {
 	},
 
 	createMfa: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'PROFILE', 'write-restricted');
 		const formData = await request.formData();
 		const parsed = v.safeParse(CreateMfaRequestSchema, {
 			method: String(formData.get('method') ?? '').trim()
@@ -212,6 +216,7 @@ export const actions = {
 	},
 
 	updateMfa: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'PROFILE', 'write-restricted');
 		const formData = await request.formData();
 		const hasEnabled = formData.has('enabled');
 		const methodValue = String(formData.get('method') ?? '').trim();
@@ -260,11 +265,13 @@ export const actions = {
 		});
 	},
 
-	resetPassword: async ({ request, cookies, fetch, locals }) =>
-		resetPasswordAction({
+	resetPassword: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'PROFILE', 'write-restricted');
+		return resetPasswordAction({
 			request,
 			cookies,
 			fetch,
 			logger: locals.logger
-		})
+		});
+	}
 } satisfies Actions;

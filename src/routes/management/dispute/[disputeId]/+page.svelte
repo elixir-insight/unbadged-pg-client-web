@@ -13,13 +13,15 @@
 		Dropdown,
 		Input,
 		Modal,
-		Textarea
+		Textarea,
+		Tooltip
 	} from '$lib/components/reusable';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import {
 		DISPUTE_STATUSES,
 		getStoredDispute,
@@ -28,6 +30,8 @@
 		type DisputeStatus,
 		type StoredDispute
 	} from '$lib/utils/management-disputes';
+
+	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
 
 	const statusOptions = DISPUTE_STATUSES.map((status) => ({ value: status, label: status }));
 
@@ -209,43 +213,51 @@
 								<span class="text-sm font-medium text-foreground">Status</span>
 								<div class="flex flex-wrap items-center gap-3">
 									<DisputeStatusBadge {status} class="uppercase" />
-									<Button variant="ghost" size="sm" onclick={openStatusChangeModal}>
-										Change Status
-									</Button>
+									{#if canEdit}
+										<Button variant="ghost" size="sm" onclick={openStatusChangeModal}>
+											Change Status
+										</Button>
+									{:else}
+										<Tooltip content="You don't have permission to perform this action.">
+											<Button variant="ghost" size="sm" disabled>Change Status</Button>
+										</Tooltip>
+									{/if}
 								</div>
 							</div>
 
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<label for="bank-reference" class="text-sm font-medium text-foreground">
-									Bank Reference Number
-								</label>
-								<Input id="bank-reference" bind:value={bankReferenceNumber} />
-							</div>
+							<fieldset disabled={!canEdit} class="contents">
+								<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+									<label for="bank-reference" class="text-sm font-medium text-foreground">
+										Bank Reference Number
+									</label>
+									<Input id="bank-reference" bind:value={bankReferenceNumber} />
+								</div>
 
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<label for="evidence-due" class="text-sm font-medium text-foreground">
-									Evidence Due By
-								</label>
-								<DatePicker bind:value={evidenceDueBy} />
-							</div>
+								<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+									<label for="evidence-due" class="text-sm font-medium text-foreground">
+										Evidence Due By
+									</label>
+									<DatePicker bind:value={evidenceDueBy} />
+								</div>
 
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<label for="reason-code" class="text-sm font-medium text-foreground">
-									Reason Code
-								</label>
-								<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
-							</div>
+								<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+									<label for="reason-code" class="text-sm font-medium text-foreground">
+										Reason Code
+									</label>
+									<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
+								</div>
 
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<span class="text-sm font-medium text-foreground">Resolved By</span>
-								<p
-									class={resolvedBy
-										? 'text-sm font-medium text-foreground'
-										: 'text-sm text-muted-foreground'}
-								>
-									{resolvedBy || '—'}
-								</p>
-							</div>
+								<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+									<span class="text-sm font-medium text-foreground">Resolved By</span>
+									<p
+										class={resolvedBy
+											? 'text-sm font-medium text-foreground'
+											: 'text-sm text-muted-foreground'}
+									>
+										{resolvedBy || '—'}
+									</p>
+								</div>
+							</fieldset>
 						</div>
 					</div>
 				</section>
@@ -261,56 +273,58 @@
 					</div>
 
 					<div class="mt-6 flex flex-col gap-4">
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="gateway-description"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+						<fieldset disabled={!canEdit} class="contents">
+							<div
+								class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
 							>
-								Gateway Description
-							</label>
-							<Textarea
-								id="gateway-description"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Describe the gateway dispute details..."
-								bind:value={gatewayDescription}
-							/>
-						</div>
+								<label
+									for="gateway-description"
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
+									Gateway Description
+								</label>
+								<Textarea
+									id="gateway-description"
+									class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+									placeholder="Describe the gateway dispute details..."
+									bind:value={gatewayDescription}
+								/>
+							</div>
 
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="pipeline-description"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+							<div
+								class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
 							>
-								Pipeline Description
-							</label>
-							<Textarea
-								id="pipeline-description"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Describe the pipeline dispute details..."
-								bind:value={pipelineDescription}
-							/>
-						</div>
+								<label
+									for="pipeline-description"
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
+									Pipeline Description
+								</label>
+								<Textarea
+									id="pipeline-description"
+									class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+									placeholder="Describe the pipeline dispute details..."
+									bind:value={pipelineDescription}
+								/>
+							</div>
 
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="resolution-notes"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+							<div
+								class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
 							>
-								Resolution Notes
-							</label>
-							<Textarea
-								id="resolution-notes"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Add internal resolution notes, evidence summary and next steps..."
-								bind:value={resolutionNotes}
-							/>
-						</div>
+								<label
+									for="resolution-notes"
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
+									Resolution Notes
+								</label>
+								<Textarea
+									id="resolution-notes"
+									class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+									placeholder="Add internal resolution notes, evidence summary and next steps..."
+									bind:value={resolutionNotes}
+								/>
+							</div>
+						</fieldset>
 					</div>
 				</section>
 			</div>
@@ -321,10 +335,12 @@
 			</aside>
 		</div>
 
-		<DisputeSupportingDocuments />
+		<DisputeSupportingDocuments readOnly={!canEdit} />
 
 		<div class="flex justify-end border-t border-border pt-5">
-			<Button size="lg" onclick={submitResolution}>Submit Resolution</Button>
+			{#if canEdit}
+				<Button size="lg" onclick={submitResolution}>Submit Resolution</Button>
+			{/if}
 		</div>
 
 		<Modal

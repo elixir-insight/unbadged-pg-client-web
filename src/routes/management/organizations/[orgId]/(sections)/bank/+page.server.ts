@@ -8,6 +8,7 @@ import {
 	updateBankAccountMutation
 } from '$lib/server/domains/organization/mutations/bank-account';
 import { organizations } from '$lib/data/mockData';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-bank-accounts');
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({ params, parent, cookies, fetch, loc
 
 export const actions = {
 	createAccount: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 		const formData = await request.formData();
@@ -83,6 +85,7 @@ export const actions = {
 	},
 
 	updateAccount: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 		const formData = await request.formData();

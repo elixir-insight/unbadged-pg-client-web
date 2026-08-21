@@ -8,6 +8,7 @@
 		title: string;
 		description: string;
 		showMerchantVisibility?: boolean;
+		readOnly?: boolean;
 	}
 
 	interface SessionDocument {
@@ -17,7 +18,7 @@
 		shownToMerchant: boolean;
 	}
 
-	let { title, description, showMerchantVisibility = false }: Props = $props();
+	let { title, description, showMerchantVisibility = false, readOnly = false }: Props = $props();
 
 	let inputRef = $state<HTMLInputElement | null>(null);
 	let documents = $state<SessionDocument[]>([]);
@@ -159,16 +160,23 @@
 		<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
 	</div>
 
-	<button type="button" class="mt-4 text-left" onclick={() => inputRef?.click()}>
-		<FileUpload
-			bind:inputRef
-			variant="dropzone"
-			multiple
-			accept=".pdf,.jpg,.jpeg,.png,.zip"
-			placeholder="PDF, JPG, PNG, ZIP · MAX 20 MB"
-			class="cursor-pointer"
-			onfileschange={addFiles}
-		/>
+	<button
+		type="button"
+		class="mt-4 text-left"
+		disabled={readOnly}
+		onclick={() => inputRef?.click()}
+	>
+		{#if !readOnly}
+			<FileUpload
+				bind:inputRef
+				variant="dropzone"
+				multiple
+				accept=".pdf,.jpg,.jpeg,.png,.zip"
+				placeholder="PDF, JPG, PNG, ZIP · MAX 20 MB"
+				class="cursor-pointer"
+				onfileschange={addFiles}
+			/>
+		{/if}
 	</button>
 
 	{#if documents.length > 0}
@@ -206,20 +214,23 @@
 									>
 										<Download class="size-4" />
 									</Button>
-									<Button
-										variant="outline"
-										size="icon-sm"
-										aria-label="Delete {document.file.name}"
-										onclick={() => openDeleteModal(document)}
-									>
-										<Trash2 class="size-4" />
-									</Button>
+									{#if !readOnly}
+										<Button
+											variant="outline"
+											size="icon-sm"
+											aria-label="Delete {document.file.name}"
+											onclick={() => openDeleteModal(document)}
+										>
+											<Trash2 class="size-4" />
+										</Button>
+									{/if}
 								</div>
 
 								{#if showMerchantVisibility}
 									<label
 										class={cn(
-											'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
+											'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
+											readOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
 											document.shownToMerchant
 												? 'border-primary bg-primary/10 text-primary'
 												: 'border-border text-muted-foreground'
@@ -236,6 +247,7 @@
 										</span>
 										<Switch
 											size="sm"
+											disabled={readOnly}
 											checked={document.shownToMerchant}
 											onCheckedChange={(checked) => setMerchantVisibility(document.id, checked)}
 										/>
