@@ -20,6 +20,7 @@
 		description: string;
 		documentType: DisputeDocumentType;
 		showMerchantVisibility: boolean;
+		allowUpload: boolean;
 		documents: DisputeDocumentView[];
 	}
 
@@ -37,6 +38,7 @@
 			description: 'Upload invoices, receipts, screenshots and customer proofs.',
 			documentType: 'MERCHANT_PROOF',
 			showMerchantVisibility: false,
+			allowUpload: true,
 			documents: documents?.merchantProof ?? []
 		},
 		{
@@ -44,6 +46,7 @@
 			description: 'Upload emails, letters and acknowledgements from the aggregator.',
 			documentType: 'AGGREGATOR_CORRESPONDENCE',
 			showMerchantVisibility: true,
+			allowUpload: true,
 			documents: documents?.aggregatorCorrespondence ?? []
 		},
 		{
@@ -51,6 +54,7 @@
 			description: 'Upload decision letters, settlement proofs and final documents.',
 			documentType: 'FINAL_RESOLUTION_DOC',
 			showMerchantVisibility: true,
+			allowUpload: true,
 			documents: documents?.finalResolutionDoc ?? []
 		}
 	]);
@@ -58,10 +62,27 @@
 	const merchantGroups = $derived<DocumentGroup[]>([
 		{
 			title: 'Merchant Proof',
-			description: 'Upload invoices, receipts, screenshots and customer proofs.',
+			description: 'Invoices, receipts, screenshots and customer proofs for this dispute.',
 			documentType: 'MERCHANT_PROOF',
 			showMerchantVisibility: false,
+			allowUpload: true,
 			documents: documents?.merchantProof ?? []
+		},
+		{
+			title: 'Aggregator Correspondence',
+			description: 'Emails, letters and acknowledgements shared with you for this dispute.',
+			documentType: 'AGGREGATOR_CORRESPONDENCE',
+			showMerchantVisibility: false,
+			allowUpload: false,
+			documents: documents?.aggregatorCorrespondence ?? []
+		},
+		{
+			title: 'Final Resolution Documents',
+			description: 'Decision letters, settlement proofs and final documents shared with you.',
+			documentType: 'FINAL_RESOLUTION_DOC',
+			showMerchantVisibility: false,
+			allowUpload: false,
+			documents: documents?.finalResolutionDoc ?? []
 		}
 	]);
 
@@ -87,7 +108,7 @@
 		<p class="mt-4 text-sm text-destructive">{documentsError}</p>
 	{/if}
 
-	<div class={mode === 'merchant' ? 'mt-6 grid gap-4' : 'mt-6 grid gap-4 lg:grid-cols-3'}>
+	<div class="mt-6 grid gap-4 lg:grid-cols-3">
 		{#each documentGroups as group (group.documentType)}
 			<SupportingDocumentPanel
 				title={group.title}
@@ -98,6 +119,7 @@
 				initialDocuments={group.documents}
 				showMerchantVisibility={group.showMerchantVisibility}
 				reviewEditable={mode === 'management'}
+				allowUpload={group.allowUpload}
 			/>
 		{/each}
 	</div>

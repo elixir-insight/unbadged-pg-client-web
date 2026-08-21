@@ -87,7 +87,8 @@ export async function loadDisputeById(params: {
 					session.accessToken,
 					session.gatewayToken,
 					orgId,
-					disputeId
+					disputeId,
+					portal
 				)
 			: Promise.resolve(null),
 		includeDocuments
@@ -97,7 +98,8 @@ export async function loadDisputeById(params: {
 					session.accessToken,
 					session.gatewayToken,
 					orgId,
-					disputeId
+					disputeId,
+					portal
 				)
 			: Promise.resolve(null)
 	]);
@@ -129,6 +131,7 @@ export async function loadDisputeById(params: {
 				{
 					orgId,
 					disputeId,
+					portal,
 					message: eventsResult.error.message,
 					kind: eventsResult.error.kind
 				},
@@ -146,6 +149,7 @@ export async function loadDisputeById(params: {
 				{
 					orgId,
 					disputeId,
+					portal,
 					message: documentsResult.error.message,
 					kind: documentsResult.error.kind
 				},

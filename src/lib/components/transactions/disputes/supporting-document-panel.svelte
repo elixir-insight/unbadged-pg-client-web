@@ -42,6 +42,7 @@
 		initialDocuments?: DisputeDocumentView[];
 		showMerchantVisibility?: boolean;
 		reviewEditable?: boolean;
+		allowUpload?: boolean;
 	}
 
 	interface SessionDocument {
@@ -90,7 +91,8 @@
 		disputeId = '',
 		initialDocuments = [],
 		showMerchantVisibility = false,
-		reviewEditable = false
+		reviewEditable = false,
+		allowUpload = true
 	}: Props = $props();
 
 	let inputRef = $state<HTMLInputElement | null>(null);
@@ -647,25 +649,27 @@
 		<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
 	</div>
 
-	<button
-		type="button"
-		class="mt-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
-		disabled={isUploading}
-		onclick={() => inputRef?.click()}
-	>
-		<FileUpload
-			bind:inputRef
-			variant="dropzone"
-			multiple
-			accept=".pdf,.jpg,.jpeg,.png,.zip"
-			placeholder={isUploading ? 'Uploading…' : 'PDF, JPG, PNG, JPEG · MAX 20 MB'}
-			class="cursor-pointer"
+	{#if allowUpload}
+		<button
+			type="button"
+			class="mt-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
 			disabled={isUploading}
-			onfileschange={(files) => {
-				void addFiles(files);
-			}}
-		/>
-	</button>
+			onclick={() => inputRef?.click()}
+		>
+			<FileUpload
+				bind:inputRef
+				variant="dropzone"
+				multiple
+				accept=".pdf,.jpg,.jpeg,.png,.zip"
+				placeholder={isUploading ? 'Uploading…' : 'PDF, JPG, PNG, JPEG · MAX 20 MB'}
+				class="cursor-pointer"
+				disabled={isUploading}
+				onfileschange={(files) => {
+					void addFiles(files);
+				}}
+			/>
+		</button>
+	{/if}
 
 	{#if documents.length > 0}
 		<ul class="mt-4 flex flex-col gap-3" aria-label="{title} uploaded documents">
@@ -789,14 +793,16 @@
 							>
 								<Download class="size-4" />
 							</Button>
-							<Button
-								variant="outline"
-								size="icon-sm"
-								aria-label="Delete {document.fileName}"
-								onclick={() => openDeleteModal(document)}
-							>
-								<Trash2 class="size-4" />
-							</Button>
+							{#if allowUpload || reviewEditable}
+								<Button
+									variant="outline"
+									size="icon-sm"
+									aria-label="Delete {document.fileName}"
+									onclick={() => openDeleteModal(document)}
+								>
+									<Trash2 class="size-4" />
+								</Button>
+							{/if}
 						</div>
 
 						{#if showMerchantVisibility}

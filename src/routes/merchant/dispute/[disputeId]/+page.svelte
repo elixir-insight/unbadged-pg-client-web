@@ -40,7 +40,7 @@
 			<DisputeStatusBadge status={dispute.status} />
 		</div>
 
-		<div class="grid items-stretch gap-5 xl:grid-cols-3">
+		<div class="grid items-start gap-5 xl:grid-cols-3">
 			<div class="flex flex-col gap-5 xl:col-span-2">
 				<div class="rounded-xl border border-border bg-background p-6 shadow-sm">
 					<div class="flex items-center gap-3">
@@ -128,21 +128,26 @@
 						</div>
 					</div>
 				</div>
-				<DisputeSupportingDocuments mode="merchant" />
 			</div>
 
-			<div class="flex flex-col gap-5 xl:sticky xl:top-4">
-				<DisputeStatusOverview
-					status={dispute.status}
-					evidenceDueBy={dispute.evidenceDueByRaw}
-					changeDisabled
-				/>
-				<DisputeTimeline
-					status={dispute.status}
-					evidenceDueBy={dispute.evidenceDueByRaw}
-					raisedOn={dispute.raisedOn}
-				/>
+			<div class="flex min-h-0 flex-col gap-5 overflow-hidden xl:h-0 xl:min-h-full xl:self-stretch">
+				<div class="shrink-0">
+					<DisputeStatusOverview
+						status={dispute.status}
+						evidenceDueBy={dispute.evidenceDueByRaw}
+						changeDisabled
+					/>
+				</div>
+				<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<DisputeTimeline events={data.events} eventsError={data.eventsError} />
+				</div>
 			</div>
 		</div>
+
+		<DisputeSupportingDocuments
+			mode="merchant"
+			documents={data.documents}
+			documentsError={data.documentsError}
+		/>
 	</div>
 {/if}

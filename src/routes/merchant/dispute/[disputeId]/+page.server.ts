@@ -48,8 +48,8 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		disputeId,
 		organizationName,
 		portal: 'merchant',
-		includeEvents: false,
-		includeDocuments: false
+		includeEvents: true,
+		includeDocuments: true
 	});
 
 	return {

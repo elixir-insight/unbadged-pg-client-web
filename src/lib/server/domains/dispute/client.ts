@@ -83,17 +83,18 @@ export const disputeClient = {
 			}
 		),
 
-	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/events */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/events */
 	listEvents: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		disputeId: string
+		disputeId: string,
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/events`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/events`,
 			{
 				fetch: fetchFn,
 				logger,
@@ -166,17 +167,18 @@ export const disputeClient = {
 			}
 		),
 
-	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/documents */
 	listDocuments: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		disputeId: string
+		disputeId: string,
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents`,
 			{
 				fetch: fetchFn,
 				logger,
