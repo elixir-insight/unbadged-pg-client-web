@@ -237,7 +237,7 @@ export const disputeClient = {
 			}
 		),
 
-	/** DELETE /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents/{documentId} */
+	/** DELETE /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/documents/{documentId} */
 	deleteDocument: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -245,10 +245,11 @@ export const disputeClient = {
 		gatewayToken: string,
 		orgId: string,
 		disputeId: string,
-		documentId: string
+		documentId: string,
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}`,
 			{
 				fetch: fetchFn,
 				logger,

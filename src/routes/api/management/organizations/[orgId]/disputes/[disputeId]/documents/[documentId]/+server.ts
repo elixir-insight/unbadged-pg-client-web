@@ -24,7 +24,8 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch })
 		cookies,
 		orgId,
 		disputeId,
-		documentId
+		documentId,
+		portal: 'management'
 	});
 
 	if (!result.ok) {

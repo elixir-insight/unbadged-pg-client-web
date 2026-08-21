@@ -8,7 +8,7 @@ import {
 	upstreamErrorToFailure,
 	type MutationResult
 } from '$lib/server/domains/organization/mutations/types';
-import { disputeClient } from '../client';
+import { disputeClient, type DisputePortal } from '../client';
 
 export type DeleteDisputeDocumentSuccess = {
 	message: string;
@@ -21,10 +21,12 @@ export async function deleteDisputeDocumentMutation(params: {
 	orgId: string;
 	disputeId: string;
 	documentId: string;
+	portal?: DisputePortal;
 }): Promise<MutationResult<DeleteDisputeDocumentSuccess>> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
 	const documentId = params.documentId.trim();
+	const portal = params.portal ?? 'management';
 
 	if (!orgId) {
 		return mutationFailure(400, 'Organization id is required');
@@ -43,7 +45,10 @@ export async function deleteDisputeDocumentMutation(params: {
 	});
 	if (isSessionFailure(session)) return session;
 
-	params.log.info({ orgId, disputeId, documentId }, 'delete dispute document — DELETE upstream');
+	params.log.info(
+		{ orgId, disputeId, documentId, portal },
+		'delete dispute document — DELETE upstream'
+	);
 
 	const result = await disputeClient.deleteDocument(
 		params.fetch,
@@ -52,7 +57,8 @@ export async function deleteDisputeDocumentMutation(params: {
 		session.gatewayToken,
 		orgId,
 		disputeId,
-		documentId
+		documentId,
+		portal
 	);
 
 	if (!result.ok) {
@@ -61,6 +67,7 @@ export async function deleteDisputeDocumentMutation(params: {
 				orgId,
 				disputeId,
 				documentId,
+				portal,
 				message: result.error.message,
 				kind: result.error.kind
 			},

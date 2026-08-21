@@ -109,6 +109,9 @@
 	const maxFileSize = 20 * 1024 * 1024;
 	const canUploadToApi = $derived(Boolean(orgId.trim() && disputeId.trim()));
 	const canUseManagementDocumentApis = $derived(mode === 'management' && canUploadToApi);
+	const canDeleteDocument = $derived(
+		canUploadToApi && (reviewEditable || (mode === 'merchant' && allowUpload))
+	);
 	const detailInvalidateKey = $derived(
 		mode === 'merchant' ? 'merchant-disputes:detail' : 'management-disputes:detail'
 	);
@@ -611,7 +614,7 @@
 		const pending = documentPendingDelete;
 		const fileName = pending.fileName;
 
-		if (!canUseManagementDocumentApis) {
+		if (!canUploadToApi) {
 			documents = documents.filter((document) => document.id !== pending.id);
 			closeDeleteModal();
 			toast.success(`${fileName} deleted`);
@@ -620,17 +623,26 @@
 
 		isDeleting = true;
 		try {
-			const response = await fetch(
-				resolve(
-					'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]',
-					{
-						orgId,
-						disputeId,
-						documentId: pending.id
-					}
-				),
-				{ method: 'DELETE' }
-			);
+			const deletePath =
+				mode === 'merchant'
+					? resolve(
+							'/api/merchant/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]',
+							{
+								orgId,
+								disputeId,
+								documentId: pending.id
+							}
+						)
+					: resolve(
+							'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]',
+							{
+								orgId,
+								disputeId,
+								documentId: pending.id
+							}
+						);
+
+			const response = await fetch(deletePath, { method: 'DELETE' });
 
 			const body: { message?: string } = await response.json().catch(() => ({}));
 			if (!response.ok) {
@@ -641,7 +653,7 @@
 			deleteOpen = false;
 			documentPendingDelete = null;
 			toast.success(body.message ?? `${fileName} deleted`);
-			await invalidate('management-disputes:detail');
+			await invalidate(detailInvalidateKey);
 		} catch (error) {
 			toast.error('Could not delete document', {
 				description: error instanceof Error ? error.message : 'Delete failed'
@@ -806,7 +818,7 @@
 							>
 								<Download class="size-4" />
 							</Button>
-							{#if reviewEditable}
+							{#if canDeleteDocument}
 								<Button
 									variant="outline"
 									size="icon-sm"
