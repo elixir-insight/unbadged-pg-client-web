@@ -7,6 +7,7 @@
 		Download,
 		Eye,
 		FileText,
+		FolderOpen,
 		Store,
 		Trash2,
 		TriangleAlert,
@@ -705,10 +706,29 @@
 				}}
 			/>
 		</button>
+	{:else if documents.length === 0}
+		<div
+			class="mt-6 flex flex-col items-center justify-center gap-3 px-4 py-8 text-center"
+			role="status"
+		>
+			<span
+				class="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary"
+				aria-hidden="true"
+			>
+				<FolderOpen class="size-8" />
+			</span>
+			<p class="text-sm font-medium text-muted-foreground">No Document Available</p>
+		</div>
 	{/if}
 
 	{#if documents.length > 0}
-		<ul class="mt-4 flex flex-col gap-3" aria-label="{title} uploaded documents">
+		<ul
+			class={cn(
+				'mt-4 flex flex-col gap-3',
+				documents.length > 1 && 'max-h-56 overflow-y-auto overscroll-contain pr-1'
+			)}
+			aria-label="{title} uploaded documents"
+		>
 			{#each documents as document (document.id)}
 				{@const statusMeta = reviewStatusMeta(document.reviewStatus)}
 				{@const StatusIcon = statusMeta.Icon}
