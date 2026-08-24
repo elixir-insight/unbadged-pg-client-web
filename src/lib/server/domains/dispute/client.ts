@@ -1,6 +1,8 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
+	CreateDisputeChargebackRequestSchema,
+	CreateDisputeChargebackResponseSchema,
 	CreateDisputeRequestSchema,
 	CreateDisputeResponseSchema,
 	DeleteDisputeDocumentResponseSchema,
@@ -16,6 +18,7 @@ import {
 	UpdateDisputeStatusRequestSchema,
 	UpdateDisputeStatusResponseSchema,
 	UploadDisputeDocumentsResponseSchema,
+	type CreateDisputeChargebackRequest,
 	type CreateDisputeRequest,
 	type UpdateDisputeDocumentRequest,
 	type UpdateDisputeRequest,
@@ -302,10 +305,34 @@ export const disputeClient = {
 			gatewayToken,
 			body,
 			schema: CreateDisputeResponseSchema
-		})
+		}),
+
+	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/chargebacks */
+	createChargeback: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		body: CreateDisputeChargebackRequest
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/chargebacks`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'POST',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: CreateDisputeChargebackResponseSchema
+			}
+		)
 };
 
 export {
+	CreateDisputeChargebackRequestSchema,
 	CreateDisputeRequestSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeRequestSchema,

@@ -97,3 +97,13 @@ export function paymentDisputeActionLabel(status: string): string {
 	if (normalized.includes('LOST')) return 'Dispute lost';
 	return 'Dispute raised';
 }
+
+const CHARGEBACK_ALLOWED_STATUSES = new Set([
+	'RESOLVED_LOST',
+	'ARBITRATION_LOST',
+	'MERCHANT_ACCEPTED_DISPUTE'
+]);
+
+export function canRaiseChargeback(status: string): boolean {
+	return CHARGEBACK_ALLOWED_STATUSES.has(normalizeDisputeStatusKey(status));
+}

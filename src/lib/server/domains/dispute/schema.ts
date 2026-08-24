@@ -297,3 +297,41 @@ export type DisputeDocumentDownloadUrlItem = v.InferOutput<
 export type GetDisputeDocumentDownloadUrlResponse = v.InferOutput<
 	typeof GetDisputeDocumentDownloadUrlResponseSchema
 >;
+
+export const CreateDisputeChargebackRequestSchema = v.object({
+	additionalFees: v.pipe(v.string(), v.trim()),
+	bankReference: v.pipe(v.string(), v.trim(), v.minLength(1, 'Bank reference is required')),
+	chargebackAmount: v.pipe(v.string(), v.trim(), v.minLength(1, 'Chargeback amount is required')),
+	currency: v.pipe(v.string(), v.trim(), v.minLength(1, 'Currency is required')),
+	notes: v.pipe(v.string(), v.trim()),
+	principalAmount: v.pipe(v.string(), v.trim(), v.minLength(1, 'Principal amount is required'))
+});
+
+export const DisputeChargebackItemSchema = v.object({
+	id: OptionalStringSchema,
+	disputeId: OptionalStringSchema,
+	additionalFees: OptionalStringSchema,
+	bankReference: OptionalStringSchema,
+	chargebackAmount: OptionalStringSchema,
+	currency: OptionalStringSchema,
+	notes: OptionalStringSchema,
+	principalAmount: OptionalStringSchema,
+	recordedBy: OptionalStringOrNumberSchema,
+	createdAt: OptionalStringSchema,
+	updatedAt: OptionalStringSchema
+});
+
+export const CreateDisputeChargebackResponseSchema = v.object({
+	data: v.optional(v.array(DisputeChargebackItemSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 201)
+});
+
+export type CreateDisputeChargebackRequest = v.InferOutput<
+	typeof CreateDisputeChargebackRequestSchema
+>;
+export type CreateDisputeChargebackResponse = v.InferOutput<
+	typeof CreateDisputeChargebackResponseSchema
+>;
+export type DisputeChargebackItem = v.InferOutput<typeof DisputeChargebackItemSchema>;
