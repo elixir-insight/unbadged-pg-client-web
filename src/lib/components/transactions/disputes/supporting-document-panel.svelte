@@ -109,6 +109,7 @@
 	const maxFileSize = 20 * 1024 * 1024;
 	const canUploadToApi = $derived(Boolean(orgId.trim() && disputeId.trim()));
 	const canUseManagementDocumentApis = $derived(mode === 'management' && canUploadToApi);
+	const canUseDocumentDownloadApis = $derived(canUploadToApi);
 	const canDeleteDocument = $derived(
 		canUploadToApi && (reviewEditable || (mode === 'merchant' && allowUpload))
 	);
@@ -508,16 +509,26 @@
 		documentId: string,
 		disposition: 'inline' | 'attachment'
 	): Promise<string> {
-		const response = await fetch(
-			resolve(
-				'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]/download-url',
-				{
-					orgId,
-					disputeId,
-					documentId
-				}
-			) + `?disposition=${disposition}`
-		);
+		const downloadPath =
+			mode === 'merchant'
+				? resolve(
+						'/api/merchant/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]/download-url',
+						{
+							orgId,
+							disputeId,
+							documentId
+						}
+					)
+				: resolve(
+						'/api/management/organizations/[orgId]/disputes/[disputeId]/documents/[documentId]/download-url',
+						{
+							orgId,
+							disputeId,
+							documentId
+						}
+					);
+
+		const response = await fetch(`${downloadPath}?disposition=${disposition}`);
 
 		const body: { message?: string; url?: string } = await response.json().catch(() => ({}));
 		if (!response.ok) {
@@ -547,7 +558,7 @@
 	}
 
 	async function openFile(document: SessionDocument): Promise<void> {
-		if (canUseManagementDocumentApis) {
+		if (canUseDocumentDownloadApis) {
 			try {
 				const url = await fetchDocumentDownloadUrl(document.id, 'inline');
 				window.open(url, '_blank', 'noopener,noreferrer');
@@ -570,7 +581,7 @@
 	}
 
 	async function downloadFile(document: SessionDocument): Promise<void> {
-		if (canUseManagementDocumentApis) {
+		if (canUseDocumentDownloadApis) {
 			try {
 				const url = await fetchDocumentDownloadUrl(document.id, 'attachment');
 				const anchor = window.document.createElement('a');

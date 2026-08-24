@@ -33,7 +33,8 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals, fetch 
 		orgId,
 		disputeId,
 		documentId,
-		disposition
+		disposition,
+		portal: 'management'
 	});
 
 	if (!result.ok) {

@@ -8,7 +8,7 @@ import {
 	upstreamErrorToFailure,
 	type MutationResult
 } from '$lib/server/domains/organization/mutations/types';
-import { disputeClient } from '../client';
+import { disputeClient, type DisputePortal } from '../client';
 
 export type DisputeDocumentDownloadDisposition = 'inline' | 'attachment';
 
@@ -26,11 +26,13 @@ export async function getDisputeDocumentDownloadUrlMutation(params: {
 	disputeId: string;
 	documentId: string;
 	disposition?: DisputeDocumentDownloadDisposition;
+	portal?: DisputePortal;
 }): Promise<MutationResult<GetDisputeDocumentDownloadUrlSuccess>> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
 	const documentId = params.documentId.trim();
 	const disposition = params.disposition === 'attachment' ? 'attachment' : 'inline';
+	const portal = params.portal ?? 'management';
 
 	if (!orgId) {
 		return mutationFailure(400, 'Organization id is required');
@@ -50,7 +52,7 @@ export async function getDisputeDocumentDownloadUrlMutation(params: {
 	if (isSessionFailure(session)) return session;
 
 	params.log.info(
-		{ orgId, disputeId, documentId, disposition },
+		{ orgId, disputeId, documentId, disposition, portal },
 		'get dispute document download url — GET upstream'
 	);
 
@@ -62,7 +64,8 @@ export async function getDisputeDocumentDownloadUrlMutation(params: {
 		orgId,
 		disputeId,
 		documentId,
-		disposition
+		disposition,
+		portal
 	);
 
 	if (!result.ok) {
@@ -72,6 +75,7 @@ export async function getDisputeDocumentDownloadUrlMutation(params: {
 				disputeId,
 				documentId,
 				disposition,
+				portal,
 				message: result.error.message,
 				kind: result.error.kind
 			},

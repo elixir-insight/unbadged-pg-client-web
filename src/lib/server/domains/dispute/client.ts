@@ -260,7 +260,7 @@ export const disputeClient = {
 			}
 		),
 
-	/** GET /api/v1/management/organizations/{orgId}/disputes/{disputeId}/documents/{documentId}/download-url */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/documents/{documentId}/download-url */
 	getDocumentDownloadUrl: (
 		fetchFn: typeof fetch,
 		logger: Logger,
@@ -269,10 +269,11 @@ export const disputeClient = {
 		orgId: string,
 		disputeId: string,
 		documentId: string,
-		disposition: 'inline' | 'attachment' = 'inline'
+		disposition: 'inline' | 'attachment' = 'inline',
+		portal: DisputePortal = 'management'
 	) =>
 		apiFetch(
-			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}/download-url`,
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/documents/${encodeURIComponent(documentId)}/download-url`,
 			{
 				fetch: fetchFn,
 				logger,
