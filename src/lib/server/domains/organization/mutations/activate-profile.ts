@@ -1,6 +1,5 @@
 import type { Logger } from 'pino';
-import { isPartnerStyleCategory, isUiOnlyOnboardingCategory } from '$lib/organization/category';
-import { ensureUiOnlyMockOrganization } from '../utils/mock-platform-onboarding';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { validateOrganizationActivation } from '$lib/validation/organization-activation';
 import { updateOrganizationStatusMutation } from './update-status';
 import { mutationFailure, type MutationResult } from './types';
@@ -41,18 +40,6 @@ export async function activateProfileMutation(params: {
 	}
 
 	// TODO: upload business certificate and persist gateway credentials when upstream endpoints exist.
-	if (isUiOnlyOnboardingCategory(params.category)) {
-		const organization = ensureUiOnlyMockOrganization(orgId);
-		organization.status = 'ACTIVE';
-		organization.kybStatus = 'VERIFIED';
-		organization.kyb.verificationStatus = 'Verified';
-		params.log.info({ orgId, category: params.category }, 'mocked platform profile activation');
-		return {
-			ok: true,
-			redirectPath: `/management/organizations`
-		};
-	}
-
 	const statusResult = await updateOrganizationStatusMutation({
 		fetch: params.fetch,
 		log: params.log,
