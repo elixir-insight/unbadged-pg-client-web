@@ -10,8 +10,12 @@ import {
 	type MfaChallengeName
 } from './schema';
 import { storeSession } from './session';
-import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
+import { collectPortalGroups, resolvePortalHome } from '$lib/stores/auth/portal';
+import type {
+	PortalHomePath,
+	AccessTokenPayload,
+	GatewayTokenPayload
+} from '$lib/stores/auth/types';
 
 export type AuthTokenBundle = v.InferOutput<typeof AuthTokensSchema>;
 
@@ -27,7 +31,10 @@ export function startAuthenticatedSession(
 ): PortalHomePath {
 	storeSession(cookies, tokens);
 	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
-	return resolvePortalHome(accessPayload['cognito:groups'] ?? []);
+	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+	return resolvePortalHome(
+		collectPortalGroups(accessPayload['cognito:groups'], gatewayPayload.group)
+	);
 }
 export type SignInSuccess = {
 	ok: true;
@@ -243,10 +250,7 @@ export async function performSignIn(opts: {
 			message: 'Sign-in succeeded but no tokens were returned.'
 		};
 	}
-	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
-	const groups = accessPayload['cognito:groups'] ?? [];
-	const redirectTo = resolvePortalHome(groups);
-	log.info({ ip, userEmail, redirectTo, groups }, 'sign-in succeeded');
-	startAuthenticatedSession(cookies, tokens);
+	const redirectTo = startAuthenticatedSession(cookies, tokens);
+	log.info({ ip, userEmail, redirectTo }, 'sign-in succeeded');
 	return { ok: true, redirectTo };
 }

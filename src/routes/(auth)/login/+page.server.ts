@@ -18,8 +18,8 @@ import {
 	storePasswordChallenge
 } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
-import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { AccessTokenPayload } from '$lib/stores/auth/types';
+import { collectPortalGroups, resolvePortalHome } from '$lib/stores/auth/portal';
+import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/types';
 
 /**
  * If the user still has a valid session (cookies not cleared / not logged out),
@@ -33,7 +33,8 @@ async function redirectIfAlreadySignedIn(
 	try {
 		const tokens = await getValidSession(cookies, fetchFn, logger);
 		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
-		const groups = accessPayload['cognito:groups'] ?? [];
+		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+		const groups = collectPortalGroups(accessPayload['cognito:groups'], gatewayPayload.group);
 		const home = resolvePortalHome(groups);
 		logger.info({ home, groups }, 'signed-in user hit login — redirecting to portal home');
 		redirect(303, home);
