@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
+import type { RbacAction, RbacPermissions } from '$lib/rbac';
 import { load, actions } from './+page.server';
 
 // `load` is annotated `: PageServerLoad` in +page.server.ts, which widens its
@@ -62,6 +63,11 @@ function fakeLogger(): Logger {
 	// @ts-expect-error minimal pino-shaped fake
 	logger.child = () => logger;
 	return logger;
+}
+
+function settingsLocals(...actions: RbacAction[]) {
+	const userPermissions: RbacPermissions = { PROFILE: new Set(actions) };
+	return { logger: fakeLogger(), userPermissions };
 }
 
 function jsonResponse(status: number, body: unknown) {
@@ -322,7 +328,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toEqual({ clientId: 'client-1', clientSecret: 'secret-1' });
@@ -338,7 +344,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({ status: 422, data: { selfCorrect: true } });
@@ -356,7 +362,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({
@@ -376,7 +382,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({ status: 500, data: { retryable: true } });
@@ -401,7 +407,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 			request: formRequest('cred-1'),
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('delete')
 		} as never);
 
 		expect(result).toEqual({ revoked: true });
@@ -419,7 +425,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 				request: formRequest('cred-1'),
 				cookies: fakeCookies(),
 				fetch: fetchFn,
-				locals: { logger: fakeLogger() }
+				locals: settingsLocals('delete')
 			} as never)
 		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
 	});
@@ -435,7 +441,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 			request: formRequest('cred-1'),
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('delete')
 		} as never);
 
 		expect(result).toMatchObject({ status: 500, data: { message: 'boom' } });

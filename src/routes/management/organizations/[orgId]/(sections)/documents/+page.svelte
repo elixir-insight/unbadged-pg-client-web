@@ -21,11 +21,13 @@
 		flowStepHref,
 		type FlowStepKey
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
 	import DocumentPreviewModal from './document-preview-modal.svelte';
 	import DocumentActionsMenu from './document-actions-menu.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import {
 		type DocumentUploadState,
 		documentStatusLabel,
@@ -43,6 +45,7 @@
 
 	const organization = $derived(data.organization);
 	const orgId = $derived(organization.id);
+	const isPartner = $derived(isPartnerStyleCategory(organization.category));
 	const isPrivateLimited = $derived(organization.kyb?.businessType === 'Private Limited');
 	const documentsLoadError = $derived(data.documentsLoadError);
 
@@ -91,6 +94,7 @@
 	});
 
 	const adjacent = $derived(getAdjacentFlowSteps('documents'));
+	const canEdit = $derived(userPermissions.can('ORGANIZATION', 'write'));
 
 	const fixedDocs = $derived(
 		fixedRequiredDocuments.map((type) => ensureOrgDocument(type, documents))
@@ -101,11 +105,13 @@
 			: []
 	);
 	const organizationLogoDoc = $derived(ensureOrgDocument('Organization logo', documents));
+	const brandLogoDoc = $derived(isPartner ? ensureOrgDocument('Brand logo', documents) : null);
 	const otherDocs = $derived(
 		documents.filter(
 			(document) =>
 				(document.activationGate || document.optional) &&
-				document.documentType !== 'Organization logo'
+				document.documentType !== 'Organization logo' &&
+				document.documentType !== 'Brand logo'
 		)
 	);
 
@@ -431,6 +437,7 @@
 			<DocumentActionsMenu
 				{document}
 				uploadState={uploadStateFor(document.id)}
+				readOnly={!canEdit}
 				onPreview={() => openDocumentPreview(title, document)}
 				{onReplace}
 				{onDelete}
@@ -456,6 +463,7 @@
 					value={choiceSelections[groupKey]}
 					options={choiceGroupOptions(groupKey)}
 					placeholder={groupLabel}
+					disabled={!canEdit}
 					onValueChange={(value) => selectChoiceOption(groupKey, value as DocumentType)}
 				/>
 			</div>
@@ -464,6 +472,7 @@
 			<DocumentActionsMenu
 				{document}
 				uploadState={uploadStateFor(document.id)}
+				readOnly={!canEdit}
 				onPreview={() => openDocumentPreview(document.documentType ?? groupLabel, document)}
 				onReplace={(file) => applyOrgUpload(document, file)}
 				onDelete={() => deleteOrgDocument(document)}
@@ -498,6 +507,18 @@
 				false,
 				(file) => applyOrgUpload(organizationLogoDoc, file),
 				() => deleteOrgDocument(organizationLogoDoc)
+			)}
+		</section>
+	{/if}
+
+	{#if brandLogoDoc}
+		<section class="space-y-1">
+			{@render documentRow(
+				brandLogoDoc,
+				'Brand logo',
+				true,
+				(file) => applyOrgUpload(brandLogoDoc, file),
+				() => deleteOrgDocument(brandLogoDoc)
 			)}
 		</section>
 	{/if}

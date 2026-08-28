@@ -22,7 +22,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-IN', {
 
 const STATUS_FILTERS: Record<PayinOrderStatus, string> = {
 	created: 'CREATED',
-	pending: 'INITIATED,AUTHORIZED,SUSPECTED',
+	pending: 'INITIATED,AUTHORIZED,SUSPECTED,ATTEMPTED',
 	success: 'CAPTURED',
 	failed: 'FAILED,REJECTED,CANCELLED',
 	expired: 'EXPIRED'

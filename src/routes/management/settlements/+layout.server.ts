@@ -4,6 +4,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 
 export interface MerchantOption {
@@ -36,6 +37,7 @@ function mapMerchantOptions(
 
 export const load: LayoutServerLoad = async ({ cookies, fetch, locals, depends }) => {
 	depends('management-settlements:merchants');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const log = locals.logger.child({ action: 'management-settlements-merchants' });
 

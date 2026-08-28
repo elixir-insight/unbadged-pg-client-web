@@ -2,8 +2,10 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { ApiUserDetailResponse } from '$lib/stores/user-management/api-types';
 import { mapUserDetailResponse } from '$lib/stores/user-management/user-mapper';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const load: PageServerLoad = async ({ params, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'read');
 	const memberId = params.id;
 	const log = locals.logger.child({ action: 'view-user-page', memberId });
 

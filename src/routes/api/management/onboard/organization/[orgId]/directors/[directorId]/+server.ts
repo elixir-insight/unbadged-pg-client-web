@@ -1,8 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { deleteDirectorMutation } from '$lib/server/domains/organization/mutations/delete-director';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'delete');
 	const orgId = params.orgId?.trim() ?? '';
 	const directorId = params.directorId?.trim() ?? '';
 	const log = locals.logger.child({ action: 'director-delete', orgId, directorId });

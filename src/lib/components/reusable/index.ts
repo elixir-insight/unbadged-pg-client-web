@@ -59,3 +59,5 @@ export { default as StatusStatCard } from './status-stat-card/StatusStatCard.sve
 export type { StatusStatCardColor } from './status-stat-card/StatusStatCard.svelte';
 export { default as DatePicker } from './date-picker/date-picker.svelte';
 export { default as ErrorPage } from './error-page/error-page.svelte';
+export { default as AccessRestricted } from './access-restricted/access-restricted.svelte';
+export { default as NotificationBell } from './notification-bell/notification-bell.svelte';

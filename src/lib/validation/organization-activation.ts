@@ -1,4 +1,5 @@
 import { documentChoiceGroups, type DocumentType } from '$lib/data/mockData';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_FILE_SIZE_LABEL } from './file-upload';
 
 const businessCertificateTypes: DocumentType[] =
@@ -9,6 +10,7 @@ export type OrganizationActivationInput = {
 	saltKey: string;
 	businessCertificateType: string;
 	file: File | null;
+	category?: string;
 };
 
 export type OrganizationActivationField =
@@ -21,13 +23,16 @@ export function validateOrganizationActivation(input: OrganizationActivationInpu
 	errors: OrganizationActivationErrors;
 } {
 	const errors: OrganizationActivationErrors = {};
+	const requireGatewayCredentials = !isPartnerStyleCategory(input.category);
 
-	if (!input.apiKey.trim()) {
-		errors.apiKey = 'API key is required';
-	}
+	if (requireGatewayCredentials) {
+		if (!input.apiKey.trim()) {
+			errors.apiKey = 'API key is required';
+		}
 
-	if (!input.saltKey.trim()) {
-		errors.saltKey = 'Salt key is required';
+		if (!input.saltKey.trim()) {
+			errors.saltKey = 'Salt key is required';
+		}
 	}
 
 	if (!input.businessCertificateType.trim()) {

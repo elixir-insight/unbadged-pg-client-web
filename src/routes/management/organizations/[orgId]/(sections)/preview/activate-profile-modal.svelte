@@ -6,6 +6,7 @@
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { ZapIcon } from '$lib/assets/icons';
 	import { documentChoiceGroups } from '$lib/data/mockData';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { validateOrganizationActivation } from '$lib/validation/organization-activation';
 
 	let {
@@ -24,6 +25,13 @@
 	let businessCertificateFile = $state<File | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 	let activating = $state(false);
+
+	const isPartner = $derived(isPartnerStyleCategory(category));
+	const modalDescription = $derived(
+		isPartner
+			? 'Upload the business certificate to activate this organization.'
+			: 'Upload the business certificate and enter gateway credentials to activate this organization.'
+	);
 
 	const businessCertificateOptions: DropdownOption[] = $derived(
 		(documentChoiceGroups.find((group) => group.key === 'businessCertificate')?.options ?? []).map(
@@ -90,7 +98,8 @@
 			apiKey,
 			saltKey,
 			businessCertificateType,
-			file: businessCertificateFile
+			file: businessCertificateFile,
+			category
 		});
 
 		if (!validation.valid) {
@@ -99,8 +108,10 @@
 			return;
 		}
 
-		formData.set('apiKey', apiKey.trim());
-		formData.set('saltKey', saltKey.trim());
+		if (!isPartner) {
+			formData.set('apiKey', apiKey.trim());
+			formData.set('saltKey', saltKey.trim());
+		}
 		formData.set('businessCertificateType', businessCertificateType);
 		if (businessCertificateFile) {
 			formData.set('businessCertificate', businessCertificateFile);
@@ -141,11 +152,7 @@
 	};
 </script>
 
-<Modal
-	bind:open
-	title="Activate profile"
-	description="Upload the business certificate and enter gateway credentials to activate this organization."
->
+<Modal bind:open title="Activate profile" description={modalDescription}>
 	<form
 		id="activate-profile-form"
 		method="POST"
@@ -182,21 +189,23 @@
 			{/if}
 		</div>
 
-		<div class="space-y-2">
-			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">API key</p>
-			<Input bind:value={apiKey} placeholder="Enter API key" disabled={activating} />
-			{#if fieldErrors.apiKey}
-				<p class="text-sm text-destructive">{fieldErrors.apiKey}</p>
-			{/if}
-		</div>
+		{#if !isPartner}
+			<div class="space-y-2">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">API key</p>
+				<Input bind:value={apiKey} placeholder="Enter API key" disabled={activating} />
+				{#if fieldErrors.apiKey}
+					<p class="text-sm text-destructive">{fieldErrors.apiKey}</p>
+				{/if}
+			</div>
 
-		<div class="space-y-2">
-			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Salt key</p>
-			<Input bind:value={saltKey} placeholder="Enter salt key" disabled={activating} />
-			{#if fieldErrors.saltKey}
-				<p class="text-sm text-destructive">{fieldErrors.saltKey}</p>
-			{/if}
-		</div>
+			<div class="space-y-2">
+				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Salt key</p>
+				<Input bind:value={saltKey} placeholder="Enter salt key" disabled={activating} />
+				{#if fieldErrors.saltKey}
+					<p class="text-sm text-destructive">{fieldErrors.saltKey}</p>
+				{/if}
+			</div>
+		{/if}
 	</form>
 
 	{#snippet footer()}

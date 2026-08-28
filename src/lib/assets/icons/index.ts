@@ -27,6 +27,7 @@ export { default as ChevronsUpDown } from '@lucide/svelte/icons/chevrons-up-down
 
 // ── Header / Shell ────────────────────────────────────────────────────────────
 export { default as Bell } from '@lucide/svelte/icons/bell';
+export { default as BellOff } from '@lucide/svelte/icons/bell-off';
 export { default as Sun } from '@lucide/svelte/icons/sun';
 export { default as Moon } from '@lucide/svelte/icons/moon';
 export { default as Menu } from '@lucide/svelte/icons/menu';

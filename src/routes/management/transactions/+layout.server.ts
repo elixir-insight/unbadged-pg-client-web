@@ -4,6 +4,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requireAnyPermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { mapDashboardMerchantsToOptions } from '$lib/server/domains/organization/mappers/from-api/dashboard-merchants';
 import { virtualAccountClient } from '$lib/server/domains/virtual-account/client';
@@ -15,6 +16,10 @@ import type { VirtualAccount } from '$lib/types/virtual-account';
 export const load: LayoutServerLoad = async ({ cookies, fetch, locals, depends, url }) => {
 	depends('management-transactions:merchants');
 	depends('management-transactions:vans');
+	requireAnyPermission(locals.userPermissions, [
+		{ module: 'PAYINS', action: 'read' },
+		{ module: 'PAYOUTS', action: 'read' }
+	]);
 
 	const log = locals.logger.child({ action: 'management-transactions-merchants' });
 	const empty = {

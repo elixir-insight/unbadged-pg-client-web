@@ -6,8 +6,10 @@ import {
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
 import { loadPaymentMethodConfigurations } from '$lib/server/domains/payment-method-configuration/loaders/list-by-pipeline';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const GET: RequestHandler = async ({ params, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 	const pipelineCode = params.pipelineCode?.trim() ?? '';
 	const log = locals.logger.child({ action: 'payment-method-configurations' });
 

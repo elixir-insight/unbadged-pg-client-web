@@ -23,6 +23,7 @@ export async function deleteDirectorMutation(params: {
 	if (!directorId) {
 		return mutationFailure(400, 'Director id is required');
 	}
+
 	if (!/^\d+$/.test(directorId)) {
 		return mutationFailure(400, 'Invalid director id');
 	}

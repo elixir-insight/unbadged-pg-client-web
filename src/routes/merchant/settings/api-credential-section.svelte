@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Button } from '$lib/components/reusable';
+	import { userPermissions } from '$lib/stores/rbac';
 	import RevealCredentialModal from './reveal-credential-modal.svelte';
 	import RevokeCredentialModal from './revoke-credential-modal.svelte';
 	import {
@@ -69,9 +70,11 @@
 				{maskClientId(credential.clientId)}
 			</p>
 		</div>
-		<Button variant="destructive" size="sm" class="shrink-0" onclick={() => (revokeOpen = true)}>
-			Delete API Credential
-		</Button>
+		{#if userPermissions.can('PROFILE', 'delete')}
+			<Button variant="destructive" size="sm" class="shrink-0" onclick={() => (revokeOpen = true)}>
+				Delete API Credential
+			</Button>
+		{/if}
 	</div>
 
 	<RevokeCredentialModal
@@ -90,16 +93,18 @@
 			<p class="text-sm text-destructive" role="alert">{generateError}</p>
 		{/if}
 		<form method="POST" action="?/generate" use:enhance={onGenerate}>
-			<Button type="submit" disabled={generating} class="w-fit">
-				{#if generating}
-					<span
-						class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-					></span>
-					Generating…
-				{:else}
-					Generate API Credential
-				{/if}
-			</Button>
+			{#if userPermissions.can('PROFILE', 'write')}
+				<Button type="submit" disabled={generating} class="w-fit">
+					{#if generating}
+						<span
+							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></span>
+						Generating…
+					{:else}
+						Generate API Credential
+					{/if}
+				</Button>
+			{/if}
 		</form>
 	</div>
 {/if}

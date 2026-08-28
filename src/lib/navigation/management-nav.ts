@@ -7,9 +7,9 @@ import {
 	// Wallet,
 	// Send,
 	ArrowLeftRight,
-	MessageSquareWarning,
 	CreditCard,
 	// TrendingUp,
+	MessageSquareWarning,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -23,7 +23,14 @@ export const managementNav: NavGroup[] = [
 	},
 	{
 		title: 'Organization',
-		items: [{ title: 'Organizations', href: '/management/organizations', icon: Building2 }]
+		items: [
+			{
+				title: 'Organizations',
+				href: '/management/organizations',
+				icon: Building2,
+				requiredPermission: { module: 'ORGANIZATION', action: 'read' }
+			}
+		]
 	},
 	{
 		title: 'Access Control',
@@ -32,6 +39,7 @@ export const managementNav: NavGroup[] = [
 				title: 'User Management',
 				href: '/management/user-management',
 				icon: Users,
+				requiredPermission: { module: 'USER_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/user-management\/view-user\/[^/]+$/,
@@ -47,6 +55,7 @@ export const managementNav: NavGroup[] = [
 				title: 'Role Management',
 				href: '/management/role-management',
 				icon: ShieldCheck,
+				requiredPermission: { module: 'ROLE_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/role-management\/view-role\/[^/]+$/,
@@ -78,6 +87,10 @@ export const managementNav: NavGroup[] = [
 				title: 'Transactions',
 				href: '/management/transactions',
 				icon: ArrowLeftRight,
+				requiredPermissionAnyOf: [
+					{ module: 'PAYINS', action: 'read' },
+					{ module: 'PAYOUTS', action: 'read' }
+				],
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/transactions\/collections$/,
@@ -101,11 +114,24 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			},
+			// Transaction Insights omitted from nav for now
+			// {
+			// 	title: 'Transaction Insights',
+			// 	href: '/management/transaction-insights',
+			// 	icon: TrendingUp,
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/management\/transaction-insights\/[^/]+$/,
+			// 			title: 'Merchant Calendar'
+			// 		}
+			// 	]
+			// },
 			{
 				title: 'Disputes',
 				href: '/management/dispute',
 				icon: MessageSquareWarning,
 				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/dispute\/[^/]+$/,
@@ -125,6 +151,7 @@ export const managementNav: NavGroup[] = [
 				href: '/management/settlements',
 				icon: Landmark,
 				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/management\/settlements\/[^/]+$/,
@@ -137,7 +164,12 @@ export const managementNav: NavGroup[] = [
 	{
 		title: 'Monitoring',
 		items: [
-			{ title: 'Reports', href: '/management/reports', icon: FileText }
+			{
+				title: 'Reports',
+				href: '/management/reports',
+				icon: FileText,
+				requiredPermission: { module: 'REPORTS', action: 'read' }
+			}
 			// { title: 'KYC Verification', href: '/management/kyc', icon: Fingerprint },
 			// { title: 'Check Status', href: '/management/check-status', icon: CircleCheck }
 		]

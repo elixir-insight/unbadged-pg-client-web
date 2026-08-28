@@ -41,6 +41,8 @@ describe('ClientTypeStep', () => {
 		for (const type of clientTypes) {
 			await expect.element(screen.getByText(type.title, { exact: true })).toBeVisible();
 		}
+
+		expect(screen.container.textContent).not.toContain('Platform');
 	});
 
 	it('renders category images from static assets', async () => {

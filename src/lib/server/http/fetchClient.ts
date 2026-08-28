@@ -47,7 +47,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		headers['X-Gateway-Token'] = gatewayToken;
 	}
 
-	log.info({ url }, `outbound request → ${url}`);
+	log.info({ url }, 'starting api call');
 	log.debug({ headers, multipart: isFormDataBody }, 'outbound request');
 
 	try {
@@ -101,10 +101,13 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 
 		const parsed = v.safeParse(opts.schema, json);
 		if (!parsed.success) {
-			log.warn(
-				{ status: res.status, durationMs, issues: parsed.issues },
-				'response validation failed'
-			);
+			const issues = parsed.issues.map((issue) => ({
+				path: issue.path?.map((segment) => segment.key).join('.'),
+				message: issue.message,
+				expected: issue.expected,
+				received: issue.received
+			}));
+			log.warn({ status: res.status, durationMs, issues }, 'response validation failed');
 			return {
 				ok: false,
 				error: {
@@ -115,7 +118,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 			};
 		}
 
-		log.debug({ status: res.status, durationMs }, 'request succeeded');
+		log.info({ status: res.status, durationMs }, 'api response');
 		return { ok: true, data: parsed.output };
 	} catch (e) {
 		const isAbort = e instanceof DOMException && e.name === 'AbortError';

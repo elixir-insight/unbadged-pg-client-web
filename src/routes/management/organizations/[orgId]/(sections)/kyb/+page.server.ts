@@ -1,11 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { organizations } from '$lib/data/mockData';
 import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/utils/form-data';
 import { updateKybSectionMutation } from '$lib/server/domains/organization/mutations/update-kyb-section';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const actions = {
 	saveSection: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 		const formData = await request.formData();
@@ -16,17 +17,6 @@ export const actions = {
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid organization payload'
 			});
-		}
-
-		// Partner KYB isn't wired to the live API yet — mock a successful save.
-		const mockOrganization = organizations.find((organization) => organization.id === orgId);
-		if (mockOrganization?.category === 'PARTNER') {
-			log.info({ orgId }, 'mocked partner KYB section save');
-			return {
-				success: true,
-				message: 'Organization updated successfully',
-				section: parsed.output.section
-			};
 		}
 
 		const result = await updateKybSectionMutation({
