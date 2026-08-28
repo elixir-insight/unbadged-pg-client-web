@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { navigating, page as pageState } from '$app/state';
-	import { SvelteURL } from 'svelte/reactivity';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
 	import {
@@ -17,8 +15,11 @@
 	import type { DateRange } from 'bits-ui';
 	import { getLocalTimeZone } from '@internationalized/date';
 	import type { ReferralMerchant, ReferralStatus } from './types';
+	import {
+		formatReferralBusinessType,
+		REFERRAL_BUSINESS_TYPES
+	} from '$lib/partner/referrals/business-types';
 	import { debounce } from '$lib/utils/debounce.js';
-	import { goto } from '$app/navigation';
 	import { Download, RefreshCw, X } from '$lib/assets/icons';
 
 	let { data } = $props();
@@ -61,6 +62,11 @@
 		{ value: 'rejected', label: 'Rejected' }
 	];
 
+	const businessTypeOptions = REFERRAL_BUSINESS_TYPES.map((option) => ({
+		value: option.value,
+		label: option.label
+	}));
+
 	const searchFields = [
 		{ value: 'name', label: 'Merchant Name', placeholder: 'e.g. BlueCart Retail…' }
 	];
@@ -81,73 +87,7 @@
 		rejected: 'Rejected'
 	};
 
-	const pagination = createUrlPagination({
-		defaultLimit: 8,
-		total: () => dateFilteredMerchants.length
-	});
-
-	const searchField = $derived(
-		pageState.url.searchParams.get('searchField') === 'email' ? 'email' : 'name'
-	);
-
-	const isLoading = $derived(
-		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
-	);
-
-	let searchInput = $derived(pagination.search);
-
-	$effect(() => {
-		searchInput = pagination.search;
-	});
-
-	const debouncedSearch = debounce((value: string) => {
-		pagination.setSearch(value);
-	}, 300);
-
-	function setUrlParams(updates: Record<string, string | null>) {
-		const url = new SvelteURL(pageState.url.toString());
-		for (const [key, value] of Object.entries(updates)) {
-			if (value === null || value === '') url.searchParams.delete(key);
-			else url.searchParams.set(key, value);
-		}
-		url.searchParams.delete('skip');
-		const href =
-			`${pageState.url.pathname}?${url.searchParams.toString()}` as `${typeof pageState.url.pathname}?${string}`;
-		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
-	}
-
-	function handleSearch(field: string, value: string) {
-		searchInput = value;
-		setUrlParams({ searchField: field === 'name' ? null : field });
-		debouncedSearch(value);
-	}
-
-	function handleFilterSelect(label: string) {
-		pagination.setStatus(filterLabelToStatus[label] ?? '');
-	}
-
-	function onStatusDropdownChange(value: string) {
-		pagination.setStatus(value);
-	}
-
 	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
-
-	function removeFilter(key: 'date' | 'status' | 'search') {
-		if (key === 'date') {
-			dateRange = { start: undefined, end: undefined };
-		} else if (key === 'status') {
-			pagination.setStatus('');
-		} else if (key === 'search') {
-			searchInput = '';
-			setUrlParams({ search: null, searchField: null });
-		}
-	}
-
-	function clearFilters() {
-		dateRange = { start: undefined, end: undefined };
-		searchInput = '';
-		setUrlParams({ search: null, status: null, searchField: null });
-	}
 
 	const dateFilter = $derived.by(() => {
 		if (dateRange.start && dateRange.end) {
@@ -160,6 +100,70 @@
 		return null;
 	});
 
+	const referralsError = $derived(data.referralsError);
+	const useClientPagination = $derived(Boolean(dateFilter || data.clientSideSearch));
+
+	const pagination = createUrlPagination({
+		defaultLimit: 8,
+		total: () => {
+			if (dateFilter) return dateFilteredMerchants.length;
+			if (data.clientSideSearch) return data.referrals.merchants.length;
+			return data.pagination.total;
+		}
+	});
+
+	const searchField = $derived(
+		pageState.url.searchParams.get('searchField') === 'email' ? 'email' : 'name'
+	);
+
+	const isLoading = $derived(
+		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
+	);
+
+	const debouncedSearch = debounce((value: string) => {
+		pagination.setSearch(value);
+	}, 300);
+
+	const searchInput = $derived.by({
+		get: () => pagination.search,
+		set: (value: string) => {
+			debouncedSearch(value);
+		}
+	});
+
+	function handleSearch(_field: string, value: string) {
+		debouncedSearch(value);
+	}
+
+	function handleFilterSelect(label: string) {
+		pagination.setStatus(filterLabelToStatus[label] ?? '');
+	}
+
+	function onStatusDropdownChange(value: string) {
+		pagination.setStatus(value);
+	}
+
+	function onBusinessTypeChange(value: string) {
+		pagination.setType(value);
+	}
+
+	function removeFilter(key: 'date' | 'status' | 'search' | 'businessType') {
+		if (key === 'date') {
+			dateRange = { start: undefined, end: undefined };
+		} else if (key === 'status') {
+			pagination.setStatus('');
+		} else if (key === 'businessType') {
+			pagination.setType('');
+		} else if (key === 'search') {
+			pagination.setSearch('');
+		}
+	}
+
+	function clearFilters() {
+		dateRange = { start: undefined, end: undefined };
+		pagination.clearAllFilters();
+	}
+
 	const dateFilteredMerchants = $derived.by(() => {
 		if (!dateFilter) return data.referrals.merchants;
 		return data.referrals.merchants.filter((merchant) => {
@@ -168,9 +172,13 @@
 		});
 	});
 
-	const pageRows = $derived(
-		dateFilteredMerchants.slice(pagination.skip, pagination.skip + pagination.limit)
-	);
+	const pageRows = $derived.by(() => {
+		if (useClientPagination) {
+			const source = dateFilter ? dateFilteredMerchants : data.referrals.merchants;
+			return source.slice(pagination.skip, pagination.skip + pagination.limit);
+		}
+		return data.referrals.merchants;
+	});
 
 	const dateFilteredAllMerchants = $derived.by(() => {
 		if (!dateFilter) return data.referrals.allMerchants;
@@ -180,28 +188,47 @@
 		});
 	});
 
-	const filterCards = $derived([
-		{ label: 'All', count: dateFilteredAllMerchants.length },
-		{
-			label: 'Active',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'active').length
-		},
-		{
-			label: 'Pending',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'pending').length
-		},
-		{
-			label: 'Inactive',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'inactive').length
-		},
-		{
-			label: 'Rejected',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'rejected').length
+	const filterCards = $derived.by(() => {
+		if (dateFilter) {
+			return [
+				{ label: 'All', count: dateFilteredAllMerchants.length },
+				{
+					label: 'Active',
+					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'active').length
+				},
+				{
+					label: 'Pending',
+					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'pending').length
+				},
+				{
+					label: 'Inactive',
+					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'inactive')
+						.length
+				},
+				{
+					label: 'Rejected',
+					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'rejected')
+						.length
+				}
+			];
 		}
-	]);
+
+		const counts = data.referrals.statusCounts;
+		return [
+			{ label: 'All', count: counts.all },
+			{ label: 'Active', count: counts.active },
+			{ label: 'Pending', count: counts.pending },
+			{ label: 'Inactive', count: counts.inactive },
+			{ label: 'Rejected', count: counts.rejected }
+		];
+	});
 
 	const activeFilters = $derived.by(() => {
-		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
+		const filters: {
+			key: 'date' | 'status' | 'search' | 'businessType';
+			label: string;
+			value: string;
+		}[] = [];
 
 		if (dateRange.start && dateRange.end) {
 			const tz = getLocalTimeZone();
@@ -216,6 +243,14 @@
 		if (pagination.status) {
 			const opt = statusOptions.find((o) => o.value === pagination.status);
 			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
+		}
+
+		if (pagination.type) {
+			filters.push({
+				key: 'businessType',
+				label: 'Business Type',
+				value: formatReferralBusinessType(pagination.type)
+			});
 		}
 
 		if (pagination.search) {
@@ -297,6 +332,15 @@
 		</p>
 	</div>
 
+	{#if referralsError}
+		<div
+			class="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+			role="alert"
+		>
+			<p>{referralsError}</p>
+		</div>
+	{/if}
+
 	<FilterCards
 		cards={filterCards}
 		selected={statusToFilterLabel[pagination.status] ?? 'All'}
@@ -320,12 +364,23 @@
 						onValueChange={onStatusDropdownChange}
 					/>
 				</div>
+				<div class="w-52">
+					<Dropdown
+						value={pagination.type || undefined}
+						placeholder="Business Type"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={businessTypeOptions}
+						onValueChange={onBusinessTypeChange}
+					/>
+				</div>
 			</div>
 			<div class="w-full max-w-xs">
 				<SearchField
 					fields={searchFields}
 					field={searchField}
-					value={searchInput}
+					bind:value={searchInput}
 					onSearch={handleSearch}
 				/>
 			</div>
@@ -372,7 +427,7 @@
 			</div>
 		</div>
 
-		{#if !isLoading && dateFilteredMerchants.length === 0}
+		{#if !isLoading && !referralsError && pageRows.length === 0}
 			<div class="flex flex-col items-center gap-3 px-6 py-16 text-center">
 				<div
 					class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10"
@@ -396,7 +451,7 @@
 					<p class="text-sm font-medium text-foreground">No referrals found</p>
 					<p class="mt-1 text-sm text-muted-foreground">
 						{#if hasActiveFilters}
-							Try adjusting your search, status, or date filter.
+							Try adjusting your search, status, business type, or date filter.
 						{:else}
 							Referred merchants will appear here once onboarding begins.
 						{/if}
