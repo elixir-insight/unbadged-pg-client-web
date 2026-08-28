@@ -8,6 +8,7 @@ import {
 	// Send,
 	ArrowLeftRight,
 	// TrendingUp,
+	MessageSquareWarning,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -99,7 +100,30 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			},
-			// { title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
+			// Transaction Insights omitted from nav for now
+			// {
+			// 	title: 'Transaction Insights',
+			// 	href: '/management/transaction-insights',
+			// 	icon: TrendingUp,
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/management\/transaction-insights\/[^/]+$/,
+			// 			title: 'Merchant Calendar'
+			// 		}
+			// 	]
+			// },
+			{
+				title: 'Disputes',
+				href: '/management/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/dispute\/[^/]+$/,
+						title: 'View Dispute'
+					}
+				]
+			},
 			{
 				title: 'Settlements',
 				href: '/management/settlements',

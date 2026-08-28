@@ -53,7 +53,6 @@ describe('validateCreateOrganization', () => {
 
 		expect(errors.profileType).toBe('Profile type is required');
 	});
-
 	it('requires organization name', () => {
 		const errors = validateCreateOrganization({ ...validBase, orgName: '   ' });
 

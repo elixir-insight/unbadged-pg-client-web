@@ -22,6 +22,14 @@ export const DATETIME_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const ISO_DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO_DATE_PREFIX = /^(\d{4}-\d{2}-\d{2})/;
+
+/** API timestamp: YYYY-MM-DD 23:59:59 */
+export function formatEvidenceDueByForApi(dateValue: string): string {
+	const date = ISO_DATE_PREFIX.exec(dateValue.trim())?.[1];
+	if (!date) return '';
+	return `${date} 23:59:59`;
+}
 
 function toDate(input: number | Date | string): Date {
 	if (input instanceof Date) return input;

@@ -51,7 +51,7 @@
 	<div class="relative flex flex-col items-center">
 		<h2 class="text-center font-bold tracking-tight">What category would you like to choose?</h2>
 
-		<div class="mt-10 grid w-full max-w-3xl grid-cols-1 gap-5 sm:grid-cols-2">
+		<div class="mt-10 grid w-full max-w-2xl grid-cols-1 gap-5 sm:grid-cols-2">
 			{#each clientTypes as type (type.value)}
 				{@const isSelected = selectedCategory === type.value}
 				<button

@@ -42,6 +42,7 @@ export default defineConfig({
 				test: {
 					name: 'client',
 					testTimeout: 60000,
+					fileParallelism: false,
 					browser: {
 						enabled: true,
 						provider: playwright(),
@@ -55,6 +56,11 @@ export default defineConfig({
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['src/lib/server/**']
+				},
+				server: {
+					deps: {
+						inline: ['vitest-browser-svelte']
+					}
 				}
 			},
 			{

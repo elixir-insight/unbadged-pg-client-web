@@ -1,5 +1,4 @@
 import { createOrganizationShell, organizations, type Organization } from '$lib/data/mockData';
-import { isUiOnlyOnboardingCategory } from '$lib/organization/category';
 import {
 	getValidSession,
 	SessionError,
@@ -36,16 +35,6 @@ export async function loadOrganizationDocuments(params: {
 	organizationBase: Organization;
 }) {
 	const { fetch, log, cookies, orgId, organizationBase } = params;
-
-	if (isUiOnlyOnboardingCategory(organizationBase.category)) {
-		const mockOrganization =
-			organizations.find((candidate) => candidate.id === orgId) ?? organizationBase;
-		return {
-			documentsLoadError: null,
-			documents: mockOrganization.documents,
-			directors: mockOrganization.directors
-		};
-	}
 
 	try {
 		let tokens;

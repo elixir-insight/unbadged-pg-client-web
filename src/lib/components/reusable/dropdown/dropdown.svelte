@@ -25,8 +25,13 @@
 		onValueChange,
 		name,
 		required,
+		ariaLabel,
 		bordered = false,
-		search = false
+		search = false,
+		expand = false,
+		side = 'bottom' as 'top' | 'bottom' | 'left' | 'right',
+		avoidCollisions = true,
+		contentClass
 	}: {
 		value?: string;
 		options?: (DropdownOption | DropdownGroup)[];
@@ -37,8 +42,13 @@
 		onValueChange?: (value: string) => void;
 		name?: string;
 		required?: boolean;
+		ariaLabel?: string;
 		bordered?: boolean;
 		search?: boolean;
+		expand?: boolean;
+		side?: 'top' | 'bottom' | 'left' | 'right';
+		avoidCollisions?: boolean;
+		contentClass?: string;
 	} = $props();
 
 	function isGroup(opt: DropdownOption | DropdownGroup): opt is DropdownGroup {
@@ -78,12 +88,15 @@
 	function onOpenChange(isOpen: boolean) {
 		if (!isOpen) query = '';
 	}
+
+	const useFloatingList = $derived(search || expand);
 </script>
 
-{#if search}
+{#if useFloatingList}
 	<PopoverPrimitive.Root bind:open {onOpenChange}>
 		<PopoverTrigger
 			{disabled}
+			aria-label={ariaLabel}
 			data-size={size}
 			class={cn(
 				'flex w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none',
@@ -108,22 +121,24 @@
 
 		<PopoverContent
 			align="start"
+			{side}
+			{avoidCollisions}
 			sideOffset={4}
-			class="w-max max-w-80 min-w-(--bits-popover-anchor-width) p-0"
+			class={cn('w-max max-w-80 min-w-(--bits-popover-anchor-width) p-0', contentClass)}
 		>
-			<!-- Search input -->
-			<div class="flex items-center gap-2 border-b border-border px-2.5 py-2">
-				<Search class="size-3.5 shrink-0 text-muted-foreground" />
-				<input
-					type="text"
-					bind:value={query}
-					placeholder="Search"
-					class="w-full bg-transparent text-left text-sm outline-none placeholder:text-muted-foreground"
-				/>
-			</div>
+			{#if search}
+				<div class="flex items-center gap-2 border-b border-border px-2.5 py-2">
+					<Search class="size-3.5 shrink-0 text-muted-foreground" />
+					<input
+						type="text"
+						bind:value={query}
+						placeholder="Search"
+						class="w-full bg-transparent text-left text-sm outline-none placeholder:text-muted-foreground"
+					/>
+				</div>
+			{/if}
 
-			<!-- Filtered options -->
-			<div class="max-h-60 scroll-py-1 overflow-y-auto py-1">
+			<div class={cn('py-1', search && 'max-h-60 scroll-py-1 overflow-y-auto')}>
 				{#if filtered.length === 0}
 					<p class="px-3 py-4 text-left text-sm text-muted-foreground">No results found.</p>
 				{:else}
@@ -188,12 +203,16 @@
 {:else}
 	<!-- Standard select (no search) -->
 	<SelectPrimitive.Root type="single" bind:value {disabled} {onValueChange} {name} {required}>
-		<SelectTrigger {size} class={cn('w-full', bordered && 'border-border', className)}>
+		<SelectTrigger
+			{size}
+			aria-label={ariaLabel}
+			class={cn('w-full', bordered && 'border-border', className)}
+		>
 			<span class={cn('truncate', !selectedLabel && 'text-muted-foreground')}>
 				{selectedLabel || placeholder}
 			</span>
 		</SelectTrigger>
-		<SelectContent>
+		<SelectContent {side} {avoidCollisions} class={contentClass}>
 			{#each options as opt, i (isGroup(opt) ? `g:${opt.group}` : `f:${(opt as DropdownOption).value}`)}
 				{#if isGroup(opt)}
 					{#if i > 0}

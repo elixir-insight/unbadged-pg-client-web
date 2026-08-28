@@ -2,11 +2,13 @@ import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
 	ArrowLeftRight,
-	// MessageSquareWarning,
+	MessageSquareWarning,
 	Landmark,
 	FileText,
+	// TrendingUp,
 	Users,
-	ShieldCheck
+	ShieldCheck,
+	Link
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -40,20 +42,45 @@ export const merchantNav: NavGroup[] = [
 					}
 				]
 			},
-			// Disputes navigation is temporarily hidden.
-			// {
-			// 	title: 'Disputes',
-			// 	href: '/merchant/disputes',
-			// 	icon: MessageSquareWarning,
-			// 	service: 'payin'
-			// },
+			{
+				title: 'Payment Links',
+				href: '/merchant/payment-links',
+				icon: Link,
+				service: 'payin'
+			},
+			{
+				title: 'Dispute',
+				href: '/merchant/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/dispute\/[^/]+$/,
+						title: 'View Dispute'
+					}
+				]
+			},
 			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' }
 			// Funds + Beneficiaries intentionally omitted from nav for now
 		]
 	},
 	{
 		title: 'Analytics',
-		items: [{ title: 'Reports', href: '/merchant/reports', icon: FileText }]
+		items: [
+			// Transaction Insights omitted from nav for now
+			// {
+			// 	title: 'Transaction Insights',
+			// 	href: '/merchant/transaction-insights',
+			// 	icon: TrendingUp,
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/merchant\/transaction-insights\/[^/]+$/,
+			// 			title: 'Merchant Calendar'
+			// 		}
+			// 	]
+			// },
+			{ title: 'Reports', href: '/merchant/reports', icon: FileText }
+		]
 	},
 	{
 		title: 'Administration',

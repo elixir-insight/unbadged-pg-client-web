@@ -3,7 +3,6 @@ import { createOrganizationShell } from '$lib/data/mockData';
 import {
 	applyOrganizationCategory,
 	isPartnerStyleCategory,
-	isUiOnlyOnboardingCategory,
 	parseOrganizationCategory,
 	resolveOrganizationCategory
 } from './category';
@@ -48,8 +47,8 @@ describe('organization category helpers', () => {
 		const platform = applyOrganizationCategory(merchant, 'PLATFORM');
 
 		expect(isPartnerStyleCategory('PLATFORM')).toBe(true);
-		expect(isUiOnlyOnboardingCategory('PLATFORM')).toBe(true);
-		expect(isUiOnlyOnboardingCategory('PARTNER')).toBe(false);
+		expect(isPartnerStyleCategory('PARTNER')).toBe(true);
+		expect(isPartnerStyleCategory('MERCHANT')).toBe(false);
 		expect(platform.category).toBe('PLATFORM');
 		expect(platform.documents.some((document) => document.documentType === 'Brand logo')).toBe(
 			true
