@@ -8,6 +8,7 @@ import {
 	// Send,
 	ArrowLeftRight,
 	MessageSquareWarning,
+	CreditCard,
 	// TrendingUp,
 	Landmark,
 	FileText
@@ -111,6 +112,12 @@ export const managementNav: NavGroup[] = [
 						title: 'View Dispute'
 					}
 				]
+			},
+			{
+				title: 'Chargeback',
+				href: '/management/chargeback',
+				icon: CreditCard,
+				service: 'payin'
 			},
 			// { title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
 			{
