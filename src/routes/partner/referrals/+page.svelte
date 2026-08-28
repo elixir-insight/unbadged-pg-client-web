@@ -124,12 +124,7 @@
 		pagination.setSearch(value);
 	}, 300);
 
-	const searchInput = $derived.by({
-		get: () => pagination.search,
-		set: (value: string) => {
-			debouncedSearch(value);
-		}
-	});
+	const searchInput = $derived(pagination.search);
 
 	function handleSearch(_field: string, value: string) {
 		debouncedSearch(value);
@@ -380,7 +375,7 @@
 				<SearchField
 					fields={searchFields}
 					field={searchField}
-					bind:value={searchInput}
+					value={searchInput}
 					onSearch={handleSearch}
 				/>
 			</div>
