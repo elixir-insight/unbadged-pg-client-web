@@ -8,6 +8,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 import {
@@ -59,6 +60,7 @@ export const load: LayoutServerLoad = async ({
 	depends
 }): Promise<OrganizationLayoutData> => {
 	depends('org');
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 
 	const log = locals.logger;
 	const orgId = params.orgId?.trim();

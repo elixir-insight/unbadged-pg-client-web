@@ -27,6 +27,7 @@
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
 	import DocumentPreviewModal from './document-preview-modal.svelte';
 	import DocumentActionsMenu from './document-actions-menu.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import {
 		type DocumentUploadState,
 		documentStatusLabel,
@@ -93,6 +94,7 @@
 	});
 
 	const adjacent = $derived(getAdjacentFlowSteps('documents'));
+	const canEdit = $derived(userPermissions.can('ORGANIZATION', 'write'));
 
 	const fixedDocs = $derived(
 		fixedRequiredDocuments.map((type) => ensureOrgDocument(type, documents))
@@ -435,6 +437,7 @@
 			<DocumentActionsMenu
 				{document}
 				uploadState={uploadStateFor(document.id)}
+				readOnly={!canEdit}
 				onPreview={() => openDocumentPreview(title, document)}
 				{onReplace}
 				{onDelete}
@@ -460,6 +463,7 @@
 					value={choiceSelections[groupKey]}
 					options={choiceGroupOptions(groupKey)}
 					placeholder={groupLabel}
+					disabled={!canEdit}
 					onValueChange={(value) => selectChoiceOption(groupKey, value as DocumentType)}
 				/>
 			</div>
@@ -468,6 +472,7 @@
 			<DocumentActionsMenu
 				{document}
 				uploadState={uploadStateFor(document.id)}
+				readOnly={!canEdit}
 				onPreview={() => openDocumentPreview(document.documentType ?? groupLabel, document)}
 				onReplace={(file) => applyOrgUpload(document, file)}
 				onDelete={() => deleteOrgDocument(document)}

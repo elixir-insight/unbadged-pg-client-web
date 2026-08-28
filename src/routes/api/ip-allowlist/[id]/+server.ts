@@ -1,8 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ipAllowlistClient, parseIpAllowlistPortal } from '$lib/server/domains/ip-allowlist/client';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const DELETE: RequestHandler = async ({ params, url, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'PROFILE', 'delete');
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 

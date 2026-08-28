@@ -9,6 +9,7 @@ import {
 	uploadOrgDocumentsMutation
 } from '$lib/server/domains/organization/mutations/upload-documents';
 import { failUploadAction } from '$lib/server/http/upload-action-error';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -37,6 +38,7 @@ export const load: PageServerLoad = async ({ params, parent, cookies, fetch, loc
 
 export const actions = {
 	uploadOrgDocument: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 
@@ -66,6 +68,7 @@ export const actions = {
 	},
 
 	uploadDirectorDocument: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 

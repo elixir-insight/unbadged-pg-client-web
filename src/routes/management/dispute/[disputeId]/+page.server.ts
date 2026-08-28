@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { loadDisputeById } from '$lib/server/domains/dispute/loaders/get-by-id';
 import type { DisputeDetailView } from '$lib/server/domains/dispute/mappers/from-api/details';
 import {
@@ -25,6 +26,7 @@ export const load: PageServerLoad = async ({
 	parent
 }) => {
 	depends('management-disputes:detail');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const disputeId = params.disputeId?.trim() ?? '';
 	const parentData = await parent();

@@ -5,9 +5,12 @@
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
 
 	const dispute = $derived(data.dispute);
 </script>
@@ -150,6 +153,7 @@
 			disputeId={data.disputeId}
 			documents={data.documents}
 			documentsError={data.documentsError}
+			readOnly={!canEdit}
 		/>
 	</div>
 {/if}

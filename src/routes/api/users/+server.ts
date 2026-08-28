@@ -4,6 +4,7 @@ import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import { CreateMemberBodySchema, type MemberListItem } from '$lib/server/domains/members/schema';
@@ -54,6 +55,7 @@ async function requireSession(cookies: Cookies, fetchFn: typeof fetch, logger: L
 
 export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'read');
 	const portal = resolveMembersApiPortalFromRequest({
 		url,
 		request,
@@ -328,6 +330,7 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 
 export const POST: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'write');
 	const portal = resolveMembersApiPortalFromRequest({
 		url,
 		request,
@@ -367,6 +370,7 @@ export const POST: RequestHandler = async ({ request, url, cookies, fetch, local
 
 export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'write');
 	const portal = resolveMembersApiPortalFromRequest({
 		url,
 		request,
@@ -413,6 +417,7 @@ export const PUT: RequestHandler = async ({ request, url, cookies, fetch, locals
 
 export const DELETE: RequestHandler = async ({ request, url, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'delete');
 	const portal = resolveMembersApiPortalFromRequest({
 		url,
 		request,

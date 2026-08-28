@@ -7,6 +7,7 @@
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import ProfileCard from '../profile-card/profile-card.svelte';
 	import { CompanyLogoLight, X } from '$lib/assets/icons';
@@ -27,12 +28,27 @@
 
 	const navGroups = $derived(navConfig[app]);
 
+	function isItemVisible(item: (typeof navGroups)[number]['items'][number]): boolean {
+		if (item.service && !merchantSession.hasService(item.service)) return false;
+		if (
+			item.requiredPermission &&
+			!userPermissions.can(item.requiredPermission.module, item.requiredPermission.action)
+		)
+			return false;
+		if (
+			item.requiredPermissionAnyOf &&
+			!item.requiredPermissionAnyOf.some((p) => userPermissions.can(p.module, p.action))
+		)
+			return false;
+		return true;
+	}
+
 	const visibleNavGroups = $derived(
 		app !== 'partner'
 			? navGroups
 					.map((g) => ({
 						...g,
-						items: g.items.filter((i) => !i.service || merchantSession.hasService(i.service))
+						items: g.items.filter(isItemVisible)
 					}))
 					.filter((g) => g.items.length > 0)
 			: navGroups

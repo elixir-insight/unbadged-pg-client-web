@@ -2,8 +2,10 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { deleteChargeConfigurationMutation } from '$lib/server/domains/charge-configuration/mutations/delete';
 import { updateChargeConfigurationMutation } from '$lib/server/domains/charge-configuration/mutations/update';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'delete');
 	const orgId = params.orgId?.trim() ?? '';
 	const chargeConfigId = params.id?.trim() ?? '';
 	const log = locals.logger.child({ action: 'charge-configurations-delete' });
@@ -28,6 +30,7 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals, fetch })
 };
 
 export const PATCH: RequestHandler = async ({ params, request, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 	const orgId = params.orgId?.trim() ?? '';
 	const chargeConfigId = params.id?.trim() ?? '';
 	const log = locals.logger.child({ action: 'charge-configurations-update' });

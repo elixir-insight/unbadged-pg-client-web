@@ -35,6 +35,7 @@
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { debounce } from '$lib/utils/debounce';
 	import { formatDate } from '$lib/utils/format-time';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	let { data } = $props();
 
@@ -356,13 +357,15 @@
 	>
 		<div class="flex items-center justify-between gap-2 p-4">
 			<p class="text-xs text-muted-foreground">{pagination.showingText}</p>
-			<Button
-				class="flex gap-2"
-				onclick={() => goto(resolve('/management/organizations/create-organization'))}
-			>
-				<Building2 />
-				Create Organization
-			</Button>
+			{#if userPermissions.can('ORGANIZATION', 'write')}
+				<Button
+					class="flex gap-2"
+					onclick={() => goto(resolve('/management/organizations/create-organization'))}
+				>
+					<Building2 />
+					Create Organization
+				</Button>
+			{/if}
 		</div>
 		<Table
 			data={organizations}
@@ -386,13 +389,15 @@
 		{#if selectedOrg}
 			<div class="flex gap-2">
 				{#if selectedOrg.status === 'IN_PROGRESS'}
-					<Button
-						href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
-						class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
-					>
-						<ArrowRight class="size-3.5" />
-						Continue Editing
-					</Button>
+					{#if userPermissions.can('ORGANIZATION', 'write')}
+						<Button
+							href={`${resolve('/management/organizations/[orgId]', { orgId: selectedOrg.id })}?category=${selectedOrg.category}`}
+							class="gradient-primary flex-1 gap-1.5 text-primary-foreground hover:opacity-90"
+						>
+							<ArrowRight class="size-3.5" />
+							Continue Editing
+						</Button>
+					{/if}
 					<Button
 						href={`${resolve(`/management/organizations/${selectedOrg.id}/preview`)}?category=${selectedOrg.category}`}
 						variant="outline"

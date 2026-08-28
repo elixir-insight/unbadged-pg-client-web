@@ -45,6 +45,7 @@
 	import ActivateProfileModal from './activate-profile-modal.svelte';
 	import { getContext } from 'svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	type PreviewSection = 'legal' | 'address' | 'directors' | 'bank' | 'documents';
 
@@ -108,6 +109,7 @@
 	});
 
 	const canApprove = $derived(allSectionsComplete(reviewOrganization));
+	const hasApprovePermission = $derived(userPermissions.can('ORGANIZATION', 'approve'));
 
 	const approvalBlockers = $derived.by(() => {
 		const blockers: string[] = [];
@@ -501,13 +503,18 @@
 										variant="destructive"
 										size="icon"
 										aria-label="Put on hold"
+										disabled={!hasApprovePermission}
 										onclick={() => orgLayout.openPutOnHold()}
 									>
 										<MessageSquareWarning class="size-4" />
 									</Button>
 								{/snippet}
 							</UITooltip.TooltipTrigger>
-							<UITooltip.TooltipContent>Put on hold</UITooltip.TooltipContent>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Put on hold'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
 						</UITooltip.Tooltip>
 					</ButtonGroup.Root>
 				</UITooltip.TooltipProvider>
@@ -529,13 +536,18 @@
 										variant="destructive"
 										size="icon"
 										aria-label="Freeze organization"
+										disabled={!hasApprovePermission}
 										onclick={() => orgLayout.openFreeze()}
 									>
 										<TriangleAlert class="size-4" />
 									</Button>
 								{/snippet}
 							</UITooltip.TooltipTrigger>
-							<UITooltip.TooltipContent>Freeze</UITooltip.TooltipContent>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Freeze'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
 						</UITooltip.Tooltip>
 					</ButtonGroup.Root>
 				</UITooltip.TooltipProvider>
@@ -554,13 +566,18 @@
 										variant="outline"
 										size="icon"
 										aria-label="Reactivate organization"
+										disabled={!hasApprovePermission}
 										onclick={() => orgLayout.openReactivate()}
 									>
 										<RotateCcw class="size-4" />
 									</Button>
 								{/snippet}
 							</UITooltip.TooltipTrigger>
-							<UITooltip.TooltipContent>Reactivate</UITooltip.TooltipContent>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Reactivate'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
 						</UITooltip.Tooltip>
 					</ButtonGroup.Root>
 				</UITooltip.TooltipProvider>
@@ -572,10 +589,27 @@
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-				<Button onclick={() => (activateOpen = true)}>
-					<ZapIcon class="size-4" />
-					Activate
-				</Button>
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<UITooltip.Tooltip>
+						<UITooltip.TooltipTrigger>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									disabled={!hasApprovePermission}
+									onclick={() => (activateOpen = true)}
+								>
+									<ZapIcon class="size-4" />
+									Activate
+								</Button>
+							{/snippet}
+						</UITooltip.TooltipTrigger>
+						{#if !hasApprovePermission}
+							<UITooltip.TooltipContent
+								>You don't have permission to perform this action.</UITooltip.TooltipContent
+							>
+						{/if}
+					</UITooltip.Tooltip>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else}
 			{#if !canApprove}
@@ -589,10 +623,12 @@
 			<form method="POST" action="?/approve" use:enhance={onApproveEnhance}>
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button type="submit" disabled={!canApprove || approving}>
-						<BadgeCheck class="size-4" />
-						{approving ? 'Approving…' : 'Approve'}
-					</Button>
+					{#if hasApprovePermission}
+						<Button type="submit" disabled={!canApprove || approving}>
+							<BadgeCheck class="size-4" />
+							{approving ? 'Approving…' : 'Approve'}
+						</Button>
+					{/if}
 				</div>
 			</form>
 		{/if}

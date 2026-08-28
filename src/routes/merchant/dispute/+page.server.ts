@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { loadDisputesByOrganization } from '$lib/server/domains/dispute/loaders/list-by-organization';
 import {
 	emptyDisputePagination,
@@ -10,6 +11,7 @@ const MAX_LIMIT = 100;
 
 export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
 	depends('merchant-disputes:list');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const log = locals.logger.child({ action: 'merchant-disputes-list' });
 	const requestedLimit = Number(url.searchParams.get('limit')) || DEFAULT_LIMIT;

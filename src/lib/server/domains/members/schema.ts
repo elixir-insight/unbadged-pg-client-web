@@ -152,6 +152,17 @@ export const PermissionsCatalogResponseSchema = v.object({
 	pagination: v.optional(PaginationSchema)
 });
 
+/**
+ * Current user's own granted permissions from GET /api/v1/user/permissions.
+ * `data[0]` is keyed by portal group (e.g. "MANAGEMENT"), each mapping
+ * module → array of granted action names.
+ */
+export const UserPermissionsResponseSchema = v.object({
+	statusCode: v.number(),
+	message: v.string(),
+	data: v.array(v.record(v.string(), v.record(v.string(), v.array(v.string()))))
+});
+
 /** Role detail from GET /api/v1/{portal}/roles/{roleId} */
 export const OrgRoleDetailPermissionSchema = v.object({
 	id: v.number(),
@@ -233,6 +244,7 @@ export type UserDirectoryListResponse = v.InferOutput<typeof UserDirectoryListRe
 export type ResourcePermissionItem = v.InferOutput<typeof ResourcePermissionItemSchema>;
 export type ResourcePermissionModule = v.InferOutput<typeof ResourcePermissionModuleSchema>;
 export type PermissionsCatalogResponse = v.InferOutput<typeof PermissionsCatalogResponseSchema>;
+export type UserPermissionsResponse = v.InferOutput<typeof UserPermissionsResponseSchema>;
 export type OrgRoleDetailItem = v.InferOutput<typeof OrgRoleDetailItemSchema>;
 export type OrgRoleDetailResponse = v.InferOutput<typeof OrgRoleDetailResponseSchema>;
 export type CreateOrgRoleBody = v.InferOutput<typeof CreateOrgRoleBodySchema>;

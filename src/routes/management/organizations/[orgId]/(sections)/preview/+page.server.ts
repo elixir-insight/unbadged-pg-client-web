@@ -8,6 +8,7 @@ import {
 import { activateProfileMutation } from '$lib/server/domains/organization/mutations/activate-profile';
 import { updateOrganizationStatusMutation } from '$lib/server/domains/organization/mutations/update-status';
 import { failUploadAction } from '$lib/server/http/upload-action-error';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -56,6 +57,7 @@ export const load: PageServerLoad = async ({ params, parent, cookies, fetch, loc
 
 export const actions = {
 	approve: async ({ params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'approve');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 
@@ -82,6 +84,7 @@ export const actions = {
 	},
 
 	activate: async ({ request, params, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'approve');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
 

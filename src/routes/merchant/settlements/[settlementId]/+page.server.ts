@@ -5,6 +5,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { paymentAttemptClient } from '$lib/server/domains/payment-attempt/client';
 import { settlementClient } from '$lib/server/domains/settlement/client';
 import { mapSettlementListItemToDetail } from '$lib/server/domains/settlement/mappers/from-api/list';
@@ -25,6 +26,7 @@ function emptyPagination(limit: number, page: number) {
 
 export const load: PageServerLoad = async ({ params, url, cookies, fetch, locals, depends }) => {
 	depends('settlement-orders:list');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const settlementId = params.settlementId?.trim();
 	if (!settlementId) error(404, 'Settlement not found');

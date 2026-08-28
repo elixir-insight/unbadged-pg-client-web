@@ -13,6 +13,7 @@
 	} from '$lib/components/transactions/disbursements';
 	import RetryModal from './retry-modal.svelte';
 	import { toast } from '$lib/components/reusable';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	const clientOrderId = $derived(page.params.id ?? '');
 	const transaction = $derived(getPayoutDetail(clientOrderId));
@@ -121,13 +122,15 @@
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between gap-3">
 		<h1 class="text-lg font-semibold text-foreground">Transaction Details</h1>
-		<Button
-			onclick={() => (retryModalOpen = true)}
-			disabled={transaction?.transactionStatus !== 'failed'}
-		>
-			<RefreshCw class="size-4" />
-			Retry payout
-		</Button>
+		{#if userPermissions.can('PAYOUTS', 'write')}
+			<Button
+				onclick={() => (retryModalOpen = true)}
+				disabled={transaction?.transactionStatus !== 'failed'}
+			>
+				<RefreshCw class="size-4" />
+				Retry payout
+			</Button>
+		{/if}
 	</div>
 
 	{#if !transaction}

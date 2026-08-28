@@ -4,6 +4,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { settlementClient } from '$lib/server/domains/settlement/client';
 import {
 	mapSettlementOverview,
@@ -32,6 +33,7 @@ function emptyPagination(limit: number, page: number) {
 
 export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
 	depends('settlements:list');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const log = locals.logger.child({ action: 'settlements-page' });
 	const skip = Number(url.searchParams.get('skip')) || 0;

@@ -4,6 +4,7 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
 import type { OrganizationTableStatusCounts } from '$lib/organization/table';
 import { mapOrganizationsTableResponse } from '$lib/server/domains/organization/mappers/from-api/organizations-table';
@@ -24,6 +25,7 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 
 export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends }) => {
 	depends('organizations:table');
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 
 	const log = locals.logger;
 	const skip = Number(url.searchParams.get('skip')) || 0;
