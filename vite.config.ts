@@ -56,11 +56,6 @@ export default defineConfig({
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['src/lib/server/**']
-				},
-				server: {
-					deps: {
-						inline: ['vitest-browser-svelte']
-					}
 				}
 			},
 			{
