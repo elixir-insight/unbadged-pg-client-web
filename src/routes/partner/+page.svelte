@@ -1,90 +1,96 @@
 <script lang="ts">
-	import { navigating, page as pageState } from '$app/state';
-	import { AreaChartCard, CardData, DonutChart } from '$lib/components/reusable';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { navigating, page } from '$app/state';
+	import { SvelteURL } from 'svelte/reactivity';
+	import { CardData } from '$lib/components/reusable';
+	import {
+		DashboardRangeControl,
+		PaymentMixCard,
+		type DashboardRange
+	} from '$lib/components/merchant-dashboard';
+	import { CommissionTrendCard } from '$lib/components/partner-dashboard';
 
 	let { data } = $props();
 
-	const currency = new Intl.NumberFormat('en-IN', {
-		style: 'currency',
-		currency: 'INR',
-		maximumFractionDigits: 0
-	});
+	const range = $derived((data.range ?? '7d') as Exclude<DashboardRange, 'custom'>);
+	const granularity = $derived(data.granularity ?? 'daily');
 
-	const formatCurrency = (value: number) => currency.format(value);
-
-	const isLoading = $derived(
-		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
+	const rangeDescription = $derived(
+		range === 'today' ? 'Today' : range === '7d' ? 'Last 7 days' : 'Last 30 days'
 	);
 
-	const dashboard = $derived(data.dashboard);
+	const isLoading = $derived(
+		navigating.to !== null && navigating.to.url.pathname === page.url.pathname
+	);
+
+	function updateSearchParams(updates: Record<string, string>) {
+		const next = new SvelteURL(page.url);
+		for (const [key, value] of Object.entries(updates)) {
+			next.searchParams.set(key, value);
+		}
+		const href =
+			`${next.pathname}?${next.searchParams.toString()}` as `${typeof next.pathname}?${string}`;
+		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
+	function changeRange(selectedRange: Exclude<DashboardRange, 'custom'>) {
+		if (isLoading) return;
+		updateSearchParams({ range: selectedRange });
+	}
+
+	function changeGranularity(selectedGranularity: 'daily' | 'weekly') {
+		if (isLoading) return;
+		updateSearchParams({ granularity: selectedGranularity });
+	}
 </script>
 
-<div class="space-y-6 p-6 sm:p-8 lg:p-4">
-	<div>
-		<h1 class="mt-1 text-2xl font-semibold text-foreground">Dashboard</h1>
-		<p class="mt-1 text-sm text-muted-foreground">
-			Overview of referrals, commission, and transaction volume across your merchant network.
-		</p>
-	</div>
+<div class="flex flex-col lg:min-h-0 lg:flex-1">
+	<div class="min-h-0 flex-1 overflow-y-auto pr-1">
+		<div class="space-y-4 p-4 pb-1 sm:p-6 lg:p-4">
+			<DashboardRangeControl {range} onRangeChange={changeRange} />
 
-	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each dashboard.kpis as kpi (kpi.label)}
-			<CardData
-				label={kpi.label}
-				value={kpi.value || '—'}
-				subText={kpi.subText}
-				trend={kpi.trend}
-				trendLabel={kpi.trendLabel}
-				loading={isLoading}
-			/>
-		{:else}
-			{#each [0, 1, 2, 3] as skeletonIndex (skeletonIndex)}
-				<CardData label="—" value="—" loading={isLoading} />
-			{/each}
-		{/each}
-	</div>
+			{#if data.kpisError}
+				<p class="text-sm text-destructive" role="alert">{data.kpisError}</p>
+			{/if}
 
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-		<div class="lg:col-span-2">
-			<AreaChartCard
-				title={dashboard.commissionTrend.title}
-				description={dashboard.commissionTrend.description}
-				data={dashboard.commissionTrend.data}
-				color={dashboard.commissionTrend.color}
-				valueFormatter={formatCurrency}
-				emptyMessage={dashboard.commissionTrend.emptyMessage}
-				loading={isLoading}
-			/>
+			<section
+				aria-label="Commission summary"
+				class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+			>
+				{#each data.kpis as kpi (kpi.label)}
+					<CardData
+						label={kpi.label}
+						value={kpi.value || '—'}
+						subText={kpi.subText ?? rangeDescription}
+						trend={kpi.trend}
+						trendLabel={kpi.trendLabel}
+						loading={isLoading}
+					/>
+				{:else}
+					{#each [0, 1, 2, 3] as skeletonIndex (skeletonIndex)}
+						<CardData label="—" value="—" loading={isLoading} />
+					{/each}
+				{/each}
+			</section>
+
+			<section aria-label="Commission analytics" class="grid grid-cols-12 gap-4">
+				<CommissionTrendCard
+					data={data.commissionTrend}
+					{granularity}
+					error={data.commissionTrendError}
+					onGranularityChange={changeGranularity}
+					class="col-span-12 min-h-80 lg:col-span-8"
+				/>
+				<PaymentMixCard
+					data={data.commissionChart}
+					error={data.commissionChartError}
+					title="Commission mix"
+					description="Share of earned commission"
+					emptyMessage="No commission breakdown available."
+					class="col-span-12 min-h-80 lg:col-span-4"
+				/>
+			</section>
 		</div>
-
-		<DonutChart
-			segments={dashboard.volumeByPaymentMethod.segments}
-			centerLabel={dashboard.volumeByPaymentMethod.centerLabel}
-			centerValue={dashboard.volumeByPaymentMethod.centerValue}
-			valueFormatter={formatCurrency}
-			emptyMessage={dashboard.volumeByPaymentMethod.emptyMessage}
-			loading={isLoading}
-		/>
-	</div>
-
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-		<AreaChartCard
-			title={dashboard.referralVolumeTrend.title}
-			description={dashboard.referralVolumeTrend.description}
-			data={dashboard.referralVolumeTrend.data}
-			color={dashboard.referralVolumeTrend.color}
-			valueFormatter={formatCurrency}
-			emptyMessage={dashboard.referralVolumeTrend.emptyMessage}
-			loading={isLoading}
-		/>
-
-		<DonutChart
-			segments={dashboard.merchantsByStatus.segments}
-			centerLabel={dashboard.merchantsByStatus.centerLabel}
-			centerValue={dashboard.merchantsByStatus.centerValue}
-			valueFormatter={(value) => String(value)}
-			emptyMessage={dashboard.merchantsByStatus.emptyMessage}
-			loading={isLoading}
-		/>
 	</div>
 </div>

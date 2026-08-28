@@ -157,7 +157,7 @@
 		</div>
 	{/if}
 
-	<div class="surface-card rounded-lg border pb-4 shadow-sm">
+	<div class="surface-card rounded-lg border shadow-sm">
 		<div class="flex items-center justify-between gap-2 p-4">
 			<p class="text-xs text-muted-foreground">{pagination.showingText}</p>
 		</div>
