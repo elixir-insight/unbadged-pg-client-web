@@ -7,7 +7,8 @@ import {
 	FileText,
 	// TrendingUp,
 	Users,
-	ShieldCheck
+	ShieldCheck,
+	Link
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -40,6 +41,12 @@ export const merchantNav: NavGroup[] = [
 						title: 'Transaction Details'
 					}
 				]
+			},
+			{
+				title: 'Payment Links',
+				href: '/merchant/payment-links',
+				icon: Link,
+				service: 'payin'
 			},
 			{
 				title: 'Dispute',
