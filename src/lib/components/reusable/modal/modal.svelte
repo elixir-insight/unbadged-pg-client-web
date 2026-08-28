@@ -9,9 +9,18 @@
 		trigger?: Snippet;
 		children?: Snippet;
 		footer?: Snippet;
+		contentClass?: string;
 	}
 
-	let { open = $bindable(false), title, description, trigger, children, footer }: Props = $props();
+	let {
+		open = $bindable(false),
+		title,
+		description,
+		trigger,
+		children,
+		footer,
+		contentClass
+	}: Props = $props();
 </script>
 
 <Dialog.Root bind:open>
@@ -20,7 +29,7 @@
 			{@render trigger()}
 		</Dialog.Trigger>
 	{/if}
-	<Dialog.Content>
+	<Dialog.Content class={contentClass}>
 		<Dialog.Header>
 			<Dialog.Title>{title}</Dialog.Title>
 			{#if description}

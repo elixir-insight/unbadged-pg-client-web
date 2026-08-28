@@ -47,6 +47,7 @@ export { default as ClipboardCheck } from '@lucide/svelte/icons/clipboard-check'
 export { default as Building2 } from '@lucide/svelte/icons/building-2';
 export { default as FileClock } from '@lucide/svelte/icons/file-clock';
 export { default as FileText } from '@lucide/svelte/icons/file-text';
+export { default as FolderOpen } from '@lucide/svelte/icons/folder-open';
 export { default as Settings } from '@lucide/svelte/icons/settings';
 export { default as ShieldCheck } from '@lucide/svelte/icons/shield-check';
 export { default as Pencil } from '@lucide/svelte/icons/pencil';

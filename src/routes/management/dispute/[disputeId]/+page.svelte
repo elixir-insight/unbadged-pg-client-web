@@ -1,143 +1,224 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { FileText, Landmark } from '$lib/assets/icons';
 	import {
 		Button,
 		Chip,
 		CopyButton,
 		DatePicker,
-		Dropdown,
 		Input,
 		Modal,
-		Textarea
+		Textarea,
+		toast
 	} from '$lib/components/reusable';
+	import ChangeDisputeStatusModal from '$lib/components/transactions/disputes/change-dispute-status-modal.svelte';
 	import DisputeStatusBadge from '$lib/components/transactions/disputes/dispute-status-badge.svelte';
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
-	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import {
-		DISPUTE_STATUSES,
-		getStoredDispute,
-		isDisputeStatus,
-		updateStoredDispute,
-		type DisputeStatus,
-		type StoredDispute
-	} from '$lib/utils/management-disputes';
+	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
+	import type { PageData } from './$types';
 
-	const statusOptions = DISPUTE_STATUSES.map((status) => ({ value: status, label: status }));
+	let { data }: { data: PageData } = $props();
 
-	let loaded = $state(false);
-	let dispute = $state<StoredDispute | null>(null);
-	let status = $state<DisputeStatus>('Raised');
-	let bankReferenceNumber = $state('');
+	const dispute = $derived(data.dispute);
+	let statusChangeOpen = $state(false);
+	let confirmOpen = $state(false);
+	let isUpdating = $state(false);
+	let updateError = $state('');
+
+	let bankRefNumber = $state('');
 	let evidenceDueBy = $state('');
 	let reasonCode = $state('');
-	let resolvedBy = $state('');
 	let gatewayDescription = $state('');
 	let pipelineDescription = $state('');
 	let resolutionNotes = $state('');
-	let statusChangeOpen = $state(false);
-	let pendingStatus = $state<DisputeStatus>('Raised');
+	let syncedFormKey = $state('');
 
-	function openStatusChangeModal(): void {
-		pendingStatus = status;
-		statusChangeOpen = true;
+	type DisputeFieldChange = {
+		label: string;
+		previous: string;
+		next: string;
+	};
+
+	function toIsoDate(value: string): string {
+		const trimmed = value.trim();
+		if (!trimmed) return '';
+		const iso = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+		if (iso) return iso[1];
+		const date = new Date(trimmed);
+		if (Number.isNaN(date.getTime())) return '';
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
 	}
 
-	function closeStatusChangeModal(): void {
-		statusChangeOpen = false;
-		pendingStatus = status;
+	function displayOrEmpty(value: string): string {
+		return value.trim() || 'Empty';
 	}
 
-	function updatePendingStatus(value: string): void {
-		if (isDisputeStatus(value)) pendingStatus = value;
+	function displayDateOrEmpty(value: string): string {
+		const iso = toIsoDate(value);
+		if (!iso) return 'Empty';
+		return formatDate(iso);
 	}
 
-	function confirmStatusChange(): void {
+	$effect(() => {
 		if (!dispute) return;
-		if (pendingStatus === status) {
-			closeStatusChangeModal();
-			return;
-		}
 
-		status = pendingStatus;
-		const updatedDispute: StoredDispute = {
-			...dispute,
-			status,
-			bankReferenceNumber,
-			evidenceDueBy,
-			reasonCode,
-			resolvedBy,
-			gatewayDescription,
-			pipelineDescription,
-			resolutionNotes
-		};
+		const formKey = [
+			dispute.disputeId,
+			dispute.bankRefNumber,
+			dispute.evidenceDueByRaw,
+			dispute.reasonCode,
+			dispute.gatewayDescription,
+			dispute.pipelineDescription,
+			dispute.resolutionNotes
+		].join('|');
 
-		updateStoredDispute(updatedDispute);
-		dispute = updatedDispute;
-		statusChangeOpen = false;
-		toast.success(`Status updated to ${status}`);
-	}
+		if (formKey === syncedFormKey) return;
 
-	function submitResolution(): void {
-		if (!dispute) return;
-		if (status !== 'Won' && status !== 'Lost') {
-			toast.error('Change the status to Won or Lost before submitting the resolution');
-			return;
-		}
-
-		const resolver =
-			merchantSession.session?.merchantName?.trim() || merchantSession.session?.email?.trim();
-		if (!resolver) {
-			toast.error('Could not identify the logged-in user');
-			return;
-		}
-
-		resolvedBy = resolver;
-
-		const updatedDispute: StoredDispute = {
-			...dispute,
-			status,
-			bankReferenceNumber,
-			evidenceDueBy,
-			reasonCode,
-			resolvedBy,
-			gatewayDescription,
-			pipelineDescription,
-			resolutionNotes
-		};
-
-		updateStoredDispute(updatedDispute);
-		dispute = updatedDispute;
-		toast.success(`Dispute resolved by ${resolver}`);
-	}
-
-	onMount(() => {
-		const storedDispute = getStoredDispute(page.params.disputeId ?? '');
-		if (storedDispute) {
-			dispute = storedDispute;
-			status = storedDispute.status;
-			bankReferenceNumber = storedDispute.bankReferenceNumber;
-			evidenceDueBy = storedDispute.evidenceDueBy.slice(0, 10);
-			reasonCode = storedDispute.reasonCode;
-			resolvedBy = storedDispute.resolvedBy;
-			gatewayDescription = storedDispute.gatewayDescription;
-			pipelineDescription = storedDispute.pipelineDescription;
-			resolutionNotes = storedDispute.resolutionNotes;
-		}
-		loaded = true;
+		syncedFormKey = formKey;
+		bankRefNumber = dispute.bankRefNumber;
+		evidenceDueBy = toIsoDate(dispute.evidenceDueByRaw);
+		reasonCode = dispute.reasonCode;
+		gatewayDescription = dispute.gatewayDescription;
+		pipelineDescription = dispute.pipelineDescription;
+		resolutionNotes = dispute.resolutionNotes;
 	});
+
+	const pendingChanges = $derived.by((): DisputeFieldChange[] => {
+		if (!dispute) return [];
+
+		const changes: DisputeFieldChange[] = [];
+		const currentEvidenceDueBy = toIsoDate(dispute.evidenceDueByRaw);
+
+		if (bankRefNumber !== dispute.bankRefNumber) {
+			changes.push({
+				label: 'Bank Reference Number',
+				previous: displayOrEmpty(dispute.bankRefNumber),
+				next: displayOrEmpty(bankRefNumber)
+			});
+		}
+		if (evidenceDueBy !== currentEvidenceDueBy) {
+			changes.push({
+				label: 'Evidence Due By',
+				previous: displayDateOrEmpty(currentEvidenceDueBy),
+				next: displayDateOrEmpty(evidenceDueBy)
+			});
+		}
+		if (reasonCode !== dispute.reasonCode) {
+			changes.push({
+				label: 'Reason Code',
+				previous: displayOrEmpty(dispute.reasonCode),
+				next: displayOrEmpty(reasonCode)
+			});
+		}
+		if (gatewayDescription !== dispute.gatewayDescription) {
+			changes.push({
+				label: 'Gateway description',
+				previous: displayOrEmpty(dispute.gatewayDescription),
+				next: displayOrEmpty(gatewayDescription)
+			});
+		}
+		if (pipelineDescription !== dispute.pipelineDescription) {
+			changes.push({
+				label: 'Pipeline description',
+				previous: displayOrEmpty(dispute.pipelineDescription),
+				next: displayOrEmpty(pipelineDescription)
+			});
+		}
+		if (resolutionNotes !== dispute.resolutionNotes) {
+			changes.push({
+				label: 'Resolution notes',
+				previous: displayOrEmpty(dispute.resolutionNotes),
+				next: displayOrEmpty(resolutionNotes)
+			});
+		}
+
+		return changes;
+	});
+
+	const hasChanges = $derived(pendingChanges.length > 0);
+
+	function openConfirmModal(): void {
+		updateError = '';
+		if (!hasChanges) return;
+		confirmOpen = true;
+	}
+
+	function closeConfirmModal(): void {
+		if (isUpdating) return;
+		confirmOpen = false;
+	}
+
+	async function confirmUpdate(): Promise<void> {
+		if (!dispute || !hasChanges) return;
+
+		updateError = '';
+		isUpdating = true;
+		try {
+			const payload: {
+				bankRefNumber?: string;
+				evidenceDueBy?: string;
+				gatewayDescription?: string;
+				pipelineDescription?: string;
+				reasonCode?: string;
+				resolutionNotes?: string;
+			} = {};
+
+			if (bankRefNumber !== dispute.bankRefNumber) payload.bankRefNumber = bankRefNumber;
+			if (evidenceDueBy !== toIsoDate(dispute.evidenceDueByRaw)) {
+				payload.evidenceDueBy = formatEvidenceDueByForApi(evidenceDueBy);
+			}
+			if (reasonCode !== dispute.reasonCode) payload.reasonCode = reasonCode;
+			if (gatewayDescription !== dispute.gatewayDescription) {
+				payload.gatewayDescription = gatewayDescription;
+			}
+			if (pipelineDescription !== dispute.pipelineDescription) {
+				payload.pipelineDescription = pipelineDescription;
+			}
+			if (resolutionNotes !== dispute.resolutionNotes) {
+				payload.resolutionNotes = resolutionNotes;
+			}
+
+			const response = await fetch(
+				resolve('/api/management/organizations/[orgId]/disputes/[disputeId]', {
+					orgId: data.orgId,
+					disputeId: dispute.disputeId
+				}),
+				{
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				}
+			);
+
+			const body: { message?: string } = await response.json().catch(() => ({}));
+			if (!response.ok) {
+				throw new Error(body.message ?? 'Could not update dispute');
+			}
+
+			toast.success(body.message ?? 'Dispute updated successfully.');
+			confirmOpen = false;
+			await invalidate('management-disputes:detail');
+		} catch (error) {
+			updateError = error instanceof Error ? error.message : 'Could not update dispute';
+			toast.error('Could not update dispute', { description: updateError });
+		} finally {
+			isUpdating = false;
+		}
+	}
 </script>
 
 {#snippet copyableValue(label: string, value: string)}
-	<div class="flex items-center gap-2">
-		<span class="font-medium text-foreground">{value}</span>
-		<CopyButton {value} label="Copy {label}" />
+	<div class="flex items-center justify-end gap-2 sm:justify-start">
+		<span class="text-sm font-medium text-foreground">{value}</span>
+		{#if value !== '—'}
+			<CopyButton {value} label="Copy {label}" />
+		{/if}
 	</div>
 {/snippet}
 
@@ -148,26 +229,53 @@
 	</div>
 {/snippet}
 
-{#if loaded && !dispute}
+{#snippet detailCard(
+	id: string,
+	label: string,
+	value: string,
+	onValueChange: (next: string) => void,
+	placeholder: string
+)}
+	<div class="rounded-lg border border-border bg-background p-5">
+		<label for={id} class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+			{label}
+		</label>
+		<Textarea
+			{id}
+			{value}
+			{placeholder}
+			rows={3}
+			class="mt-2 field-sizing-fixed min-h-0 resize-none overflow-y-auto border-0 bg-transparent p-0 text-sm leading-6 text-foreground shadow-none outline-none focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
+			oninput={(event) => {
+				const target = event.currentTarget;
+				if (target instanceof HTMLTextAreaElement) onValueChange(target.value);
+			}}
+		/>
+	</div>
+{/snippet}
+
+{#if !dispute}
 	<div class="rounded-xl border border-border bg-background p-8 text-center shadow-sm">
 		<p class="text-sm font-medium text-foreground">Dispute not found</p>
 		<p class="mt-1 text-xs text-muted-foreground">
-			This dispute is not available in browser storage.
+			{data.disputeError ?? 'This dispute is not available.'}
 		</p>
-		<Button variant="outline" class="mt-4" onclick={() => goto(resolve('/management/dispute'))}>
-			Back to disputes
-		</Button>
 	</div>
-{:else if dispute}
-	<section class="flex flex-col gap-5">
-		<div class="flex flex-wrap items-center gap-3">
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
-			<DisputeStatusBadge status={dispute.status} class="uppercase" />
+{:else}
+	<div class="flex flex-col gap-5">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div class="flex flex-wrap items-center gap-3">
+				<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
+				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
+			</div>
+			<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
+				Update dispute
+			</Button>
 		</div>
 
-		<div class="grid items-stretch gap-5 xl:grid-cols-3">
+		<div class="grid items-start gap-5 xl:grid-cols-3">
 			<div class="flex flex-col gap-5 xl:col-span-2">
-				<section class="rounded-xl border border-border bg-background p-6 shadow-sm">
+				<div class="rounded-xl border border-border bg-background p-6 shadow-sm">
 					<div class="flex items-center gap-3">
 						<span
 							class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"
@@ -177,8 +285,8 @@
 						<h2 class="text-base font-semibold text-foreground">Dispute Information</h2>
 					</div>
 
-					<div class="mt-6 grid gap-8 lg:grid-cols-2 lg:divide-x lg:divide-border">
-						<dl class="flex flex-col gap-5 lg:pr-8">
+					<div class="mt-6 grid min-w-0 gap-8 lg:grid-cols-2 lg:divide-x lg:divide-border">
+						<div class="flex min-w-0 flex-col gap-5 lg:pr-8">
 							<div class="grid grid-cols-2 items-center gap-6">
 								<p class="text-sm text-muted-foreground">Dispute ID</p>
 								<p>{@render copyableValue('Dispute ID', dispute.disputeId)}</p>
@@ -191,66 +299,51 @@
 								<p class="text-sm text-muted-foreground">Transaction ID</p>
 								<p>{@render copyableValue('Transaction ID', dispute.transactionId)}</p>
 							</div>
+							{@render detailRow('Pipeline', dispute.pipelineCode)}
 							{@render detailRow('Organization', dispute.organization)}
 							<div class="grid grid-cols-2 items-center gap-6">
 								<p class="text-sm text-muted-foreground">Amount</p>
-								<p>
-									{`${dispute.amount.replace('₹', '').trim()} ${dispute.currency}`}
-								</p>
+								<p class="text-sm font-medium text-foreground">{dispute.amount}</p>
 							</div>
+							{@render detailRow('Raised on', dispute.raisedOn)}
 							<div class="grid grid-cols-2 items-center gap-6">
 								<p class="text-sm text-muted-foreground">Source</p>
-								<p><Chip variant="secondary">{dispute.source}</Chip></p>
+								<p>
+									<Chip variant="secondary">{dispute.sourceLabel}</Chip>
+								</p>
 							</div>
-						</dl>
+						</div>
 
-						<div class="flex flex-col gap-4 lg:pl-8">
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<span class="text-sm font-medium text-foreground">Status</span>
-								<div class="flex flex-wrap items-center gap-3">
-									<DisputeStatusBadge {status} class="uppercase" />
-									<Button variant="ghost" size="sm" onclick={openStatusChangeModal}>
-										Change Status
-									</Button>
-								</div>
-							</div>
-
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<label for="bank-reference" class="text-sm font-medium text-foreground">
+						<div class="flex min-w-0 flex-col gap-5 lg:pl-8">
+							<div class="grid grid-cols-2 items-center gap-6">
+								<label for="bank-reference-number" class="text-sm font-medium text-foreground">
 									Bank Reference Number
 								</label>
-								<Input id="bank-reference" bind:value={bankReferenceNumber} />
+								<Input
+									id="bank-reference-number"
+									bind:value={bankRefNumber}
+									placeholder="Enter bank reference number"
+								/>
 							</div>
 
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<label for="evidence-due" class="text-sm font-medium text-foreground">
-									Evidence Due By
-								</label>
-								<DatePicker bind:value={evidenceDueBy} />
+							<div class="grid grid-cols-2 items-center gap-6">
+								<p class="text-sm font-medium text-foreground">Evidence Due By</p>
+								<DatePicker bind:value={evidenceDueBy} placeholder="Select a date" />
 							</div>
-
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+							{@render detailRow('Assigned to', dispute.assignedTo)}
+							{@render detailRow('Raised by', dispute.raisedBy)}
+							<div class="grid grid-cols-2 items-center gap-6">
 								<label for="reason-code" class="text-sm font-medium text-foreground">
 									Reason Code
 								</label>
 								<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
 							</div>
-
-							<div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-								<span class="text-sm font-medium text-foreground">Resolved By</span>
-								<p
-									class={resolvedBy
-										? 'text-sm font-medium text-foreground'
-										: 'text-sm text-muted-foreground'}
-								>
-									{resolvedBy || '—'}
-								</p>
-							</div>
+							{@render detailRow('Resolved by', dispute.resolvedBy)}
 						</div>
 					</div>
-				</section>
+				</div>
 
-				<section class="rounded-xl border border-border bg-background p-6 shadow-sm">
+				<div class="rounded-xl border border-border bg-background p-6 shadow-sm">
 					<div class="flex items-center gap-3">
 						<span
 							class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"
@@ -260,98 +353,106 @@
 						<h2 class="text-base font-semibold text-foreground">Dispute Details</h2>
 					</div>
 
-					<div class="mt-6 flex flex-col gap-4">
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="gateway-description"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-							>
-								Gateway Description
-							</label>
-							<Textarea
-								id="gateway-description"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Describe the gateway dispute details..."
-								bind:value={gatewayDescription}
-							/>
-						</div>
-
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="pipeline-description"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-							>
-								Pipeline Description
-							</label>
-							<Textarea
-								id="pipeline-description"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Describe the pipeline dispute details..."
-								bind:value={pipelineDescription}
-							/>
-						</div>
-
-						<div
-							class="rounded-xl border border-input bg-background p-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
-						>
-							<label
-								for="resolution-notes"
-								class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-							>
-								Resolution Notes
-							</label>
-							<Textarea
-								id="resolution-notes"
-								class="mt-1 min-h-16 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0"
-								placeholder="Add internal resolution notes, evidence summary and next steps..."
-								bind:value={resolutionNotes}
-							/>
-						</div>
+					<div class="mt-6 flex flex-col gap-3">
+						{@render detailCard(
+							'gateway-description',
+							'Gateway description',
+							gatewayDescription,
+							(value) => (gatewayDescription = value),
+							'Enter gateway description'
+						)}
+						{@render detailCard(
+							'pipeline-description',
+							'Pipeline description',
+							pipelineDescription,
+							(value) => (pipelineDescription = value),
+							'Enter pipeline description'
+						)}
+						{@render detailCard(
+							'resolution-notes',
+							'Resolution notes',
+							resolutionNotes,
+							(value) => (resolutionNotes = value),
+							'Enter resolution notes'
+						)}
 					</div>
-				</section>
-			</div>
-
-			<aside class="flex flex-col gap-5 xl:sticky xl:top-4">
-				<DisputeStatusOverview {status} {evidenceDueBy} />
-				<DisputeTimeline {status} {evidenceDueBy} raisedOn={dispute.raisedOn} />
-			</aside>
-		</div>
-
-		<DisputeSupportingDocuments />
-
-		<div class="flex justify-end border-t border-border pt-5">
-			<Button size="lg" onclick={submitResolution}>Submit Resolution</Button>
-		</div>
-
-		<Modal
-			bind:open={statusChangeOpen}
-			title="Change Status"
-			description="Confirm the new dispute status before applying this change."
-		>
-			<div class="flex flex-col gap-3">
-				<p class="text-sm text-muted-foreground">
-					Current status: <span class="font-medium text-foreground">{status}</span>
-				</p>
-				<div class="flex flex-col gap-2">
-					<span class="text-sm font-medium text-foreground">New status</span>
-					<Dropdown
-						name="pending-dispute-status"
-						ariaLabel="New status"
-						value={pendingStatus}
-						options={statusOptions}
-						onValueChange={updatePendingStatus}
-					/>
 				</div>
 			</div>
 
-			{#snippet footer()}
-				<Button variant="outline" onclick={closeStatusChangeModal}>Cancel</Button>
-				<Button onclick={confirmStatusChange}>Confirm change</Button>
-			{/snippet}
-		</Modal>
-	</section>
+			<div class="flex min-h-0 flex-col gap-5 overflow-hidden xl:h-0 xl:min-h-full xl:self-stretch">
+				<div class="shrink-0">
+					<DisputeStatusOverview
+						status={dispute.status}
+						catalog={data.statusOptions}
+						evidenceDueBy={dispute.evidenceDueByRaw}
+						changeDisabled={data.statusOptions.length === 0}
+						onChangeStatus={() => (statusChangeOpen = true)}
+					/>
+				</div>
+				<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<DisputeTimeline events={data.events} eventsError={data.eventsError} />
+				</div>
+			</div>
+		</div>
+
+		<DisputeSupportingDocuments
+			mode="management"
+			orgId={data.orgId}
+			disputeId={dispute.disputeId}
+			documents={data.documents}
+			documentsError={data.documentsError}
+		/>
+	</div>
+	<ChangeDisputeStatusModal
+		bind:open={statusChangeOpen}
+		orgId={data.orgId}
+		disputeId={dispute.disputeId}
+		currentStatus={dispute.status}
+		currentStatusLabel={dispute.statusLabel}
+		statuses={data.statusOptions}
+	/>
+	<Modal
+		bind:open={confirmOpen}
+		title="Update dispute"
+		description="Confirm the updated changes before they are applied."
+	>
+		<div class="flex flex-col gap-4">
+			{#each pendingChanges as change (change.label)}
+				<div class="flex flex-col gap-1">
+					<p class="text-sm font-medium text-foreground">{change.label}</p>
+					<p class="text-sm whitespace-pre-wrap text-muted-foreground">
+						{change.previous}
+						<span class="text-foreground"> → </span>
+						<span class="font-medium text-foreground">{change.next}</span>
+					</p>
+				</div>
+			{/each}
+			{#if updateError}
+				<p class="text-xs text-destructive">{updateError}</p>
+			{/if}
+		</div>
+
+		{#snippet footer()}
+			<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<Button
+					variant="outline"
+					class="w-full sm:w-auto"
+					disabled={isUpdating}
+					onclick={closeConfirmModal}
+				>
+					Cancel
+				</Button>
+				<Button class="w-full sm:w-auto" disabled={isUpdating} onclick={confirmUpdate}>
+					{#if isUpdating}
+						<span
+							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></span>
+						Updating…
+					{:else}
+						Confirm update
+					{/if}
+				</Button>
+			</div>
+		{/snippet}
+	</Modal>
 {/if}
