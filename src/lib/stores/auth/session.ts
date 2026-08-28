@@ -1,4 +1,5 @@
 import type { CognitoIdToken, GatewayTokenPayload, MerchantSession } from './types';
+import { collectPortalGroups } from './portal';
 
 const MOCK_SERVICE_PERMISSIONS = { payin: true, payout: true } as const;
 
@@ -40,7 +41,8 @@ export function resolveMerchantDisplayName(
 
 /**
  * Live path — identity and merchant services from the gateway token,
- * portal groups from the Cognito access token.
+ * portal groups from Cognito access groups plus the gateway `group` claim
+ * (so PLATFORM orgs can reach the Partner portal).
  */
 export function parseMerchantSessionFromGateway(
 	token: GatewayTokenPayload,
@@ -62,6 +64,6 @@ export function parseMerchantSessionFromGateway(
 			payin: serviceTypes.has('PAYIN'),
 			payout: serviceTypes.has('PAYOUT')
 		},
-		groups: accessGroups
+		groups: collectPortalGroups(accessGroups, token.group)
 	};
 }

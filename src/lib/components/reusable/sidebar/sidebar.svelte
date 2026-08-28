@@ -40,7 +40,8 @@
 
 	const settingsHrefs: Partial<Record<AppId, string>> = {
 		management: '/management/settings',
-		merchant: '/merchant/settings'
+		merchant: '/merchant/settings',
+		partner: '/partner/settings'
 	};
 
 	const profileProps = $derived(
@@ -49,15 +50,17 @@
 					userName: merchantSession.session.merchantName,
 					userRole: formatUserType(merchantSession.session.userType ?? ''),
 					userInitials: getUserInitials(merchantSession.session.merchantName),
-					confirmLogout: app === 'management' || app === 'merchant',
-					...(app === 'merchant' || app === 'management'
+					confirmLogout: app === 'management' || app === 'merchant' || app === 'partner',
+					...(app === 'merchant' || app === 'management' || app === 'partner'
 						? { vanNumber: merchantSession.session.displayOrgId }
 						: {}),
 					...(settingsHrefs[app] ? { settingsHref: settingsHrefs[app] } : {})
 				}
 			: app === 'management'
 				? { settingsHref: '/management/settings' }
-				: {}
+				: app === 'partner'
+					? { settingsHref: '/partner/settings' }
+					: {}
 	);
 
 	const rootRoutes: Record<AppId, string> = {

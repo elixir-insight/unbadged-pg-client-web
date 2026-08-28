@@ -1,7 +1,7 @@
 export type MerchantService = 'payin' | 'payout';
 export type GatewayServiceType = 'PAYIN' | 'PAYOUT';
 
-/**  Portal apps driven by access-token cognito:groups. Payin/payout are separate. */
+/** Portal apps from Cognito groups + gateway `group` (PLATFORM → Partner). Payin/payout are separate. */
 export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
 
 export type PortalHomePath = '/merchant' | '/partner' | '/management';
