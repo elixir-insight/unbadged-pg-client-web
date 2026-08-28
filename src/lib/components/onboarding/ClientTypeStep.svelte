@@ -3,7 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { cn } from '$lib/utils';
 
-	type ClientType = 'Merchant' | 'Partner' | 'Platform';
+	type ClientType = 'Merchant' | 'Partner';
 
 	const clientTypes: {
 		value: ClientType;
@@ -21,13 +21,6 @@
 			value: 'Partner',
 			title: 'Partner',
 			description: 'Refer clients, integrate our solutions, or grow your business alongside us.',
-			image: '/images/handShaking.png'
-		},
-		{
-			value: 'Platform',
-			title: 'Platform',
-			description:
-				'Operate as a platform and complete the same KYB, documents, and activation steps as a partner.',
 			image: '/images/handShaking.png'
 		}
 	];
@@ -58,7 +51,7 @@
 	<div class="relative flex flex-col items-center">
 		<h2 class="text-center font-bold tracking-tight">What category would you like to choose?</h2>
 
-		<div class="mt-10 grid w-full max-w-5xl grid-cols-1 gap-5 sm:grid-cols-3">
+		<div class="mt-10 grid w-full max-w-2xl grid-cols-1 gap-5 sm:grid-cols-2">
 			{#each clientTypes as type (type.value)}
 				{@const isSelected = selectedCategory === type.value}
 				<button

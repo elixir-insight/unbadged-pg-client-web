@@ -1,23 +1,25 @@
 <script lang="ts">
 	import { ActivityIcon, Clock } from '$lib/assets/icons';
-	import type { DisputeStatus } from '$lib/utils/management-disputes';
+	import { Button } from '$lib/components/reusable';
+	import { disputeCurrentStage, type DisputeStatusOption } from '$lib/utils/dispute-status';
 
 	interface Props {
-		status: DisputeStatus;
+		status: string;
+		catalog?: DisputeStatusOption[];
 		evidenceDueBy: string;
+		changeDisabled?: boolean;
+		onChangeStatus?: () => void;
 	}
 
-	let { status, evidenceDueBy }: Props = $props();
+	let {
+		status,
+		catalog = [],
+		evidenceDueBy,
+		changeDisabled = false,
+		onChangeStatus
+	}: Props = $props();
 
-	const currentStage = $derived(
-		status === 'Raised'
-			? 'Dispute Raised'
-			: status === 'Open'
-				? 'Evidence Collection'
-				: status === 'Under review'
-					? 'Network Review'
-					: 'Resolved'
-	);
+	const currentStage = $derived(disputeCurrentStage(status, catalog));
 
 	const evidenceDueDate = $derived.by(() => {
 		const date = new Date(evidenceDueBy);
@@ -52,12 +54,23 @@
 		<h2 class="text-base font-semibold text-foreground">Status Overview</h2>
 	</div>
 
-	<div class="mt-4 flex flex-col gap-8">
-		<div>
-			<p class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-				Current stage
-			</p>
-			<p class="mt-1 text-base font-semibold text-primary">{currentStage}</p>
+	<div class="mt-4 flex flex-col gap-4">
+		<div class="flex items-start justify-between gap-3">
+			<div class="min-w-0">
+				<p class="text-xs font-medium tracking-wider text-muted-foreground uppercase">Status</p>
+				<p class="mt-1 text-base font-semibold wrap-break-word text-primary">{currentStage}</p>
+			</div>
+			{#if onChangeStatus}
+				<Button
+					variant="destructive"
+					size="sm"
+					class="h-auto shrink-0 px-2 py-1"
+					onclick={onChangeStatus}
+					disabled={changeDisabled}
+				>
+					Change Status
+				</Button>
+			{/if}
 		</div>
 
 		<div>

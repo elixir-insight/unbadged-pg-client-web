@@ -27,7 +27,11 @@
 		required,
 		ariaLabel,
 		bordered = false,
-		search = false
+		search = false,
+		expand = false,
+		side = 'bottom' as 'top' | 'bottom' | 'left' | 'right',
+		avoidCollisions = true,
+		contentClass
 	}: {
 		value?: string;
 		options?: (DropdownOption | DropdownGroup)[];
@@ -41,6 +45,10 @@
 		ariaLabel?: string;
 		bordered?: boolean;
 		search?: boolean;
+		expand?: boolean;
+		side?: 'top' | 'bottom' | 'left' | 'right';
+		avoidCollisions?: boolean;
+		contentClass?: string;
 	} = $props();
 
 	function isGroup(opt: DropdownOption | DropdownGroup): opt is DropdownGroup {
@@ -80,9 +88,11 @@
 	function onOpenChange(isOpen: boolean) {
 		if (!isOpen) query = '';
 	}
+
+	const useFloatingList = $derived(search || expand);
 </script>
 
-{#if search}
+{#if useFloatingList}
 	<PopoverPrimitive.Root bind:open {onOpenChange}>
 		<PopoverTrigger
 			{disabled}
@@ -111,22 +121,24 @@
 
 		<PopoverContent
 			align="start"
+			{side}
+			{avoidCollisions}
 			sideOffset={4}
-			class="w-max max-w-80 min-w-(--bits-popover-anchor-width) p-0"
+			class={cn('w-max max-w-80 min-w-(--bits-popover-anchor-width) p-0', contentClass)}
 		>
-			<!-- Search input -->
-			<div class="flex items-center gap-2 border-b border-border px-2.5 py-2">
-				<Search class="size-3.5 shrink-0 text-muted-foreground" />
-				<input
-					type="text"
-					bind:value={query}
-					placeholder="Search"
-					class="w-full bg-transparent text-left text-sm outline-none placeholder:text-muted-foreground"
-				/>
-			</div>
+			{#if search}
+				<div class="flex items-center gap-2 border-b border-border px-2.5 py-2">
+					<Search class="size-3.5 shrink-0 text-muted-foreground" />
+					<input
+						type="text"
+						bind:value={query}
+						placeholder="Search"
+						class="w-full bg-transparent text-left text-sm outline-none placeholder:text-muted-foreground"
+					/>
+				</div>
+			{/if}
 
-			<!-- Filtered options -->
-			<div class="max-h-60 scroll-py-1 overflow-y-auto py-1">
+			<div class={cn('py-1', search && 'max-h-60 scroll-py-1 overflow-y-auto')}>
 				{#if filtered.length === 0}
 					<p class="px-3 py-4 text-left text-sm text-muted-foreground">No results found.</p>
 				{:else}
@@ -200,7 +212,7 @@
 				{selectedLabel || placeholder}
 			</span>
 		</SelectTrigger>
-		<SelectContent>
+		<SelectContent {side} {avoidCollisions} class={contentClass}>
 			{#each options as opt, i (isGroup(opt) ? `g:${opt.group}` : `f:${(opt as DropdownOption).value}`)}
 				{#if isGroup(opt)}
 					{#if i > 0}

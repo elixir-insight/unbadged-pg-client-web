@@ -1,25 +1,21 @@
 <script lang="ts">
 	import { Chip } from '$lib/components/reusable';
-	import type { DisputeStatus } from '$lib/utils/management-disputes';
+	import {
+		disputeStatusChipVariant,
+		disputeStatusLabel,
+		type DisputeStatusOption
+	} from '$lib/utils/dispute-status';
 
 	interface Props {
-		status: DisputeStatus;
+		status: string;
+		catalog?: DisputeStatusOption[];
 		class?: string;
 	}
 
-	let { status, class: className }: Props = $props();
+	let { status, catalog = [], class: className }: Props = $props();
 
-	const variant = $derived(
-		(
-			{
-				Raised: 'warning',
-				Open: 'info',
-				'Under review': 'alert',
-				Won: 'success',
-				Lost: 'error'
-			} satisfies Record<DisputeStatus, 'warning' | 'info' | 'alert' | 'success' | 'error'>
-		)[status]
-	);
+	const variant = $derived(disputeStatusChipVariant(status));
+	const label = $derived(disputeStatusLabel(status, catalog));
 </script>
 
-<Chip {variant} class={className}>{status}</Chip>
+<Chip {variant} class={className}>{label}</Chip>

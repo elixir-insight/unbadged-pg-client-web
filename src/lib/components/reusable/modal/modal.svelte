@@ -11,6 +11,7 @@
 		trigger?: Snippet;
 		children?: Snippet;
 		footer?: Snippet;
+		contentClass?: string;
 	}
 
 	let {
@@ -20,7 +21,8 @@
 		class: className,
 		trigger,
 		children,
-		footer
+		footer,
+		contentClass
 	}: Props = $props();
 </script>
 
@@ -31,7 +33,11 @@
 		</Dialog.Trigger>
 	{/if}
 	<Dialog.Content
-		class={cn('flex max-h-[min(90vh,calc(100dvh-2rem))] flex-col overflow-hidden', className)}
+		class={cn(
+			'flex max-h-[min(90vh,calc(100dvh-2rem))] flex-col overflow-hidden',
+			className,
+			contentClass
+		)}
 	>
 		<Dialog.Header class="shrink-0">
 			<Dialog.Title>{title}</Dialog.Title>
