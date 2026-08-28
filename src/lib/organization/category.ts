@@ -18,13 +18,6 @@ export function isPartnerStyleCategory(
 	return normalized === 'PARTNER' || normalized === 'PLATFORM';
 }
 
-/** Platform onboarding is UI-only until the live onboard APIs are wired. */
-export function isUiOnlyOnboardingCategory(
-	category: string | null | undefined
-): category is 'PLATFORM' {
-	return category?.trim().toUpperCase() === 'PLATFORM';
-}
-
 export function resolveOrganizationCategory(input: {
 	fromUrl?: string | null;
 	fromMemory?: string | null;

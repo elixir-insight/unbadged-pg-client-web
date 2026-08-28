@@ -7,6 +7,7 @@
 		DateFormatter,
 		getLocalTimeZone,
 		parseDate,
+		today,
 		type DateValue
 	} from '@internationalized/date';
 
@@ -15,6 +16,8 @@
 		placeholder?: string;
 		disabled?: boolean;
 		class?: string;
+		minValue?: DateValue;
+		maxValue?: DateValue;
 		onValueChange?: (value: string) => void;
 	}
 
@@ -23,16 +26,26 @@
 		placeholder = 'Select a date',
 		disabled = false,
 		class: className,
+		minValue,
+		maxValue,
 		onValueChange
 	}: Props = $props();
 
 	let open = $state(false);
 	let selectedDate = $state<DateValue | undefined>();
+	let calendarPlaceholder = $state<DateValue>(today(getLocalTimeZone()));
 
 	const formatter = new DateFormatter('en-IN', {
 		day: '2-digit',
 		month: '2-digit',
 		year: 'numeric'
+	});
+
+	const monthOptions = $derived.by(() => {
+		const allMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+		if (!minValue) return allMonths;
+		if (calendarPlaceholder.year > minValue.year) return allMonths;
+		return allMonths.filter((month) => month >= minValue.month);
 	});
 
 	$effect(() => {
@@ -43,7 +56,13 @@
 		}
 	});
 
+	$effect(() => {
+		if (selectedDate) calendarPlaceholder = selectedDate;
+		else if (minValue) calendarPlaceholder = minValue;
+	});
+
 	function selectDate(date: DateValue | undefined): void {
+		if (date && minValue && date.compare(minValue) < 0) return;
 		selectedDate = date;
 		value = date?.toString() ?? '';
 		onValueChange?.(value);
@@ -71,8 +90,12 @@
 		<Calendar
 			type="single"
 			value={selectedDate}
-			placeholder={selectedDate}
+			bind:placeholder={calendarPlaceholder}
 			captionLayout="dropdown"
+			{minValue}
+			{maxValue}
+			months={monthOptions}
+			disableDaysOutsideMonth
 			initialFocus
 			onValueChange={selectDate}
 		/>

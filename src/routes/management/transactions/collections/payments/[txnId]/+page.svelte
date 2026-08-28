@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/reusable';
 	import { Clock, TriangleAlert } from '$lib/assets/icons';
 	import {
@@ -13,12 +12,13 @@
 		Timeline,
 		type DetailSection
 	} from '$lib/components/transactions/collections';
+	import RaiseDisputeModal from '$lib/components/transactions/disputes/raise-dispute-modal.svelte';
+	import { paymentDisputeActionLabel } from '$lib/utils/dispute-status';
 	import {
 		getCurrentScope,
 		gotoScopedPath,
 		scopeQueryString
 	} from '$lib/utils/transaction-scope.svelte';
-	import { hasDisputeForTransaction } from '$lib/utils/management-disputes';
 	import { userPermissions } from '$lib/stores/rbac';
 	import type { PageData } from './$types';
 
@@ -29,7 +29,10 @@
 	const scope = $derived(getCurrentScope());
 	const scopeQuery = $derived(scopeQueryString(scope));
 	const payment = $derived(data.payment);
-	let disputeAlreadyRaised = $state(false);
+	const orgId = $derived(payment?.orgId || scope.orgId);
+	const disputeAlreadyRaised = $derived(Boolean(payment?.disputeId) || Boolean(data.disputeStatus));
+	const disputeActionLabel = $derived(paymentDisputeActionLabel(data.disputeStatus));
+	let raiseDisputeOpen = $state(false);
 
 	function parseAmount(value: string): number {
 		return Number(value.replace(/[₹,\s]/g, '')) || 0;
@@ -45,21 +48,20 @@
 
 	function raiseDispute(): void {
 		if (!payment || disputeAlreadyRaised) return;
-
-		const params = new URLSearchParams({
-			orderId: payment.orderId,
-			transactionId: payment.txnId,
-			amount: payment.transactionAmount,
-			raisedOn: new Date().toISOString()
-		});
-
-		goto(resolve(`/management/dispute?${params.toString()}`));
+		raiseDisputeOpen = true;
 	}
 
-	onMount(() => {
-		if (!payment) return;
-		disputeAlreadyRaised = hasDisputeForTransaction(payment.txnId);
-	});
+	function onDisputeRaised(): void {
+		const listPath = resolve('/management/dispute');
+		if (!orgId) {
+			void goto(listPath);
+			return;
+		}
+
+		const href =
+			`${listPath}?merchantId=${encodeURIComponent(orgId)}` as `${typeof listPath}?${string}`;
+		void goto(resolve(href as '/'));
+	}
 
 	const totalFees = $derived(
 		payment
@@ -191,7 +193,7 @@
 			{#if disputeAlreadyRaised}
 				<Button variant="outline" class="w-full" disabled>
 					<Clock class="size-4" />
-					Dispute in review
+					{disputeActionLabel}
 				</Button>
 			{:else if canRaiseDispute}
 				<Button variant="destructive" class="w-full" onclick={raiseDispute}>
@@ -201,4 +203,14 @@
 			{/if}
 		{/snippet}
 	</DetailPageLayout>
+
+	<RaiseDisputeModal
+		bind:open={raiseDisputeOpen}
+		{orgId}
+		orderId={payment.orderId}
+		pipelineTransactionId={payment.pipelineTransactionId}
+		amountValue={payment.amountValue}
+		amountDisplay={payment.transactionAmount}
+		onsuccess={onDisputeRaised}
+	/>
 {/if}

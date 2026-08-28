@@ -11,12 +11,6 @@ import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 import { rememberOrgCategory } from '$lib/server/domains/organization/utils/org-category-cookie';
-import {
-	createOrganization,
-	generateMockOrganizationId,
-	organizations,
-	parseOrganizationBusinessType
-} from '$lib/data/mockData';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
@@ -65,27 +59,6 @@ export const actions = {
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid organization payload'
 			});
-		}
-
-		// Platform onboarding is UI-only until the live onboard APIs are wired.
-		if (parsed.output.selectedCategory === 'Platform') {
-			const organizationId = generateMockOrganizationId();
-			organizations.push(
-				createOrganization({
-					id: organizationId,
-					name: parsed.output.orgName,
-					businessType: parseOrganizationBusinessType(parsed.output.orgBusinessType),
-					category: 'PLATFORM',
-					status: 'IN_PROGRESS',
-					kybStatus: 'Not Started',
-					createdAt: new Date().toISOString().slice(0, 10),
-					assignedAdmin: '',
-					serviceTypes: []
-				})
-			);
-			rememberOrgCategory(cookies, organizationId, 'PLATFORM');
-			log.info({ organizationId }, 'created mock platform organization');
-			redirect(303, `/management/organizations/${organizationId}/kyb?category=PLATFORM`);
 		}
 
 		const result = await createOrganizationMutation({

@@ -1,39 +1,92 @@
 <script lang="ts">
 	import { Paperclip } from '$lib/assets/icons';
+	import {
+		type DisputeDocumentType,
+		type DisputeDocumentView,
+		type DisputeDocumentsByType
+	} from '$lib/utils/dispute-documents';
 	import SupportingDocumentPanel from './supporting-document-panel.svelte';
 
 	interface Props {
 		mode?: 'management' | 'merchant';
 		readOnly?: boolean;
+		orgId?: string;
+		disputeId?: string;
+		documents?: DisputeDocumentsByType;
+		documentsError?: string | null;
 	}
 
-	let { mode = 'management', readOnly = false }: Props = $props();
+	interface DocumentGroup {
+		title: string;
+		description: string;
+		documentType: DisputeDocumentType;
+		showMerchantVisibility: boolean;
+		allowUpload: boolean;
+		documents: DisputeDocumentView[];
+	}
 
-	const managementGroups = [
+	let {
+		mode = 'management',
+		readOnly = false,
+		orgId = '',
+		disputeId = '',
+		documents,
+		documentsError = null
+	}: Props = $props();
+
+	const managementGroups = $derived<DocumentGroup[]>([
 		{
 			title: 'Merchant Proof',
 			description: 'Upload invoices, receipts, screenshots and customer proofs.',
-			showMerchantVisibility: false
+			documentType: 'MERCHANT_PROOF',
+			showMerchantVisibility: false,
+			allowUpload: true,
+			documents: documents?.merchantProof ?? []
 		},
 		{
 			title: 'Aggregator Correspondence',
 			description: 'Upload emails, letters and acknowledgements from the aggregator.',
-			showMerchantVisibility: true
+			documentType: 'AGGREGATOR_CORRESPONDENCE',
+			showMerchantVisibility: true,
+			allowUpload: true,
+			documents: documents?.aggregatorCorrespondence ?? []
 		},
 		{
 			title: 'Final Resolution Documents',
 			description: 'Upload decision letters, settlement proofs and final documents.',
-			showMerchantVisibility: true
+			documentType: 'FINAL_RESOLUTION_DOC',
+			showMerchantVisibility: true,
+			allowUpload: true,
+			documents: documents?.finalResolutionDoc ?? []
 		}
-	];
+	]);
 
-	const merchantGroups = [
+	const merchantGroups = $derived<DocumentGroup[]>([
 		{
 			title: 'Merchant Proof',
-			description: 'Upload invoices, receipts, screenshots and customer proofs.',
-			showMerchantVisibility: false
+			description: 'Invoices, receipts, screenshots and customer proofs for this dispute.',
+			documentType: 'MERCHANT_PROOF',
+			showMerchantVisibility: false,
+			allowUpload: true,
+			documents: documents?.merchantProof ?? []
+		},
+		{
+			title: 'Aggregator Correspondence',
+			description: 'Emails, letters and acknowledgements shared with you for this dispute.',
+			documentType: 'AGGREGATOR_CORRESPONDENCE',
+			showMerchantVisibility: false,
+			allowUpload: false,
+			documents: documents?.aggregatorCorrespondence ?? []
+		},
+		{
+			title: 'Final Resolution Documents',
+			description: 'Decision letters, settlement proofs and final documents shared with you.',
+			documentType: 'FINAL_RESOLUTION_DOC',
+			showMerchantVisibility: false,
+			allowUpload: false,
+			documents: documents?.finalResolutionDoc ?? []
 		}
-	];
+	]);
 
 	const documentGroups = $derived(mode === 'merchant' ? merchantGroups : managementGroups);
 </script>
@@ -43,16 +96,34 @@
 		<span class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
 			<Paperclip class="size-5" />
 		</span>
-		<h2 class="text-base font-semibold text-foreground">Supporting Documents</h2>
+		<div>
+			<h2 class="text-base font-semibold text-foreground">Supporting Documents</h2>
+			{#if mode === 'management'}
+				<p class="mt-0.5 text-sm text-muted-foreground">
+					Each file includes its own review status and review note.
+				</p>
+			{/if}
+		</div>
 	</div>
 
-	<div class={mode === 'merchant' ? 'mt-6 grid gap-4' : 'mt-6 grid gap-4 lg:grid-cols-3'}>
-		{#each documentGroups as group (group.title)}
+	{#if documentsError}
+		<p class="mt-4 text-sm text-destructive">{documentsError}</p>
+	{/if}
+
+	<div class="mt-6 grid gap-4 lg:grid-cols-3">
+		{#each documentGroups as group (group.documentType)}
 			<SupportingDocumentPanel
 				title={group.title}
 				description={group.description}
+				documentType={group.documentType}
+				{mode}
+				{orgId}
+				{disputeId}
+				initialDocuments={group.documents}
 				showMerchantVisibility={group.showMerchantVisibility}
 				{readOnly}
+				reviewEditable={mode === 'management'}
+				allowUpload={group.allowUpload}
 			/>
 		{/each}
 	</div>

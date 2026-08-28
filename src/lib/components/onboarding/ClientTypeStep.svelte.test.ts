@@ -12,17 +12,12 @@ const clientTypes = [
 		value: 'Partner',
 		title: 'Partner',
 		image: '/images/handShaking.png'
-	},
-	{
-		value: 'Platform',
-		title: 'Platform',
-		image: '/images/handShaking.png'
 	}
 ] as const;
 
 async function renderStep(
 	overrides: {
-		selectedCategory?: 'Merchant' | 'Partner' | 'Platform' | null;
+		selectedCategory?: 'Merchant' | 'Partner' | null;
 		onNext?: () => void;
 	} = {}
 ) {
@@ -46,6 +41,8 @@ describe('ClientTypeStep', () => {
 		for (const type of clientTypes) {
 			await expect.element(screen.getByText(type.title, { exact: true })).toBeVisible();
 		}
+
+		expect(screen.container.textContent).not.toContain('Platform');
 	});
 
 	it('renders category images from static assets', async () => {

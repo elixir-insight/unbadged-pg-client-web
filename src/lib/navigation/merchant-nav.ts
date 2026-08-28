@@ -5,9 +5,10 @@ import {
 	MessageSquareWarning,
 	Landmark,
 	FileText,
-	TrendingUp,
+	// TrendingUp,
 	Users,
-	ShieldCheck
+	ShieldCheck,
+	Link
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -46,6 +47,12 @@ export const merchantNav: NavGroup[] = [
 				]
 			},
 			{
+				title: 'Payment Links',
+				href: '/merchant/payment-links',
+				icon: Link,
+				service: 'payin'
+			},
+			{
 				title: 'Dispute',
 				href: '/merchant/dispute',
 				icon: MessageSquareWarning,
@@ -71,17 +78,18 @@ export const merchantNav: NavGroup[] = [
 	{
 		title: 'Analytics',
 		items: [
-			{
-				title: 'Transaction Insights',
-				href: '/merchant/transaction-insights',
-				icon: TrendingUp,
-				breadcrumbChildren: [
-					{
-						matcher: /^\/merchant\/transaction-insights\/[^/]+$/,
-						title: 'Merchant Calendar'
-					}
-				]
-			},
+			// Transaction Insights omitted from nav for now
+			// {
+			// 	title: 'Transaction Insights',
+			// 	href: '/merchant/transaction-insights',
+			// 	icon: TrendingUp,
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/merchant\/transaction-insights\/[^/]+$/,
+			// 			title: 'Merchant Calendar'
+			// 		}
+			// 	]
+			// },
 			{
 				title: 'Reports',
 				href: '/merchant/reports',

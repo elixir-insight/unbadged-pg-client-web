@@ -8,11 +8,6 @@ import {
 	updateBankAccountMutation
 } from '$lib/server/domains/organization/mutations/bank-account';
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
-import {
-	applyMockBankAccount,
-	ensureUiOnlyMockOrganization,
-	isUiOnlyMockOrganization
-} from '$lib/server/domains/organization/utils/mock-platform-onboarding';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-bank-accounts');
@@ -53,16 +48,6 @@ export const actions = {
 			});
 		}
 
-		if (isUiOnlyMockOrganization(orgId, cookies)) {
-			const accountId = applyMockBankAccount(ensureUiOnlyMockOrganization(orgId), parsed.output);
-			log.info({ orgId, accountId }, 'mocked platform bank account create');
-			return {
-				success: true,
-				message: 'Bank account added successfully',
-				accountId
-			};
-		}
-
 		const result = await addBankAccountMutation({
 			fetch,
 			log,
@@ -100,15 +85,6 @@ export const actions = {
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid bank account payload'
 			});
-		}
-
-		if (isUiOnlyMockOrganization(orgId, cookies)) {
-			applyMockBankAccount(ensureUiOnlyMockOrganization(orgId), parsed.output, accountId);
-			log.info({ orgId, accountId }, 'mocked platform bank account update');
-			return {
-				success: true,
-				message: 'Bank account updated successfully'
-			};
 		}
 
 		const result = await updateBankAccountMutation({
