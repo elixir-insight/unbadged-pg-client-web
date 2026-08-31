@@ -6,14 +6,11 @@
 	import {
 		Chip,
 		Button,
-		DateRangePicker,
 		Dropdown,
 		FilterCards,
 		SearchField,
 		createUrlPagination
 	} from '$lib/components/reusable';
-	import type { DateRange } from 'bits-ui';
-	import { getLocalTimeZone } from '@internationalized/date';
 	import type { ReferralMerchant, ReferralStatus } from './types';
 	import {
 		formatReferralBusinessType,
@@ -23,8 +20,6 @@
 	import { Download, RefreshCw, X } from '$lib/assets/icons';
 
 	let { data } = $props();
-
-	const DAY_MS = 86_400_000;
 
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
@@ -87,29 +82,12 @@
 		rejected: 'Rejected'
 	};
 
-	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
-
-	const dateFilter = $derived.by(() => {
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			return {
-				start: dateRange.start.toDate(tz).getTime(),
-				end: dateRange.end.toDate(tz).getTime() + DAY_MS
-			};
-		}
-		return null;
-	});
-
 	const referralsError = $derived(data.referralsError);
-	const useClientPagination = $derived(Boolean(dateFilter || data.clientSideSearch));
+	const useClientPagination = $derived(data.clientSideSearch);
 
 	const pagination = createUrlPagination({
 		defaultLimit: 8,
-		total: () => {
-			if (dateFilter) return dateFilteredMerchants.length;
-			if (data.clientSideSearch) return data.referrals.merchants.length;
-			return data.pagination.total;
-		}
+		total: () => (data.clientSideSearch ? data.referrals.merchants.length : data.pagination.total)
 	});
 
 	const searchField = $derived(
@@ -142,10 +120,8 @@
 		pagination.setType(value);
 	}
 
-	function removeFilter(key: 'date' | 'status' | 'search' | 'businessType') {
-		if (key === 'date') {
-			dateRange = { start: undefined, end: undefined };
-		} else if (key === 'status') {
+	function removeFilter(key: 'status' | 'search' | 'businessType') {
+		if (key === 'status') {
 			pagination.setStatus('');
 		} else if (key === 'businessType') {
 			pagination.setType('');
@@ -155,59 +131,17 @@
 	}
 
 	function clearFilters() {
-		dateRange = { start: undefined, end: undefined };
 		pagination.clearAllFilters();
 	}
 
-	const dateFilteredMerchants = $derived.by(() => {
-		if (!dateFilter) return data.referrals.merchants;
-		return data.referrals.merchants.filter((merchant) => {
-			const ms = new Date(merchant.referredOn).getTime();
-			return ms >= dateFilter.start && ms <= dateFilter.end;
-		});
-	});
-
 	const pageRows = $derived.by(() => {
 		if (useClientPagination) {
-			const source = dateFilter ? dateFilteredMerchants : data.referrals.merchants;
-			return source.slice(pagination.skip, pagination.skip + pagination.limit);
+			return data.referrals.merchants.slice(pagination.skip, pagination.skip + pagination.limit);
 		}
 		return data.referrals.merchants;
 	});
 
-	const dateFilteredAllMerchants = $derived.by(() => {
-		if (!dateFilter) return data.referrals.allMerchants;
-		return data.referrals.allMerchants.filter((merchant) => {
-			const ms = new Date(merchant.referredOn).getTime();
-			return ms >= dateFilter.start && ms <= dateFilter.end;
-		});
-	});
-
 	const filterCards = $derived.by(() => {
-		if (dateFilter) {
-			return [
-				{ label: 'All', count: dateFilteredAllMerchants.length },
-				{
-					label: 'Active',
-					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'active').length
-				},
-				{
-					label: 'Pending',
-					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'pending').length
-				},
-				{
-					label: 'Inactive',
-					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'inactive')
-						.length
-				},
-				{
-					label: 'Rejected',
-					count: dateFilteredAllMerchants.filter((merchant) => merchant.status === 'rejected')
-						.length
-				}
-			];
-		}
-
 		const counts = data.referrals.statusCounts;
 		return [
 			{ label: 'All', count: counts.all },
@@ -220,21 +154,10 @@
 
 	const activeFilters = $derived.by(() => {
 		const filters: {
-			key: 'date' | 'status' | 'search' | 'businessType';
+			key: 'status' | 'search' | 'businessType';
 			label: string;
 			value: string;
 		}[] = [];
-
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-			filters.push({
-				key: 'date',
-				label: 'Date',
-				value: `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`
-			});
-		}
-
 		if (pagination.status) {
 			const opt = statusOptions.find((o) => o.value === pagination.status);
 			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
@@ -347,7 +270,6 @@
 	<div class="flex flex-col gap-3">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex flex-wrap items-center gap-2">
-				<DateRangePicker bind:value={dateRange} />
 				<div class="w-44">
 					<Dropdown
 						value={pagination.status || undefined}
@@ -446,7 +368,7 @@
 					<p class="text-sm font-medium text-foreground">No referrals found</p>
 					<p class="mt-1 text-sm text-muted-foreground">
 						{#if hasActiveFilters}
-							Try adjusting your search, status, business type, or date filter.
+							Try adjusting your search, status, or business type filter.
 						{:else}
 							Referred merchants will appear here once onboarding begins.
 						{/if}
