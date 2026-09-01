@@ -55,33 +55,34 @@ export function emptyPaymentLinkCounts(): PaymentLinkCounts {
 }
 
 export function mapPaymentLinkCardCounts(counts: PaymentLinkApiCounts): PaymentLinkCounts {
+	const created = counts.created ?? 0;
+	const attempted = counts.attempted ?? 0;
+	const captured = counts.captured ?? 0;
+	const cancelled = counts.cancelled ?? 0;
+	const expired = counts.expired ?? 0;
+	const suspected = counts.suspected ?? 0;
+
 	return {
-		All:
-			counts.created +
-			counts.attempted +
-			counts.captured +
-			counts.cancelled +
-			counts.expired +
-			counts.suspected,
-		Issued: counts.created,
-		Attempted: counts.attempted,
-		Paid: counts.captured,
-		Cancelled: counts.cancelled,
-		Expired: counts.expired
+		All: created + attempted + captured + cancelled + expired + suspected,
+		Issued: created,
+		Attempted: attempted,
+		Paid: captured,
+		Cancelled: cancelled,
+		Expired: expired
 	};
 }
 
 export function mapPaymentLinkListItem(item: PaymentLinkListItem): PaymentLink | null {
-	const orderId = item.orderId.trim();
+	const orderId = item.orderId?.trim() ?? '';
 	if (!orderId) return null;
 
-	const createdAt = item.createdAt.trim();
+	const createdAt = item.createdAt?.trim() ?? '';
 	const createdAtMs = createdAt ? Date.parse(createdAt) : Number.NaN;
 	const amount = parseAmountValue(item.amount);
 	const status = mapPaymentLinkStatus(item.status);
-	const expiry = item.Expiry.trim() || item.expiry.trim();
-	const customerEmail = item.customer?.email.trim() || null;
-	const customerPhone = item.customer?.phoneNumber.trim() || null;
+	const expiry = item.Expiry?.trim() || item.expiry?.trim() || '';
+	const customerEmail = item.customer?.email?.trim() || null;
+	const customerPhone = item.customer?.phoneNumber?.trim() || null;
 
 	return {
 		id: orderId,
@@ -89,15 +90,15 @@ export function mapPaymentLinkListItem(item: PaymentLinkListItem): PaymentLink |
 		createdAtMs: Number.isNaN(createdAtMs) ? 0 : createdAtMs,
 		amount,
 		amountPaid: status === 'paid' ? amount : 0,
-		paymentFor: item.description.trim() || '—',
-		paymentLinkUrl: item.paymentLink.trim(),
+		paymentFor: item.description?.trim() || '—',
+		paymentLinkUrl: item.paymentLink?.trim() ?? '',
 		status,
-		receiptNo: item.referenceId.trim() || null,
+		receiptNo: item.referenceId?.trim() || null,
 		partialPaymentEnabled: status === 'partially_paid',
 		expiresOn: expiry || null,
 		customerEmail,
 		customerPhone,
-		transactionId: item.attemptId.trim() || null,
+		transactionId: item.attemptId?.trim() || null,
 		createdBy: '—'
 	};
 }
@@ -106,7 +107,7 @@ export function mapPaymentLinkListResponse(items: PaymentLinkListItem[]): Paymen
 	return items.map(mapPaymentLinkListItem).filter((link): link is PaymentLink => link !== null);
 }
 
-function parseAmountValue(value: string): number {
-	const amount = Number(value.replace(/,/g, '').trim());
+function parseAmountValue(value: string | null | undefined): number {
+	const amount = Number((value ?? '').replace(/,/g, '').trim());
 	return Number.isFinite(amount) ? amount : 0;
 }
