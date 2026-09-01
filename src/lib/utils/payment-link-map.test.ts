@@ -4,6 +4,8 @@ import { mapCreatedPaymentLink, mapPaymentLinkStatus } from './payment-link-map'
 describe('mapPaymentLinkStatus', () => {
 	it('maps known API statuses onto payment link statuses', () => {
 		expect(mapPaymentLinkStatus('CREATED')).toBe('issued');
+		expect(mapPaymentLinkStatus('ATTEMPTED')).toBe('attempted');
+		expect(mapPaymentLinkStatus('CAPTURED')).toBe('paid');
 		expect(mapPaymentLinkStatus('paid')).toBe('paid');
 		expect(mapPaymentLinkStatus('canceled')).toBe('cancelled');
 		expect(mapPaymentLinkStatus('unknown')).toBe('issued');

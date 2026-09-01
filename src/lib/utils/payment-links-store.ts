@@ -12,7 +12,7 @@ const STORAGE_VERSION_KEY = 'pg:merchant:payment-links-seeded-v1';
 
 const TAB_STATUS_MAP: Record<Exclude<keyof PaymentLinkCounts, 'All'>, PaymentLinkStatus> = {
 	Issued: 'issued',
-	'Partially Paid': 'partially_paid',
+	Attempted: 'attempted',
 	Paid: 'paid',
 	Cancelled: 'cancelled',
 	Expired: 'expired'
@@ -106,7 +106,7 @@ export function getPaymentLinkCounts(links: PaymentLink[]): PaymentLinkCounts {
 	return {
 		All: links.length,
 		Issued: links.filter((l) => l.status === 'issued').length,
-		'Partially Paid': links.filter((l) => l.status === 'partially_paid').length,
+		Attempted: links.filter((l) => l.status === 'attempted').length,
 		Paid: links.filter((l) => l.status === 'paid').length,
 		Cancelled: links.filter((l) => l.status === 'cancelled').length,
 		Expired: links.filter((l) => l.status === 'expired').length
