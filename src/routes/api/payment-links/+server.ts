@@ -4,23 +4,11 @@ import type { RequestHandler } from './$types';
 import { createPaymentLinkMutation } from '$lib/server/domains/payment-links/mutations/create';
 import { CreatePaymentLinkClientRequestSchema } from '$lib/server/domains/payment-links/schema';
 
-function resolveOrgId(locals: App.Locals): string | null {
-	const displayOrgId = locals.merchantSession?.displayOrgId?.trim();
-	if (displayOrgId) return displayOrgId;
-	const orgId = locals.merchantSession?.organizationId?.trim();
-	return orgId || null;
-}
-
 function httpStatus(status: number): number {
 	return status >= 400 && status <= 599 ? status : 502;
 }
 
 export const POST: RequestHandler = async ({ request, cookies, locals, fetch }) => {
-	const orgId = resolveOrgId(locals);
-	if (!orgId) {
-		return json({ message: 'Organization context is missing' }, { status: 400 });
-	}
-
 	const rawBody: unknown = await request.json().catch(() => null);
 	const parsedBody = v.safeParse(CreatePaymentLinkClientRequestSchema, rawBody);
 	if (!parsedBody.success) {
@@ -31,7 +19,6 @@ export const POST: RequestHandler = async ({ request, cookies, locals, fetch }) 
 		fetch,
 		log: locals.logger,
 		cookies,
-		orgId,
 		body: parsedBody.output
 	});
 

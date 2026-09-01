@@ -51,6 +51,7 @@ const validForm = {
 	customerEmail: 'test.customer@example.com',
 	customerPhone: '9999999999',
 	allowedPaymentMethods: ['UPI'],
+	deliveryMethods: [],
 	expireOn: '2030-01-15',
 	expireAt: '14:30'
 };
@@ -65,6 +66,7 @@ describe('validateCreatePaymentLinkForm', () => {
 			customerEmail: '',
 			customerPhone: '',
 			allowedPaymentMethods: [],
+			deliveryMethods: [],
 			expireOn: '',
 			expireAt: ''
 		});
@@ -104,6 +106,42 @@ describe('validateCreatePaymentLinkForm', () => {
 			amount: 1500
 		});
 		expect(Object.keys(errors)).toHaveLength(0);
+	});
+
+	it('allows creating a payment link without a delivery method', () => {
+		const errors = validateCreatePaymentLinkForm({
+			...validForm,
+			deliveryMethods: []
+		});
+		expect(errors.deliveryMethods).toBeUndefined();
+		expect(Object.keys(errors)).toHaveLength(0);
+	});
+
+	it('accepts email, SMS, or both as delivery methods', () => {
+		expect(
+			Object.keys(
+				validateCreatePaymentLinkForm({
+					...validForm,
+					deliveryMethods: ['EMAIL']
+				})
+			)
+		).toHaveLength(0);
+		expect(
+			Object.keys(
+				validateCreatePaymentLinkForm({
+					...validForm,
+					deliveryMethods: ['SMS']
+				})
+			)
+		).toHaveLength(0);
+		expect(
+			Object.keys(
+				validateCreatePaymentLinkForm({
+					...validForm,
+					deliveryMethods: ['EMAIL', 'SMS']
+				})
+			)
+		).toHaveLength(0);
 	});
 });
 

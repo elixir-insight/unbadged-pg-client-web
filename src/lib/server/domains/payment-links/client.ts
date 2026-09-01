@@ -1,21 +1,62 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
-import { CreatePaymentLinkCreatedSchema, type CreatePaymentLinkUpstreamRequest } from './schema';
+import {
+	CreatePaymentLinkCreatedSchema,
+	PaymentLinkCountsResponseSchema,
+	PaymentLinkListResponseSchema,
+	type CreatePaymentLinkUpstreamRequest
+} from './schema';
 
-function createPath(orgId: string): string {
-	return `/api/v1/merchant/organizations/${encodeURIComponent(orgId)}/payment-links`;
-}
+const PAYMENT_LINKS_PATH = '/api/v1/merchant/organizations/payment-links';
+
+export type PaymentLinkListQuery = {
+	page?: number;
+	limit?: number;
+	orderId?: string;
+	statuses?: string;
+};
 
 export const paymentLinksClient = {
+	list: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		query: PaymentLinkListQuery = {}
+	) =>
+		apiFetch(PAYMENT_LINKS_PATH, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				page: query.page,
+				limit: query.limit,
+				orderId: query.orderId,
+				statuses: query.statuses
+			},
+			schema: PaymentLinkListResponseSchema
+		}),
+
+	getCounts: (fetchFn: typeof fetch, logger: Logger, accessToken: string, gatewayToken: string) =>
+		apiFetch(`${PAYMENT_LINKS_PATH}/counts`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			schema: PaymentLinkCountsResponseSchema
+		}),
+
 	create: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
-		orgId: string,
 		body: CreatePaymentLinkUpstreamRequest
 	) =>
-		apiFetch(createPath(orgId), {
+		apiFetch(PAYMENT_LINKS_PATH, {
 			fetch: fetchFn,
 			logger,
 			method: 'POST',
