@@ -13,19 +13,34 @@ export function isNoPayinVirtualAccountError(error: ApiError): boolean {
 	return error.kind === 'http' && error.code === NO_PAYIN_VAN_CODE;
 }
 
+export function isActiveVirtualAccountStatus(status: string | null | undefined): boolean {
+	return status?.trim().toUpperCase() === 'ACTIVE';
+}
+
+function isUsablePayinVirtualAccount(account: MerchantVirtualAccount): boolean {
+	return account.pipelineRole === 'PAYIN' && account.virtualAccountNumber.trim().length > 0;
+}
+
 export function findPayinVirtualAccount(
+	accounts: MerchantVirtualAccount[]
+): MerchantVirtualAccount | null {
+	return accounts.find(isUsablePayinVirtualAccount) ?? null;
+}
+
+/** Merchant APIs only use a PAYIN VAN when upstream status is ACTIVE. */
+export function findActivePayinVirtualAccount(
 	accounts: MerchantVirtualAccount[]
 ): MerchantVirtualAccount | null {
 	return (
 		accounts.find(
 			(account) =>
-				account.pipelineRole === 'PAYIN' && account.virtualAccountNumber.trim().length > 0
+				isUsablePayinVirtualAccount(account) && isActiveVirtualAccountStatus(account.status)
 		) ?? null
 	);
 }
 
 /**
- * Loads merchant virtual accounts and returns the PAYIN VAN number for payment APIs.
+ * Loads merchant virtual accounts and returns the ACTIVE PAYIN VAN number for payment APIs.
  */
 export async function resolvePayinVirtualAccountNumber(
 	fetchFn: typeof fetch,
@@ -39,8 +54,9 @@ export async function resolvePayinVirtualAccountNumber(
 		return result;
 	}
 
-	const payinAccount = findPayinVirtualAccount(result.data.data);
+	const payinAccount = findActivePayinVirtualAccount(result.data.data);
 	if (!payinAccount) {
+		logger.info('merchant PAYIN virtual account is not ACTIVE');
 		return {
 			ok: false,
 			error: {
@@ -51,6 +67,11 @@ export async function resolvePayinVirtualAccountNumber(
 			}
 		};
 	}
+
+	logger.info(
+		{ virtualAccountNumber: payinAccount.virtualAccountNumber, status: payinAccount.status },
+		'merchant active PAYIN virtual account'
+	);
 
 	return { ok: true, data: payinAccount.virtualAccountNumber };
 }

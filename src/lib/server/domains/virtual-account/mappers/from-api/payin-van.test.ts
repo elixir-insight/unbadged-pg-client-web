@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	findActivePayinVirtualAccount,
 	findPayinVirtualAccount,
+	isActiveVirtualAccountStatus,
 	isNoPayinVirtualAccountError,
 	NO_PAYIN_VAN_CODE,
 	NO_PAYIN_VAN_MESSAGE
@@ -97,6 +99,79 @@ describe('findPayinVirtualAccount', () => {
 				})
 			])
 		).toBeNull();
+	});
+
+	it('still returns a PAYIN account when status is not ACTIVE', () => {
+		const payin = findPayinVirtualAccount([
+			account({
+				pipelineRole: 'PAYIN',
+				virtualAccountNumber: '444',
+				status: 'INACTIVE'
+			})
+		]);
+
+		expect(payin?.virtualAccountNumber).toBe('444');
+	});
+});
+
+describe('isActiveVirtualAccountStatus', () => {
+	it('accepts ACTIVE ignoring case and surrounding whitespace', () => {
+		expect(isActiveVirtualAccountStatus('ACTIVE')).toBe(true);
+		expect(isActiveVirtualAccountStatus(' active ')).toBe(true);
+	});
+
+	it('rejects missing or non-ACTIVE statuses', () => {
+		expect(isActiveVirtualAccountStatus('')).toBe(false);
+		expect(isActiveVirtualAccountStatus(null)).toBe(false);
+		expect(isActiveVirtualAccountStatus('INACTIVE')).toBe(false);
+	});
+});
+
+describe('findActivePayinVirtualAccount', () => {
+	it('returns the ACTIVE PAYIN account', () => {
+		const payin = findActivePayinVirtualAccount([
+			account({
+				pipelineRole: 'PAYOUT',
+				virtualAccountNumber: '111',
+				status: 'ACTIVE'
+			}),
+			account({
+				pipelineRole: 'PAYIN',
+				virtualAccountNumber: 'TEST202610013919',
+				status: 'ACTIVE'
+			})
+		]);
+
+		expect(payin?.virtualAccountNumber).toBe('TEST202610013919');
+	});
+
+	it('skips PAYIN accounts that are not ACTIVE', () => {
+		expect(
+			findActivePayinVirtualAccount([
+				account({
+					pipelineRole: 'PAYIN',
+					virtualAccountNumber: '555',
+					status: 'INACTIVE'
+				})
+			])
+		).toBeNull();
+	});
+
+	it('prefers an ACTIVE PAYIN account over an earlier inactive PAYIN account', () => {
+		const payin = findActivePayinVirtualAccount([
+			account({
+				pipelineRole: 'PAYIN',
+				virtualAccountNumber: 'inactive-van',
+				status: 'INACTIVE'
+			}),
+			account({
+				pipelineRole: 'PAYIN',
+				virtualAccountNumber: 'TEST202610013919',
+				status: 'ACTIVE'
+			})
+		]);
+
+		expect(payin?.virtualAccountNumber).toBe('TEST202610013919');
 	});
 });
 
