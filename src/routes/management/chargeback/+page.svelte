@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { createRawSnippet } from 'svelte';
 	import type { ColumnDef } from '@tanstack/table-core';
-	import { Chip, Table } from '$lib/components/reusable';
+	import { Chip, Table, createUrlPagination } from '$lib/components/reusable';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
+	import type { PageData } from './$types';
 
 	const CHARGEBACK_RATIO_WARNING_THRESHOLD = 0.7;
 
@@ -17,63 +18,14 @@
 		return ratio > CHARGEBACK_RATIO_WARNING_THRESHOLD ? 'warning' : 'success';
 	}
 
-	type ChargebackRow = {
-		orgId: string;
-		overallAmount: string;
-		principalAmount: string;
-		chargebackRatio: string;
-	} & Record<string, unknown>;
+	let { data }: { data: PageData } = $props();
 
-	const rows: ChargebackRow[] = [
-		{
-			orgId: 'ORG_2bV',
-			overallAmount: '₹ 48,23,012',
-			principalAmount: '₹ 3,12,450',
-			chargebackRatio: '0.48%'
-		},
-		{
-			orgId: 'ORG_2bj',
-			overallAmount: '₹ 1,25,40,800',
-			principalAmount: '₹ 1,84,200',
-			chargebackRatio: '0.47%'
-		},
-		{
-			orgId: 'ORG_2bn',
-			overallAmount: '₹ 76,10,550',
-			principalAmount: '₹ 95,000',
-			chargebackRatio: '0.25%'
-		},
-		{
-			orgId: 'ORG_2bm',
-			overallAmount: '₹ 32,45,900',
-			principalAmount: '₹ 48,750',
-			chargebackRatio: '0.50%'
-		},
-		{
-			orgId: 'ORG_2bY',
-			overallAmount: '₹ 2,10,00,000',
-			principalAmount: '₹ 4,20,000',
-			chargebackRatio: '0.80%'
-		},
-		{
-			orgId: 'ORG_2cA',
-			overallAmount: '₹ 18,75,430',
-			principalAmount: '₹ 12,400',
-			chargebackRatio: '0.66%'
-		},
-		{
-			orgId: 'ORG_2cK',
-			overallAmount: '₹ 91,20,000',
-			principalAmount: '₹ 2,73,600',
-			chargebackRatio: '0.80%'
-		},
-		{
-			orgId: 'ORG_2dP',
-			overallAmount: '₹ 54,80,220',
-			principalAmount: '₹ 21,920',
-			chargebackRatio: '0.40%'
-		}
-	];
+	type ChargebackRow = PageData['rows'][number];
+
+	const pagination = createUrlPagination({
+		defaultLimit: 10,
+		total: () => data.pagination.total
+	});
 
 	const columns: ColumnDef<ChargebackRow>[] = [
 		{ accessorKey: 'orgId', header: 'Org ID' },
@@ -90,8 +42,6 @@
 			}
 		}
 	];
-
-	let pageNumber = $state(1);
 </script>
 
 <section class="flex flex-col gap-4">
@@ -103,13 +53,27 @@
 	</div>
 
 	<div class="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
-		<Table
-			data={rows}
-			{columns}
-			{pageNumber}
-			totalPages={1}
-			setPageNumber={(page) => (pageNumber = page)}
-			variant="borderless"
-		/>
+		{#if data.listError}
+			<div class="p-8 text-center">
+				<p class="text-sm font-medium text-foreground">Unable to load chargebacks</p>
+				<p class="mt-1 text-xs text-destructive">{data.listError}</p>
+			</div>
+		{:else if data.rows.length > 0}
+			<Table
+				data={data.rows}
+				{columns}
+				pageNumber={pagination.currentPage}
+				totalPages={pagination.pageCount}
+				setPageNumber={pagination.setPage}
+				variant="borderless"
+			/>
+		{:else}
+			<div class="p-8 text-center">
+				<p class="text-sm font-medium text-foreground">No chargebacks yet</p>
+				<p class="mt-1 text-xs text-muted-foreground">
+					Chargebacks raised from a dispute will appear here.
+				</p>
+			</div>
+		{/if}
 	</div>
 </section>

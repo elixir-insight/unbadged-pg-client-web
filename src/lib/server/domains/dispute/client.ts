@@ -1,6 +1,7 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
+	ChargebackOverviewResponseSchema,
 	CreateDisputeChargebackRequestSchema,
 	CreateDisputeChargebackResponseSchema,
 	CreateDisputeRequestSchema,
@@ -107,6 +108,27 @@ export const disputeClient = {
 				schema: DisputeEventsResponseSchema
 			}
 		),
+
+	/** GET /api/v1/management/disputes/chargebacks/overview */
+	listChargebackOverview: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		query: { limit?: number; page?: number } = {}
+	) =>
+		apiFetch('api/v1/management/disputes/chargebacks/overview', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				limit: query.limit,
+				page: query.page
+			},
+			schema: ChargebackOverviewResponseSchema
+		}),
 
 	/** GET /api/v1/management/disputes/statuses */
 	listStatuses: (
