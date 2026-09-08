@@ -12,6 +12,7 @@ import {
 	DisputeStatusesResponseSchema,
 	GetDisputeDocumentDownloadUrlResponseSchema,
 	GetDisputeDocumentsResponseSchema,
+	ListDisputeChargebacksResponseSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeDocumentResponseSchema,
 	UpdateDisputeRequestSchema,
@@ -327,6 +328,28 @@ export const disputeClient = {
 			gatewayToken,
 			body,
 			schema: CreateDisputeResponseSchema
+		}),
+
+	/** GET /api/v1/management/organizations/{orgId}/disputes/chargebacks */
+	listChargebacksByOrganization: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		query: { limit?: number; page?: number } = {}
+	) =>
+		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/chargebacks`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				limit: query.limit,
+				page: query.page
+			},
+			schema: ListDisputeChargebacksResponseSchema
 		}),
 
 	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/chargebacks */

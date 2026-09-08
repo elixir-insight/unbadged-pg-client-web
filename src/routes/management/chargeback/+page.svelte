@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createRawSnippet } from 'svelte';
 	import type { ColumnDef } from '@tanstack/table-core';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { Chip, Table, createUrlPagination } from '$lib/components/reusable';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
@@ -42,6 +44,21 @@
 			}
 		}
 	];
+
+	function openChargeback(row: ChargebackRow): void {
+		const orgId = row.orgId.trim();
+		if (!orgId || orgId === '—') return;
+		goto(resolve('/management/chargeback/[orgId]', { orgId }));
+	}
+
+	function isRowClickable(row: ChargebackRow): boolean {
+		const orgId = row.orgId.trim();
+		return Boolean(orgId) && orgId !== '—';
+	}
+
+	function getRowAriaLabel(row: ChargebackRow): string {
+		return `View chargebacks for ${row.orgId}`;
+	}
 </script>
 
 <section class="flex flex-col gap-4">
@@ -66,6 +83,9 @@
 				totalPages={pagination.pageCount}
 				setPageNumber={pagination.setPage}
 				variant="borderless"
+				onRowClick={openChargeback}
+				{isRowClickable}
+				{getRowAriaLabel}
 			/>
 		{:else}
 			<div class="p-8 text-center">

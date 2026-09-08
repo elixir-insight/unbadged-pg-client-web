@@ -352,3 +352,14 @@ export const ChargebackOverviewResponseSchema = v.object({
 
 export type ChargebackOverviewItem = v.InferOutput<typeof ChargebackOverviewItemSchema>;
 export type ChargebackOverviewResponse = v.InferOutput<typeof ChargebackOverviewResponseSchema>;
+
+export const ListDisputeChargebacksResponseSchema = v.object({
+	data: v.optional(v.array(DisputeChargebackItemSchema), []),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type ListDisputeChargebacksResponse = v.InferOutput<
+	typeof ListDisputeChargebacksResponseSchema
+>;
