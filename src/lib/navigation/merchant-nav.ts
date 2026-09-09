@@ -2,7 +2,7 @@ import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
 	ArrowLeftRight,
-	MessageSquareWarning,
+	// MessageSquareWarning,
 	Landmark,
 	FileText,
 	// TrendingUp,
@@ -52,19 +52,20 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
-			{
-				title: 'Dispute',
-				href: '/merchant/dispute',
-				icon: MessageSquareWarning,
-				service: 'payin',
-				requiredPermission: { module: 'PAYINS', action: 'read' },
-				breadcrumbChildren: [
-					{
-						matcher: /^\/merchant\/dispute\/[^/]+$/,
-						title: 'View Dispute'
-					}
-				]
-			},
+			// Dispute omitted from nav until backend API is ready
+			// {
+			// 	title: 'Dispute',
+			// 	href: '/merchant/dispute',
+			// 	icon: MessageSquareWarning,
+			// 	service: 'payin',
+			// 	requiredPermission: { module: 'PAYINS', action: 'read' },
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/merchant\/dispute\/[^/]+$/,
+			// 			title: 'View Dispute'
+			// 		}
+			// 	]
+			// },
 			{
 				title: 'Settlements',
 				href: '/merchant/settlements',

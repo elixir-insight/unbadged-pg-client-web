@@ -8,7 +8,7 @@ import {
 	// Send,
 	ArrowLeftRight,
 	// TrendingUp,
-	MessageSquareWarning,
+	// MessageSquareWarning,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -125,19 +125,20 @@ export const managementNav: NavGroup[] = [
 			// 		}
 			// 	]
 			// },
-			{
-				title: 'Disputes',
-				href: '/management/dispute',
-				icon: MessageSquareWarning,
-				service: 'payin',
-				requiredPermission: { module: 'PAYINS', action: 'read' },
-				breadcrumbChildren: [
-					{
-						matcher: /^\/management\/dispute\/[^/]+$/,
-						title: 'View Dispute'
-					}
-				]
-			},
+			// Dispute omitted from nav until backend API is ready
+			// {
+			// 	title: 'Disputes',
+			// 	href: '/management/dispute',
+			// 	icon: MessageSquareWarning,
+			// 	service: 'payin',
+			// 	requiredPermission: { module: 'PAYINS', action: 'read' },
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/management\/dispute\/[^/]+$/,
+			// 			title: 'View Dispute'
+			// 		}
+			// 	]
+			// },
 			{
 				title: 'Settlements',
 				href: '/management/settlements',
