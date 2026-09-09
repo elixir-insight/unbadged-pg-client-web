@@ -4,7 +4,7 @@ export type GatewayServiceType = 'PAYIN' | 'PAYOUT';
 /** Portal apps from Cognito groups + gateway `group` (PLATFORM → Partner). Payin/payout are separate. */
 export type PortalGroup = 'MERCHANT' | 'PARTNER' | 'MANAGEMENT';
 
-export type PortalHomePath = '/merchant' | '/partner' | '/management';
+export type PortalHomePath = '/merchant' | '/partner' | '/management' | '/self-onboarding';
 
 export interface CognitoIdToken {
 	sub: string;

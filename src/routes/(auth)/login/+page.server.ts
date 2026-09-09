@@ -4,6 +4,7 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { SignInBodySchema, VerifyMfaRequestSchema } from '$lib/server/domains/auth/schema';
 import { performSignIn, startAuthenticatedSession } from '$lib/server/domains/auth/sign-in';
+import { performResendSignUpConfirmation } from '$lib/server/domains/auth/sign-up';
 import { authClient } from '$lib/server/domains/auth/client';
 import {
 	getValidSession,
@@ -122,6 +123,21 @@ export const actions = {
 					challengeSession: result.challengeSession
 				});
 				redirect(303, '/reset-temporary-password');
+			}
+
+			if ('requiresEmailConfirmation' in result) {
+				clearMfaChallenge(cookies);
+				await performResendSignUpConfirmation({
+					fetch,
+					logger: log,
+					ip,
+					userEmail: result.userEmail
+				});
+				log.info(
+					{ ip, userEmail: result.userEmail },
+					'unconfirmed user — redirecting to confirm-signup'
+				);
+				redirect(303, `/confirm-signup?userEmail=${encodeURIComponent(result.userEmail)}`);
 			}
 
 			if ('requiresMfa' in result) {
