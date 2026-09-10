@@ -9,6 +9,12 @@ import adapter from 'amplify-adapter';
 const dirname =
 	typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
+const chromiumProvider = playwright({
+	launchOptions: {
+		args: ['--disable-dev-shm-usage']
+	}
+});
+
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
 	ssr: {
@@ -36,20 +42,24 @@ export default defineConfig({
 		expect: {
 			requireAssertions: true
 		},
+		// Vitest reads connectTimeout from the root config, not per-project.
+		browser: {
+			connectTimeout: 120000
+		},
 		projects: [
 			{
-				extends: './vite.config.ts',
+				extends: true,
 				test: {
 					name: 'client',
 					testTimeout: 60000,
+					sequence: { groupOrder: 1 },
 					browser: {
 						enabled: true,
-						provider: playwright(),
-						connectTimeout: 120000,
+						headless: true,
+						provider: chromiumProvider,
 						instances: [
 							{
-								browser: 'chromium',
-								headless: true
+								browser: 'chromium'
 							}
 						]
 					},
@@ -58,10 +68,11 @@ export default defineConfig({
 				}
 			},
 			{
-				extends: './vite.config.ts',
+				extends: true,
 				test: {
 					name: 'server',
 					environment: 'node',
+					sequence: { groupOrder: 0 },
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
@@ -79,11 +90,12 @@ export default defineConfig({
 					name: 'storybook',
 					testTimeout: 60000,
 					fileParallelism: false,
+					isolate: false,
+					sequence: { groupOrder: 2 },
 					browser: {
 						enabled: true,
 						headless: true,
-						provider: playwright({}),
-						connectTimeout: 120000,
+						provider: chromiumProvider,
 						instances: [
 							{
 								browser: 'chromium'

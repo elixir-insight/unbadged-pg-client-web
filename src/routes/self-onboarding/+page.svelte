@@ -1,18 +1,21 @@
 <script lang="ts">
-	import { EmptyState } from '$lib/components/reusable';
-	import { ClipboardCheck } from '$lib/assets/icons';
-	import type { PageProps } from './$types';
+	import { onMount } from 'svelte';
+	import {
+		gotoOnboardingStage,
+		gotoOnboardingTab
+	} from '$lib/components/self-onboarding/navigation';
+	import { resumeDestination } from '$lib/components/self-onboarding/stage-status';
+	import { onboarding } from '$lib/stores/onboarding.svelte';
 
-	let { data }: PageProps = $props();
+	onMount(() => {
+		const destination = resumeDestination(onboarding.formData, {
+			profileStatus: onboarding.profileStatus,
+			verifications: onboarding.verifications
+		});
+		if (destination.kind === 'tab') {
+			void gotoOnboardingTab(destination.id);
+			return;
+		}
+		void gotoOnboardingStage(destination.key);
+	});
 </script>
-
-<div class="flex min-h-full items-center justify-center">
-	<div class="w-full max-w-lg">
-		<h1 class="sr-only">Self onboarding</h1>
-		<EmptyState
-			icon={ClipboardCheck}
-			title="Complete your onboarding"
-			description="Hi {data.displayName}. Your account is signed in but not approved yet. Finish organization setup so you can access the merchant portal."
-		/>
-	</div>
-</div>

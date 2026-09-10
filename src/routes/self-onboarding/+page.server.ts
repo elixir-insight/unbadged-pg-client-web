@@ -10,7 +10,5 @@ export const load: PageServerLoad = async ({ locals }) => {
 		redirect(303, resolvePortalHome(groups));
 	}
 
-	return {
-		displayName: session?.merchantName ?? 'there'
-	};
+	return {};
 };

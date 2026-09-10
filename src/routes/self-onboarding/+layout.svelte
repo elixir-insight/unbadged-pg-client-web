@@ -1,124 +1,253 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { resolve } from '$app/paths';
-	import { cn } from '$lib/utils';
-	import { ProfileCard } from '$lib/components/reusable';
-	import { ClipboardCheck, CompanyLogoLight, Menu, X } from '$lib/assets/icons';
+	import { onMount, setContext } from 'svelte';
+	import { browser } from '$app/environment';
+	import { page } from '$app/state';
+	import OnboardingHeader from '$lib/components/self-onboarding/onboarding-header.svelte';
+	import type { OnboardingHeaderPill } from '$lib/components/self-onboarding/onboarding-header.svelte';
+	import OnboardingMobileBar from '$lib/components/self-onboarding/onboarding-mobile-bar.svelte';
+	import OnboardingSidebar from '$lib/components/self-onboarding/onboarding-sidebar.svelte';
+	import RemarkBanner from '$lib/components/self-onboarding/remark-banner.svelte';
+	import StageTabs from '$lib/components/self-onboarding/stage-tabs.svelte';
+	import {
+		gotoOnboardingStage,
+		gotoOnboardingTab,
+		gotoPreviousFromTab,
+		gotoRemark
+	} from '$lib/components/self-onboarding/navigation';
+	import { createStageNav, STAGE_NAV_KEY } from '$lib/components/self-onboarding/stage-nav.svelte';
+	import {
+		deriveAllStageStatuses,
+		isTabLocked
+	} from '$lib/components/self-onboarding/stage-status';
+	import {
+		currentStageFromLocation,
+		currentTabFromLocation,
+		previousTab,
+		stageHasTabs,
+		STAGES,
+		tabById,
+		type StageKey,
+		type StageStatus
+	} from '$lib/components/self-onboarding/stages';
+	import { STEPS, stepIndexFromPathname } from '$lib/components/self-onboarding/steps';
+	import { getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
+	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { ENTITY_TYPE_LABELS } from '$lib/types/onboarding';
+	import { allRoutedRemarks } from '$lib/utils/remarkRouting';
 
 	let { children } = $props();
 
-	let isMobileOpen = $state(false);
+	const MD_QUERY = '(min-width: 768px)';
+	let isMd = $state(browser ? window.matchMedia(MD_QUERY).matches : true);
+
+	const stageNav = createStageNav();
+	setContext(STAGE_NAV_KEY, stageNav);
+
+	const orgResponse = $derived({
+		profileStatus: onboarding.profileStatus,
+		verifications: onboarding.verifications
+	});
+	const remarks = $derived(allRoutedRemarks(onboarding.verifications));
+	const currentStage = $derived(
+		currentStageFromLocation(page.url.pathname, onboarding.businessSection)
+	);
+	const currentTab = $derived(
+		currentTabFromLocation(page.url.pathname, onboarding.businessSection)
+	);
+	const tabbed = $derived(stageHasTabs(currentStage));
+	const currentTabLabel = $derived(
+		currentTab
+			? tabById(currentTab).label
+			: (STEPS[stepIndexFromPathname(page.url.pathname) - 1]?.tabLabel ?? currentStage.label)
+	);
+
+	const derivedStatuses = $derived(deriveAllStageStatuses(orgResponse, onboarding.formData));
+	const stageStatuses = $derived.by((): Record<StageKey, StageStatus> => {
+		const next = { ...derivedStatuses };
+		if (next[currentStage.key] === 'draft') {
+			next[currentStage.key] = 'current';
+		}
+		return next;
+	});
+
+	const displayName = $derived(
+		onboarding.formData.businessDetails.brandName ||
+			onboarding.formData.businessDetails.companyName ||
+			merchantSession.session?.merchantName ||
+			''
+	);
+	const monogram = $derived(displayName ? getUserInitials(displayName) : '?');
+
+	const showBack = $derived(Boolean(currentTab && previousTab(currentTab)));
+
+	const headerTitle = $derived(displayName || 'Business onboarding');
+	const headerSubtitle = $derived.by(() => {
+		const entity = onboarding.formData.entityType
+			? ENTITY_TYPE_LABELS[onboarding.formData.entityType]
+			: 'Business';
+		const status = stageStatuses[currentStage.key];
+		const statusLabel =
+			status === 'changes_required'
+				? 'Changes required'
+				: status === 'verification_pending'
+					? 'Verification in progress'
+					: status === 'verified'
+						? 'Verified'
+						: 'In Progress';
+		return `${entity} · ${statusLabel}`;
+	});
+
+	const headerPills = $derived.by((): OnboardingHeaderPill[] => {
+		if (tabbed && currentStage.tabs.length > 0) {
+			return currentStage.tabs.map((tab) => ({
+				id: tab.id,
+				label: tab.label,
+				locked: isTabLocked(tab.id, onboarding.formData, remarks)
+			}));
+		}
+		return STAGES.map((stage) => ({
+			id: stage.key,
+			label: stage.label,
+			locked: stageStatuses[stage.key] === 'locked'
+		}));
+	});
+
+	const headerActiveId = $derived(tabbed && currentTab ? currentTab : currentStage.key);
+
+	$effect(() => {
+		stageNav.setTabbed(tabbed);
+	});
+
+	$effect(() => {
+		JSON.stringify({
+			pan: onboarding.formData.businessPan,
+			entityType: onboarding.formData.entityType,
+			gstin: onboarding.formData.gstin,
+			gstinList: onboarding.formData.gstinList,
+			business: onboarding.formData.businessDetails,
+			bank: onboarding.formData.bankDetails,
+			directors: onboarding.formData.directors,
+			documents: onboarding.formData.documents,
+			mode: onboarding.mode,
+			completedSteps: onboarding.completedSteps,
+			profileStatus: onboarding.profileStatus,
+			verifications: onboarding.verifications,
+			businessSection: onboarding.businessSection,
+			focusField: onboarding.focusField
+		});
+		onboarding.persist();
+	});
+
+	$effect(() => {
+		const field = onboarding.focusField;
+		if (!browser || !field) return;
+		const frame = requestAnimationFrame(() => {
+			const target = document.querySelector(`[data-remark-field="${field.replaceAll('"', '')}"]`);
+			target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+		return () => cancelAnimationFrame(frame);
+	});
 
 	onMount(() => {
 		theme.init();
+
+		const media = window.matchMedia(MD_QUERY);
+		const onChange = (event: MediaQueryListEvent) => {
+			isMd = event.matches;
+		};
+		isMd = media.matches;
+		media.addEventListener('change', onChange);
+		return () => media.removeEventListener('change', onChange);
 	});
 
-	const session = $derived(merchantSession.session);
-	const userName = $derived(session?.merchantName ?? 'User');
-	const profileProps = $derived(
-		session
-			? {
-					userName,
-					userRole: formatUserType(session.userType ?? ''),
-					userInitials: getUserInitials(userName),
-					vanNumber: session.displayOrgId,
-					confirmLogout: true
-				}
-			: null
+	function handleStageNavigate(key: StageKey) {
+		void gotoOnboardingStage(key);
+	}
+
+	function handleBack() {
+		if (currentTab) void gotoPreviousFromTab(currentTab);
+	}
+
+	function handleHeaderSelect(id: string) {
+		if (tabbed) {
+			const tab = currentStage.tabs.find((item) => item.id === id);
+			if (tab) void gotoOnboardingTab(tab.id);
+			return;
+		}
+		const stage = STAGES.find((item) => item.key === id);
+		if (stage) void gotoOnboardingStage(stage.key);
+	}
+
+	const pageTitle = $derived(
+		currentTab
+			? tabById(currentTab).title
+			: (STEPS[stepIndexFromPathname(page.url.pathname) - 1]?.title ?? 'Onboarding')
 	);
 </script>
 
-<div class="flex h-screen overflow-hidden bg-background">
-	{#if isMobileOpen}
-		<div
-			class="fixed inset-0 z-40 bg-black/50 md:hidden"
-			role="presentation"
-			onclick={() => (isMobileOpen = false)}
-			onkeydown={(e) => {
-				if (e.key === 'Escape') isMobileOpen = false;
-			}}
-		></div>
+<svelte:head>
+	<title>{pageTitle} | ElixirPay</title>
+</svelte:head>
+
+<div class="flex h-dvh overflow-hidden bg-background">
+	{#if isMd}
+		<aside class="flex h-full w-96 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+			<OnboardingSidebar
+				currentStage={currentStage.key}
+				{currentTabLabel}
+				{stageStatuses}
+				{displayName}
+				{monogram}
+				onNavigate={handleStageNavigate}
+			/>
+		</aside>
 	{/if}
 
-	<aside
-		class={cn(
-			'fixed inset-y-0 left-0 z-50 flex w-60 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out',
-			'md:relative md:z-auto md:translate-x-0',
-			isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-		)}
-	>
-		<div
-			class="mt-4 flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
-		>
-			<a
-				href={resolve('/self-onboarding')}
-				aria-label="Go to self onboarding"
-				class="flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-			>
-				<CompanyLogoLight class="shrink-0" />
-			</a>
-
-			<button
-				class="relative flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
-				onclick={() => (isMobileOpen = false)}
-				aria-label="Close navigation"
-			>
-				<X class="h-4 w-4" />
-			</button>
-		</div>
-
-		<nav class="flex-1 overflow-y-auto px-2 py-6" aria-label="Self onboarding">
-			<div>
-				<p class="mb-1 px-2 text-xs tracking-wider text-muted-foreground">Overview</p>
-				<ul class="space-y-0.5" role="list">
-					<li class="relative">
-						<span
-							class="sidebar-active-indicator absolute inset-y-1 left-0 w-0.5 rounded-r-full bg-primary"
-						></span>
-						<a
-							href={resolve('/self-onboarding')}
-							class="flex items-center gap-2.5 rounded-md bg-sidebar-accent px-2 py-1.5 text-sm font-medium text-sidebar-accent-foreground"
-							aria-current="page"
-						>
-							<ClipboardCheck class="h-4 w-4 shrink-0" aria-hidden="true" />
-							<span class="flex-1 truncate">Onboarding</span>
-						</a>
-					</li>
-				</ul>
-			</div>
-		</nav>
-
-		{#if profileProps}
-			<ProfileCard {...profileProps} />
+	<main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+		{#if !isMd}
+			<OnboardingMobileBar currentStage={currentStage.key} {currentTabLabel} />
 		{/if}
-	</aside>
 
-	<main
-		class="flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden bg-background md:bg-muted md:p-4"
-	>
-		<div
-			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
-		>
-			<header class="flex h-14 shrink-0 items-center gap-3 px-4">
-				<button
-					class="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-accent hover:text-accent-foreground md:hidden"
-					onclick={() => (isMobileOpen = true)}
-					aria-label="Open navigation"
-				>
-					<Menu class="h-4 w-4" />
-				</button>
-				<p class="min-w-0 truncate text-sm text-muted-foreground">
-					Welcome, <span class="font-bold text-foreground">{userName}</span>
-				</p>
-			</header>
+		<div class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-6 sm:px-8">
+			<OnboardingHeader
+				title={headerTitle}
+				subtitle={headerSubtitle}
+				pills={headerPills}
+				activeId={headerActiveId}
+				onSelect={handleHeaderSelect}
+			/>
 
-			<div class="app-shell-content min-h-0 flex-1 overflow-x-clip overflow-y-auto">
-				<div class="min-h-full p-5">
-					{@render children()}
-				</div>
+			<div
+				class="relative flex min-h-112 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card px-6 py-5 shadow-sm"
+			>
+				{#if remarks.length > 0}
+					<div class="shrink-0 pb-4">
+						<RemarkBanner {remarks} onFix={(remark) => void gotoRemark(remark)} />
+					</div>
+				{/if}
+
+				{#if tabbed && currentTab}
+					<div class="flex min-h-0 flex-1 flex-col">
+						<StageTabs
+							canContinue={stageNav.canContinue}
+							continueLabel={stageNav.label}
+							onContinue={() => stageNav.runContinue()}
+							secondaryLabel={stageNav.secondaryLabel}
+							onSecondary={() => stageNav.runSecondary()}
+							hint={stageNav.hint}
+							{showBack}
+							onBack={handleBack}
+						>
+							{@render children()}
+						</StageTabs>
+					</div>
+				{:else}
+					<div class="min-h-0 flex-1 overflow-hidden">
+						{@render children()}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</main>
