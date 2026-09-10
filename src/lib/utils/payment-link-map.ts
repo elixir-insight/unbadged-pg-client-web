@@ -26,6 +26,10 @@ export function mapPaymentLinkStatus(value: string | null | undefined): PaymentL
 	return 'issued';
 }
 
+export function isPaymentLinkCancellable(status: PaymentLinkStatus): boolean {
+	return status === 'issued' || status === 'attempted';
+}
+
 export function mapCreatedPaymentLink(params: {
 	response: CreatePaymentLinkResponse;
 	paymentFor: string;

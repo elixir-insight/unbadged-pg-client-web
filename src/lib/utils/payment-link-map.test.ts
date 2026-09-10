@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { mapCreatedPaymentLink, mapPaymentLinkStatus } from './payment-link-map';
+import {
+	isPaymentLinkCancellable,
+	mapCreatedPaymentLink,
+	mapPaymentLinkStatus
+} from './payment-link-map';
 
 describe('mapPaymentLinkStatus', () => {
 	it('maps known API statuses onto payment link statuses', () => {
@@ -9,6 +13,20 @@ describe('mapPaymentLinkStatus', () => {
 		expect(mapPaymentLinkStatus('paid')).toBe('paid');
 		expect(mapPaymentLinkStatus('canceled')).toBe('cancelled');
 		expect(mapPaymentLinkStatus('unknown')).toBe('issued');
+	});
+});
+
+describe('isPaymentLinkCancellable', () => {
+	it('allows issued and attempted links', () => {
+		expect(isPaymentLinkCancellable('issued')).toBe(true);
+		expect(isPaymentLinkCancellable('attempted')).toBe(true);
+	});
+
+	it('blocks paid, cancelled, expired, and partially paid links', () => {
+		expect(isPaymentLinkCancellable('paid')).toBe(false);
+		expect(isPaymentLinkCancellable('cancelled')).toBe(false);
+		expect(isPaymentLinkCancellable('expired')).toBe(false);
+		expect(isPaymentLinkCancellable('partially_paid')).toBe(false);
 	});
 });
 

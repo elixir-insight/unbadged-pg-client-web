@@ -133,6 +133,20 @@ export const PaymentLinkCountsResponseSchema = v.object({
 	statusCode: v.optional(v.nullable(v.number()), 200)
 });
 
+export const CancelPaymentLinkDataSchema = v.object({
+	amount: OptionalStringishSchema,
+	clientOrderId: OptionalStringishSchema,
+	message: OptionalStringSchema,
+	orderId: v.pipe(v.string(), v.trim(), v.minLength(1)),
+	status: OptionalStringSchema
+});
+
+export const CancelPaymentLinkResponseSchema = v.object({
+	data: CancelPaymentLinkDataSchema,
+	message: OptionalStringSchema,
+	statusCode: v.optional(v.nullable(v.number()), 200)
+});
+
 export type CreatePaymentLinkClientRequest = v.InferOutput<
 	typeof CreatePaymentLinkClientRequestSchema
 >;
@@ -145,3 +159,5 @@ export type PaymentLinkPagination = v.InferOutput<typeof PaymentLinkPaginationSc
 export type PaymentLinkListResponse = v.InferOutput<typeof PaymentLinkListResponseSchema>;
 export type PaymentLinkApiCounts = v.InferOutput<typeof PaymentLinkCountsSchema>;
 export type PaymentLinkCountsResponse = v.InferOutput<typeof PaymentLinkCountsResponseSchema>;
+export type CancelPaymentLinkData = v.InferOutput<typeof CancelPaymentLinkDataSchema>;
+export type CancelPaymentLinkResponse = v.InferOutput<typeof CancelPaymentLinkResponseSchema>;
