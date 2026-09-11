@@ -48,6 +48,7 @@ const passthroughDirectorSchema = v.object({
 });
 
 export const UpdateOrganizationDirectorFormSchema = v.object({
+	id: v.optional(v.union([v.string(), v.number()])),
 	name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Name is required')),
 	pan: v.pipe(
 		v.string(),
@@ -142,13 +143,21 @@ function resolveCin(businessType: string, cin: string): string {
 	return v.parse(cinSchema, cin);
 }
 
+function optionalPersistedDirectorId(id: string | number | undefined): number | undefined {
+	if (id === undefined) return undefined;
+	const trimmed = String(id).trim();
+	return /^\d+$/.test(trimmed) ? Number(trimmed) : undefined;
+}
+
 function mapDirectorsPayload(
 	directors: UpdateOrganizationFormBody['directors'] | undefined
 ): UpdateOrganizationKybRequest['directors'] {
 	return (directors ?? []).map((director) => {
 		const aadhar = director.aadhar ?? '';
 		const pan = director.pan ?? '';
+		const id = optionalPersistedDirectorId(director.id);
 		return {
+			...(id !== undefined ? { id } : {}),
 			email: director.email,
 			name: director.name,
 			phoneNumber: toE164IndianPhone(director.phone),

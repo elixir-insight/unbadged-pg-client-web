@@ -729,7 +729,8 @@
 		<ul
 			class={cn(
 				'mt-4 flex flex-col gap-3',
-				documents.length > 1 && 'max-h-56 overflow-y-auto overscroll-contain pr-1'
+				documents.length > 1 && 'overflow-y-auto overscroll-contain pr-1',
+				documents.length > 1 && (mode === 'merchant' ? 'max-h-80' : 'max-h-96')
 			)}
 			aria-label="{title} uploaded documents"
 		>

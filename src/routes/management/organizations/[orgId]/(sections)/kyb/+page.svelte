@@ -29,7 +29,11 @@
 		type FlowStepKey
 	} from '../../helpers';
 	import { isPartnerStyleCategory } from '$lib/organization/category';
-	import { deleteDirector, isPersistedDirectorId } from '$lib/organization/directors-api';
+	import {
+		deleteDirector,
+		isPersistedDirectorId,
+		toDirectorUpdateItems
+	} from '$lib/organization/directors-api';
 	import { userPermissions } from '$lib/stores/rbac';
 
 	type DirectorTextField = 'name' | 'pan' | 'email' | 'phone' | 'aadhar';
@@ -236,13 +240,7 @@
 			communicationAddress: editableKyb.communicationAddress,
 			directors:
 				currentStep === 'directors'
-					? editableDirectors.map((director) => ({
-							name: director.name,
-							pan: director.pan,
-							email: director.email,
-							phone: director.phone,
-							aadhar: director.aadhar
-						}))
+					? toDirectorUpdateItems(editableDirectors, baselineDirectors)
 					: []
 		};
 	}

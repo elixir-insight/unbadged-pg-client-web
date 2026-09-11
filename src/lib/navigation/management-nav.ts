@@ -7,8 +7,8 @@ import {
 	// Wallet,
 	// Send,
 	ArrowLeftRight,
-	// TrendingUp,
-	// MessageSquareWarning,
+	TrendingUp,
+	MessageSquareWarning,
 	Landmark,
 	FileText
 	// Fingerprint,
@@ -114,31 +114,31 @@ export const managementNav: NavGroup[] = [
 				]
 			},
 			// Transaction Insights omitted from nav for now
-			// {
-			// 	title: 'Transaction Insights',
-			// 	href: '/management/transaction-insights',
-			// 	icon: TrendingUp,
-			// 	breadcrumbChildren: [
-			// 		{
-			// 			matcher: /^\/management\/transaction-insights\/[^/]+$/,
-			// 			title: 'Merchant Calendar'
-			// 		}
-			// 	]
-			// },
+			{
+				title: 'Transaction Insights',
+				href: '/management/transaction-insights',
+				icon: TrendingUp,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/transaction-insights\/[^/]+$/,
+						title: 'Merchant Calendar'
+					}
+				]
+			},
 			// Dispute omitted from nav until backend API is ready
-			// {
-			// 	title: 'Disputes',
-			// 	href: '/management/dispute',
-			// 	icon: MessageSquareWarning,
-			// 	service: 'payin',
-			// 	requiredPermission: { module: 'PAYINS', action: 'read' },
-			// 	breadcrumbChildren: [
-			// 		{
-			// 			matcher: /^\/management\/dispute\/[^/]+$/,
-			// 			title: 'View Dispute'
-			// 		}
-			// 	]
-			// },
+			{
+				title: 'Disputes',
+				href: '/management/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/dispute\/[^/]+$/,
+						title: 'View Dispute'
+					}
+				]
+			},
 			{
 				title: 'Settlements',
 				href: '/management/settlements',
