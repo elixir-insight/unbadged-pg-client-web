@@ -15,13 +15,13 @@ describe('mapPartnerKpis', () => {
 		).toEqual([
 			{
 				label: 'Total Commission',
-				value: '₹0',
+				value: '₹0.0',
 				trend: 'down',
 				trendLabel: '-100.0%'
 			},
 			{
 				label: 'Total Volume',
-				value: '₹0',
+				value: '₹0.0',
 				trend: 'down',
 				trendLabel: '-100.0%'
 			},
