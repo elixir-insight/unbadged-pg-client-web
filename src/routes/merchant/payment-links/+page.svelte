@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { ColumnDef } from '@tanstack/table-core';
 	import type { DateRange } from 'bits-ui';
-	import { getLocalTimeZone } from '@internationalized/date';
-	import { onMount } from 'svelte';
+	import { invalidate } from '$app/navigation';
 	import { renderComponent } from '$lib/components/ui/data-table';
 	import {
 		Button,
@@ -12,7 +11,8 @@
 		EmptyState,
 		FilterCards,
 		SearchField,
-		Table
+		Table,
+		createUrlPagination
 	} from '$lib/components/reusable';
 	import {
 		CreatePaymentLinkModal,
@@ -20,162 +20,113 @@
 		PaymentLinkStatusBadge,
 		PaymentLinkUrlCell
 	} from '$lib/components/payment-links';
-	import type { PaymentLink, PaymentLinkCounts, PaymentLinkListRow } from '$lib/types/payment-link';
-	import {
-		filterPaymentLinks,
-		formatPaymentLinkAmount,
-		formatPaymentLinkDate,
-		loadPaymentLinks
-	} from '$lib/utils/payment-links-store';
+	import type {
+		PaymentLink,
+		PaymentLinkCounts,
+		PaymentLinkListRow,
+		PaymentLinkStatus
+	} from '$lib/types/payment-link';
+	import { formatPaymentLinkAmount, formatPaymentLinkDate } from '$lib/utils/payment-links-store';
+	import { debounce } from '$lib/utils/debounce.js';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
+	import type { PageData } from './$types';
 
-	const DAY_MS = 86_400_000;
-	const PAGE_SIZE = 10;
+	let { data }: { data: PageData } = $props();
 
 	type StatusTab = keyof PaymentLinkCounts;
 
-	const summaryCards: { label: StatusTab; status: StatusTab | null }[] = [
+	const summaryCards: { label: StatusTab; status: PaymentLinkStatus | null }[] = [
 		{ label: 'All', status: null },
-		{ label: 'Issued', status: 'Issued' },
-		{ label: 'Partially Paid', status: 'Partially Paid' },
-		{ label: 'Paid', status: 'Paid' },
-		{ label: 'Cancelled', status: 'Cancelled' },
-		{ label: 'Expired', status: 'Expired' }
+		{ label: 'Issued', status: 'issued' },
+		{ label: 'Attempted', status: 'attempted' },
+		{ label: 'Paid', status: 'paid' },
+		{ label: 'Cancelled', status: 'cancelled' },
+		{ label: 'Expired', status: 'expired' }
 	];
 
-	let links = $state<PaymentLink[]>([]);
-	let selectedCard = $state<StatusTab>('All');
-	let searchInput = $state('');
+	const searchFields = [
+		{ value: 'id', label: 'Payment Link ID', placeholder: 'e.g. inv_TR8w6NeWPKWZ3B…' }
+	];
+
+	const pagination = createUrlPagination({
+		defaultLimit: 10,
+		total: () => data.pagination.total
+	});
+
+	let selectedCard = $derived(
+		summaryCards.find((card) => (card.status ?? '') === pagination.status)?.label ?? 'All'
+	);
+	let searchField = $state('id');
+	let searchInput = $derived(pagination.search);
 	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
-	let pageNumber = $state(1);
 	let createModalOpen = $state(false);
 	let drawerOpen = $state(false);
 	let selectedLink = $state<PaymentLink | null>(null);
 	let refreshing = $state(false);
 
-	onMount(() => {
-		links = loadPaymentLinks();
-	});
+	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 200);
 
-	function reloadLinks() {
-		links = loadPaymentLinks();
+	function handleSearch(_field: string, value: string) {
+		debouncedSearch(value);
+	}
+
+	function selectCard(label: string) {
+		const card = summaryCards.find((item) => item.label === label);
+		pagination.setStatus(card?.status ?? '');
+	}
+
+	function removeSearchFilter() {
+		pagination.setSearch('');
+	}
+
+	function clearAllFilters() {
+		dateRange = { start: undefined, end: undefined };
+		pagination.clearAllFilters();
 	}
 
 	async function refreshList() {
 		refreshing = true;
 		try {
-			reloadLinks();
+			await invalidate('payment-links:list');
 		} finally {
 			refreshing = false;
 		}
 	}
 
-	function selectCard(label: string) {
-		const card = summaryCards.find((item) => item.label === label);
-		if (!card) return;
-		selectedCard = card.label;
-		pageNumber = 1;
+	function handleLinkCreated(link: PaymentLink) {
+		selectedLink = link;
+		drawerOpen = true;
+		pagination.clearAllFilters();
+		void invalidate('payment-links:list');
 	}
 
-	function removeFilter(key: 'date' | 'search') {
-		if (key === 'date') dateRange = { start: undefined, end: undefined };
-		if (key === 'search') searchInput = '';
-		pageNumber = 1;
+	function openLinkDetails(link: PaymentLinkListRow) {
+		selectedLink = link;
+		drawerOpen = true;
 	}
-
-	function clearAllFilters() {
-		dateRange = { start: undefined, end: undefined };
-		searchInput = '';
-		selectedCard = 'All';
-		pageNumber = 1;
-	}
-
-	const dateFilter = $derived.by(() => {
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			return {
-				start: dateRange.start.toDate(tz).getTime(),
-				end: dateRange.end.toDate(tz).getTime() + DAY_MS
-			};
-		}
-		return null;
-	});
-
-	const dateFilteredLinks = $derived(
-		dateFilter
-			? links.filter((l) => l.createdAtMs >= dateFilter.start && l.createdAtMs <= dateFilter.end)
-			: links
-	);
-
-	const cardCounts = $derived.by(() => {
-		const counts: PaymentLinkCounts = {
-			All: dateFilteredLinks.length,
-			Issued: 0,
-			'Partially Paid': 0,
-			Paid: 0,
-			Cancelled: 0,
-			Expired: 0
-		};
-
-		for (const link of dateFilteredLinks) {
-			if (link.status === 'issued') counts.Issued += 1;
-			if (link.status === 'partially_paid') counts['Partially Paid'] += 1;
-			if (link.status === 'paid') counts.Paid += 1;
-			if (link.status === 'cancelled') counts.Cancelled += 1;
-			if (link.status === 'expired') counts.Expired += 1;
-		}
-
-		return counts;
-	});
 
 	const filterCards = $derived(
-		summaryCards.map((card) => ({ label: card.label, count: cardCounts[card.label] }))
-	);
-
-	const filteredLinks = $derived(
-		filterPaymentLinks(dateFilteredLinks, {
-			statusTab: selectedCard,
-			search: searchInput,
-			fromDateMs: null,
-			toDateMs: null
-		})
+		summaryCards.map((card) => ({ label: card.label, count: data.counts[card.label] }))
 	);
 
 	const activeFilters = $derived.by(() => {
-		const filters: { key: 'date' | 'search'; label: string; value: string }[] = [];
-
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			const fmt = (d: Date) =>
-				d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+		const filters: { key: 'search'; label: string; value: string }[] = [];
+		if (pagination.search.trim()) {
 			filters.push({
-				key: 'date',
-				label: 'Duration',
-				value: `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`
+				key: 'search',
+				label: 'Payment Link ID',
+				value: pagination.search.trim()
 			});
 		}
-
-		if (searchInput.trim()) {
-			filters.push({ key: 'search', label: 'Payment Link ID', value: searchInput.trim() });
-		}
-
 		return filters;
 	});
 
-	const totalPages = $derived(Math.max(1, Math.ceil(filteredLinks.length / PAGE_SIZE)));
-	const pagedLinks = $derived(
-		filteredLinks.slice(
-			(pageNumber - 1) * PAGE_SIZE,
-			pageNumber * PAGE_SIZE
-		) as PaymentLinkListRow[]
-	);
-
-	const showingFrom = $derived(filteredLinks.length === 0 ? 0 : (pageNumber - 1) * PAGE_SIZE + 1);
-	const showingTo = $derived(Math.min(pageNumber * PAGE_SIZE, filteredLinks.length));
 	const showingText = $derived(
-		filteredLinks.length === 0
-			? 'No payment links'
-			: `Showing ${showingFrom}–${showingTo} of ${filteredLinks.length} payment links`
+		data.listError
+			? 'Unable to load payment links'
+			: data.pagination.total === 0
+				? 'No payment links'
+				: `${pagination.showingText} payment links`
 	);
 
 	const columns: ColumnDef<PaymentLinkListRow>[] = [
@@ -215,16 +166,7 @@
 		}
 	];
 
-	function openLinkDetails(link: PaymentLinkListRow) {
-		selectedLink = link;
-		drawerOpen = true;
-	}
-
-	function handleLinkCreated(link: PaymentLink) {
-		reloadLinks();
-		selectedLink = link;
-		drawerOpen = true;
-	}
+	const tableRows = $derived(data.links as PaymentLinkListRow[]);
 </script>
 
 <div class="flex flex-col gap-6">
@@ -232,34 +174,20 @@
 		loading={false}
 		skeletonCount={6}
 		cards={filterCards}
-		bind:selected={selectedCard}
+		selected={selectedCard}
 		onselect={selectCard}
 		class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
 	/>
 
 	<div class="flex flex-col gap-3">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<DateRangePicker
-				bind:value={dateRange}
-				onApply={() => {
-					pageNumber = 1;
-				}}
-			/>
+			<DateRangePicker bind:value={dateRange} />
 			<div class="w-full max-w-xs">
 				<SearchField
-					fields={[
-						{
-							value: 'id',
-							label: 'Payment Link ID',
-							placeholder: 'e.g. inv_TR8w6NeWPKWZ3B…'
-						}
-					]}
-					field="id"
+					fields={searchFields}
+					bind:field={searchField}
 					value={searchInput}
-					onSearch={(_field, value) => {
-						searchInput = value;
-						pageNumber = 1;
-					}}
+					onSearch={handleSearch}
 				/>
 			</div>
 		</div>
@@ -272,7 +200,7 @@
 						<span class="font-semibold">{filter.value}</span>
 						<button
 							type="button"
-							onclick={() => removeFilter(filter.key)}
+							onclick={removeSearchFilter}
 							aria-label="Remove {filter.label} filter"
 							class="ml-0.5 cursor-pointer rounded-sm opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
 						>
@@ -310,22 +238,28 @@
 			</div>
 		</div>
 
-		{#if pagedLinks.length === 0}
+		{#if tableRows.length === 0}
 			<EmptyState
-				title="No payment links match your filters"
-				description="Try a different date range or payment link ID, or create a new link."
-				actionLabel={activeFilters.length > 0 ? 'Clear filters' : 'Create Payment Link'}
+				title={data.listError
+					? 'Unable to load payment links'
+					: 'No payment links match your filters'}
+				description={data.listError
+					? data.listError
+					: 'Try a different payment link ID, or create a new link.'}
+				actionLabel={data.listError
+					? undefined
+					: activeFilters.length > 0
+						? 'Clear filters'
+						: 'Create Payment Link'}
 				onaction={() => (activeFilters.length > 0 ? clearAllFilters() : (createModalOpen = true))}
 			/>
 		{:else}
 			<Table
-				data={pagedLinks}
+				data={tableRows}
 				{columns}
-				{pageNumber}
-				{totalPages}
-				setPageNumber={(p) => {
-					pageNumber = p;
-				}}
+				pageNumber={pagination.currentPage}
+				totalPages={pagination.pageCount}
+				setPageNumber={pagination.setPage}
 				onRowClick={openLinkDetails}
 				variant="borderless"
 			/>

@@ -8,7 +8,7 @@ import {
 	// Send,
 	ArrowLeftRight,
 	CreditCard,
-	// TrendingUp,
+	TrendingUp,
 	MessageSquareWarning,
 	Landmark,
 	FileText
@@ -115,17 +115,18 @@ export const managementNav: NavGroup[] = [
 				]
 			},
 			// Transaction Insights omitted from nav for now
-			// {
-			// 	title: 'Transaction Insights',
-			// 	href: '/management/transaction-insights',
-			// 	icon: TrendingUp,
-			// 	breadcrumbChildren: [
-			// 		{
-			// 			matcher: /^\/management\/transaction-insights\/[^/]+$/,
-			// 			title: 'Merchant Calendar'
-			// 		}
-			// 	]
-			// },
+			{
+				title: 'Transaction Insights',
+				href: '/management/transaction-insights',
+				icon: TrendingUp,
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/transaction-insights\/[^/]+$/,
+						title: 'Merchant Calendar'
+					}
+				]
+			},
+			// Dispute omitted from nav until backend API is ready
 			{
 				title: 'Disputes',
 				href: '/management/dispute',

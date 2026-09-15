@@ -5,7 +5,9 @@ import { buildCreatePaymentLinkRequest } from './mappers/to-api/create';
 import {
 	CreatePaymentLinkClientRequestSchema,
 	CreatePaymentLinkCreatedSchema,
-	CreatePaymentLinkUpstreamRequestSchema
+	CreatePaymentLinkUpstreamRequestSchema,
+	PaymentLinkCountsResponseSchema,
+	PaymentLinkListResponseSchema
 } from './schema';
 
 const validClientBody = {
@@ -16,12 +18,21 @@ const validClientBody = {
 	customerEmail: 'test.customer@example.com',
 	customerPhone: '9999999999',
 	allowedPaymentMethods: ['UPI', 'CARD'] as const,
+	deliveryMethods: ['EMAIL', 'SMS'] as const,
 	expiresBy: '2030-01-15T09:00:00.000Z'
 };
 
 describe('CreatePaymentLinkClientRequestSchema', () => {
 	it('accepts a valid client body', () => {
 		const parsed = v.safeParse(CreatePaymentLinkClientRequestSchema, validClientBody);
+		expect(parsed.success).toBe(true);
+	});
+
+	it('accepts an E.164 Indian phone number', () => {
+		const parsed = v.safeParse(CreatePaymentLinkClientRequestSchema, {
+			...validClientBody,
+			customerPhone: '+919999999999'
+		});
 		expect(parsed.success).toBe(true);
 	});
 
@@ -42,6 +53,32 @@ describe('CreatePaymentLinkClientRequestSchema', () => {
 		});
 		expect(parsed.success).toBe(false);
 	});
+
+	it('defaults delivery methods to empty when omitted', () => {
+		const withoutDelivery = {
+			amount: validClientBody.amount,
+			description: validClientBody.description,
+			referenceId: validClientBody.referenceId,
+			customerName: validClientBody.customerName,
+			customerEmail: validClientBody.customerEmail,
+			customerPhone: validClientBody.customerPhone,
+			allowedPaymentMethods: validClientBody.allowedPaymentMethods,
+			expiresBy: validClientBody.expiresBy
+		};
+		const parsed = v.safeParse(CreatePaymentLinkClientRequestSchema, withoutDelivery);
+		expect(parsed.success).toBe(true);
+		if (parsed.success) {
+			expect(parsed.output.deliveryMethods).toEqual([]);
+		}
+	});
+
+	it('rejects unknown delivery methods', () => {
+		const parsed = v.safeParse(CreatePaymentLinkClientRequestSchema, {
+			...validClientBody,
+			deliveryMethods: ['WHATSAPP']
+		});
+		expect(parsed.success).toBe(false);
+	});
 });
 
 describe('buildCreatePaymentLinkRequest', () => {
@@ -56,10 +93,20 @@ describe('buildCreatePaymentLinkRequest', () => {
 		expect(payload.customer).toEqual({
 			name: 'Test Customer',
 			email: 'test.customer@example.com',
-			phoneNumber: '9999999999',
+			phoneNumber: '+919999999999',
 			...PAYMENT_LINK_DUMMY_CUSTOMER_ADDRESS
 		});
 		expect(payload.merchantUrl).toEqual(PAYMENT_LINK_MERCHANT_URL);
+		expect(payload.deliveryMethods).toEqual(['EMAIL', 'SMS']);
+	});
+
+	it('sends an empty delivery methods list when none are selected', () => {
+		const parsed = v.parse(CreatePaymentLinkClientRequestSchema, {
+			...validClientBody,
+			deliveryMethods: []
+		});
+		const payload = buildCreatePaymentLinkRequest(parsed);
+		expect(payload.deliveryMethods).toEqual([]);
 	});
 
 	it('requires expiry', () => {
@@ -85,6 +132,79 @@ describe('CreatePaymentLinkCreatedSchema', () => {
 		if (parsed.success) {
 			expect(parsed.output.checkoutUrl).toBe('https://dev-checkout.elixirpay.in/pl_abc');
 			expect(parsed.output.orderId).toBe('ord_123');
+		}
+	});
+});
+
+describe('PaymentLinkListResponseSchema', () => {
+	it('parses the documented 200 list response', () => {
+		const parsed = v.safeParse(PaymentLinkListResponseSchema, {
+			data: [
+				{
+					Expiry: '2030-01-15T09:00:00.000Z',
+					allowedPaymentMethods: ['UPI'],
+					amount: '1500.50',
+					attemptId: 'att_1',
+					closedAt: '',
+					createdAt: '2026-08-01T10:00:00.000Z',
+					customer: {
+						city: 'Bengaluru',
+						country: 'IN',
+						email: 'customer@example.com',
+						name: 'Test Customer',
+						phoneNumber: '9999999999',
+						zipCode: '560001'
+					},
+					description: 'Workshop fee',
+					gatewayDescription: '',
+					merchantUrl: {
+						cancelUrl: 'https://example.com/cancel',
+						failureUrl: 'https://example.com/failure',
+						successUrl: 'https://example.com/success'
+					},
+					orderId: 'ord_123',
+					paymentLink: 'https://dev-checkout.elixirpay.in/pl_abc',
+					referenceId: 'rcpt-1001',
+					sourceType: 'PAYMENT_LINK',
+					status: 'CREATED',
+					updatedAt: '2026-08-01T10:00:00.000Z',
+					virtualAccountNumber: 'VA123'
+				}
+			],
+			message: 'Payment link orders retrieved successfully',
+			pagination: { limit: 10, page: 0, total: 1 },
+			statusCode: 200
+		});
+
+		expect(parsed.success).toBe(true);
+		if (parsed.success) {
+			expect(parsed.output.data[0]?.orderId).toBe('ord_123');
+			expect(parsed.output.pagination?.total).toBe(1);
+		}
+	});
+});
+
+describe('PaymentLinkCountsResponseSchema', () => {
+	it('parses the documented 200 counts response', () => {
+		const parsed = v.safeParse(PaymentLinkCountsResponseSchema, {
+			data: [
+				{
+					attempted: 2,
+					cancelled: 1,
+					captured: 4,
+					created: 3,
+					expired: 1,
+					suspected: 0
+				}
+			],
+			message: 'Payment link status counts retrieved successfully',
+			statusCode: 200
+		});
+
+		expect(parsed.success).toBe(true);
+		if (parsed.success) {
+			expect(parsed.output.data[0]?.created).toBe(3);
+			expect(parsed.output.data[0]?.captured).toBe(4);
 		}
 	});
 });

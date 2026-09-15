@@ -8,6 +8,7 @@
 		(
 			{
 				issued: { variant: 'info' as const, label: 'Issued' },
+				attempted: { variant: 'warning' as const, label: 'Attempted' },
 				partially_paid: { variant: 'warning' as const, label: 'Partially Paid' },
 				paid: { variant: 'success' as const, label: 'Paid' },
 				cancelled: { variant: 'secondary' as const, label: 'Cancelled' },

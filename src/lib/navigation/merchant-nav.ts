@@ -52,6 +52,7 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
+			// Dispute omitted from nav until backend API is ready
 			{
 				title: 'Dispute',
 				href: '/merchant/dispute',

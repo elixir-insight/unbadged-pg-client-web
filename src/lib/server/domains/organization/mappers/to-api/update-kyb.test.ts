@@ -86,6 +86,47 @@ describe('buildUpdateOrganizationKybRequest', () => {
 		]);
 	});
 
+	it('includes persisted director ids and omits client draft ids', () => {
+		const upstream = buildUpdateOrganizationSectionRequest({
+			section: 'directors',
+			...validFormBody,
+			directors: [
+				{
+					id: '7',
+					name: 'Jane Doe',
+					pan: '**********',
+					email: 'jane@example.com',
+					phone: '9876543210',
+					aadhar: '************'
+				},
+				{
+					id: 'director-123',
+					name: 'New Director',
+					pan: 'ABCDE1234F',
+					email: 'new@example.com',
+					phone: '9876543211',
+					aadhar: '234567890123'
+				}
+			]
+		});
+
+		expect(upstream.directors).toEqual([
+			{
+				id: 7,
+				email: 'jane@example.com',
+				name: 'Jane Doe',
+				phoneNumber: '+919876543210'
+			},
+			{
+				aadhar: '234567890123',
+				email: 'new@example.com',
+				name: 'New Director',
+				pan: 'ABCDE1234F',
+				phoneNumber: '+919876543211'
+			}
+		]);
+	});
+
 	it('accepts director phone numbers with +91 prefix', () => {
 		const parsed = v.parse(UpdateOrganizationFormBodySchema, {
 			...validFormBody,

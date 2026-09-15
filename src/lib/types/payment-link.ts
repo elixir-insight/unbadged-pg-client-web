@@ -1,5 +1,6 @@
 export const PAYMENT_LINK_STATUSES = [
 	'issued',
+	'attempted',
 	'partially_paid',
 	'paid',
 	'cancelled',
@@ -19,6 +20,18 @@ export const PAYMENT_LINK_METHOD_OPTIONS: {
 	{ value: 'UPI', label: 'UPI' },
 	{ value: 'CARD', label: 'Card' },
 	{ value: 'NETBANKING', label: 'Net Banking' }
+];
+
+export const PAYMENT_LINK_DELIVERY_METHODS = ['EMAIL', 'SMS'] as const;
+
+export type PaymentLinkDeliveryMethod = (typeof PAYMENT_LINK_DELIVERY_METHODS)[number];
+
+export const PAYMENT_LINK_DELIVERY_METHOD_OPTIONS: {
+	value: PaymentLinkDeliveryMethod;
+	label: string;
+}[] = [
+	{ value: 'EMAIL', label: 'Email' },
+	{ value: 'SMS', label: 'SMS' }
 ];
 
 export interface PaymentLink {
@@ -44,7 +57,7 @@ export type PaymentLinkListRow = PaymentLink & Record<string, unknown>;
 export interface PaymentLinkCounts {
 	All: number;
 	Issued: number;
-	'Partially Paid': number;
+	Attempted: number;
 	Paid: number;
 	Cancelled: number;
 	Expired: number;
