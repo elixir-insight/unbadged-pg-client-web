@@ -20,6 +20,7 @@ export type DisputeDetailLoadResult = {
 	eventsError: string | null;
 	documents: DisputeDocumentsByType;
 	documentsError: string | null;
+	hasChargeback: boolean;
 };
 
 export async function loadDisputeById(params: {
@@ -33,19 +34,22 @@ export async function loadDisputeById(params: {
 	portal?: DisputePortal;
 	includeEvents?: boolean;
 	includeDocuments?: boolean;
+	includeChargebacks?: boolean;
 }): Promise<DisputeDetailLoadResult> {
 	const orgId = params.orgId.trim();
 	const disputeId = params.disputeId.trim();
 	const portal = params.portal ?? 'management';
 	const includeEvents = params.includeEvents ?? portal === 'management';
 	const includeDocuments = params.includeDocuments ?? portal === 'management';
+	const includeChargebacks = params.includeChargebacks ?? portal === 'management';
 	const empty = {
 		dispute: null as DisputeDetailView | null,
 		disputeError: null as string | null,
 		events: [] as DisputeTimelineEventView[],
 		eventsError: null as string | null,
 		documents: emptyDisputeDocumentsByType(),
-		documentsError: null as string | null
+		documentsError: null as string | null,
+		hasChargeback: false
 	};
 
 	if (!orgId) {
@@ -70,7 +74,7 @@ export async function loadDisputeById(params: {
 		};
 	}
 
-	const [detailResult, eventsResult, documentsResult] = await Promise.all([
+	const [detailResult, eventsResult, documentsResult, chargebacksResult] = await Promise.all([
 		disputeClient.getById(
 			params.fetch,
 			params.log,
@@ -100,6 +104,16 @@ export async function loadDisputeById(params: {
 					orgId,
 					disputeId,
 					portal
+				)
+			: Promise.resolve(null),
+		includeChargebacks
+			? disputeClient.listChargebacksByOrganization(
+					params.fetch,
+					params.log,
+					session.accessToken,
+					session.gatewayToken,
+					orgId,
+					{ limit: 100, page: 0 }
 				)
 			: Promise.resolve(null)
 	]);
@@ -158,6 +172,39 @@ export async function loadDisputeById(params: {
 			empty.documentsError = documentsResult.error.message;
 		} else {
 			empty.documents = mapDisputeDocumentsGrouped(documentsResult.data.data[0]);
+		}
+	}
+
+	if (chargebacksResult) {
+		if (!chargebacksResult.ok) {
+			params.log.warn(
+				{
+					orgId,
+					disputeId,
+					message: chargebacksResult.error.message,
+					kind: chargebacksResult.error.kind
+				},
+				'GET organization chargebacks failed'
+			);
+		} else {
+			const normalizedDisputeId = disputeId.toUpperCase();
+			const items = chargebacksResult.data.data ?? [];
+			empty.hasChargeback = items.some((item) => {
+				const itemDisputeId =
+					item.disputeId === null || item.disputeId === undefined
+						? ''
+						: String(item.disputeId).trim().toUpperCase();
+				return itemDisputeId === normalizedDisputeId;
+			});
+			params.log.info(
+				{
+					orgId,
+					disputeId,
+					hasChargeback: empty.hasChargeback,
+					totalReturned: items.length
+				},
+				'resolved hasChargeback for raise-chargeback button'
+			);
 		}
 	}
 

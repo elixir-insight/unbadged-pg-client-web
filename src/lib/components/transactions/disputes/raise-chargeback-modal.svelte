@@ -122,10 +122,11 @@
 	bind:open
 	title="Raise a chargeback"
 	description="Record chargeback amounts and bank reference for this dispute."
+	class="sm:max-w-lg"
 >
-	<div class="flex flex-col gap-4">
-		<div class="grid gap-4 sm:grid-cols-2">
-			<div class="flex flex-col gap-1.5">
+	<div class="flex flex-col gap-5">
+		<div class="grid gap-5 sm:grid-cols-2">
+			<div class="flex flex-col gap-2">
 				<label for="chargeback-principal-amount" class="text-sm font-medium text-foreground">
 					Principal amount <span class="text-destructive">*</span>
 				</label>
@@ -141,7 +142,7 @@
 				{/if}
 			</div>
 
-			<div class="flex flex-col gap-1.5">
+			<div class="flex flex-col gap-2">
 				<label for="chargeback-amount" class="text-sm font-medium text-foreground">
 					Chargeback amount <span class="text-destructive">*</span>
 				</label>
@@ -158,8 +159,8 @@
 			</div>
 		</div>
 
-		<div class="grid gap-4 sm:grid-cols-2">
-			<div class="flex flex-col gap-1.5">
+		<div class="grid gap-5 sm:grid-cols-2">
+			<div class="flex flex-col gap-2">
 				<label for="chargeback-additional-fees" class="text-sm font-medium text-foreground">
 					Additional fees
 				</label>
@@ -171,7 +172,7 @@
 				/>
 			</div>
 
-			<div class="flex flex-col gap-1.5">
+			<div class="flex flex-col gap-2">
 				<label for="chargeback-currency" class="text-sm font-medium text-foreground">
 					Currency <span class="text-destructive">*</span>
 				</label>
@@ -187,7 +188,7 @@
 			</div>
 		</div>
 
-		<div class="flex flex-col gap-1.5">
+		<div class="flex flex-col gap-2">
 			<label for="chargeback-bank-reference" class="text-sm font-medium text-foreground">
 				Bank reference <span class="text-destructive">*</span>
 			</label>
@@ -202,13 +203,14 @@
 			{/if}
 		</div>
 
-		<div class="flex flex-col gap-1.5">
+		<div class="flex flex-col gap-2">
 			<label for="chargeback-notes" class="text-sm font-medium text-foreground">Notes</label>
 			<Textarea
 				id="chargeback-notes"
 				bind:value={notes}
 				rows={3}
 				placeholder="Add notes for this chargeback"
+				class="resize-none"
 			/>
 		</div>
 
@@ -218,7 +220,7 @@
 	</div>
 
 	{#snippet footer()}
-		<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 			<Button
 				variant="outline"
 				class="w-full sm:w-auto"

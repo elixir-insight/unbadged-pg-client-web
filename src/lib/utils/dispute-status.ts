@@ -107,3 +107,17 @@ const CHARGEBACK_ALLOWED_STATUSES = new Set([
 export function canRaiseChargeback(status: string): boolean {
 	return CHARGEBACK_ALLOWED_STATUSES.has(normalizeDisputeStatusKey(status));
 }
+
+/** Returns a hover reason when Raise chargeback should be disabled; null when enabled. */
+export function getRaiseChargebackDisabledReason(
+	status: string,
+	hasChargeback: boolean
+): string | null {
+	if (hasChargeback) {
+		return 'A chargeback has already been raised for this dispute.';
+	}
+	if (!canRaiseChargeback(status)) {
+		return 'Chargebacks can only be raised for Resolved Lost, Arbitration Lost, or Merchant Accepted disputes.';
+	}
+	return null;
+}

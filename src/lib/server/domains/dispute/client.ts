@@ -337,7 +337,7 @@ export const disputeClient = {
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		query: { limit?: number; page?: number } = {}
+		query: { limit?: number; page?: number; disputeId?: string } = {}
 	) =>
 		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/chargebacks`, {
 			fetch: fetchFn,
@@ -347,7 +347,8 @@ export const disputeClient = {
 			gatewayToken,
 			query: {
 				limit: query.limit,
-				page: query.page
+				page: query.page,
+				disputeId: query.disputeId
 			},
 			schema: ListDisputeChargebacksResponseSchema
 		}),

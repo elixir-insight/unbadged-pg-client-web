@@ -19,7 +19,7 @@
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
 	import RaiseChargebackModal from '$lib/components/transactions/disputes/raise-chargeback-modal.svelte';
-	import { canRaiseChargeback } from '$lib/utils/dispute-status';
+	import { getRaiseChargebackDisabledReason } from '$lib/utils/dispute-status';
 	import { userPermissions } from '$lib/stores/rbac';
 	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
 	import type { PageData } from './$types';
@@ -29,6 +29,11 @@
 	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
 
 	const dispute = $derived(data.dispute);
+	const chargebackDisabledReason = $derived(
+		dispute
+			? getRaiseChargebackDisabledReason(dispute.status, Boolean(data.hasChargeback))
+			: 'Dispute details are unavailable.'
+	);
 	let statusChangeOpen = $state(false);
 	let chargebackOpen = $state(false);
 	let confirmOpen = $state(false);
@@ -276,13 +281,15 @@
 				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<Button
-					variant="outline"
-					disabled={!canRaiseChargeback(dispute.status)}
-					onclick={() => (chargebackOpen = true)}
-				>
-					Raise a chargeback
-				</Button>
+				{#if chargebackDisabledReason}
+					<Tooltip content={chargebackDisabledReason}>
+						<Button variant="outline" disabled>Raise a chargeback</Button>
+					</Tooltip>
+				{:else}
+					<Button variant="outline" onclick={() => (chargebackOpen = true)}>
+						Raise a chargeback
+					</Button>
+				{/if}
 				{#if canEdit}
 					<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
 						Update dispute

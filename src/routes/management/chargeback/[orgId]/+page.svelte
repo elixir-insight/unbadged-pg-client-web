@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
-	import { ArrowLeft } from '$lib/assets/icons';
 	import { Button, CopyButton, Drawer, Table, createUrlPagination } from '$lib/components/reusable';
 	import type { PageData } from './$types';
 
@@ -40,10 +39,6 @@
 		return `View chargeback ${display(row.id)}`;
 	}
 
-	function backToOverview(): void {
-		goto(resolve('/management/chargeback'));
-	}
-
 	function openDispute(): void {
 		const disputeId = selected?.disputeId.trim() ?? '';
 		if (!disputeId || disputeId === '—') return;
@@ -52,16 +47,6 @@
 </script>
 
 <section class="flex flex-col gap-4">
-	<Button
-		variant="ghost"
-		onclick={backToOverview}
-		class="w-fit px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
-		aria-label="Go back to chargebacks"
-	>
-		<ArrowLeft class="size-4" />
-		Go back
-	</Button>
-
 	<div class="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
 		<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Organization</p>
 		<div class="mt-1 flex items-center gap-2">
