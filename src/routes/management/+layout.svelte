@@ -12,7 +12,8 @@
 	const PAYIN_ROUTES = [
 		'/management/collections',
 		'/management/settlements',
-		'/management/transactions/collections'
+		'/management/transactions/collections',
+		'/management/chargeback'
 	];
 
 	const PAYOUT_ROUTES = [

@@ -7,6 +7,7 @@ import {
 	// Wallet,
 	// Send,
 	ArrowLeftRight,
+	CreditCard,
 	TrendingUp,
 	MessageSquareWarning,
 	Landmark,
@@ -139,6 +140,19 @@ export const managementNav: NavGroup[] = [
 					}
 				]
 			},
+			{
+				title: 'Chargeback',
+				href: '/management/chargeback',
+				icon: CreditCard,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/management\/chargeback\/[^/]+$/,
+						title: 'Chargeback Details'
+					}
+				]
+			},
+			// { title: 'Transaction Insights', href: '/management/transaction-insights', icon: TrendingUp },
 			{
 				title: 'Settlements',
 				href: '/management/settlements',

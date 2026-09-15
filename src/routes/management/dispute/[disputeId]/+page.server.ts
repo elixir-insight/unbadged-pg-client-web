@@ -43,7 +43,8 @@ export const load: PageServerLoad = async ({
 		events: [] as DisputeTimelineEventView[],
 		eventsError: null as string | null,
 		documents: emptyDisputeDocumentsByType() as DisputeDocumentsByType,
-		documentsError: null as string | null
+		documentsError: null as string | null,
+		hasChargeback: false
 	};
 
 	if (!disputeId) {
@@ -75,6 +76,7 @@ export const load: PageServerLoad = async ({
 		events: result.events,
 		eventsError: result.eventsError,
 		documents: result.documents,
-		documentsError: result.documentsError
+		documentsError: result.documentsError,
+		hasChargeback: result.hasChargeback
 	};
 };

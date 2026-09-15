@@ -18,6 +18,8 @@
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
+	import RaiseChargebackModal from '$lib/components/transactions/disputes/raise-chargeback-modal.svelte';
+	import { getRaiseChargebackDisabledReason } from '$lib/utils/dispute-status';
 	import { userPermissions } from '$lib/stores/rbac';
 	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
 	import type { PageData } from './$types';
@@ -27,7 +29,13 @@
 	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
 
 	const dispute = $derived(data.dispute);
+	const chargebackDisabledReason = $derived(
+		dispute
+			? getRaiseChargebackDisabledReason(dispute.status, Boolean(data.hasChargeback))
+			: 'Dispute details are unavailable.'
+	);
 	let statusChangeOpen = $state(false);
+	let chargebackOpen = $state(false);
 	let confirmOpen = $state(false);
 	let isUpdating = $state(false);
 	let updateError = $state('');
@@ -272,15 +280,26 @@
 				<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
 				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
 			</div>
-			{#if canEdit}
-				<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
-					Update dispute
-				</Button>
-			{:else}
-				<Tooltip content="You don't have permission to perform this action.">
-					<Button disabled>Update dispute</Button>
-				</Tooltip>
-			{/if}
+			<div class="flex flex-wrap items-center gap-2">
+				{#if chargebackDisabledReason}
+					<Tooltip content={chargebackDisabledReason}>
+						<Button variant="outline" disabled>Raise a chargeback</Button>
+					</Tooltip>
+				{:else}
+					<Button variant="outline" onclick={() => (chargebackOpen = true)}>
+						Raise a chargeback
+					</Button>
+				{/if}
+				{#if canEdit}
+					<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
+						Update dispute
+					</Button>
+				{:else}
+					<Tooltip content="You don't have permission to perform this action.">
+						<Button disabled>Update dispute</Button>
+					</Tooltip>
+				{/if}
+			</div>
 		</div>
 
 		<div class="grid items-start gap-5 xl:grid-cols-3">
@@ -425,6 +444,14 @@
 		currentStatus={dispute.status}
 		currentStatusLabel={dispute.statusLabel}
 		statuses={data.statusOptions}
+	/>
+	<RaiseChargebackModal
+		bind:open={chargebackOpen}
+		orgId={data.orgId}
+		disputeId={dispute.disputeId}
+		bankReference={bankRefNumber || dispute.bankRefNumber}
+		currency={dispute.currency || 'INR'}
+		principalAmount={dispute.amountRaw}
 	/>
 	<Modal
 		bind:open={confirmOpen}

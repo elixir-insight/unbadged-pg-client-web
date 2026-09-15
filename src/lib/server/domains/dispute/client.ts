@@ -1,6 +1,9 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
+	ChargebackOverviewResponseSchema,
+	CreateDisputeChargebackRequestSchema,
+	CreateDisputeChargebackResponseSchema,
 	CreateDisputeRequestSchema,
 	CreateDisputeResponseSchema,
 	DeleteDisputeDocumentResponseSchema,
@@ -9,6 +12,7 @@ import {
 	DisputeStatusesResponseSchema,
 	GetDisputeDocumentDownloadUrlResponseSchema,
 	GetDisputeDocumentsResponseSchema,
+	ListDisputeChargebacksResponseSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeDocumentResponseSchema,
 	UpdateDisputeRequestSchema,
@@ -16,6 +20,7 @@ import {
 	UpdateDisputeStatusRequestSchema,
 	UpdateDisputeStatusResponseSchema,
 	UploadDisputeDocumentsResponseSchema,
+	type CreateDisputeChargebackRequest,
 	type CreateDisputeRequest,
 	type UpdateDisputeDocumentRequest,
 	type UpdateDisputeRequest,
@@ -104,6 +109,27 @@ export const disputeClient = {
 				schema: DisputeEventsResponseSchema
 			}
 		),
+
+	/** GET /api/v1/management/disputes/chargebacks/overview */
+	listChargebackOverview: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		query: { limit?: number; page?: number } = {}
+	) =>
+		apiFetch('api/v1/management/disputes/chargebacks/overview', {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				limit: query.limit,
+				page: query.page
+			},
+			schema: ChargebackOverviewResponseSchema
+		}),
 
 	/** GET /api/v1/management/disputes/statuses */
 	listStatuses: (
@@ -302,10 +328,57 @@ export const disputeClient = {
 			gatewayToken,
 			body,
 			schema: CreateDisputeResponseSchema
-		})
+		}),
+
+	/** GET /api/v1/management/organizations/{orgId}/disputes/chargebacks */
+	listChargebacksByOrganization: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		query: { limit?: number; page?: number; disputeId?: string } = {}
+	) =>
+		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/chargebacks`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query: {
+				limit: query.limit,
+				page: query.page,
+				disputeId: query.disputeId
+			},
+			schema: ListDisputeChargebacksResponseSchema
+		}),
+
+	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/chargebacks */
+	createChargeback: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		body: CreateDisputeChargebackRequest
+	) =>
+		apiFetch(
+			`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/chargebacks`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'POST',
+				accessToken,
+				gatewayToken,
+				body,
+				schema: CreateDisputeChargebackResponseSchema
+			}
+		)
 };
 
 export {
+	CreateDisputeChargebackRequestSchema,
 	CreateDisputeRequestSchema,
 	UpdateDisputeDocumentRequestSchema,
 	UpdateDisputeRequestSchema,
