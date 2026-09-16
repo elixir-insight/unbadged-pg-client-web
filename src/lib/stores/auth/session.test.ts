@@ -65,9 +65,14 @@ describe('parseMerchantSessionFromGateway', () => {
 		expect(session.displayOrgId).toBe('10002');
 	});
 
-	it('uses portal groups from the access token only', () => {
+	it('merges access-token groups with the gateway group claim', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
-		expect(session.groups).toEqual(['MANAGEMENT']);
+		expect(session.groups).toEqual(['MANAGEMENT', 'MERCHANT']);
+	});
+
+	it('includes PLATFORM from the gateway so partner routing can apply', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken({ group: 'PLATFORM' }), ['ROOT']);
+		expect(session.groups).toEqual(['ROOT', 'PLATFORM']);
 	});
 
 	it('derives merchant service access from the gateway token', () => {

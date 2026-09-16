@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { userPermissions } from '$lib/stores/rbac';
 import ApiCredentialSection from './api-credential-section.svelte';
+
+beforeEach(() => {
+	userPermissions.hydrate({
+		PROFILE: new Set(['write', 'delete'])
+	});
+});
+
+afterEach(() => {
+	userPermissions.hydrate({});
+});
 
 describe('ApiCredentialSection — no credential yet', () => {
 	it('shows the Generate button with one-time-only copy', async () => {
@@ -14,6 +25,13 @@ describe('ApiCredentialSection — no credential yet', () => {
 		const screen = render(ApiCredentialSection, { credential: null });
 
 		expect(screen.container.textContent).not.toContain('Delete API Credential');
+	});
+
+	it('hides Generate when the user lacks PROFILE write', async () => {
+		userPermissions.hydrate({});
+		const screen = render(ApiCredentialSection, { credential: null });
+
+		expect(screen.container.textContent).not.toContain('Generate API Credential');
 	});
 });
 
@@ -37,6 +55,13 @@ describe('ApiCredentialSection — credential exists', () => {
 		const screen = render(ApiCredentialSection, { credential });
 
 		expect(screen.container.textContent).not.toContain('Generate API Credential');
+	});
+
+	it('hides Delete when the user lacks PROFILE delete', async () => {
+		userPermissions.hydrate({});
+		const screen = render(ApiCredentialSection, { credential });
+
+		expect(screen.container.textContent).not.toContain('Delete API Credential');
 	});
 
 	it('requires confirmation before revoking — the confirm dialog is not shown until Delete is clicked', async () => {

@@ -11,6 +11,7 @@ export interface DisputeDetailView {
 	orgId: string;
 	organization: string;
 	amount: string;
+	amountRaw: string;
 	currency: string;
 	source: string;
 	sourceLabel: string;
@@ -63,6 +64,7 @@ export function mapDisputeDetail(
 		orgId,
 		organization: displayValue(organizationName?.trim() || orgId),
 		amount: formatDisputeAmount(asText(item.amount), asText(item.currency)),
+		amountRaw: asText(item.amount),
 		currency: asText(item.currency),
 		source,
 		sourceLabel: source ? formatSnakeCaseLabel(source) : '—',

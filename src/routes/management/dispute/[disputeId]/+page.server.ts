@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { loadDisputeById } from '$lib/server/domains/dispute/loaders/get-by-id';
 import type { DisputeDetailView } from '$lib/server/domains/dispute/mappers/from-api/details';
 import {
@@ -25,6 +26,7 @@ export const load: PageServerLoad = async ({
 	parent
 }) => {
 	depends('management-disputes:detail');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const disputeId = params.disputeId?.trim() ?? '';
 	const parentData = await parent();
@@ -41,7 +43,8 @@ export const load: PageServerLoad = async ({
 		events: [] as DisputeTimelineEventView[],
 		eventsError: null as string | null,
 		documents: emptyDisputeDocumentsByType() as DisputeDocumentsByType,
-		documentsError: null as string | null
+		documentsError: null as string | null,
+		hasChargeback: false
 	};
 
 	if (!disputeId) {
@@ -73,6 +76,7 @@ export const load: PageServerLoad = async ({
 		events: result.events,
 		eventsError: result.eventsError,
 		documents: result.documents,
-		documentsError: result.documentsError
+		documentsError: result.documentsError,
+		hasChargeback: result.hasChargeback
 	};
 };

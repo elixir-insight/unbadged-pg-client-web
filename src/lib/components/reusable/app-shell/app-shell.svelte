@@ -155,7 +155,7 @@
 					<Menu class="h-4 w-4" />
 				</button>
 
-				{#if isDashboard && (app === 'management' || app === 'merchant')}
+				{#if isDashboard && (app === 'management' || app === 'merchant' || app === 'partner')}
 					<p class="min-w-0 truncate text-sm text-muted-foreground">
 						Welcome, <span class="font-bold text-foreground">{userName}</span>
 					</p>

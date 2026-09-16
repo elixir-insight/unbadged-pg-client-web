@@ -1,4 +1,4 @@
-import type { PaymentLinkAllowedMethod } from '$lib/types/payment-link';
+import type { PaymentLinkAllowedMethod, PaymentLinkDeliveryMethod } from '$lib/types/payment-link';
 
 export type CreatePaymentLinkRequest = {
 	amount: string;
@@ -8,6 +8,7 @@ export type CreatePaymentLinkRequest = {
 	customerEmail: string;
 	customerPhone: string;
 	allowedPaymentMethods: PaymentLinkAllowedMethod[];
+	deliveryMethods: PaymentLinkDeliveryMethod[];
 	expiresBy: string;
 };
 

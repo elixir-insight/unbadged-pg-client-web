@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { loadDisputeById } from '$lib/server/domains/dispute/loaders/get-by-id';
 import type { DisputeDetailView } from '$lib/server/domains/dispute/mappers/from-api/details';
 import {
@@ -9,6 +10,7 @@ import type { DisputeTimelineEventView } from '$lib/utils/dispute-status';
 
 export const load: PageServerLoad = async ({ params, cookies, fetch, locals, depends }) => {
 	depends('merchant-disputes:detail');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const disputeId = params.disputeId?.trim() ?? '';
 	const orgId =

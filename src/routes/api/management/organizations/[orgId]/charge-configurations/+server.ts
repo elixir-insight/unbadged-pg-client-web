@@ -8,6 +8,7 @@ import {
 import { createChargeConfigurationsMutation } from '$lib/server/domains/charge-configuration/mutations/create';
 import { loadChargeConfigurations } from '$lib/server/domains/charge-configuration/loaders/list-by-organization';
 import type { CreateChargeConfigurationsRequest } from '$lib/server/domains/charge-configuration/schema';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 function summarizeChargeConfigBody(body: CreateChargeConfigurationsRequest) {
 	return {
@@ -19,6 +20,7 @@ function summarizeChargeConfigBody(body: CreateChargeConfigurationsRequest) {
 }
 
 export const GET: RequestHandler = async ({ params, url, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 	const orgId = params.orgId?.trim() ?? '';
 	const vaNumber = url.searchParams.get('vaNumber')?.trim() ?? '';
 	const log = locals.logger.child({ action: 'charge-configurations' });
@@ -62,6 +64,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals, fetch 
 };
 
 export const POST: RequestHandler = async ({ params, request, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 	const orgId = params.orgId?.trim() ?? '';
 	const log = locals.logger.child({ action: 'charge-configurations-create' });
 

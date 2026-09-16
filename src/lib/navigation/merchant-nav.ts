@@ -23,6 +23,10 @@ export const merchantNav: NavGroup[] = [
 				title: 'Transactions',
 				href: '/merchant/transactions',
 				icon: ArrowLeftRight,
+				requiredPermissionAnyOf: [
+					{ module: 'PAYINS', action: 'read' },
+					{ module: 'PAYOUTS', action: 'read' }
+				],
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/transactions\/collections$/,
@@ -48,11 +52,13 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
+			// Dispute omitted from nav until backend API is ready
 			{
 				title: 'Dispute',
 				href: '/merchant/dispute',
 				icon: MessageSquareWarning,
 				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/dispute\/[^/]+$/,
@@ -60,7 +66,13 @@ export const merchantNav: NavGroup[] = [
 					}
 				]
 			},
-			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' }
+			{
+				title: 'Settlements',
+				href: '/merchant/settlements',
+				icon: Landmark,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' }
+			}
 			// Funds + Beneficiaries intentionally omitted from nav for now
 		]
 	},
@@ -79,7 +91,12 @@ export const merchantNav: NavGroup[] = [
 			// 		}
 			// 	]
 			// },
-			{ title: 'Reports', href: '/merchant/reports', icon: FileText }
+			{
+				title: 'Reports',
+				href: '/merchant/reports',
+				icon: FileText,
+				requiredPermission: { module: 'REPORTS', action: 'read' }
+			}
 		]
 	},
 	{
@@ -89,6 +106,7 @@ export const merchantNav: NavGroup[] = [
 				title: 'User Management',
 				href: '/merchant/user-management',
 				icon: Users,
+				requiredPermission: { module: 'USER_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/user-management\/view-user\/[^/]+$/,
@@ -116,6 +134,7 @@ export const merchantNav: NavGroup[] = [
 				title: 'Role Management',
 				href: '/merchant/role-management',
 				icon: ShieldCheck,
+				requiredPermission: { module: 'ROLE_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/role-management\/view-role\/[^/]+$/,

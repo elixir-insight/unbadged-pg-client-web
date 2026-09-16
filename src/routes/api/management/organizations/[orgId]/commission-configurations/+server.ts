@@ -8,6 +8,7 @@ import {
 import { createCommissionConfigurationsMutation } from '$lib/server/domains/commission-configuration/mutations/create';
 import { loadCommissionConfigurations } from '$lib/server/domains/commission-configuration/loaders/list-by-organization';
 import type { CreateCommissionConfigurationsRequest } from '$lib/server/domains/commission-configuration/schema';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 function summarizeCommissionConfigBody(body: CreateCommissionConfigurationsRequest) {
 	return {
@@ -19,6 +20,7 @@ function summarizeCommissionConfigBody(body: CreateCommissionConfigurationsReque
 }
 
 export const GET: RequestHandler = async ({ params, url, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'read');
 	const orgId = params.orgId?.trim() ?? '';
 	const vaNumber = url.searchParams.get('vaNumber')?.trim() ?? '';
 	const log = locals.logger.child({ action: 'commission-configurations' });
@@ -62,6 +64,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals, fetch 
 };
 
 export const POST: RequestHandler = async ({ params, request, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 	const orgId = params.orgId?.trim() ?? '';
 	const log = locals.logger.child({ action: 'commission-configurations-create' });
 

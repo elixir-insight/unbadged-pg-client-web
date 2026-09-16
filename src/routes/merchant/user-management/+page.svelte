@@ -10,6 +10,7 @@
 	import { fetchUsers } from '$lib/stores/user-management/users-api';
 	import type { UserItem } from '$lib/stores/user-management/user-management';
 	import { debounce } from '$lib/utils/debounce';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	const PAGE_SIZE = 10;
 	const pagination = createUrlPagination({ defaultLimit: PAGE_SIZE });
@@ -252,22 +253,24 @@
 	{/if}
 
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		<button
-			type="button"
-			class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
-			onclick={() => {
-				userFormStore.reset();
-				createUserFormStore.reset();
-				goto(resolve('/merchant/user-management/create-user'));
-			}}
-		>
-			<div
-				class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow transition-colors"
+		{#if userPermissions.can('USER_MANAGEMENT', 'write')}
+			<button
+				type="button"
+				class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
+				onclick={() => {
+					userFormStore.reset();
+					createUserFormStore.reset();
+					goto(resolve('/merchant/user-management/create-user'));
+				}}
 			>
-				<Plus class="h-5 w-5 text-primary transition-colors" />
-			</div>
-			<span class="text-sm font-medium text-foreground transition-colors">Add user</span>
-		</button>
+				<div
+					class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow transition-colors"
+				>
+					<Plus class="h-5 w-5 text-primary transition-colors" />
+				</div>
+				<span class="text-sm font-medium text-foreground transition-colors">Add user</span>
+			</button>
+		{/if}
 
 		{#if loading && users.length === 0}
 			<UserCardSkeleton count={5} />

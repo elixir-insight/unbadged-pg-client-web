@@ -7,6 +7,7 @@
 	import { Plus, X } from '$lib/assets/icons';
 	import { roleFormStore } from '$lib/stores/role-management/role-form.svelte';
 	import { debounce } from '$lib/utils/debounce';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	const pagination = createUrlPagination();
 	const activeFilters = $derived([
@@ -147,22 +148,23 @@
 
 	<!-- Grid -->
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		<!-- Create New Role card -->
-		<button
-			type="button"
-			class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
-			onclick={() => {
-				roleFormStore.reset();
-				goto(resolve('/merchant/role-management/create-role'));
-			}}
-		>
-			<div
-				class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow transition-colors"
+		{#if userPermissions.can('ROLE_MANAGEMENT', 'write')}
+			<button
+				type="button"
+				class="group flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/60 bg-card p-6 shadow transition-all duration-200 hover:bg-primary/5"
+				onclick={() => {
+					roleFormStore.reset();
+					goto(resolve('/merchant/role-management/create-role'));
+				}}
 			>
-				<Plus class="h-5 w-5 text-primary transition-colors" />
-			</div>
-			<span class="text-sm font-medium text-foreground transition-colors">Create New Role</span>
-		</button>
+				<div
+					class="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40 bg-primary/10 shadow transition-colors"
+				>
+					<Plus class="h-5 w-5 text-primary transition-colors" />
+				</div>
+				<span class="text-sm font-medium text-foreground transition-colors">Create New Role</span>
+			</button>
+		{/if}
 
 		{#if loading && roles.length === 0}
 			<RoleCardSkeleton count={5} />

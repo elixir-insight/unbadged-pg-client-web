@@ -9,6 +9,7 @@
 
 	interface Props {
 		mode?: 'management' | 'merchant';
+		readOnly?: boolean;
 		orgId?: string;
 		disputeId?: string;
 		documents?: DisputeDocumentsByType;
@@ -26,6 +27,7 @@
 
 	let {
 		mode = 'management',
+		readOnly = false,
 		orgId = '',
 		disputeId = '',
 		documents,
@@ -119,6 +121,7 @@
 				{disputeId}
 				initialDocuments={group.documents}
 				showMerchantVisibility={group.showMerchantVisibility}
+				{readOnly}
 				reviewEditable={mode === 'management'}
 				allowUpload={group.allowUpload}
 			/>

@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import * as v from 'valibot';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 import { UpdateOrgRoleBodySchema } from '$lib/server/domains/members/schema';
@@ -32,6 +33,7 @@ function parseRoleId(raw: string | undefined): number {
 
 export const GET: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'read');
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {
@@ -89,6 +91,7 @@ export const GET: RequestHandler = async ({ params, url, request, cookies, fetch
 
 export const PATCH: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'write');
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {
@@ -142,6 +145,7 @@ export const PATCH: RequestHandler = async ({ params, url, request, cookies, fet
 
 export const DELETE: RequestHandler = async ({ params, url, request, cookies, fetch, locals }) => {
 	const tokens = await requireSession(cookies, fetch, locals.logger);
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'delete');
 
 	const orgId = Number(locals.merchantSession?.organizationId);
 	if (!Number.isFinite(orgId)) {

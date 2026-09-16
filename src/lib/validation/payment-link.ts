@@ -12,6 +12,7 @@ export interface CreatePaymentLinkFormValues {
 	customerEmail: string;
 	customerPhone: string;
 	allowedPaymentMethods: string[];
+	deliveryMethods: string[];
 	expireOn: string;
 	expireAt: string;
 }
@@ -71,6 +72,14 @@ export function validateCreatePaymentLinkForm(
 		errors.allowedPaymentMethods = 'Select at least one payment method';
 	}
 
+	const deliveryMethods = values.deliveryMethods;
+	if (deliveryMethods.includes('EMAIL') && !values.customerEmail.trim()) {
+		errors.customerEmail = 'Customer email is required to send by email';
+	}
+	if (deliveryMethods.includes('SMS') && !values.customerPhone.trim()) {
+		errors.customerPhone = 'Customer phone is required to send by SMS';
+	}
+
 	if (!values.expireOn.trim()) {
 		errors.expireOn = 'Expiry date is required';
 	} else {
@@ -114,6 +123,7 @@ export function firstPaymentLinkValidationError(
 		errors.customerEmail ??
 		errors.customerPhone ??
 		errors.allowedPaymentMethods ??
+		errors.deliveryMethods ??
 		errors.expireOn ??
 		errors.expireAt
 	);

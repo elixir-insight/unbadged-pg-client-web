@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { loadDisputesByOrganization } from '$lib/server/domains/dispute/loaders/list-by-organization';
 import {
 	emptyDisputePagination,
@@ -18,6 +19,7 @@ function resolveOrgId(
 
 export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depends, parent }) => {
 	depends('management-disputes:list');
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 
 	const parentData = await parent();
 	const log = locals.logger.child({ action: 'management-disputes-list' });

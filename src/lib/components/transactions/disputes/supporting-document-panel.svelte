@@ -43,6 +43,7 @@
 		disputeId?: string;
 		initialDocuments?: DisputeDocumentView[];
 		showMerchantVisibility?: boolean;
+		readOnly?: boolean;
 		reviewEditable?: boolean;
 		allowUpload?: boolean;
 	}
@@ -94,6 +95,7 @@
 		disputeId = '',
 		initialDocuments = [],
 		showMerchantVisibility = false,
+		readOnly = false,
 		reviewEditable = false,
 		allowUpload = true
 	}: Props = $props();
@@ -111,8 +113,10 @@
 	const canUploadToApi = $derived(Boolean(orgId.trim() && disputeId.trim()));
 	const canUseManagementDocumentApis = $derived(mode === 'management' && canUploadToApi);
 	const canUseDocumentDownloadApis = $derived(canUploadToApi);
+	const canReview = $derived(reviewEditable && !readOnly);
+	const canShowUpload = $derived(allowUpload && !readOnly);
 	const canDeleteDocument = $derived(
-		canUploadToApi && (reviewEditable || (mode === 'merchant' && allowUpload))
+		!readOnly && canUploadToApi && (reviewEditable || (mode === 'merchant' && allowUpload))
 	);
 	const detailInvalidateKey = $derived(
 		mode === 'merchant' ? 'merchant-disputes:detail' : 'management-disputes:detail'
@@ -686,7 +690,7 @@
 		<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
 	</div>
 
-	{#if allowUpload}
+	{#if canShowUpload}
 		<button
 			type="button"
 			class="mt-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
@@ -725,7 +729,8 @@
 		<ul
 			class={cn(
 				'mt-4 flex flex-col gap-3',
-				documents.length > 1 && 'max-h-56 overflow-y-auto overscroll-contain pr-1'
+				documents.length > 1 && 'overflow-y-auto overscroll-contain pr-1',
+				documents.length > 1 && (mode === 'merchant' ? 'max-h-80' : 'max-h-96')
 			)}
 			aria-label="{title} uploaded documents"
 		>
@@ -749,7 +754,7 @@
 									</p>
 								</div>
 
-								{#if reviewEditable}
+								{#if canReview}
 									<div class="w-44 shrink-0">
 										<Dropdown
 											value={document.reviewStatus}
@@ -787,7 +792,7 @@
 						<p class="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
 							Review note
 						</p>
-						{#if reviewEditable}
+						{#if canReview}
 							<Textarea
 								value={document.reviewNote}
 								rows={2}
@@ -806,7 +811,7 @@
 						{/if}
 					</div>
 
-					{#if reviewEditable}
+					{#if canReview}
 						<div class="mt-3 flex justify-end">
 							<Button
 								size="sm"
@@ -864,7 +869,8 @@
 						{#if showMerchantVisibility}
 							<label
 								class={cn(
-									'inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
+									'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium',
+									readOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
 									document.shownToMerchant
 										? 'border-primary bg-primary/10 text-primary'
 										: 'border-border text-muted-foreground',
@@ -883,7 +889,7 @@
 								<Switch
 									size="sm"
 									checked={document.shownToMerchant}
-									disabled={document.isSavingVisibility}
+									disabled={readOnly || document.isSavingVisibility}
 									onCheckedChange={(checked) => {
 										void setMerchantVisibility(document.id, checked);
 									}}

@@ -10,6 +10,7 @@
 		Input,
 		Modal,
 		Textarea,
+		Tooltip,
 		toast
 	} from '$lib/components/reusable';
 	import ChangeDisputeStatusModal from '$lib/components/transactions/disputes/change-dispute-status-modal.svelte';
@@ -17,13 +18,24 @@
 	import DisputeStatusOverview from '$lib/components/transactions/disputes/dispute-status-overview.svelte';
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
+	import RaiseChargebackModal from '$lib/components/transactions/disputes/raise-chargeback-modal.svelte';
+	import { getRaiseChargebackDisabledReason } from '$lib/utils/dispute-status';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	const canEdit = $derived(userPermissions.can('PAYINS', 'write'));
+
 	const dispute = $derived(data.dispute);
+	const chargebackDisabledReason = $derived(
+		dispute
+			? getRaiseChargebackDisabledReason(dispute.status, Boolean(data.hasChargeback))
+			: 'Dispute details are unavailable.'
+	);
 	let statusChangeOpen = $state(false);
+	let chargebackOpen = $state(false);
 	let confirmOpen = $state(false);
 	let isUpdating = $state(false);
 	let updateError = $state('');
@@ -268,9 +280,26 @@
 				<h1 class="text-2xl font-semibold tracking-tight text-foreground">#{dispute.disputeId}</h1>
 				<DisputeStatusBadge status={dispute.status} catalog={data.statusOptions} />
 			</div>
-			<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
-				Update dispute
-			</Button>
+			<div class="flex flex-wrap items-center gap-2">
+				{#if chargebackDisabledReason}
+					<Tooltip content={chargebackDisabledReason}>
+						<Button variant="outline" disabled>Raise a chargeback</Button>
+					</Tooltip>
+				{:else}
+					<Button variant="outline" onclick={() => (chargebackOpen = true)}>
+						Raise a chargeback
+					</Button>
+				{/if}
+				{#if canEdit}
+					<Button disabled={!hasChanges || isUpdating} onclick={openConfirmModal}>
+						Update dispute
+					</Button>
+				{:else}
+					<Tooltip content="You don't have permission to perform this action.">
+						<Button disabled>Update dispute</Button>
+					</Tooltip>
+				{/if}
+			</div>
 		</div>
 
 		<div class="grid items-start gap-5 xl:grid-cols-3">
@@ -315,30 +344,32 @@
 						</div>
 
 						<div class="flex min-w-0 flex-col gap-5 lg:pl-8">
-							<div class="grid grid-cols-2 items-center gap-6">
-								<label for="bank-reference-number" class="text-sm font-medium text-foreground">
-									Bank Reference Number
-								</label>
-								<Input
-									id="bank-reference-number"
-									bind:value={bankRefNumber}
-									placeholder="Enter bank reference number"
-								/>
-							</div>
+							<fieldset disabled={!canEdit} class="contents">
+								<div class="grid grid-cols-2 items-center gap-6">
+									<label for="bank-reference-number" class="text-sm font-medium text-foreground">
+										Bank Reference Number
+									</label>
+									<Input
+										id="bank-reference-number"
+										bind:value={bankRefNumber}
+										placeholder="Enter bank reference number"
+									/>
+								</div>
 
-							<div class="grid grid-cols-2 items-center gap-6">
-								<p class="text-sm font-medium text-foreground">Evidence Due By</p>
-								<DatePicker bind:value={evidenceDueBy} placeholder="Select a date" />
-							</div>
-							{@render detailRow('Assigned to', dispute.assignedTo)}
-							{@render detailRow('Raised by', dispute.raisedBy)}
-							<div class="grid grid-cols-2 items-center gap-6">
-								<label for="reason-code" class="text-sm font-medium text-foreground">
-									Reason Code
-								</label>
-								<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
-							</div>
-							{@render detailRow('Resolved by', dispute.resolvedBy)}
+								<div class="grid grid-cols-2 items-center gap-6">
+									<p class="text-sm font-medium text-foreground">Evidence Due By</p>
+									<DatePicker bind:value={evidenceDueBy} placeholder="Select a date" />
+								</div>
+								{@render detailRow('Assigned to', dispute.assignedTo)}
+								{@render detailRow('Raised by', dispute.raisedBy)}
+								<div class="grid grid-cols-2 items-center gap-6">
+									<label for="reason-code" class="text-sm font-medium text-foreground">
+										Reason Code
+									</label>
+									<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
+								</div>
+								{@render detailRow('Resolved by', dispute.resolvedBy)}
+							</fieldset>
 						</div>
 					</div>
 				</div>
@@ -354,27 +385,29 @@
 					</div>
 
 					<div class="mt-6 flex flex-col gap-3">
-						{@render detailCard(
-							'gateway-description',
-							'Gateway description',
-							gatewayDescription,
-							(value) => (gatewayDescription = value),
-							'Enter gateway description'
-						)}
-						{@render detailCard(
-							'pipeline-description',
-							'Pipeline description',
-							pipelineDescription,
-							(value) => (pipelineDescription = value),
-							'Enter pipeline description'
-						)}
-						{@render detailCard(
-							'resolution-notes',
-							'Resolution notes',
-							resolutionNotes,
-							(value) => (resolutionNotes = value),
-							'Enter resolution notes'
-						)}
+						<fieldset disabled={!canEdit} class="contents">
+							{@render detailCard(
+								'gateway-description',
+								'Gateway description',
+								gatewayDescription,
+								(value) => (gatewayDescription = value),
+								'Enter gateway description'
+							)}
+							{@render detailCard(
+								'pipeline-description',
+								'Pipeline description',
+								pipelineDescription,
+								(value) => (pipelineDescription = value),
+								'Enter pipeline description'
+							)}
+							{@render detailCard(
+								'resolution-notes',
+								'Resolution notes',
+								resolutionNotes,
+								(value) => (resolutionNotes = value),
+								'Enter resolution notes'
+							)}
+						</fieldset>
 					</div>
 				</div>
 			</div>
@@ -385,7 +418,7 @@
 						status={dispute.status}
 						catalog={data.statusOptions}
 						evidenceDueBy={dispute.evidenceDueByRaw}
-						changeDisabled={data.statusOptions.length === 0}
+						changeDisabled={!canEdit || data.statusOptions.length === 0}
 						onChangeStatus={() => (statusChangeOpen = true)}
 					/>
 				</div>
@@ -401,6 +434,7 @@
 			disputeId={dispute.disputeId}
 			documents={data.documents}
 			documentsError={data.documentsError}
+			readOnly={!canEdit}
 		/>
 	</div>
 	<ChangeDisputeStatusModal
@@ -410,6 +444,14 @@
 		currentStatus={dispute.status}
 		currentStatusLabel={dispute.statusLabel}
 		statuses={data.statusOptions}
+	/>
+	<RaiseChargebackModal
+		bind:open={chargebackOpen}
+		orgId={data.orgId}
+		disputeId={dispute.disputeId}
+		bankReference={bankRefNumber || dispute.bankRefNumber}
+		currency={dispute.currency || 'INR'}
+		principalAmount={dispute.amountRaw}
 	/>
 	<Modal
 		bind:open={confirmOpen}

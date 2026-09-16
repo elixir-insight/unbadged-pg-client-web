@@ -14,6 +14,7 @@
 		buildGrantedPreviewStatuses
 	} from '$lib/stores/role-management/permissions-mapper';
 	import { deleteRole } from '$lib/stores/role-management/roles-api';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { Pencil, Trash2, Users } from '$lib/assets/icons';
 	import type { PageData } from './$types';
 
@@ -148,32 +149,36 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			{#if editDisabledReason}
-				<Tooltip content={editDisabledReason}>
-					<Button variant="outline" size="sm" disabled>
+			{#if userPermissions.can('ROLE_MANAGEMENT', 'write')}
+				{#if editDisabledReason}
+					<Tooltip content={editDisabledReason}>
+						<Button variant="outline" size="sm" disabled>
+							<Pencil class="h-4 w-4" />
+							Edit role
+						</Button>
+					</Tooltip>
+				{:else}
+					<Button variant="outline" size="sm" onclick={handleEdit}>
 						<Pencil class="h-4 w-4" />
 						Edit role
 					</Button>
-				</Tooltip>
-			{:else}
-				<Button variant="outline" size="sm" onclick={handleEdit}>
-					<Pencil class="h-4 w-4" />
-					Edit role
-				</Button>
+				{/if}
 			{/if}
 
-			{#if deleteDisabledReason}
-				<Tooltip content={deleteDisabledReason}>
-					<Button variant="destructive" size="sm" disabled>
+			{#if userPermissions.can('ROLE_MANAGEMENT', 'delete')}
+				{#if deleteDisabledReason}
+					<Tooltip content={deleteDisabledReason}>
+						<Button variant="destructive" size="sm" disabled>
+							<Trash2 class="h-4 w-4" />
+							Delete
+						</Button>
+					</Tooltip>
+				{:else}
+					<Button variant="destructive" size="sm" onclick={() => (deleteOpen = true)}>
 						<Trash2 class="h-4 w-4" />
 						Delete
 					</Button>
-				</Tooltip>
-			{:else}
-				<Button variant="destructive" size="sm" onclick={() => (deleteOpen = true)}>
-					<Trash2 class="h-4 w-4" />
-					Delete
-				</Button>
+				{/if}
 			{/if}
 		</div>
 	</div>

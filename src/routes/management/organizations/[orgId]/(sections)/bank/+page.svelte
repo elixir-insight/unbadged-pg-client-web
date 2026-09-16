@@ -25,6 +25,8 @@
 		maskAccountNumber,
 		type FlowStepKey
 	} from '../../helpers';
+	import { userPermissions } from '$lib/stores/rbac';
+	import { Tooltip } from '$lib/components/reusable';
 
 	const NEW_ROW_ID = 'new';
 
@@ -99,6 +101,7 @@
 	});
 
 	const adjacent = $derived(getAdjacentFlowSteps('bank'));
+	const canEdit = $derived(userPermissions.can('ORGANIZATION', 'write'));
 
 	function clearFieldError(key: string) {
 		if (!fieldErrors[key]) return;
@@ -439,10 +442,19 @@
 			<p class="mt-1 text-sm text-muted-foreground">
 				Add a verified current account to proceed with approval.
 			</p>
-			<Button class="mt-4" onclick={prepareBankAdd}>
-				<Plus class="size-4" />
-				Add Bank Account
-			</Button>
+			{#if canEdit}
+				<Button class="mt-4" onclick={prepareBankAdd}>
+					<Plus class="size-4" />
+					Add Bank Account
+				</Button>
+			{:else}
+				<Tooltip content="You don't have permission to perform this action." class="mt-4">
+					<Button disabled>
+						<Plus class="size-4" />
+						Add Bank Account
+					</Button>
+				</Tooltip>
+			{/if}
 		</div>
 	{:else}
 		<div class="space-y-3">
@@ -474,14 +486,27 @@
 								</p>
 							</div>
 							<div class="flex flex-wrap gap-2">
-								<Button
-									variant="outline"
-									size="icon-sm"
-									aria-label="Edit bank account"
-									onclick={() => prepareBankEdit(account)}
-								>
-									<Pencil class="size-4" />
-								</Button>
+								{#if canEdit}
+									<Button
+										variant="outline"
+										size="icon-sm"
+										aria-label="Edit bank account"
+										onclick={() => prepareBankEdit(account)}
+									>
+										<Pencil class="size-4" />
+									</Button>
+								{:else}
+									<Tooltip content="You don't have permission to perform this action.">
+										<Button
+											variant="outline"
+											size="icon-sm"
+											aria-label="Edit bank account"
+											disabled
+										>
+											<Pencil class="size-4" />
+										</Button>
+									</Tooltip>
+								{/if}
 							</div>
 						</div>
 					{/if}
@@ -490,10 +515,19 @@
 		</div>
 
 		{#if expandedRowId !== NEW_ROW_ID}
-			<Button variant="outline" onclick={prepareBankAdd}>
-				<Plus class="size-4" />
-				{bankAccounts.length === 0 ? 'Add Bank Account' : 'Add Another Account'}
-			</Button>
+			{#if canEdit}
+				<Button variant="outline" onclick={prepareBankAdd}>
+					<Plus class="size-4" />
+					{bankAccounts.length === 0 ? 'Add Bank Account' : 'Add Another Account'}
+				</Button>
+			{:else}
+				<Tooltip content="You don't have permission to perform this action.">
+					<Button variant="outline" disabled>
+						<Plus class="size-4" />
+						{bankAccounts.length === 0 ? 'Add Bank Account' : 'Add Another Account'}
+					</Button>
+				</Tooltip>
+			{/if}
 		{/if}
 	{/if}
 
