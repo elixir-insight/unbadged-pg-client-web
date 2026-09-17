@@ -1,26 +1,57 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
-	import { Input, Dropdown, PhoneInput, toast } from '$lib/components/reusable';
+	import {
+		Input,
+		PhoneInput,
+		PasswordChecklist,
+		CardSelect,
+		toast,
+		type CardSelectOption
+	} from '$lib/components/reusable';
 	import { CompanyLogoLight } from '$lib/assets/icons';
-	import { Eye, EyeOff } from '$lib/assets/icons/index';
+	import { ArrowLeft, Eye, EyeOff } from '$lib/assets/icons';
 	import {
 		SIGN_UP_BUSINESS_TYPES,
-		SIGN_UP_PASSWORD_ERROR,
-		firstInvalidSignUpField,
-		getPasswordStrength,
 		isSignUpFormValid,
 		validateSignUp,
 		validateSignUpField,
+		type SignUpBusinessType,
 		type SignUpField,
 		type SignUpInput
 	} from '$lib/validation/sign-up';
 
+	const BUSINESS_TYPE_DESCRIPTIONS: Record<SignUpBusinessType, string> = {
+		SOLE_PROPRIETORSHIP: 'Owned by one person. KYC needs the owner’s PAN and Aadhaar.',
+		PRIVATE_LIMITED: 'Registered under the Companies Act. KYC needs the CIN and director PAN.',
+		LIMITED_LIABILITY_PARTNERSHIP: 'Registered with the MCA. KYC needs the LLPIN and partner PAN.',
+		PARTNERSHIP: 'Shared ownership between partners. KYC needs the deed and partner PAN.'
+	};
+
 	let { form }: PageProps = $props();
 
+	const STEP_1_FIELDS: SignUpField[] = ['userEmail', 'phoneNumber', 'password'];
+	const STEP_2_FIELDS: SignUpField[] = ['legalCompanyName', 'businessType'];
+
+	const BUSINESS_TYPE_DISPLAY_ORDER: SignUpBusinessType[] = [
+		'SOLE_PROPRIETORSHIP',
+		'PRIVATE_LIMITED',
+		'LIMITED_LIABILITY_PARTNERSHIP',
+		'PARTNERSHIP'
+	];
+	const businessTypeOptions: CardSelectOption[] = BUSINESS_TYPE_DISPLAY_ORDER.map((value) => {
+		const option = SIGN_UP_BUSINESS_TYPES.find((o) => o.value === value)!;
+		return {
+			value: option.value,
+			label: option.label,
+			description: BUSINESS_TYPE_DESCRIPTIONS[value]
+		};
+	});
+
+	let currentStep = $state<1 | 2>(1);
 	let legalCompanyName = $state('');
 	let businessType = $state('');
 	let userEmail = $state('');
@@ -30,6 +61,8 @@
 	let submitting = $state(false);
 	let formError = $state<string | null>(null);
 	let fieldErrors = $state<Partial<Record<SignUpField, string>>>({});
+	let touched = $state<Partial<Record<SignUpField, boolean>>>({});
+	let focusedField = $state<SignUpField | null>(null);
 
 	const values: SignUpInput = $derived({
 		legalCompanyName,
@@ -40,7 +73,9 @@
 		affiliateId: ''
 	});
 	const isFormValid = $derived(isSignUpFormValid(values));
-	const passwordStrength = $derived(getPasswordStrength(password));
+	const isStep1Valid = $derived(
+		STEP_1_FIELDS.every((field) => !validateSignUpField(field, values))
+	);
 
 	$effect(() => {
 		if (!form) return;
@@ -48,8 +83,16 @@
 		if (form.businessType !== undefined) businessType = form.businessType;
 		if (form.userEmail !== undefined) userEmail = form.userEmail.trim().toLowerCase();
 		if (form.phoneNumber !== undefined) phoneNumber = form.phoneNumber;
-		fieldErrors = form.errors ?? {};
+
+		const errors = form.errors ?? {};
+		fieldErrors = errors;
+		touched = {
+			...untrack(() => touched),
+			...Object.fromEntries(Object.keys(errors).map((f) => [f, true]))
+		};
 		formError = form.message ?? null;
+		if (STEP_1_FIELDS.some((field) => errors[field])) currentStep = 1;
+		else if (STEP_2_FIELDS.some((field) => errors[field])) currentStep = 2;
 	});
 
 	function clearFieldError(field: SignUpField) {
@@ -65,18 +108,17 @@
 		if (formError) formError = null;
 	}
 
+	function handleFocus(field: SignUpField) {
+		focusedField = field;
+	}
+
 	function handleBlur(field: SignUpField) {
+		focusedField = null;
 		if (field === 'legalCompanyName') legalCompanyName = legalCompanyName.trim();
 		if (field === 'userEmail') userEmail = userEmail.trim().toLowerCase();
 
-		const error = validateSignUpField(field, {
-			legalCompanyName,
-			businessType,
-			userEmail,
-			phoneNumber,
-			password,
-			affiliateId: ''
-		});
+		touched = { ...touched, [field]: true };
+		const error = validateSignUpField(field, values);
 		if (error) {
 			fieldErrors = { ...fieldErrors, [field]: error };
 		} else {
@@ -84,28 +126,54 @@
 		}
 	}
 
+	function isFieldEmpty(field: SignUpField): boolean {
+		return values[field].trim().length === 0;
+	}
+
+	function showError(field: SignUpField): boolean {
+		return Boolean(touched[field] && fieldErrors[field] && !isFieldEmpty(field));
+	}
+
+	function isInvalid(field: SignUpField): boolean {
+		return showError(field) && focusedField !== field;
+	}
+
 	function focusField(field: SignUpField) {
 		if (field === 'businessType') {
-			document.querySelector<HTMLElement>('#businessType button')?.focus();
+			document.querySelector<HTMLElement>('[aria-labelledby="businessType-label"] button')?.focus();
 			return;
 		}
 		document.getElementById(field)?.focus();
 	}
 
+	function goToStep2() {
+		userEmail = userEmail.trim().toLowerCase();
+		currentStep = 2;
+	}
+
+	function backToStep1() {
+		currentStep = 1;
+	}
+
 	const onEnhance: SubmitFunction = ({ cancel }) => {
-		const errors = validateSignUp({
-			legalCompanyName: legalCompanyName.trim(),
-			businessType,
-			userEmail: userEmail.trim().toLowerCase(),
-			phoneNumber,
-			password,
-			affiliateId: ''
-		});
+		legalCompanyName = legalCompanyName.trim();
+		userEmail = userEmail.trim().toLowerCase();
+
+		const errors = validateSignUp(values);
 		if (Object.keys(errors).length > 0) {
 			fieldErrors = errors;
+			touched = {
+				...touched,
+				...Object.fromEntries(Object.keys(errors).map((field) => [field, true]))
+			};
 			formError = null;
-			const firstInvalid = firstInvalidSignUpField(errors);
-			if (firstInvalid) queueMicrotask(() => focusField(firstInvalid));
+			const firstInvalid =
+				STEP_1_FIELDS.find((field) => errors[field]) ??
+				STEP_2_FIELDS.find((field) => errors[field]);
+			if (firstInvalid) {
+				currentStep = STEP_1_FIELDS.includes(firstInvalid) ? 1 : 2;
+				queueMicrotask(() => focusField(firstInvalid));
+			}
 			cancel();
 			return;
 		}
@@ -136,7 +204,9 @@
 						Create your account
 					</h1>
 					<p class="text-sm text-muted-foreground sm:text-base">
-						Set up your business account to get started.
+						{currentStep === 1
+							? 'Set up your business account to get started.'
+							: 'Just a few business details to finish setting up.'}
 					</p>
 				</div>
 
@@ -147,66 +217,14 @@
 				<form
 					method="POST"
 					action="?/signup"
-					class="flex flex-col gap-4 sm:gap-5"
+					class="flex flex-col gap-5 sm:gap-6"
 					novalidate
 					use:enhance={onEnhance}
 				>
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-5">
-						<div class="flex flex-col gap-2">
-							<label class="text-base font-normal text-gray-700 sm:text-lg" for="legalCompanyName">
-								Legal Company Name
-							</label>
-							<Input
-								id="legalCompanyName"
-								name="legalCompanyName"
-								type="text"
-								placeholder="Enter legal company name"
-								bind:value={legalCompanyName}
-								autocomplete="organization"
-								disabled={submitting}
-								aria-invalid={fieldErrors.legalCompanyName ? 'true' : undefined}
-								aria-describedby={fieldErrors.legalCompanyName
-									? 'legalCompanyName-error'
-									: undefined}
-								class="h-11 text-base!"
-								oninput={() => clearError('legalCompanyName')}
-								onblur={() => handleBlur('legalCompanyName')}
-							/>
-							{#if fieldErrors.legalCompanyName}
-								<p id="legalCompanyName-error" class="text-sm text-destructive" role="alert">
-									{fieldErrors.legalCompanyName}
-								</p>
-							{/if}
-						</div>
-
-						<div class="flex flex-col gap-2">
-							<label class="text-base font-normal text-gray-700 sm:text-lg" for="businessType">
-								Business Type
-							</label>
-							<div id="businessType" onfocusout={() => handleBlur('businessType')}>
-								<input type="hidden" name="businessType" value={businessType} />
-								<Dropdown
-									bind:value={businessType}
-									options={[...SIGN_UP_BUSINESS_TYPES]}
-									placeholder="Select business type"
-									disabled={submitting}
-									ariaLabel="Business Type"
-									class="h-11! w-full text-base! {fieldErrors.businessType
-										? 'border-destructive'
-										: ''}"
-									onValueChange={() => clearError('businessType')}
-								/>
-							</div>
-							{#if fieldErrors.businessType}
-								<p id="businessType-error" class="text-sm text-destructive" role="alert">
-									{fieldErrors.businessType}
-								</p>
-							{/if}
-						</div>
-
+					<div class="flex flex-col gap-4 sm:gap-5" hidden={currentStep !== 1}>
 						<div class="flex flex-col gap-2">
 							<label class="text-base font-normal text-gray-700 sm:text-lg" for="userEmail">
-								Email
+								Work Email
 							</label>
 							<Input
 								id="userEmail"
@@ -216,13 +234,14 @@
 								bind:value={userEmail}
 								autocomplete="email"
 								disabled={submitting}
-								aria-invalid={fieldErrors.userEmail ? 'true' : undefined}
-								aria-describedby={fieldErrors.userEmail ? 'userEmail-error' : undefined}
+								aria-invalid={isInvalid('userEmail') ? 'true' : undefined}
+								aria-describedby={showError('userEmail') ? 'userEmail-error' : undefined}
 								class="h-11 text-base!"
 								oninput={() => clearError('userEmail')}
+								onfocus={() => handleFocus('userEmail')}
 								onblur={() => handleBlur('userEmail')}
 							/>
-							{#if fieldErrors.userEmail}
+							{#if showError('userEmail')}
 								<p id="userEmail-error" class="text-sm text-destructive" role="alert">
 									{fieldErrors.userEmail}
 								</p>
@@ -240,21 +259,22 @@
 								bind:value={phoneNumber}
 								autocomplete="tel-national"
 								disabled={submitting}
-								invalid={Boolean(fieldErrors.phoneNumber)}
-								aria-invalid={fieldErrors.phoneNumber ? 'true' : undefined}
-								aria-describedby={fieldErrors.phoneNumber ? 'phoneNumber-error' : undefined}
+								invalid={isInvalid('phoneNumber')}
+								aria-invalid={isInvalid('phoneNumber') ? 'true' : undefined}
+								aria-describedby={showError('phoneNumber') ? 'phoneNumber-error' : undefined}
 								class="h-11!"
 								onValueChange={() => clearError('phoneNumber')}
+								onfocus={() => handleFocus('phoneNumber')}
 								onblur={() => handleBlur('phoneNumber')}
 							/>
-							{#if fieldErrors.phoneNumber}
+							{#if showError('phoneNumber')}
 								<p id="phoneNumber-error" class="text-sm text-destructive" role="alert">
 									{fieldErrors.phoneNumber}
 								</p>
 							{/if}
 						</div>
 
-						<div class="flex flex-col gap-2 sm:col-span-2">
+						<div class="flex flex-col gap-2">
 							<label class="text-base font-normal text-gray-700 sm:text-lg" for="password">
 								Password
 							</label>
@@ -267,14 +287,11 @@
 									bind:value={password}
 									autocomplete="new-password"
 									disabled={submitting}
-									aria-invalid={fieldErrors.password ? 'true' : undefined}
-									aria-describedby={fieldErrors.password
-										? 'password-error'
-										: passwordStrength === 'strong'
-											? 'password-hint password-strength'
-											: 'password-hint'}
+									aria-invalid={isInvalid('password') ? 'true' : undefined}
+									aria-describedby="password-hint"
 									class="h-11 pr-11 text-base!"
 									oninput={() => clearError('password')}
+									onfocus={() => handleFocus('password')}
 									onblur={() => handleBlur('password')}
 								/>
 								<button
@@ -290,35 +307,110 @@
 									{/if}
 								</button>
 							</div>
-							{#if fieldErrors.password}
-								<p id="password-error" class="text-sm text-destructive" role="alert">
-									{fieldErrors.password}
-								</p>
-							{:else}
-								<p id="password-hint" class="text-sm text-muted-foreground">
-									{SIGN_UP_PASSWORD_ERROR}
-								</p>
-								{#if passwordStrength === 'strong'}
-									<p id="password-strength" class="text-sm text-primary">Strong</p>
+							<div id="password-hint">
+								{#if isInvalid('password')}
+									<p class="text-sm text-destructive" role="alert">{fieldErrors.password}</p>
+								{:else if password.length === 0}
+									<p class="text-sm text-muted-foreground">
+										Use 12–50 characters with an uppercase and lowercase letter, a number, and a
+										symbol.
+									</p>
+								{:else}
+									<PasswordChecklist {password} />
 								{/if}
-							{/if}
+							</div>
 						</div>
+
+						<Button
+							type="button"
+							class="h-11 min-h-11 w-full shrink-0 text-base"
+							disabled={!isStep1Valid}
+							onclick={goToStep2}
+						>
+							Continue
+						</Button>
+
+						<p class="text-center text-xs text-muted-foreground sm:text-sm">
+							Already have an account?
+							<Button variant="link" href="/login" class="h-auto p-0 text-xs sm:text-sm">
+								Sign in
+							</Button>
+						</p>
 					</div>
 
-					<Button
-						type="submit"
-						class="h-11 min-h-11 w-full shrink-0 text-base"
-						disabled={submitting || !isFormValid}
-					>
-						{submitting ? 'Signing up…' : 'Sign up'}
-					</Button>
+					<div class="flex flex-col gap-4 sm:gap-5" hidden={currentStep !== 2}>
+						<div class="flex flex-col gap-2">
+							<label class="text-base font-normal text-gray-700 sm:text-lg" for="legalCompanyName">
+								Legal Company Name
+							</label>
+							<Input
+								id="legalCompanyName"
+								name="legalCompanyName"
+								type="text"
+								placeholder="Enter legal company name"
+								bind:value={legalCompanyName}
+								autocomplete="organization"
+								disabled={submitting}
+								aria-invalid={isInvalid('legalCompanyName') ? 'true' : undefined}
+								aria-describedby={showError('legalCompanyName')
+									? 'legalCompanyName-error'
+									: undefined}
+								class="h-11 text-base!"
+								oninput={() => clearError('legalCompanyName')}
+								onfocus={() => handleFocus('legalCompanyName')}
+								onblur={() => handleBlur('legalCompanyName')}
+							/>
+							{#if showError('legalCompanyName')}
+								<p id="legalCompanyName-error" class="text-sm text-destructive" role="alert">
+									{fieldErrors.legalCompanyName}
+								</p>
+							{:else}
+								<p class="text-sm text-muted-foreground">
+									Must exactly match the name on your registration documents — this is checked
+									during KYC review.
+								</p>
+							{/if}
+						</div>
 
-					<p class="text-center text-xs text-muted-foreground sm:text-sm">
-						Already have an account?
-						<a href={resolve('/login')} class="underline underline-offset-4 hover:text-foreground">
-							Sign in
-						</a>
-					</p>
+						<div class="flex flex-col gap-2">
+							<span class="text-base font-normal text-gray-700 sm:text-lg" id="businessType-label">
+								Business Type
+							</span>
+							<input type="hidden" name="businessType" value={businessType} />
+							<CardSelect
+								bind:value={businessType}
+								options={businessTypeOptions}
+								disabled={submitting}
+								aria-labelledby="businessType-label"
+								onfocusin={() => handleFocus('businessType')}
+								onfocusout={() => handleBlur('businessType')}
+							/>
+							{#if showError('businessType')}
+								<p id="businessType-error" class="text-sm text-destructive" role="alert">
+									{fieldErrors.businessType}
+								</p>
+							{/if}
+						</div>
+
+						<div class="flex items-center gap-3">
+							<Button
+								type="button"
+								variant="outline"
+								class="h-11 min-h-11 flex-1 gap-1.5"
+								onclick={backToStep1}
+							>
+								<ArrowLeft class="h-4 w-4" />
+								Back
+							</Button>
+							<Button
+								type="submit"
+								class="h-11 min-h-11 flex-1 text-base"
+								disabled={submitting || !isFormValid}
+							>
+								{submitting ? 'Creating account…' : 'Create account'}
+							</Button>
+						</div>
+					</div>
 				</form>
 			</div>
 		</div>

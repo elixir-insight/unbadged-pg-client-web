@@ -26,7 +26,7 @@ import {
 const PUBLIC_PATHS = [
 	'/login',
 	'/signup',
-	'/confirm-signup',
+	'/confirm-email',
 	'/forgot-password',
 	'/reset-password',
 	'/reset-temporary-password',

@@ -36,7 +36,13 @@ function fakeLogger() {
 	return logger;
 }
 
-function formDataEvent(fields: Record<string, string>) {
+function eventWithSession(fields: Record<string, string>, userEmail?: string) {
+	const cookies = fakeCookies();
+	if (userEmail) {
+		storeSignupAccount(cookies as unknown as Parameters<typeof storeSignupAccount>[0], {
+			userEmail
+		});
+	}
 	return {
 		fetch: vi.fn() as unknown as typeof fetch,
 		request: {
@@ -46,28 +52,16 @@ function formDataEvent(fields: Record<string, string>) {
 				return data;
 			}
 		},
-		cookies: fakeCookies(),
+		cookies,
 		locals: { logger: fakeLogger() },
 		getClientAddress: () => '127.0.0.1'
 	} as unknown as Parameters<typeof actions.confirm>[0];
 }
 
-describe('/confirm-signup load', () => {
-	it('prefers userEmail from the query string', async () => {
-		const result = await load({
-			cookies: fakeCookies(),
-			fetch: vi.fn() as unknown as typeof fetch,
-			locals: { logger: fakeLogger() },
-			url: new URL('https://example.test/confirm-signup?userEmail=Owner%40Acme.test')
-		} as unknown as Parameters<typeof load>[0]);
-
-		expect(result).toEqual({ userEmail: 'owner@acme.test' });
-	});
-
-	it('falls back to the signup cookie when the query is missing', async () => {
+describe('/confirm-email load', () => {
+	it('reads the email from the signup cookie, never the URL', async () => {
 		const cookies = fakeCookies();
 		storeSignupAccount(cookies as unknown as Parameters<typeof storeSignupAccount>[0], {
-			orgId: 'org_1',
 			userEmail: 'cookie@acme.test'
 		});
 
@@ -75,25 +69,29 @@ describe('/confirm-signup load', () => {
 			cookies,
 			fetch: vi.fn() as unknown as typeof fetch,
 			locals: { logger: fakeLogger() },
-			url: new URL('https://example.test/confirm-signup')
+			url: new URL('https://example.test/confirm-email?userEmail=spoofed%40acme.test')
 		} as unknown as Parameters<typeof load>[0]);
 
 		expect(result).toEqual({ userEmail: 'cookie@acme.test' });
 	});
 
-	it('returns an empty email when nothing was passed', async () => {
-		const result = await load({
-			cookies: fakeCookies(),
-			fetch: vi.fn() as unknown as typeof fetch,
-			locals: { logger: fakeLogger() },
-			url: new URL('https://example.test/confirm-signup')
-		} as unknown as Parameters<typeof load>[0]);
-
-		expect(result).toEqual({ userEmail: '' });
+	it('redirects to /signup when there is no signup session', async () => {
+		try {
+			await load({
+				cookies: fakeCookies(),
+				fetch: vi.fn() as unknown as typeof fetch,
+				locals: { logger: fakeLogger() },
+				url: new URL('https://example.test/confirm-email')
+			} as unknown as Parameters<typeof load>[0]);
+			expect.unreachable('load should have redirected');
+		} catch (error) {
+			expect(isRedirect(error)).toBe(true);
+			if (isRedirect(error)) expect(error.location).toBe('/signup');
+		}
 	});
 });
 
-describe('/confirm-signup actions', () => {
+describe('/confirm-email actions', () => {
 	beforeEach(() => {
 		vi.mocked(authClient.confirmSignup).mockReset();
 		vi.mocked(authClient.resendConfirmationCode).mockReset();
@@ -101,7 +99,7 @@ describe('/confirm-signup actions', () => {
 
 	it('rejects a short code before hitting the network', async () => {
 		const result = await actions.confirm(
-			formDataEvent({ userEmail: 'owner@acme.test', confirmationCode: '12' })
+			eventWithSession({ confirmationCode: '12' }, 'owner@acme.test')
 		);
 
 		expect(authClient.confirmSignup).not.toHaveBeenCalled();
@@ -111,33 +109,57 @@ describe('/confirm-signup actions', () => {
 		});
 	});
 
-	it('redirects to /login on a 200 confirm', async () => {
+	it('redirects to /signup when confirming without a signup session', async () => {
+		try {
+			await actions.confirm(eventWithSession({ confirmationCode: '123456' }));
+			expect.unreachable('action should have redirected');
+		} catch (error) {
+			expect(isRedirect(error)).toBe(true);
+			if (isRedirect(error)) expect(error.location).toBe('/signup');
+		}
+	});
+
+	it('returns verified:true on a 200 confirm — no redirect, client drives navigation', async () => {
 		vi.mocked(authClient.confirmSignup).mockResolvedValue({
 			ok: true,
 			data: { statusCode: 200, message: 'Email confirmed', data: [] }
 		});
 
-		try {
-			await actions.confirm(
-				formDataEvent({ userEmail: 'owner@acme.test', confirmationCode: '123456' })
-			);
-			expect.unreachable('action should have redirected on success');
-		} catch (error) {
-			expect(isRedirect(error)).toBe(true);
-			if (isRedirect(error)) {
-				expect(error.location).toBe('/login');
-			}
-		}
+		const result = await actions.confirm(
+			eventWithSession({ confirmationCode: '123456' }, 'owner@acme.test')
+		);
+
+		expect(result).toEqual({ verified: true });
 	});
 
-	it('returns the upstream message when confirm fails', async () => {
+	it('ignores a client-submitted userEmail field and confirms against the session email', async () => {
+		vi.mocked(authClient.confirmSignup).mockResolvedValue({
+			ok: true,
+			data: { statusCode: 200, message: 'Email confirmed', data: [] }
+		});
+
+		await actions.confirm(
+			eventWithSession(
+				{ confirmationCode: '123456', userEmail: 'attacker@evil.test' },
+				'owner@acme.test'
+			)
+		);
+
+		expect(authClient.confirmSignup).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.anything(),
+			expect.objectContaining({ userEmail: 'owner@acme.test' })
+		);
+	});
+
+	it('returns the upstream message when confirm fails, keeping the code editable', async () => {
 		vi.mocked(authClient.confirmSignup).mockResolvedValue({
 			ok: false,
 			error: { kind: 'http', status: 400, message: 'That code is incorrect or has expired.' }
 		});
 
 		const result = await actions.confirm(
-			formDataEvent({ userEmail: 'owner@acme.test', confirmationCode: '000000' })
+			eventWithSession({ confirmationCode: '000000' }, 'owner@acme.test')
 		);
 
 		expect(result).toMatchObject({
@@ -155,12 +177,9 @@ describe('/confirm-signup actions', () => {
 			data: { statusCode: 200, message: 'Code sent', data: [] }
 		});
 
-		const result = await actions.resend(formDataEvent({ userEmail: 'owner@acme.test' }));
+		const result = await actions.resend(eventWithSession({}, 'owner@acme.test'));
 
-		expect(result).toMatchObject({
-			resendSuccess: true,
-			userEmail: 'owner@acme.test'
-		});
+		expect(result).toMatchObject({ resendSuccess: true });
 	});
 
 	it('returns resendError when resend fails', async () => {
@@ -169,7 +188,7 @@ describe('/confirm-signup actions', () => {
 			error: { kind: 'http', status: 429, message: 'Too many attempts' }
 		});
 
-		const result = await actions.resend(formDataEvent({ userEmail: 'owner@acme.test' }));
+		const result = await actions.resend(eventWithSession({}, 'owner@acme.test'));
 
 		expect(result).toMatchObject({
 			status: 429,

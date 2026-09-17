@@ -32,7 +32,7 @@ async function redirectIfAlreadySignedIn(
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
 		const groups = collectPortalGroups(accessPayload['cognito:groups'], gatewayPayload.group);
 		const home = resolvePortalHome(groups);
-		logger.info({ home, groups }, 'signed-in user hit confirm-signup — redirecting to portal home');
+		logger.info({ home, groups }, 'signed-in user hit confirm-email — redirecting to portal home');
 		redirect(303, home);
 	} catch (e) {
 		if (e instanceof SessionInactiveError) {
@@ -47,19 +47,23 @@ async function redirectIfAlreadySignedIn(
 	}
 }
 
-function readEmail(formData: FormData): string {
-	return String(formData.get('userEmail') ?? '')
-		.trim()
-		.toLowerCase();
+/**
+ * The email being confirmed is never accepted from the client (form field or URL) —
+ * it always comes from the httpOnly signupAccount cookie set at signup/login time,
+ * so it never appears in the URL, browser history, or server access logs.
+ */
+function requireSessionEmail(cookies: Cookies): string | null {
+	const email = readSignupAccount(cookies)?.userEmail.trim().toLowerCase();
+	return email ? email : null;
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch, locals, url }) => {
+export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	await redirectIfAlreadySignedIn(cookies, fetch, locals.logger);
-	const queryEmail = url.searchParams.get('userEmail')?.trim().toLowerCase() ?? '';
-	const storedEmail = readSignupAccount(cookies)?.userEmail.trim().toLowerCase() ?? '';
-	return {
-		userEmail: queryEmail || storedEmail
-	};
+
+	const userEmail = requireSessionEmail(cookies);
+	if (!userEmail) redirect(303, '/signup');
+
+	return { userEmail };
 };
 
 export const actions = {
@@ -68,20 +72,16 @@ export const actions = {
 
 		const log = locals.logger;
 		const ip = getClientAddress();
+		const userEmail = requireSessionEmail(cookies);
+		if (!userEmail) redirect(303, '/signup');
+
 		const formData = await request.formData();
-		const userEmail = readEmail(formData);
 		const confirmationCode = String(formData.get('confirmationCode') ?? '').replace(/\D/g, '');
 
 		const parsed = v.safeParse(ConfirmSignUpRequestSchema, { userEmail, confirmationCode });
 		if (!parsed.success) {
 			const message = parsed.issues[0]?.message ?? 'Enter the 6-digit code.';
-			const isEmailIssue = parsed.issues[0]?.path?.[0]?.key === 'userEmail';
-			return fail(400, {
-				userEmail,
-				confirmationCode,
-				codeError: isEmailIssue ? undefined : message,
-				emailError: isEmailIssue ? message : undefined
-			});
+			return fail(400, { confirmationCode, codeError: message });
 		}
 
 		const result = await performConfirmSignUp({
@@ -94,31 +94,29 @@ export const actions = {
 
 		if (!result.ok) {
 			return fail(result.status, {
-				userEmail: parsed.output.userEmail,
 				confirmationCode: parsed.output.confirmationCode,
 				codeError: result.message
 			});
 		}
 
-		redirect(303, '/login');
+		// No redirect here — the client shows a brief "Email verified" success
+		// state before navigating to /login itself.
+		return { verified: true as const };
 	},
 
-	resend: async ({ request, cookies, fetch, locals, getClientAddress }) => {
+	resend: async ({ cookies, fetch, locals, getClientAddress }) => {
 		await redirectIfAlreadySignedIn(cookies, fetch, locals.logger);
 
 		const log = locals.logger;
 		const ip = getClientAddress();
-		const formData = await request.formData();
-		const userEmail = readEmail(formData);
-		const confirmationCode = String(formData.get('confirmationCode') ?? '').replace(/\D/g, '');
+		const userEmail = requireSessionEmail(cookies);
+		if (!userEmail) redirect(303, '/signup');
 
 		const parsed = v.safeParse(ResendSignUpConfirmationRequestSchema, { userEmail });
 		if (!parsed.success) {
 			return fail(400, {
-				userEmail,
-				confirmationCode,
 				resendError: parsed.issues[0]?.message ?? 'Enter a valid email.',
-				resendFailed: true
+				resendFailed: true as const
 			});
 		}
 
@@ -131,18 +129,11 @@ export const actions = {
 
 		if (!result.ok) {
 			return fail(result.status, {
-				userEmail: parsed.output.userEmail,
-				confirmationCode,
 				resendError: result.message,
-				resendFailed: true
+				resendFailed: true as const
 			});
 		}
 
-		return {
-			userEmail: parsed.output.userEmail,
-			confirmationCode,
-			resendSuccess: true as const,
-			message: result.message
-		};
+		return { resendSuccess: true as const, message: result.message };
 	}
 } satisfies Actions;

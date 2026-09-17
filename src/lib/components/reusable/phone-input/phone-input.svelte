@@ -53,7 +53,7 @@
 		{disabled}
 		value={displayValue}
 		oninput={handleInput}
-		class="border-0 shadow-none focus-visible:ring-0"
+		class="border-0 shadow-none focus-visible:ring-0 aria-invalid:border-0 aria-invalid:ring-0"
 		{...restProps}
 	/>
 </div>

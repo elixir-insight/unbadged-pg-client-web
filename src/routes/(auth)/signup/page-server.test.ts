@@ -89,7 +89,7 @@ describe('/signup action', () => {
 		});
 	});
 
-	it('redirects to /confirm-signup on a 201 signup', async () => {
+	it('redirects to /confirm-email on a 201 signup', async () => {
 		vi.mocked(authClient.signUp).mockResolvedValue({
 			ok: true,
 			data: {
@@ -105,7 +105,7 @@ describe('/signup action', () => {
 		} catch (error) {
 			expect(isRedirect(error)).toBe(true);
 			if (isRedirect(error)) {
-				expect(error.location).toBe('/confirm-signup?userEmail=owner%40acme.test');
+				expect(error.location).toBe('/confirm-email');
 			}
 		}
 	});

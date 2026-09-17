@@ -16,7 +16,7 @@ const COOKIE_OPTS = {
 };
 
 export type SignUpAccount = {
-	orgId: string;
+	orgId?: string;
 	userEmail: string;
 };
 
@@ -48,12 +48,12 @@ export function readSignupAccount(cookies: Cookies): SignUpAccount | null {
 		if (
 			parsed &&
 			typeof parsed === 'object' &&
-			'orgId' in parsed &&
 			'userEmail' in parsed &&
-			typeof parsed.orgId === 'string' &&
-			typeof parsed.userEmail === 'string'
+			typeof parsed.userEmail === 'string' &&
+			(!('orgId' in parsed) || typeof parsed.orgId === 'string')
 		) {
-			return { orgId: parsed.orgId, userEmail: parsed.userEmail };
+			const orgId = 'orgId' in parsed ? (parsed.orgId as string) : undefined;
+			return { orgId, userEmail: parsed.userEmail };
 		}
 		return null;
 	} catch {

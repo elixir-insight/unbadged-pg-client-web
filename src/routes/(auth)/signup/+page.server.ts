@@ -100,6 +100,6 @@ export const actions = {
 			});
 		}
 
-		redirect(303, `/confirm-signup?userEmail=${encodeURIComponent(result.userEmail)}`);
+		redirect(303, '/confirm-email');
 	}
 } satisfies Actions;

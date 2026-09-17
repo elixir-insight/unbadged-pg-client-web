@@ -4,7 +4,10 @@ import type { Logger } from 'pino';
 import * as v from 'valibot';
 import { SignInBodySchema, VerifyMfaRequestSchema } from '$lib/server/domains/auth/schema';
 import { performSignIn, startAuthenticatedSession } from '$lib/server/domains/auth/sign-in';
-import { performResendSignUpConfirmation } from '$lib/server/domains/auth/sign-up';
+import {
+	performResendSignUpConfirmation,
+	storeSignupAccount
+} from '$lib/server/domains/auth/sign-up';
 import { authClient } from '$lib/server/domains/auth/client';
 import {
 	getValidSession,
@@ -133,11 +136,12 @@ export const actions = {
 					ip,
 					userEmail: result.userEmail
 				});
+				storeSignupAccount(cookies, { userEmail: result.userEmail });
 				log.info(
 					{ ip, userEmail: result.userEmail },
-					'unconfirmed user — redirecting to confirm-signup'
+					'unconfirmed user — redirecting to confirm-email'
 				);
-				redirect(303, `/confirm-signup?userEmail=${encodeURIComponent(result.userEmail)}`);
+				redirect(303, '/confirm-email');
 			}
 
 			if ('requiresMfa' in result) {

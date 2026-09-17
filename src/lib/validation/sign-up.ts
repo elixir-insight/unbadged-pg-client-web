@@ -110,3 +110,22 @@ export function getPasswordStrength(password: string): 'empty' | 'weak' | 'stron
 	if (!password) return 'empty';
 	return SIGN_UP_PASSWORD_REGEX.test(password) ? 'strong' : 'weak';
 }
+
+export type PasswordRule = { id: string; label: string; met: boolean };
+
+export function getPasswordRules(password: string): PasswordRule[] {
+	return [
+		{
+			id: 'length',
+			label: '12–50 characters',
+			met: password.length >= 12 && password.length <= 50
+		},
+		{
+			id: 'case',
+			label: 'An uppercase and a lowercase letter',
+			met: /[A-Z]/.test(password) && /[a-z]/.test(password)
+		},
+		{ id: 'number', label: 'A number', met: /\d/.test(password) },
+		{ id: 'special', label: 'A special character', met: /[^A-Za-z0-9]/.test(password) }
+	];
+}
