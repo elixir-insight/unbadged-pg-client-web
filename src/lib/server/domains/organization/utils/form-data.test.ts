@@ -24,10 +24,41 @@ describe('parseCreateOrganizationFormData', () => {
 
 		expect(parsed.output).toMatchObject({
 			selectedCategory: 'Merchant',
+			profileType: '',
 			orgName: 'Acme Pvt Ltd',
 			selectedServiceTypes: ['Pay-Ins'],
 			servicePipelines: { 'Pay-Ins': 'PIPE001' }
 		});
+	});
+
+	it('reads the partner profile type dropdown value', () => {
+		const formData = new FormData();
+		formData.set('selectedCategory', 'Partner');
+		formData.set('profileType', 'PLATFORM');
+		formData.set('orgName', 'Platform Co');
+		formData.set('orgPhone', '9876543210');
+		formData.set('orgEmail', 'platform@example.com');
+		formData.set('orgBusinessType', 'LLP');
+
+		const parsed = parseCreateOrganizationFormData(formData);
+		expect(parsed.success).toBe(true);
+		if (!parsed.success) return;
+
+		expect(parsed.output.selectedCategory).toBe('Partner');
+		expect(parsed.output.profileType).toBe('PLATFORM');
+	});
+
+	it('rejects a partner create without a profile type', () => {
+		const formData = new FormData();
+		formData.set('selectedCategory', 'Partner');
+		formData.set('profileType', '');
+		formData.set('orgName', 'Partner Co');
+		formData.set('orgPhone', '9876543210');
+		formData.set('orgEmail', 'partner@example.com');
+		formData.set('orgBusinessType', 'LLP');
+
+		const parsed = parseCreateOrganizationFormData(formData);
+		expect(parsed.success).toBe(false);
 	});
 });
 

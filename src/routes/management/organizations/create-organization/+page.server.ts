@@ -11,6 +11,7 @@ import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
 import { rememberOrgCategory } from '$lib/server/domains/organization/utils/org-category-cookie';
+import { resolveCreateOrganizationProfileType } from '$lib/server/domains/organization/mappers/to-api/create-organization';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
@@ -72,7 +73,7 @@ export const actions = {
 			return fail(result.status, { message: result.message });
 		}
 
-		const category = parsed.output.selectedCategory === 'Partner' ? 'PARTNER' : 'MERCHANT';
+		const category = resolveCreateOrganizationProfileType(parsed.output);
 		rememberOrgCategory(cookies, result.organizationId, category);
 		const categoryQuery = category === 'MERCHANT' ? '' : `?category=${category}`;
 		redirect(303, `/management/organizations/${result.organizationId}/kyb${categoryQuery}`);

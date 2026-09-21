@@ -74,6 +74,7 @@
 	let orgPhone = $state('');
 	let orgEmail = $state('');
 	let orgBusinessType = $state('');
+	let profileType = $state('');
 	let selectedServiceTypes = $state<string[]>([]);
 	let servicePipelines = $state<Record<string, string>>({});
 	let affiliateId = $state('');
@@ -111,6 +112,7 @@
 			orgPhone,
 			orgEmail,
 			orgBusinessType,
+			profileType,
 			selectedServiceTypes,
 			servicePipelines
 		});
@@ -142,7 +144,12 @@
 	}
 
 	function seedLocalOrganization(organizationId: string) {
-		const category = selectedCategory!.toUpperCase() as OrganizationCategory;
+		const category: OrganizationCategory =
+			selectedCategory === 'Partner' && profileType === 'PLATFORM'
+				? 'PLATFORM'
+				: selectedCategory === 'Partner'
+					? 'PARTNER'
+					: 'MERCHANT';
 		const businessType =
 			businessTypeEnumMap[orgBusinessType] ?? ('PRIVATE_LIMITED' as OrganizationBusinessType);
 
@@ -220,6 +227,7 @@
 		bind:orgPhone
 		bind:orgEmail
 		bind:orgBusinessType
+		bind:profileType
 		bind:selectedServiceTypes
 		bind:servicePipelines
 		bind:affiliateId

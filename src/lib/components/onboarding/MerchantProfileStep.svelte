@@ -8,6 +8,12 @@
 	import MerchantConfigSection from './MerchantConfigSection.svelte';
 
 	type ClientType = 'Merchant' | 'Partner';
+	type PartnerProfileType = 'PARTNER' | 'PLATFORM';
+
+	const partnerProfileTypeOptions: { value: PartnerProfileType; label: PartnerProfileType }[] = [
+		{ value: 'PARTNER', label: 'PARTNER' },
+		{ value: 'PLATFORM', label: 'PLATFORM' }
+	];
 
 	interface ServiceType {
 		value: string;
@@ -32,6 +38,7 @@
 		orgPhone: string;
 		orgEmail: string;
 		orgBusinessType: string;
+		profileType: string;
 		selectedServiceTypes: string[];
 		servicePipelines: Record<string, string>;
 		affiliateId: string;
@@ -54,6 +61,7 @@
 		orgPhone = $bindable(),
 		orgEmail = $bindable(),
 		orgBusinessType = $bindable(),
+		profileType = $bindable(),
 		selectedServiceTypes = $bindable(),
 		servicePipelines = $bindable(),
 		affiliateId = $bindable(),
@@ -81,6 +89,7 @@
 		</h2>
 
 		<input type="hidden" name="selectedCategory" value={selectedCategory ?? ''} />
+		<input type="hidden" name="profileType" value={profileType} />
 		<input type="hidden" name="servicePipelines" value={JSON.stringify(servicePipelines)} />
 		{#each selectedServiceTypes as serviceType (serviceType)}
 			<input type="hidden" name="selectedServiceTypes" value={serviceType} />
@@ -171,6 +180,28 @@
 						</p>
 					{/if}
 				</div>
+
+				{#if selectedCategory === 'Partner'}
+					<div class="flex flex-col gap-1.5">
+						<label class="text-sm font-medium" for="org-profile-type">
+							Profile Type <span class="text-destructive">*</span>
+						</label>
+						<Dropdown
+							bind:value={profileType}
+							onValueChange={onFieldInput}
+							options={partnerProfileTypeOptions}
+							placeholder="Select Profile Type"
+							required
+							disabled={submitting}
+							class={cn(' w-full', errors.profileType && 'border-destructive')}
+						/>
+						{#if errors.profileType}
+							<p class="text-xs text-destructive" in:fly={{ y: -4, duration: 160 }}>
+								{errors.profileType}
+							</p>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			{#if selectedCategory === 'Merchant'}

@@ -182,6 +182,10 @@ export default defineConfig({
 				test: {
 					name: 'client',
 					testTimeout: 60000,
+					hookTimeout: 60000,
+					// Browser RPC (birpc) is flaky when multiple files / workers share one Chromium.
+					fileParallelism: false,
+					maxWorkers: 1,
 					setupFiles: ['vitest-browser-svelte'],
 					retry: 2,
 					browser: {
@@ -204,6 +208,10 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
+					// Cap forks on Windows — too many workers cause
+					// "[vitest-pool]: Timeout waiting for worker to respond".
+					maxWorkers: 4,
+					fileParallelism: true,
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
@@ -220,7 +228,9 @@ export default defineConfig({
 				test: {
 					name: 'storybook',
 					testTimeout: 60000,
+					hookTimeout: 60000,
 					fileParallelism: false,
+					maxWorkers: 1,
 					retry: 2,
 					browser: {
 						enabled: true,
@@ -229,7 +239,8 @@ export default defineConfig({
 						connectTimeout: 120000,
 						instances: [
 							{
-								browser: 'chromium'
+								browser: 'chromium',
+								headless: true
 							}
 						]
 					}
