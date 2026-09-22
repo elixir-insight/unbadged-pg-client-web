@@ -45,19 +45,21 @@ export interface Address {
 	city: string;
 	state: string;
 	pincode: string;
+	/** Defaults to India when omitted (see toKybPayload). */
+	country?: string;
 }
 
 export interface BusinessDetails {
-	companyName: string;
 	companyType: string;
 	cin: string;
 	address: Address;
-	currentAddress: Address;
-	currentAddressSameAsContact: boolean;
 	phone: string;
-	email: string;
 	website: string;
 	brandName: string;
+	tan: string;
+	industry: string;
+	registeredYear: number | null;
+	communicationAddress: string;
 }
 
 export interface BankDetails {
@@ -67,17 +69,19 @@ export interface BankDetails {
 	ifscCode: string;
 	bankName: string;
 	branchName: string;
+	accountType: string;
+	/** Set once the bank account exists upstream; never rendered. */
+	accountId?: number;
 }
-
-export type DirectorStatus = 'verified' | 'pending';
 
 export interface Director {
 	name: string;
 	pan: string;
-	din?: string;
-	email?: string;
-	phone?: string;
-	status: DirectorStatus;
+	aadhaar: string;
+	email: string;
+	phone: string;
+	/** Set once the director exists upstream; never rendered. */
+	id?: number;
 }
 
 export interface DocumentSlot {
@@ -89,7 +93,6 @@ export interface DocumentSlot {
 
 export interface Documents {
 	gstCertificate: DocumentSlot;
-	panCardCopy: DocumentSlot;
 	certificateOfIncorporation: DocumentSlot;
 	shopActLicence: DocumentSlot;
 	bankStatement: DocumentSlot;

@@ -2,81 +2,54 @@ export const SELF_ONBOARDING_BASE = '/self-onboarding' as const;
 
 export const STEPS = [
 	{
-		path: 'pan-number',
-		navLabel: 'PAN Verification',
-		tabLabel: 'Business PAN',
-		eyebrow: '',
-		title: 'Verify your business',
-		description: 'We use your PAN to auto-fill company details in the next steps.'
+		path: 'business-identity',
+		label: 'Identity',
+		title: 'Business identity'
 	},
 	{
-		path: 'gst-details',
-		navLabel: 'GST Details',
-		tabLabel: 'GST',
-		eyebrow: 'Confirm your tax identity.',
-		title: 'GST Details',
-		description: 'Enter the GSTIN linked to this PAN.'
-	},
-	{
-		path: 'business-details',
-		navLabel: 'Company Details',
-		tabLabel: 'Company',
-		eyebrow: 'Tell us about the business.',
-		title: 'Company Details',
-		description: 'Enter identity, address, and contact information.'
+		path: 'business-profile',
+		label: 'Profile',
+		title: 'Business profile'
 	},
 	{
 		path: 'bank-details',
-		navLabel: 'Bank Details',
-		tabLabel: 'Bank',
-		eyebrow: 'Where should we settle funds?',
-		title: 'Bank Details',
-		description: 'Add the settlement account for this merchant.'
+		label: 'Bank',
+		title: 'Bank details'
 	},
 	{
 		path: 'directors',
-		navLabel: 'Directors',
-		tabLabel: 'Directors',
-		eyebrow: 'Who runs this business?',
-		title: 'Directors',
-		description: 'Add at least one director before approval.'
+		label: 'Directors',
+		title: 'Directors'
 	},
 	{
 		path: 'documents',
-		navLabel: 'Documents',
-		tabLabel: 'Documents',
-		eyebrow: 'Upload required KYC.',
-		title: 'Documents',
-		description: 'Upload the required KYC documents.'
+		label: 'Documents',
+		title: 'Documents'
 	},
 	{
 		path: 'review-submit',
-		navLabel: 'Review & Submit',
-		tabLabel: 'Review',
-		eyebrow: 'Almost done.',
-		title: 'Review & Submit',
-		description: 'Check the details below, then submit for review.'
+		label: 'Review',
+		title: 'Review & submit'
 	}
 ] as const;
 
 export type StepPath = (typeof STEPS)[number]['path'];
-export type StepIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type StepId = 1 | 2 | 3 | 4 | 5 | 6;
 
-export const STEP_BY_PATH: Record<StepPath, StepIndex> = {
-	'pan-number': 1,
-	'gst-details': 2,
-	'business-details': 3,
-	'bank-details': 4,
-	directors: 5,
-	documents: 6,
-	'review-submit': 7
+export const STEP_BY_PATH: Record<StepPath, StepId> = {
+	'business-identity': 1,
+	'business-profile': 2,
+	'bank-details': 3,
+	directors: 4,
+	documents: 5,
+	'review-submit': 6
 };
 
 export function stepHref(path: StepPath): `${typeof SELF_ONBOARDING_BASE}/${StepPath}` {
 	return `${SELF_ONBOARDING_BASE}/${path}`;
 }
 
-export function stepIndexFromPathname(pathname: string): StepIndex {
+export function stepIdFromPathname(pathname: string): StepId {
 	const segment = pathname.split('/').at(-1);
 	if (segment && segment in STEP_BY_PATH) {
 		return STEP_BY_PATH[segment as StepPath];
@@ -84,22 +57,25 @@ export function stepIndexFromPathname(pathname: string): StepIndex {
 	return 1;
 }
 
-export function previousStepPath(index: StepIndex): StepPath | null {
-	if (index <= 1) return null;
-	return STEPS[index - 2].path;
+export function previousStepPath(id: StepId): StepPath | null {
+	if (id <= 1) return null;
+	return STEPS[id - 2].path;
 }
 
-export function nextStepPath(index: StepIndex): StepPath | null {
-	if (index >= STEPS.length) return null;
-	return STEPS.at(index)?.path ?? null;
+export function nextStepPath(id: StepId): StepPath | null {
+	if (id >= STEPS.length) return null;
+	return STEPS.at(id)?.path ?? null;
 }
 
-export function flooredProgressPercent(actualPercent: number, currentStep: StepIndex): number {
+/** First step that has not been completed yet; the last step once all are done. */
+export function firstIncompleteStep(completedSteps: readonly number[]): StepId {
+	for (let id = 1; id <= STEPS.length; id += 1) {
+		if (!completedSteps.includes(id)) return id as StepId;
+	}
+	return STEPS.length as StepId;
+}
+
+/** Overall progress, never showing 0% while the first step is in progress. */
+export function flooredProgressPercent(actualPercent: number, currentStep: StepId): number {
 	return Math.max(actualPercent, currentStep === 1 ? Math.round(100 / STEPS.length) : 0);
-}
-
-export function maxReachableStep(currentStep: StepIndex, completedSteps: number[]): StepIndex {
-	const highestCompleted = completedSteps.length > 0 ? Math.max(...completedSteps) : 0;
-	const reachable = Math.max(currentStep, highestCompleted + 1);
-	return Math.min(Math.max(reachable, 1), STEPS.length) as StepIndex;
 }

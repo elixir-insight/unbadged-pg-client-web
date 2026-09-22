@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
+	import { STEPS } from './steps';
 
 	let {
 		currentIndex,
-		total = 4,
+		total = STEPS.length,
 		label
 	}: {
 		currentIndex: number;

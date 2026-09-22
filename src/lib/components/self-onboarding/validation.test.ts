@@ -1,8 +1,76 @@
 import { describe, expect, it } from 'vitest';
 import { GST_STATE_CODES, gstinStateName } from './gst-states';
-import { flooredProgressPercent, STEPS } from './steps';
-import { allRequiredComplete, isValidGstin, isValidPan, maskAccountNumber } from './validation';
+import {
+	allRequiredComplete,
+	bankDetailsAreComplete,
+	directorsAreComplete,
+	isCinValid,
+	isIdentityComplete,
+	isProfileComplete,
+	isStepDataComplete,
+	isValidAadhaar,
+	isValidGstin,
+	isValidPan,
+	isValidRegisteredYear,
+	maskAccountNumber,
+	requiredDocumentsUploaded
+} from './validation';
 import { parseEntityType, type OnboardingFormData } from '$lib/types/onboarding';
+
+const address = {
+	line1: '12 Business Park',
+	line2: '',
+	city: 'Bengaluru',
+	state: 'KA',
+	pincode: '560001'
+};
+
+function validForm(): OnboardingFormData {
+	return {
+		businessPan: 'ABCDE1234F',
+		entityType: 'private_limited',
+		entityName: 'Private Limited',
+		gstin: '27ABCDE1234F1Z5',
+		gstinList: [],
+		businessDetails: {
+			companyType: 'Private Limited',
+			cin: 'U12345KA2018PTC123456',
+			tan: '',
+			industry: 'Retail',
+			registeredYear: 2018,
+			communicationAddress: '12 Business Park, Bengaluru',
+			address: { ...address },
+			phone: '9876543210',
+			website: 'https://acme.test',
+			brandName: 'Acme'
+		},
+		bankDetails: {
+			accountHolderName: 'Acme',
+			accountNumber: '123456789012',
+			confirmAccountNumber: '123456789012',
+			ifscCode: 'HDFC0000123',
+			bankName: 'HDFC Bank',
+			branchName: 'Fort',
+			accountType: 'CURRENT'
+		},
+		directors: [
+			{
+				name: 'Ada',
+				pan: 'PQRST2345P',
+				aadhaar: '234567890123',
+				email: 'ada@acme.test',
+				phone: '9876543211'
+			}
+		],
+		documents: {
+			gstCertificate: { uploaded: false, required: true },
+			certificateOfIncorporation: { uploaded: false, required: true },
+			shopActLicence: { uploaded: false, required: false },
+			bankStatement: { uploaded: false, required: true },
+			addressProof: { uploaded: false, required: true }
+		}
+	};
+}
 
 describe('GST state codes', () => {
 	it('covers every current 2-digit code from 01 to 38', () => {
@@ -17,67 +85,90 @@ describe('GST state codes', () => {
 	});
 });
 
-describe('progress floor', () => {
-	it('never shows 0% on step 1', () => {
-		expect(flooredProgressPercent(0, 1)).toBe(Math.round(100 / STEPS.length));
-	});
-
-	it('does not floor later steps', () => {
-		expect(flooredProgressPercent(0, 2)).toBe(0);
-		expect(flooredProgressPercent(14, 3)).toBe(14);
-	});
-});
-
-describe('onboarding validation', () => {
+describe('field validators', () => {
 	it('accepts a valid PAN and GSTIN', () => {
 		expect(isValidPan('ABCDE1234F')).toBe(true);
 		expect(isValidGstin('27ABCDE1234F1Z5')).toBe(true);
+	});
+
+	it('validates Aadhaar as 12 digits not starting with 0 or 1', () => {
+		expect(isValidAadhaar('234567890123')).toBe(true);
+		expect(isValidAadhaar('134567890123')).toBe(false);
+		expect(isValidAadhaar('23456789012')).toBe(false);
+	});
+
+	it('bounds the registered year', () => {
+		expect(isValidRegisteredYear(2018, 2026)).toBe(true);
+		expect(isValidRegisteredYear(1799, 2026)).toBe(false);
+		expect(isValidRegisteredYear(2027, 2026)).toBe(false);
+		expect(isValidRegisteredYear(null, 2026)).toBe(false);
+	});
+
+	it('requires CIN only for private limited companies', () => {
+		expect(isCinValid('', 'private_limited')).toBe(false);
+		expect(isCinValid('', 'proprietorship')).toBe(true);
+		expect(isCinValid('U12345KA2018PTC123456', 'private_limited')).toBe(true);
+		expect(isCinValid('nonsense', 'llp')).toBe(false);
 	});
 
 	it('masks account numbers without revealing short values', () => {
 		expect(maskAccountNumber('12')).toBe('••');
 		expect(maskAccountNumber('123456789012')).toBe('••••••••9012');
 	});
+});
 
-	it('rejects submit when required documents are missing', () => {
-		const data = {
-			businessPan: 'ABCDE1234F',
-			entityType: 'private_limited',
-			entityName: 'Private Limited',
-			gstin: '27ABCDE1234F1Z5',
-			gstinList: [],
-			businessDetails: {
-				companyName: 'Acme',
-				companyType: 'Private Limited Company',
-				cin: '',
-				address: { line1: '', line2: '', city: '', state: '', pincode: '' },
-				currentAddress: { line1: '', line2: '', city: '', state: '', pincode: '' },
-				currentAddressSameAsContact: false,
-				phone: '',
-				email: '',
-				website: '',
-				brandName: ''
-			},
-			bankDetails: {
-				accountHolderName: 'Acme',
-				accountNumber: '123456789012',
-				confirmAccountNumber: '123456789012',
-				ifscCode: 'HDFC0000123',
-				bankName: 'HDFC Bank',
-				branchName: 'Fort'
-			},
-			directors: [{ name: 'Ada', pan: 'PQRST2345P', status: 'pending' }],
-			documents: {
-				gstCertificate: { uploaded: true, required: true },
-				panCardCopy: { uploaded: true, required: true },
-				certificateOfIncorporation: { uploaded: false, required: true },
-				shopActLicence: { uploaded: false, required: false },
-				bankStatement: { uploaded: true, required: true },
-				addressProof: { uploaded: true, required: true }
-			}
-		} satisfies OnboardingFormData;
+describe('step completeness', () => {
+	it('accepts a fully filled form on every step', () => {
+		const data = validForm();
+		for (const slot of Object.values(data.documents)) slot.uploaded = true;
+		expect(isIdentityComplete(data)).toBe(true);
+		expect(isProfileComplete(data)).toBe(true);
+		expect(bankDetailsAreComplete(data)).toBe(true);
+		expect(directorsAreComplete(data)).toBe(true);
+		expect(allRequiredComplete(data)).toBe(true);
+	});
 
-		expect(allRequiredComplete(data)).toBe(false);
+	it('flags identity gaps', () => {
+		const data = validForm();
+		data.businessDetails.industry = ' ';
+		expect(isIdentityComplete(data)).toBe(false);
+		expect(isStepDataComplete(1, data)).toBe(false);
+	});
+
+	it('requires the bank account type and matching account numbers', () => {
+		const data = validForm();
+		data.bankDetails.accountType = '';
+		expect(bankDetailsAreComplete(data)).toBe(false);
+		data.bankDetails.accountType = 'SAVINGS';
+		data.bankDetails.confirmAccountNumber = '123456789013';
+		expect(bankDetailsAreComplete(data)).toBe(false);
+	});
+
+	it('requires every director field, and at least one director', () => {
+		const data = validForm();
+		data.directors[0].aadhaar = '';
+		expect(directorsAreComplete(data)).toBe(false);
+		data.directors = [];
+		expect(directorsAreComplete(data)).toBe(false);
+	});
+
+	it('blocks on required documents that have a confirmed backend field, exempting those that do not', () => {
+		const { documents } = validForm();
+		// gstCertificate, certificateOfIncorporation and bankStatement are required and supported.
+		// addressProof is required but has no confirmed backend field yet, so it must not block.
+		expect(requiredDocumentsUploaded(documents)).toBe(false);
+		documents.gstCertificate.uploaded = true;
+		documents.certificateOfIncorporation.uploaded = true;
+		documents.bankStatement.uploaded = true;
+		expect(requiredDocumentsUploaded(documents)).toBe(true);
+	});
+
+	it('accepts an injected support predicate, e.g. once more document types are confirmed', () => {
+		const { documents } = validForm();
+		expect(requiredDocumentsUploaded(documents, () => false)).toBe(true);
+		expect(requiredDocumentsUploaded(documents, () => true)).toBe(false);
+		for (const slot of Object.values(documents)) slot.uploaded = true;
+		expect(requiredDocumentsUploaded(documents, () => true)).toBe(true);
 	});
 });
 

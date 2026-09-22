@@ -3,7 +3,9 @@
  * Do not ship these values as production defaults or as the live GET response.
  * Swap for the confirmed backend payload before release (see onboarding redesign §6).
  */
-import type { ProfileStatus } from './stage-status';
+/** Placeholder enum — confirm the real values with the backend. */
+export type ProfileStatus =
+	'DRAFT' | 'SUBMITTED' | 'VERIFICATION_PENDING' | 'VERIFIED' | 'REMARKED';
 
 export interface DummyOrgRecord {
 	orgId: string;

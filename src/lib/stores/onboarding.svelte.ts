@@ -1,4 +1,4 @@
-import type { ProfileStatus } from '$lib/components/self-onboarding/stage-status';
+import { STEPS, type StepId } from '$lib/components/self-onboarding/steps';
 import {
 	ENTITY_TYPE_COMPANY_TYPES,
 	parseEntityType,
@@ -16,7 +16,7 @@ import {
 	type OnboardingMode
 } from '$lib/types/onboarding';
 
-const STORAGE_KEY = 'pg-self-onboarding-v2';
+const STORAGE_KEY = 'pg-self-onboarding-v3';
 
 function emptyAddress(): Address {
 	return { line1: '', line2: '', city: '', state: '', pincode: '' };
@@ -29,7 +29,6 @@ function emptyDocument(required: boolean): DocumentSlot {
 function emptyDocuments(entityType: EntityType | null): Documents {
 	return {
 		gstCertificate: emptyDocument(true),
-		panCardCopy: emptyDocument(true),
 		certificateOfIncorporation: emptyDocument(requiresIncorporationCertificate(entityType)),
 		shopActLicence: emptyDocument(entityType === 'proprietorship'),
 		bankStatement: emptyDocument(true),
@@ -62,16 +61,16 @@ function emptyForm(): OnboardingFormData {
 		gstin: '',
 		gstinList: [],
 		businessDetails: {
-			companyName: '',
 			companyType: '',
 			cin: '',
 			address: emptyAddress(),
-			currentAddress: emptyAddress(),
-			currentAddressSameAsContact: false,
 			phone: '',
-			email: '',
 			website: '',
-			brandName: ''
+			brandName: '',
+			tan: '',
+			industry: '',
+			registeredYear: null,
+			communicationAddress: ''
 		},
 		bankDetails: {
 			accountHolderName: '',
@@ -79,7 +78,8 @@ function emptyForm(): OnboardingFormData {
 			confirmAccountNumber: '',
 			ifscCode: '',
 			bankName: '',
-			branchName: ''
+			branchName: '',
+			accountType: ''
 		},
 		directors: [],
 		documents: emptyDocuments(null)
@@ -92,9 +92,7 @@ interface PersistedState {
 	formData: Omit<OnboardingFormData, 'documents'> & { documents: PersistedDocuments };
 	mode: OnboardingMode;
 	completedSteps: number[];
-	profileStatus?: ProfileStatus | null;
 	verifications?: Record<string, string>;
-	businessSection?: 'company' | 'address';
 	focusField?: string;
 }
 
@@ -109,7 +107,6 @@ function omitFile(slot: DocumentSlot): Omit<DocumentSlot, 'file'> {
 function stripFiles(data: OnboardingFormData): PersistedState['formData'] {
 	const documents = {
 		gstCertificate: omitFile(data.documents.gstCertificate),
-		panCardCopy: omitFile(data.documents.panCardCopy),
 		certificateOfIncorporation: omitFile(data.documents.certificateOfIncorporation),
 		shopActLicence: omitFile(data.documents.shopActLicence),
 		bankStatement: omitFile(data.documents.bankStatement),
@@ -134,14 +131,12 @@ function restoreForm(persisted: PersistedState['formData']): OnboardingFormData 
 		businessDetails: {
 			...emptyForm().businessDetails,
 			...persisted.businessDetails,
-			address: { ...emptyAddress(), ...persisted.businessDetails.address },
-			currentAddress: { ...emptyAddress(), ...persisted.businessDetails.currentAddress },
-			currentAddressSameAsContact: persisted.businessDetails.currentAddressSameAsContact ?? false
+			address: { ...emptyAddress(), ...persisted.businessDetails.address }
 		},
+		bankDetails: { ...emptyForm().bankDetails, ...persisted.bankDetails },
 		documents: applyEntityDocumentRequirements(
 			{
 				gstCertificate: restoreSlot(persisted.documents.gstCertificate),
-				panCardCopy: restoreSlot(persisted.documents.panCardCopy),
 				certificateOfIncorporation: restoreSlot(persisted.documents.certificateOfIncorporation),
 				shopActLicence: restoreSlot(persisted.documents.shopActLicence),
 				bankStatement: restoreSlot(persisted.documents.bankStatement),
@@ -170,12 +165,13 @@ const formData = $state<OnboardingFormData>(
 );
 let mode = $state<OnboardingMode>(persisted?.mode ?? 'manual');
 let completedSteps = $state<number[]>(persisted?.completedSteps ?? []);
-let profileStatus = $state<ProfileStatus | null>(persisted?.profileStatus ?? null);
 let verifications = $state<Record<string, string>>(persisted?.verifications ?? {});
-let businessSection = $state<'company' | 'address'>(persisted?.businessSection ?? 'company');
 let focusField = $state(persisted?.focusField ?? '');
+// A save/submit error routed to a different step (see saveErrorRouting.ts) — a one-shot handoff
+// across navigation, so it is never persisted to sessionStorage.
+let saveError = $state('');
 
-const progressPercent = $derived(Math.round((completedSteps.length / 7) * 100));
+const progressPercent = $derived(Math.round((completedSteps.length / STEPS.length) * 100));
 
 function persist() {
 	if (typeof sessionStorage === 'undefined') return;
@@ -183,9 +179,7 @@ function persist() {
 		formData: stripFiles(formData),
 		mode,
 		completedSteps,
-		profileStatus,
 		verifications,
-		businessSection,
 		focusField
 	};
 	sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -205,17 +199,14 @@ export const onboarding = {
 	get completedSteps() {
 		return completedSteps;
 	},
-	get profileStatus() {
-		return profileStatus;
-	},
 	get verifications() {
 		return verifications;
 	},
-	get businessSection() {
-		return businessSection;
-	},
 	get focusField() {
 		return focusField;
+	},
+	get saveError() {
+		return saveError;
 	},
 	get progressPercent() {
 		return progressPercent;
@@ -223,18 +214,8 @@ export const onboarding = {
 
 	persist,
 
-	setProfileStatus(status: ProfileStatus | null) {
-		profileStatus = status;
-		persist();
-	},
-
 	setVerifications(next: Record<string, string>) {
 		verifications = next;
-		persist();
-	},
-
-	setBusinessSection(section: 'company' | 'address') {
-		businessSection = section;
 		persist();
 	},
 
@@ -243,11 +224,27 @@ export const onboarding = {
 		persist();
 	},
 
+	setSaveError(message: string) {
+		saveError = message;
+	},
+
+	/** Reads and clears the pending error in one step, so it is shown at most once. */
+	consumeSaveError(): string {
+		const message = saveError;
+		saveError = '';
+		return message;
+	},
+
 	clearVerification(key: string) {
 		if (!(key in verifications)) return;
 		const next = { ...verifications };
 		delete next[key];
 		verifications = next;
+		persist();
+	},
+
+	setBusinessPan(pan: string) {
+		formData.businessPan = pan;
 		persist();
 	},
 
@@ -275,54 +272,17 @@ export const onboarding = {
 		persist();
 	},
 
-	setBusinessDetails(details: Partial<BusinessDetails>, cin?: string) {
-		formData.businessDetails = {
-			...formData.businessDetails,
-			...details,
-			address: details.address
-				? { ...formData.businessDetails.address, ...details.address }
-				: formData.businessDetails.address,
-			currentAddress: details.currentAddress
-				? { ...formData.businessDetails.currentAddress, ...details.currentAddress }
-				: formData.businessDetails.currentAddress
-		};
-		if (cin !== undefined) {
-			formData.businessDetails.cin = cin;
-		}
-		persist();
-	},
-
 	updateBusinessDetails(patch: Partial<BusinessDetails>) {
 		formData.businessDetails = {
 			...formData.businessDetails,
 			...patch,
-			address: formData.businessDetails.address,
-			currentAddress: formData.businessDetails.currentAddress
+			address: formData.businessDetails.address
 		};
 		persist();
 	},
 
 	updateBusinessAddress(patch: Partial<Address>) {
 		formData.businessDetails.address = patchAddress(formData.businessDetails.address, patch);
-		persist();
-	},
-
-	updateCurrentAddress(patch: Partial<Address>) {
-		formData.businessDetails.currentAddress = patchAddress(
-			formData.businessDetails.currentAddress,
-			patch
-		);
-		persist();
-	},
-
-	setCurrentAddressSameAsContact(same: boolean) {
-		formData.businessDetails.currentAddressSameAsContact = same;
-		persist();
-	},
-
-	commitCurrentAddressFromContact() {
-		if (!formData.businessDetails.currentAddressSameAsContact) return;
-		formData.businessDetails.currentAddress = { ...formData.businessDetails.address };
 		persist();
 	},
 
@@ -334,7 +294,7 @@ export const onboarding = {
 	addDirector() {
 		formData.directors = [
 			...formData.directors,
-			{ name: '', pan: '', din: '', email: '', phone: '', status: 'pending' }
+			{ name: '', pan: '', aadhaar: '', email: '', phone: '' }
 		];
 		persist();
 	},
@@ -350,6 +310,15 @@ export const onboarding = {
 
 	removeDirector(index: number) {
 		formData.directors = formData.directors.filter((_, i) => i !== index);
+		persist();
+	},
+
+	/** Stores upstream ids returned after a save; `undefined` entries keep the existing id. */
+	setDirectorIds(ids: (number | undefined)[]) {
+		formData.directors = formData.directors.map((director, i) => ({
+			...director,
+			id: ids[i] ?? director.id
+		}));
 		persist();
 	},
 
@@ -378,7 +347,7 @@ export const onboarding = {
 		persist();
 	},
 
-	completeStep(step: number) {
+	completeStep(step: StepId) {
 		if (!completedSteps.includes(step)) {
 			completedSteps = [...completedSteps, step];
 			persist();

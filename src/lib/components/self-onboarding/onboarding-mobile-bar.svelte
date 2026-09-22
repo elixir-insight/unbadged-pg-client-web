@@ -1,22 +1,22 @@
 <script lang="ts">
 	import OnboardingProfileCard from './onboarding-profile-card.svelte';
-	import { STAGES, type StageKey } from './stages';
-	import StageProgress from './stage-progress.svelte';
+	import StepProgress from './step-progress.svelte';
+	import { STEPS, type StepId } from './steps';
 
 	let {
-		currentStage,
-		currentTabLabel
+		currentStep
 	}: {
-		currentStage: StageKey;
-		currentTabLabel: string;
+		currentStep: StepId;
 	} = $props();
-
-	const stageIndex = $derived(STAGES.findIndex((item) => item.key === currentStage));
 </script>
 
-<div class="flex items-center gap-1 border-b border-border bg-sidebar">
+<div class="flex items-center gap-1 border-b border-border bg-background">
 	<div class="min-w-0 flex-1 px-4 py-4">
-		<StageProgress currentIndex={stageIndex} total={STAGES.length} label={currentTabLabel} />
+		<StepProgress
+			currentIndex={currentStep - 1}
+			total={STEPS.length}
+			label={STEPS[currentStep - 1].label}
+		/>
 	</div>
 	<OnboardingProfileCard isCollapsed />
 </div>

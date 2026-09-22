@@ -1,108 +1,50 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { onboarding } from '$lib/stores/onboarding.svelte';
-import { allRoutedRemarks, routeToTab, type RoutedRemark } from '$lib/utils/remarkRouting';
-import { nextActionableTab, resumeTabForStage } from './stage-status';
-import { previousTab, stageByKey, type StageKey, type StageTabId } from './stages';
-import { stepHref, type StepPath } from './steps';
+import { routeToStep, type RoutedRemark } from '$lib/utils/remarkRouting';
+import { routeSaveErrorToStep } from '$lib/utils/saveErrorRouting';
+import { nextStepPath, stepHref, STEPS, type StepId, type StepPath } from './steps';
 
-export async function gotoOnboardingStep(path: StepPath): Promise<void> {
+export async function gotoOnboardingStep(path: StepPath, fieldKey?: string): Promise<void> {
+	onboarding.setFocusField(fieldKey ?? '');
 	await goto(resolve(stepHref(path) as '/'));
 }
 
-export async function gotoOnboardingTab(tabId: StageTabId, fieldKey?: string): Promise<void> {
-	onboarding.setFocusField(fieldKey ?? '');
-	if (tabId === 'address') {
-		onboarding.setBusinessSection('address');
-	} else if (tabId === 'company') {
-		onboarding.setBusinessSection('company');
-	}
-
-	switch (tabId) {
-		case 'pan':
-			await goto(resolve('/self-onboarding/pan-number'));
-			return;
-		case 'gst':
-			await goto(resolve('/self-onboarding/gst-details'));
-			return;
-		case 'company':
-		case 'address':
-			await goto(resolve('/self-onboarding/business-details'));
-			return;
-		case 'bank':
-			await goto(resolve('/self-onboarding/bank-details'));
-			return;
-		case 'directors':
-			await goto(resolve('/self-onboarding/directors'));
-			return;
-	}
-}
-
-export async function gotoOnboardingStage(stageKey: StageKey): Promise<void> {
-	const stage = stageByKey(stageKey);
-	if (stage.tabs.length > 0) {
-		const remarks = allRoutedRemarks(onboarding.verifications);
-		const target = resumeTabForStage(stageKey, onboarding.formData, remarks) ?? stage.tabs[0].id;
-		await gotoOnboardingTab(target);
-		return;
-	}
-	if (stageKey === 'review-submit') {
-		await goto(resolve('/self-onboarding/review-submit'));
-		return;
-	}
-	await goto(resolve('/self-onboarding/documents'));
+/**
+ * Shows a save/submit failure on the step whose fields it concerns, not wherever the request
+ * happened to fire from — e.g. saving the profile step can fail on an identity-step field
+ * (GST/TAN), which that step can't display or let the user fix. Returns the message to show
+ * locally when it belongs on the current step (or can't be placed); returns '' after routing
+ * elsewhere, since the target step will show it instead.
+ */
+export async function routeSaveError(message: string, currentStep: StepId): Promise<string> {
+	const targetStep = routeSaveErrorToStep(message);
+	if (targetStep === null || targetStep === currentStep) return message;
+	onboarding.setSaveError(message);
+	await gotoOnboardingStep(STEPS[targetStep - 1].path);
+	return '';
 }
 
 export async function gotoRemark(remark: RoutedRemark): Promise<void> {
-	await gotoOnboardingTab(remark.tab, remark.key);
+	await gotoOnboardingStep(STEPS[remark.step - 1].path, remark.key);
 }
 
-export async function gotoPreviousFromTab(tabId: StageTabId): Promise<void> {
-	const previous = previousTab(tabId);
-	if (previous) {
-		await gotoOnboardingTab(previous.id);
-	}
-}
-
-function completeTab(tab: StageTabId): void {
+function clearStepRemarks(step: StepId): void {
 	const remaining = { ...onboarding.verifications };
 	let cleared = false;
 	for (const key of Object.keys(remaining)) {
-		if (routeToTab(key) === tab) {
+		if (routeToStep(key) === step) {
 			delete remaining[key];
 			cleared = true;
 		}
 	}
 	if (cleared) onboarding.setVerifications(remaining);
-
-	switch (tab) {
-		case 'pan':
-			onboarding.completeStep(1);
-			break;
-		case 'gst':
-			onboarding.completeStep(2);
-			break;
-		case 'company':
-			break;
-		case 'address':
-			onboarding.completeStep(3);
-			break;
-		case 'bank':
-			onboarding.completeStep(4);
-			break;
-		case 'directors':
-			onboarding.completeStep(5);
-			break;
-	}
 }
 
-export async function advanceFromTab(tab: StageTabId): Promise<void> {
-	completeTab(tab);
-	const remarks = allRoutedRemarks(onboarding.verifications);
-	const next = nextActionableTab(tab, onboarding.formData, remarks);
-	if (next.kind === 'tab') {
-		await gotoOnboardingTab(next.id);
-		return;
-	}
-	await gotoOnboardingStage(next.key);
+/** Marks the step done, drops its management remarks, and moves to the next step. */
+export async function advanceFromStep(step: StepId): Promise<void> {
+	clearStepRemarks(step);
+	onboarding.completeStep(step);
+	const next = nextStepPath(step);
+	if (next) await gotoOnboardingStep(next);
 }

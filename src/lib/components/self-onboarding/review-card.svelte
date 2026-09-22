@@ -15,13 +15,9 @@
 	} = $props();
 </script>
 
-<section class="rounded-xl border border-border p-5">
+<section class="border-t border-border pt-5 first:border-t-0 first:pt-0">
 	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-		<p
-			class="inline-flex rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold tracking-wide text-primary uppercase"
-		>
-			{title}
-		</p>
+		<h2 class="text-sm font-semibold text-foreground">{title}</h2>
 		<a
 			class="text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 			href={resolve(stepHref(editPath) as '/')}

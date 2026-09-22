@@ -1,69 +1,64 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { getContext } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/reusable';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { gotoOnboardingStep } from './navigation';
-	import { STAGE_NAV_KEY, type StageNav } from './stage-nav.svelte';
-	import { ADDRESS_TAB_META } from './stages';
-	import { previousStepPath, STEPS, stepIndexFromPathname } from './steps';
+	import { previousStepPath, STEPS, stepIdFromPathname } from './steps';
 
 	let {
 		children,
 		footer,
-		header
+		error = ''
 	}: {
 		children: Snippet;
 		footer?: Snippet;
-		header?: Snippet;
+		/** Save/submit failure, shown beside the actions so it is never scrolled out of view. */
+		error?: string;
 	} = $props();
 
-	const stageNav = getContext<StageNav | undefined>(STAGE_NAV_KEY);
-	const hideFooter = $derived(stageNav?.tabbed ?? false);
-	const currentStep = $derived(stepIndexFromPathname(page.url.pathname));
-	const isAddressTab = $derived(onboarding.businessSection === 'address');
-	const meta = $derived(isAddressTab ? ADDRESS_TAB_META : STEPS[currentStep - 1]);
+	const currentStep = $derived(stepIdFromPathname(page.url.pathname));
+	const meta = $derived(STEPS[currentStep - 1]);
 	const backPath = $derived(previousStepPath(currentStep));
+
+	// A save error routed here from another step (see navigation.ts routeSaveError) — read once at
+	// mount, not reactively: the step the error was routed *from* is still mounted at the instant
+	// it's set (right before the navigation that unmounts it), so a reactive read there would
+	// consume it before this page ever exists to show it.
+	let routedError = $state('');
+	onMount(() => {
+		if (!onboarding.saveError) return;
+		routedError = onboarding.consumeSaveError();
+	});
+	const shownError = $derived(error || routedError);
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-	<div class="min-h-0 flex-1 overflow-y-auto">
-		{#if header}
-			{@render header()}
-		{:else}
-			<header class="mb-6">
-				{#if meta?.eyebrow}
-					<p class="text-sm font-medium text-primary">{meta.eyebrow}</p>
-				{/if}
-				<h1 class="mt-1 text-2xl font-bold tracking-tight text-card-foreground">{meta?.title}</h1>
-				{#if meta?.description}
-					<p class="mt-2 text-sm text-muted-foreground">{meta.description}</p>
-				{/if}
-			</header>
-		{/if}
+	<header class="shrink-0 border-b border-border">
+		<div class="mx-auto w-full max-w-[640px] px-6 py-5">
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">{meta.title}</h1>
+		</div>
+	</header>
 
-		<div class="w-full">
+	<div class="min-h-0 flex-1 overflow-y-auto">
+		<div class="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-6 py-6">
 			{@render children()}
 		</div>
 	</div>
 
-	{#if footer && !hideFooter}
-		<div
-			class="sticky bottom-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-border bg-card py-4"
-		>
-			{#if backPath}
-				<Button
-					variant="outline"
-					onclick={() => {
-						const path = backPath;
-						if (path) void gotoOnboardingStep(path);
-					}}
-				>
-					Back
-				</Button>
-			{/if}
-			{@render footer()}
-		</div>
+	{#if footer}
+		<footer class="shrink-0 border-t border-border">
+			<div
+				class="mx-auto flex w-full max-w-[640px] flex-wrap items-center justify-end gap-3 px-6 py-4"
+			>
+				{#if shownError}
+					<p role="alert" class="min-w-0 flex-1 text-sm text-destructive">{shownError}</p>
+				{/if}
+				{#if backPath}
+					<Button variant="outline" onclick={() => void gotoOnboardingStep(backPath)}>Back</Button>
+				{/if}
+				{@render footer()}
+			</div>
+		</footer>
 	{/if}
 </div>

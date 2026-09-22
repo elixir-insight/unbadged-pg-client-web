@@ -3,94 +3,75 @@ import { DUMMY_REMARKED_ORG } from '$lib/components/self-onboarding/dummy-org-re
 import {
 	allRoutedRemarks,
 	directorRemarkIndex,
-	routeToStage,
-	routeToTab,
+	remarksForStep,
+	routeToStep,
 	routeVerificationKey
 } from './remarkRouting';
 
 describe('routeVerificationKey', () => {
-	it('routes kyb.businessPan to Business Details PAN', () => {
-		expect(routeVerificationKey('kyb.businessPan')).toEqual({
-			stage: 'business-details',
-			tab: 'pan',
-			field: 'Business PAN'
-		});
+	it('routes kyb.businessPan to Business identity', () => {
+		expect(routeVerificationKey('kyb.businessPan')).toEqual({ step: 1, field: 'Business PAN' });
 	});
 
-	it('routes kyb.gstNumber to Business Details GST', () => {
-		expect(routeToStage('kyb.gstNumber')).toBe('business-details');
-		expect(routeToTab('kyb.gstNumber')).toBe('gst');
+	it('routes identity kyb fields to step 1', () => {
+		expect(routeToStep('kyb.gstNumber')).toBe(1);
+		expect(routeToStep('kyb.cin')).toBe(1);
+		expect(routeToStep('kyb.industry')).toBe(1);
+		expect(routeToStep('kyb.registeredYear')).toBe(1);
+		expect(routeVerificationKey('kyb.cin')).toEqual({ step: 1, field: 'CIN' });
 	});
 
-	it('routes kyb.cin to the Company tab', () => {
-		expect(routeVerificationKey('kyb.cin')).toEqual({
-			stage: 'business-details',
-			tab: 'company',
-			field: 'CIN'
-		});
-	});
-
-	it('routes tan aliases to Company', () => {
-		expect(routeToTab('kyb.tan')).toBe('company');
-		expect(routeToTab('orgTan')).toBe('company');
+	it('routes tan aliases to step 1', () => {
+		expect(routeToStep('kyb.tan')).toBe(1);
+		expect(routeToStep('orgTan')).toBe(1);
 		expect(routeVerificationKey('kyb.tan').field).toBe('TAN');
 	});
 
-	it('routes brandName and company kyb fields to Company', () => {
-		expect(routeToTab('brandName')).toBe('company');
-		expect(routeToTab('kyb.businessPhone')).toBe('company');
-		expect(routeToTab('kyb.organizationWebsite')).toBe('company');
-		expect(routeToTab('kyb.industry')).toBe('company');
-		expect(routeToTab('kyb.registeredYear')).toBe('company');
-	});
-
-	it('routes address keys to the Address tab', () => {
+	it('routes brand, contact and address keys to Business profile', () => {
+		expect(routeToStep('brandName')).toBe(2);
+		expect(routeToStep('kyb.businessPhone')).toBe(2);
+		expect(routeToStep('kyb.organizationWebsite')).toBe(2);
 		expect(routeVerificationKey('kyb.communicationAddress')).toEqual({
-			stage: 'business-details',
-			tab: 'address',
+			step: 2,
 			field: 'Communication address'
 		});
-		expect(routeVerificationKey('addressDetails.city')).toEqual({
-			stage: 'business-details',
-			tab: 'address',
-			field: 'City'
-		});
+		expect(routeVerificationKey('addressDetails.city')).toEqual({ step: 2, field: 'City' });
 		expect(routeVerificationKey('addressDetails.pinCode').field).toBe('Pincode');
 	});
 
-	it('routes dummy bankDetails keys to the Bank tab', () => {
-		expect(routeVerificationKey('bankDetails.ifscCode')).toEqual({
-			stage: 'account-ownership',
-			tab: 'bank',
-			field: 'IFSC'
-		});
+	it('routes bankDetails keys to Bank details', () => {
+		expect(routeVerificationKey('bankDetails.ifscCode')).toEqual({ step: 3, field: 'IFSC' });
 	});
 
 	it('routes directors[n].* to that director field', () => {
 		expect(routeVerificationKey('directors[0].pan')).toEqual({
-			stage: 'account-ownership',
-			tab: 'directors',
+			step: 4,
 			field: 'Director 1 — PAN'
 		});
 		expect(directorRemarkIndex('directors[2].email')).toBe(2);
 	});
+
+	it('falls back to Business profile for unknown keys', () => {
+		expect(routeToStep('kyb.somethingNew')).toBe(2);
+		expect(routeToStep('somethingElse')).toBe(2);
+	});
 });
 
 describe('dummy remarked org fixture', () => {
-	it('routes the sample verifications to Company and Bank', () => {
+	it('routes the sample verifications to Identity and Bank', () => {
 		const remarks = allRoutedRemarks(DUMMY_REMARKED_ORG.verifications);
 		expect(remarks).toHaveLength(2);
 		expect(remarks[0]).toMatchObject({
 			key: 'kyb.cin',
-			tab: 'company',
-			stage: 'business-details',
+			step: 1,
 			field: 'CIN',
 			message: 'Not Clear'
 		});
-		expect(remarks[1]).toMatchObject({
-			key: 'bankDetails.ifscCode',
-			tab: 'bank',
-			stage: 'account-ownership'
-		});
+		expect(remarks[1]).toMatchObject({ key: 'bankDetails.ifscCode', step: 3 });
+	});
+
+	it('filters remarks by step', () => {
+		expect(remarksForStep(DUMMY_REMARKED_ORG.verifications, 3)).toHaveLength(1);
+		expect(remarksForStep(DUMMY_REMARKED_ORG.verifications, 4)).toHaveLength(0);
 	});
 });

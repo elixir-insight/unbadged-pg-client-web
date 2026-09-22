@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/reusable';
 	import { AlertCircle } from '$lib/assets/icons';
 	import type { RoutedRemark } from '$lib/utils/remarkRouting';
-	import { stageByKey, tabById } from './stages';
+	import { STEPS } from './steps';
 
 	let {
 		remarks,
@@ -32,9 +32,7 @@
 					{#each remarks as remark (remark.key)}
 						<li class="flex flex-wrap items-center justify-between gap-2">
 							<p class="text-sm text-foreground">
-								<span class="font-medium"
-									>{stageByKey(remark.stage).label} — {tabById(remark.tab).label}:</span
-								>
+								<span class="font-medium">{STEPS[remark.step - 1].title}:</span>
 								{remark.field} — {remark.message}
 							</p>
 							<Button variant="outline" size="sm" onclick={() => onFix(remark)}>Fix this →</Button>

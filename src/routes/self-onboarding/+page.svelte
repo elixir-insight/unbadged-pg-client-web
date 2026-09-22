@@ -1,21 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		gotoOnboardingStage,
-		gotoOnboardingTab
-	} from '$lib/components/self-onboarding/navigation';
-	import { resumeDestination } from '$lib/components/self-onboarding/stage-status';
+	import { gotoOnboardingStep } from '$lib/components/self-onboarding/navigation';
+	import { firstIncompleteStep, STEPS } from '$lib/components/self-onboarding/steps';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
+	import { allRoutedRemarks } from '$lib/utils/remarkRouting';
 
 	onMount(() => {
-		const destination = resumeDestination(onboarding.formData, {
-			profileStatus: onboarding.profileStatus,
-			verifications: onboarding.verifications
-		});
-		if (destination.kind === 'tab') {
-			void gotoOnboardingTab(destination.id);
-			return;
-		}
-		void gotoOnboardingStage(destination.key);
+		const [firstRemark] = allRoutedRemarks(onboarding.verifications);
+		const step = firstRemark ? firstRemark.step : firstIncompleteStep(onboarding.completedSteps);
+		void gotoOnboardingStep(STEPS[step - 1].path, firstRemark?.key);
 	});
 </script>
