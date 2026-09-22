@@ -10,6 +10,7 @@ import {
 	DisputeEventsResponseSchema,
 	DisputeListResponseSchema,
 	DisputeStatusesResponseSchema,
+	GetDisputeChargebackResponseSchema,
 	GetDisputeDocumentDownloadUrlResponseSchema,
 	GetDisputeDocumentsResponseSchema,
 	ListDisputeChargebacksResponseSchema,
@@ -330,16 +331,17 @@ export const disputeClient = {
 			schema: CreateDisputeResponseSchema
 		}),
 
-	/** GET /api/v1/management/organizations/{orgId}/disputes/chargebacks */
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/chargebacks */
 	listChargebacksByOrganization: (
 		fetchFn: typeof fetch,
 		logger: Logger,
 		accessToken: string,
 		gatewayToken: string,
 		orgId: string,
-		query: { limit?: number; page?: number; disputeId?: string } = {}
+		query: { limit?: number; page?: number; disputeId?: string } = {},
+		portal: DisputePortal = 'management'
 	) =>
-		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/disputes/chargebacks`, {
+		apiFetch(`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/chargebacks`, {
 			fetch: fetchFn,
 			logger,
 			method: 'GET',
@@ -352,6 +354,29 @@ export const disputeClient = {
 			},
 			schema: ListDisputeChargebacksResponseSchema
 		}),
+
+	/** GET /api/v1/{portal}/organizations/{orgId}/disputes/{disputeId}/chargebacks/{chargebackId} */
+	getChargebackById: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		disputeId: string,
+		chargebackId: string,
+		portal: DisputePortal = 'management'
+	) =>
+		apiFetch(
+			`api/v1/${portal}/organizations/${encodeURIComponent(orgId)}/disputes/${encodeURIComponent(disputeId)}/chargebacks/${encodeURIComponent(chargebackId)}`,
+			{
+				fetch: fetchFn,
+				logger,
+				method: 'GET',
+				accessToken,
+				gatewayToken,
+				schema: GetDisputeChargebackResponseSchema
+			}
+		),
 
 	/** POST /api/v1/management/organizations/{orgId}/disputes/{disputeId}/chargebacks */
 	createChargeback: (

@@ -3,6 +3,7 @@ import {
 	LayoutDashboard,
 	ArrowLeftRight,
 	MessageSquareWarning,
+	CreditCard,
 	Landmark,
 	FileText,
 	// TrendingUp,
@@ -52,9 +53,8 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
-			// Dispute omitted from nav until backend API is ready
 			{
-				title: 'Dispute',
+				title: 'Disputes',
 				href: '/merchant/dispute',
 				icon: MessageSquareWarning,
 				service: 'payin',
@@ -63,6 +63,19 @@ export const merchantNav: NavGroup[] = [
 					{
 						matcher: /^\/merchant\/dispute\/[^/]+$/,
 						title: 'View Dispute'
+					}
+				]
+			},
+			{
+				title: 'Chargebacks',
+				href: '/merchant/chargeback',
+				icon: CreditCard,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/chargeback\/[^/]+\/[^/]+$/,
+						title: 'Chargeback Details'
 					}
 				]
 			},
