@@ -335,12 +335,6 @@
 								<p class="text-sm font-medium text-foreground">{dispute.amount}</p>
 							</div>
 							{@render detailRow('Raised on', dispute.raisedOn)}
-							<div class="grid grid-cols-2 items-center gap-6">
-								<p class="text-sm text-muted-foreground">Source</p>
-								<p>
-									<Chip variant="secondary">{dispute.sourceLabel}</Chip>
-								</p>
-							</div>
 						</div>
 
 						<div class="flex min-w-0 flex-col gap-5 lg:pl-8">
@@ -360,15 +354,22 @@
 									<p class="text-sm font-medium text-foreground">Evidence Due By</p>
 									<DatePicker bind:value={evidenceDueBy} placeholder="Select a date" />
 								</div>
-								{@render detailRow('Assigned to', dispute.assignedTo)}
-								{@render detailRow('Raised by', dispute.raisedBy)}
+								<!-- {@render detailRow('Assigned to', dispute.assignedTo)} -->
+								<!-- {@render detailRow('Raised by', dispute.raisedBy)} -->
+
 								<div class="grid grid-cols-2 items-center gap-6">
 									<label for="reason-code" class="text-sm font-medium text-foreground">
 										Reason Code
 									</label>
 									<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
 								</div>
-								{@render detailRow('Resolved by', dispute.resolvedBy)}
+								<div class="grid grid-cols-2 items-center gap-6">
+									<p class="text-sm text-muted-foreground">Source</p>
+									<p>
+										<Chip variant="secondary">{dispute.sourceLabel}</Chip>
+									</p>
+								</div>
+								<!-- {@render detailRow('Resolved by', dispute.resolvedBy)} -->
 							</fieldset>
 						</div>
 					</div>
