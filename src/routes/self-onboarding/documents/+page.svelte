@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { documentFieldOptions, getDocumentKeyForFieldName } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
-	import { Progress } from '$lib/components/ui/progress';
 	import { DocumentCard, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep } from '$lib/components/self-onboarding/navigation';
 	import {
@@ -18,7 +17,6 @@
 	const docKeys = $derived(visibleDocumentKeys(docs));
 	const uploadedCount = $derived(docKeys.filter((key) => docs[key].uploaded).length);
 	const total = $derived(docKeys.length);
-	const percent = $derived(total === 0 ? 0 : Math.round((uploadedCount / total) * 100));
 	const canContinue = $derived(requiredDocumentsUploaded(docs));
 
 	// Reconciles with documents uploaded outside this browser session (see hydrateDocumentUploaded
@@ -32,13 +30,7 @@
 </script>
 
 <StepShell>
-	<div>
-		<div class="mb-2 flex items-center justify-between text-sm">
-			<p class="font-medium">{uploadedCount} of {total} documents uploaded</p>
-			<p class="font-semibold text-primary">{percent}%</p>
-		</div>
-		<Progress value={percent} max={100} aria-label="Document upload progress" />
-	</div>
+	<p class="text-sm font-medium">{uploadedCount} of {total} documents uploaded</p>
 
 	<div class="flex flex-col gap-3">
 		{#each docKeys as key (key)}
