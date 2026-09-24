@@ -79,14 +79,14 @@ export function routeVerificationKey(key: string): RemarkRoute {
 	if (key === 'kyb.registeredYear' || key.startsWith('kyb.registeredYear.')) {
 		return identity('Registered year');
 	}
-
 	if (key === 'kyb.businessPhone' || key.startsWith('kyb.businessPhone.')) {
-		return profile('Business phone');
+		return identity('Business phone');
 	}
 	if (key === 'kyb.organizationWebsite' || key.startsWith('kyb.organizationWebsite.')) {
-		return profile('Website');
+		return identity('Website');
 	}
-	if (key === 'brandName' || key.startsWith('brandName.')) return profile('Brand name');
+	if (key === 'brandName' || key.startsWith('brandName.')) return identity('Brand name');
+
 	if (key === 'kyb.communicationAddress' || key.startsWith('kyb.communicationAddress.')) {
 		return profile('Communication address');
 	}

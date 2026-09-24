@@ -19,21 +19,15 @@ const STEP_ERROR_PATTERNS: readonly { step: StepId; patterns: readonly RegExp[] 
 			/\bcin\b/i,
 			/\bpan\b/i,
 			/\bindustry\b/i,
-			/\bregistered year\b/i
+			/\bregistered year\b/i,
+			/\bbrand\b/i,
+			/\bwebsite\b/i,
+			/\bphone\b/i
 		]
 	},
 	{
 		step: 2,
-		patterns: [
-			/\bbrand\b/i,
-			/\bwebsite\b/i,
-			/\bphone\b/i,
-			/\bemail\b/i,
-			/\baddress\b/i,
-			/\bpincode\b/i,
-			/\blegal name\b/i,
-			/\bcompany name\b/i
-		]
+		patterns: [/\bemail\b/i, /\baddress\b/i, /\bpincode\b/i, /\blegal name\b/i, /\bcompany name\b/i]
 	}
 ];
 

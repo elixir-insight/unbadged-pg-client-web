@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GST_STATE_CODES, gstinStateName } from './gst-states';
 import {
 	allRequiredComplete,
-	bankDetailsAreComplete,
+	bankAccountsAreComplete,
 	directorsAreComplete,
 	isCinValid,
 	isIdentityComplete,
@@ -44,30 +44,39 @@ function validForm(): OnboardingFormData {
 			website: 'https://acme.test',
 			brandName: 'Acme'
 		},
-		bankDetails: {
-			accountHolderName: 'Acme',
-			accountNumber: '123456789012',
-			confirmAccountNumber: '123456789012',
-			ifscCode: 'HDFC0000123',
-			bankName: 'HDFC Bank',
-			branchName: 'Fort',
-			accountType: 'CURRENT'
-		},
+		bankAccounts: [
+			{
+				accountHolderName: 'Acme',
+				accountNumber: '123456789012',
+				confirmAccountNumber: '123456789012',
+				ifscCode: 'HDFC0000123',
+				bankName: 'HDFC Bank',
+				branchName: 'Fort',
+				accountType: 'CURRENT'
+			}
+		],
 		directors: [
 			{
 				name: 'Ada',
 				pan: 'PQRST2345P',
 				aadhaar: '234567890123',
 				email: 'ada@acme.test',
-				phone: '9876543211'
+				phone: '9876543211',
+				aadhaarDocument: 'aadhaar.pdf',
+				panDocument: 'pan.pdf'
 			}
 		],
 		documents: {
 			gstCertificate: { uploaded: false, required: true },
-			certificateOfIncorporation: { uploaded: false, required: true },
-			shopActLicence: { uploaded: false, required: false },
-			bankStatement: { uploaded: false, required: true },
-			addressProof: { uploaded: false, required: true }
+			businessPanCard: { uploaded: false, required: true },
+			uboDeclaration: { uploaded: false, required: true },
+			boardResolution: { uploaded: false, required: true },
+			businessCertificate: { uploaded: false, required: true },
+			proofOfFunds: { uploaded: false, required: true },
+			addressProof: { uploaded: false, required: true },
+			businessTan: { uploaded: false, required: false },
+			aoa: { uploaded: false, required: false },
+			moa: { uploaded: false, required: false }
 		}
 	};
 }
@@ -123,9 +132,17 @@ describe('step completeness', () => {
 		for (const slot of Object.values(data.documents)) slot.uploaded = true;
 		expect(isIdentityComplete(data)).toBe(true);
 		expect(isProfileComplete(data)).toBe(true);
-		expect(bankDetailsAreComplete(data)).toBe(true);
+		expect(bankAccountsAreComplete(data)).toBe(true);
 		expect(directorsAreComplete(data)).toBe(true);
 		expect(allRequiredComplete(data)).toBe(true);
+	});
+
+	it('keeps the directors step incomplete until both director documents are uploaded', () => {
+		const data = validForm();
+		expect(isStepDataComplete(4, data)).toBe(true);
+		data.directors[0].panDocument = '';
+		expect(directorsAreComplete(data)).toBe(true);
+		expect(isStepDataComplete(4, data)).toBe(false);
 	});
 
 	it('flags identity gaps', () => {
@@ -137,11 +154,27 @@ describe('step completeness', () => {
 
 	it('requires the bank account type and matching account numbers', () => {
 		const data = validForm();
-		data.bankDetails.accountType = '';
-		expect(bankDetailsAreComplete(data)).toBe(false);
-		data.bankDetails.accountType = 'SAVINGS';
-		data.bankDetails.confirmAccountNumber = '123456789013';
-		expect(bankDetailsAreComplete(data)).toBe(false);
+		data.bankAccounts[0].accountType = '';
+		expect(bankAccountsAreComplete(data)).toBe(false);
+		data.bankAccounts[0].accountType = 'SAVINGS';
+		data.bankAccounts[0].confirmAccountNumber = '123456789013';
+		expect(bankAccountsAreComplete(data)).toBe(false);
+	});
+
+	it('requires at least one bank account, and every field on each one', () => {
+		const data = validForm();
+		data.bankAccounts.push({
+			accountHolderName: '',
+			accountNumber: '',
+			confirmAccountNumber: '',
+			ifscCode: '',
+			bankName: '',
+			branchName: '',
+			accountType: ''
+		});
+		expect(bankAccountsAreComplete(data)).toBe(false);
+		data.bankAccounts = [];
+		expect(bankAccountsAreComplete(data)).toBe(false);
 	});
 
 	it('requires every director field, and at least one director', () => {
@@ -152,23 +185,14 @@ describe('step completeness', () => {
 		expect(directorsAreComplete(data)).toBe(false);
 	});
 
-	it('blocks on required documents that have a confirmed backend field, exempting those that do not', () => {
+	it('blocks until every required document is uploaded, ignoring optional ones', () => {
 		const { documents } = validForm();
-		// gstCertificate, certificateOfIncorporation and bankStatement are required and supported.
-		// addressProof is required but has no confirmed backend field yet, so it must not block.
 		expect(requiredDocumentsUploaded(documents)).toBe(false);
-		documents.gstCertificate.uploaded = true;
-		documents.certificateOfIncorporation.uploaded = true;
-		documents.bankStatement.uploaded = true;
+		for (const slot of Object.values(documents)) if (slot.required) slot.uploaded = true;
+		// businessTan / aoa / moa are not required outside private limited.
 		expect(requiredDocumentsUploaded(documents)).toBe(true);
-	});
-
-	it('accepts an injected support predicate, e.g. once more document types are confirmed', () => {
-		const { documents } = validForm();
-		expect(requiredDocumentsUploaded(documents, () => false)).toBe(true);
-		expect(requiredDocumentsUploaded(documents, () => true)).toBe(false);
-		for (const slot of Object.values(documents)) slot.uploaded = true;
-		expect(requiredDocumentsUploaded(documents, () => true)).toBe(true);
+		documents.addressProof.uploaded = false;
+		expect(requiredDocumentsUploaded(documents)).toBe(false);
 	});
 });
 

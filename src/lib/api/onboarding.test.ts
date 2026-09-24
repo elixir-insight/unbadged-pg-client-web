@@ -1,14 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { OnboardingFormData } from '$lib/types/onboarding';
 import {
-	createBankAccount,
-	saveOrganization,
-	submitOnboarding,
-	toKybPayload,
-	updateBankAccount,
-	isOrgDocumentUploadSupported,
-	uploadDirectorDocument,
-	uploadOrgDocument
+	getDocumentKeyForFieldName,
+	documentFieldOptions,
+	isDocumentFieldName,
+	toBankPayload,
+	toKybPayload
 } from './onboarding';
 
 function form(): OnboardingFormData {
@@ -30,15 +27,17 @@ function form(): OnboardingFormData {
 			website: 'https://acme.test',
 			brandName: 'Acme'
 		},
-		bankDetails: {
-			accountHolderName: 'Acme',
-			accountNumber: '123456789012',
-			confirmAccountNumber: '123456789012',
-			ifscCode: 'HDFC0000123',
-			bankName: 'HDFC',
-			branchName: 'Fort',
-			accountType: 'CURRENT'
-		},
+		bankAccounts: [
+			{
+				accountHolderName: 'Acme',
+				accountNumber: '123456789012',
+				confirmAccountNumber: '123456789012',
+				ifscCode: 'HDFC0000123',
+				bankName: 'HDFC',
+				branchName: 'Fort',
+				accountType: 'CURRENT'
+			}
+		],
 		directors: [
 			{
 				name: 'Ada',
@@ -58,27 +57,18 @@ function form(): OnboardingFormData {
 		],
 		documents: {
 			gstCertificate: { uploaded: false, required: true },
-			certificateOfIncorporation: { uploaded: false, required: true },
-			shopActLicence: { uploaded: false, required: false },
-			bankStatement: { uploaded: false, required: true },
-			addressProof: { uploaded: false, required: true }
+			businessPanCard: { uploaded: false, required: true },
+			uboDeclaration: { uploaded: false, required: true },
+			boardResolution: { uploaded: false, required: true },
+			businessCertificate: { uploaded: false, required: true },
+			proofOfFunds: { uploaded: false, required: true },
+			addressProof: { uploaded: false, required: true },
+			businessTan: { uploaded: false, required: false },
+			aoa: { uploaded: false, required: false },
+			moa: { uploaded: false, required: false }
 		}
 	};
 }
-
-function mockFetch(body: unknown, init: { ok?: boolean; status?: number } = {}) {
-	const fetchMock = vi.fn().mockResolvedValue({
-		ok: init.ok ?? true,
-		status: init.status ?? 200,
-		json: () => Promise.resolve(body)
-	});
-	vi.stubGlobal('fetch', fetchMock);
-	return fetchMock;
-}
-
-afterEach(() => {
-	vi.unstubAllGlobals();
-});
 
 describe('toKybPayload', () => {
 	it('maps the form to the kyb / address / brand / directors payload', () => {
@@ -117,105 +107,54 @@ describe('toKybPayload', () => {
 	});
 });
 
-describe('requests', () => {
-	it('PUTs the organization through the same-origin proxy', async () => {
-		const fetchMock = mockFetch({ data: [], message: 'ok', statusCode: 200 });
-		await saveOrganization(form());
-		const [url, init] = fetchMock.mock.calls[0];
-		expect(url).toBe('/api/onboarding/organization');
-		expect(init.method).toBe('PUT');
-		expect(JSON.parse(init.body).kyb.businessPan).toBe('ABCDE1234F');
-	});
-
-	it('creates and updates the bank account with the holderName mapping', async () => {
-		const fetchMock = mockFetch({ data: [{ accountId: 3, status: 'PENDING' }] });
-		const created = await createBankAccount(form().bankDetails);
-		expect(created.data[0].accountId).toBe(3);
-		expect(fetchMock.mock.calls[0][0]).toBe('/api/onboarding/organization/bank');
-		expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+describe('toBankPayload', () => {
+	it('maps accountHolderName to holderName, passing the rest through', () => {
+		expect(toBankPayload(form().bankAccounts[0])).toEqual({
+			accountNumber: '123456789012',
+			accountType: 'CURRENT',
+			bankName: 'HDFC',
+			branchName: 'Fort',
 			holderName: 'Acme',
-			accountType: 'CURRENT'
+			ifscCode: 'HDFC0000123'
 		});
-
-		await updateBankAccount(3, form().bankDetails);
-		expect(fetchMock.mock.calls[1][0]).toBe('/api/onboarding/organization/bank/3');
-		expect(fetchMock.mock.calls[1][1].method).toBe('PUT');
-	});
-
-	it('returns the application id on submit', async () => {
-		mockFetch({ data: 'APP-123', message: 'ok', statusCode: 200 });
-		expect(await submitOnboarding()).toEqual({ success: true, applicationId: 'APP-123' });
-	});
-
-	it('surfaces the server message, falling back to the status', async () => {
-		mockFetch({ message: 'PAN already registered' }, { ok: false, status: 409 });
-		await expect(saveOrganization(form())).rejects.toThrow('PAN already registered');
-
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue({
-				ok: false,
-				status: 502,
-				json: () => Promise.reject(new Error('not json'))
-			})
-		);
-		await expect(saveOrganization(form())).rejects.toThrow('HTTP 502');
 	});
 });
 
-describe('uploadDirectorDocument (stub)', () => {
-	it('stays disabled until the request body is confirmed', async () => {
-		const fetchMock = mockFetch({});
-		const file = new File(['x'], 'x.pdf');
-		await expect(uploadDirectorDocument(1, file)).rejects.toThrow('awaiting API');
-		expect(fetchMock).not.toHaveBeenCalled();
-	});
-});
-
-describe('uploadOrgDocument', () => {
-	it('posts the file under the mapped field name for its document type', async () => {
-		const fetchMock = mockFetch({ data: [], message: 'ok', statusCode: 200 });
-		const file = new File(['%PDF'], 'gst.pdf', { type: 'application/pdf' });
-		await uploadOrgDocument('gstCertificate', file);
-
-		const [url, init] = fetchMock.mock.calls[0];
-		expect(url).toBe('/api/onboarding/organization/documents');
-		expect(init.method).toBe('POST');
-		expect(init.headers).toBeUndefined(); // no Content-Type — the browser sets the multipart boundary
-		const body = init.body as FormData;
-		expect(body).toBeInstanceOf(FormData);
-		// Node's FormData re-wraps the File on .get(), so compare by name rather than identity.
-		expect((body.get('gstCertificate') as File).name).toBe(file.name);
+describe('org document fields', () => {
+	it('uses the backend field names management onboarding uploads with', () => {
+		expect(documentFieldOptions('gstCertificate')).toEqual([
+			{ value: 'gstCertificate', label: 'GST certificate' }
+		]);
+		expect(documentFieldOptions('businessPanCard')[0].value).toBe('businessPan');
+		expect(documentFieldOptions('boardResolution')[0].value).toBe('brDocument');
+		expect(documentFieldOptions('businessTan')[0].value).toBe('businessTan');
 	});
 
-	it('maps every confirmed document type to its backend camelCase field name', async () => {
-		const fetchMock = mockFetch({ data: [], message: 'ok', statusCode: 200 });
-		const file = new File(['x'], 'x.pdf');
-		const cases: [Parameters<typeof uploadOrgDocument>[0], string][] = [
-			['certificateOfIncorporation', 'incorpCertificate'],
-			['bankStatement', 'bankStatement']
-		];
-		for (const [documentType, fieldName] of cases) {
-			await uploadOrgDocument(documentType, file);
-			const body = fetchMock.mock.calls.at(-1)![1].body as FormData;
-			expect((body.get(fieldName) as File)?.name).toBe(file.name);
-		}
+	it('offers a pick-one choice for the grouped documents', () => {
+		const values = (key: Parameters<typeof documentFieldOptions>[0]) =>
+			documentFieldOptions(key).map((option) => option.value);
+		expect(values('businessCertificate')).toEqual([
+			'incorpCertificate',
+			'udyamCertificate',
+			'msmeCertificate'
+		]);
+		expect(values('proofOfFunds')).toEqual(['voidedCheque', 'bankStatement']);
+		expect(values('addressProof')).toEqual(['rentalAgreement', 'electricityBill']);
 	});
 
-	it('surfaces the server message on failure', async () => {
-		mockFetch({ message: 'File type not supported' }, { ok: false, status: 415 });
-		await expect(uploadOrgDocument('gstCertificate', new File(['x'], 'x.pdf'))).rejects.toThrow(
-			'File type not supported'
-		);
+	it("only accepts a field name from the slot's own list", () => {
+		expect(isDocumentFieldName('addressProof', 'electricityBill')).toBe(true);
+		expect(isDocumentFieldName('addressProof', 'gstCertificate')).toBe(false);
+		expect(isDocumentFieldName('gstCertificate', 'shopActLicence')).toBe(false);
+		expect(isDocumentFieldName('gstCertificate', 'toString')).toBe(false);
 	});
 
-	it('refuses document types with no confirmed backend field, without calling the API', async () => {
-		const fetchMock = mockFetch({});
-		expect(isOrgDocumentUploadSupported('shopActLicence')).toBe(false);
-		expect(isOrgDocumentUploadSupported('addressProof')).toBe(false);
-		await expect(uploadOrgDocument('shopActLicence', new File(['x'], 'x.pdf'))).rejects.toThrow(
-			'no confirmed backend field'
-		);
-		expect(fetchMock).not.toHaveBeenCalled();
+	it('maps a GET .../documents field name back to its slot', () => {
+		expect(getDocumentKeyForFieldName('gstCertificate')).toBe('gstCertificate');
+		expect(getDocumentKeyForFieldName('udyamCertificate')).toBe('businessCertificate');
+		expect(getDocumentKeyForFieldName('voidedCheque')).toBe('proofOfFunds');
+		expect(getDocumentKeyForFieldName('electricityBill')).toBe('addressProof');
+		expect(getDocumentKeyForFieldName('moa')).toBe('moa');
+		expect(getDocumentKeyForFieldName('unknownField')).toBeUndefined();
 	});
 });

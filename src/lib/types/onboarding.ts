@@ -15,20 +15,29 @@ export const ENTITY_TYPE_COMPANY_TYPES: Record<EntityType, string> = {
 	private_limited: 'Private Limited'
 };
 
-export function requiresIncorporationCertificate(entityType: EntityType | null): boolean {
-	return entityType === 'partnership' || entityType === 'llp' || entityType === 'private_limited';
+/** Business TAN, AOA and MOA — only asked of private limited companies, same as management onboarding. */
+export function requiresCompanyDocuments(entityType: EntityType | null): boolean {
+	return entityType === 'private_limited';
 }
 
+/**
+ * Accepts our own internal tokens (from persisted state) as well as the signup/backend business
+ * type enum (e.g. SOLE_PROPRIETORSHIP, LIMITED_LIABILITY_PARTNERSHIP — see SIGN_UP_BUSINESS_TYPE_VALUES),
+ * case- and separator-insensitive, so hydrating entityType from either source works the same way.
+ */
 export function parseEntityType(value: unknown): EntityType | null {
-	if (value === 'company') return 'private_limited';
-	if (
-		value === 'proprietorship' ||
-		value === 'partnership' ||
-		value === 'llp' ||
-		value === 'private_limited'
-	) {
-		return value;
+	if (typeof value !== 'string') return null;
+	const normalized = value
+		.trim()
+		.toUpperCase()
+		.replace(/[\s-]+/g, '_');
+	if (normalized === 'COMPANY') return 'private_limited';
+	if (normalized === 'PROPRIETORSHIP' || normalized === 'SOLE_PROPRIETORSHIP') {
+		return 'proprietorship';
 	}
+	if (normalized === 'PARTNERSHIP') return 'partnership';
+	if (normalized === 'LLP' || normalized === 'LIMITED_LIABILITY_PARTNERSHIP') return 'llp';
+	if (normalized === 'PRIVATE_LIMITED') return 'private_limited';
 	return null;
 }
 
@@ -82,6 +91,10 @@ export interface Director {
 	phone: string;
 	/** Set once the director exists upstream; never rendered. */
 	id?: number;
+	/** Name of the uploaded Aadhaar card document ('Uploaded' when only known from the server). */
+	aadhaarDocument?: string;
+	/** Name of the uploaded PAN card document ('Uploaded' when only known from the server). */
+	panDocument?: string;
 }
 
 export interface DocumentSlot {
@@ -91,15 +104,45 @@ export interface DocumentSlot {
 	fileName?: string;
 }
 
+/**
+ * Mirrors management onboarding's document set (fixedRequiredDocuments, documentChoiceGroups and
+ * privateLimitedExtraDocuments in lib/data/mockData.ts). businessCertificate, proofOfFunds and
+ * addressProof are "pick one of" slots — see ORG_DOCUMENT_FIELDS in api/onboarding.ts.
+ */
 export interface Documents {
 	gstCertificate: DocumentSlot;
-	certificateOfIncorporation: DocumentSlot;
-	shopActLicence: DocumentSlot;
-	bankStatement: DocumentSlot;
+	businessPanCard: DocumentSlot;
+	uboDeclaration: DocumentSlot;
+	boardResolution: DocumentSlot;
+	businessCertificate: DocumentSlot;
+	proofOfFunds: DocumentSlot;
 	addressProof: DocumentSlot;
+	businessTan: DocumentSlot;
+	aoa: DocumentSlot;
+	moa: DocumentSlot;
 }
 
 export type DocumentKey = keyof Documents;
+
+export const DOCUMENT_KEYS: DocumentKey[] = [
+	'gstCertificate',
+	'businessPanCard',
+	'uboDeclaration',
+	'boardResolution',
+	'businessCertificate',
+	'proofOfFunds',
+	'addressProof',
+	'businessTan',
+	'aoa',
+	'moa'
+];
+
+const COMPANY_DOCUMENT_KEYS = new Set<DocumentKey>(['businessTan', 'aoa', 'moa']);
+
+/** Every slot is required, except the company-only ones for other entity types. */
+export function isDocumentRequired(key: DocumentKey, entityType: EntityType | null): boolean {
+	return !COMPANY_DOCUMENT_KEYS.has(key) || requiresCompanyDocuments(entityType);
+}
 
 export interface OnboardingFormData {
 	businessPan: string;
@@ -108,7 +151,7 @@ export interface OnboardingFormData {
 	gstin: string;
 	gstinList: GstinItem[];
 	businessDetails: BusinessDetails;
-	bankDetails: BankDetails;
+	bankAccounts: BankDetails[];
 	directors: Director[];
 	documents: Documents;
 }

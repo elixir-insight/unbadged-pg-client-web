@@ -27,10 +27,13 @@ describe('routeVerificationKey', () => {
 		expect(routeVerificationKey('kyb.tan').field).toBe('TAN');
 	});
 
-	it('routes brand, contact and address keys to Business profile', () => {
-		expect(routeToStep('brandName')).toBe(2);
-		expect(routeToStep('kyb.businessPhone')).toBe(2);
-		expect(routeToStep('kyb.organizationWebsite')).toBe(2);
+	it('routes brand, phone and website keys to Tax and registration', () => {
+		expect(routeToStep('brandName')).toBe(1);
+		expect(routeToStep('kyb.businessPhone')).toBe(1);
+		expect(routeToStep('kyb.organizationWebsite')).toBe(1);
+	});
+
+	it('routes communication and registered address keys to Business profile', () => {
 		expect(routeVerificationKey('kyb.communicationAddress')).toEqual({
 			step: 2,
 			field: 'Communication address'

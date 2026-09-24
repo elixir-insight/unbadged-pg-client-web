@@ -6,42 +6,59 @@ import type {
 	OnboardingFormData
 } from '$lib/types/onboarding';
 
-// Browser calls go to the same-origin SvelteKit proxy (src/routes/api/onboarding),
-// which attaches the bearer + gateway tokens from the session cookies server-side
-// and forwards to the upstream /api/v1/onboarding/* endpoints.
-const PROXY_BASE = '/api/onboarding';
-const TIMEOUT_MS = 15_000;
+// Request payload shapes, defined here (not in lib/server/domains/onboarding/schema.ts) because
+// this module is shared with client-side code (documents/+page.svelte, review-submit/+page.svelte
+// import from it) — anything under $lib/server/ can't be imported into client bundles. The server
+// client.ts imports these same types for its function signatures instead of redeclaring them.
 
-async function request<T>(path: string, method: string, body?: unknown): Promise<T> {
-	const res = await fetch(`${PROXY_BASE}${path}`, {
-		method,
-		headers: body ? { 'Content-Type': 'application/json' } : undefined,
-		body: body ? JSON.stringify(body) : undefined,
-		signal: AbortSignal.timeout(TIMEOUT_MS)
-	});
-	if (!res.ok) {
-		const error = (await res.json().catch(() => null)) as { message?: string } | null;
-		throw new Error(error?.message || `HTTP ${res.status}`);
-	}
-	return res.json() as Promise<T>;
+export interface UpdateOrganizationDirectorPayload {
+	id?: number;
+	name: string;
+	aadhar: string;
+	pan: string;
+	email: string;
+	phoneNumber: string;
 }
 
-async function requestMultipart<T>(path: string, formData: FormData): Promise<T> {
-	// No Content-Type header — the browser sets the multipart boundary itself for a FormData body.
-	const res = await fetch(`${PROXY_BASE}${path}`, {
-		method: 'POST',
-		body: formData,
-		signal: AbortSignal.timeout(TIMEOUT_MS)
-	});
-	if (!res.ok) {
-		const error = (await res.json().catch(() => null)) as { message?: string } | null;
-		throw new Error(error?.message || `HTTP ${res.status}`);
-	}
-	return res.json() as Promise<T>;
+export interface UpdateOrganizationRequest {
+	kyb: {
+		businessPan: string;
+		gstNumber: string;
+		cin: string;
+		tan: string;
+		businessPhone: string;
+		organizationWebsite: string;
+		industry: string;
+		communicationAddress: string;
+		registeredYear: number;
+	};
+	addressDetails: {
+		address: string;
+		city: string;
+		state: string;
+		country: string;
+		pinCode: string;
+	};
+	brandName: string;
+	directors: UpdateOrganizationDirectorPayload[];
 }
+
+export interface BankAccountRequest {
+	accountNumber: string;
+	accountType: string;
+	bankName: string;
+	branchName: string;
+	holderName: string;
+	ifscCode: string;
+}
+
+// This module holds only pure, network-free logic shared by the client and the server: payload
+// shaping and the org-document field-name vocabulary. Every real network call now lives in each
+// step's +page.server.ts form action (see lib/server/domains/onboarding/), so the backend URL and
+// auth tokens never reach the browser.
 
 // ── Steps 1+2: save org (kyb + address + brand), fired at end of step 2 ──────
-function toDirectorPayload(d: Director) {
+function toDirectorPayload(d: Director): UpdateOrganizationDirectorPayload {
 	return {
 		...(d.id !== undefined && { id: d.id }),
 		name: d.name,
@@ -59,7 +76,7 @@ function streetAddress(address: BusinessDetails['address']): string {
 		.join(', ');
 }
 
-export function toKybPayload(fd: OnboardingFormData) {
+export function toKybPayload(fd: OnboardingFormData): UpdateOrganizationRequest {
 	return {
 		kyb: {
 			businessPan: fd.businessPan,
@@ -70,7 +87,9 @@ export function toKybPayload(fd: OnboardingFormData) {
 			organizationWebsite: fd.businessDetails.website,
 			industry: fd.businessDetails.industry,
 			communicationAddress: fd.businessDetails.communicationAddress,
-			registeredYear: fd.businessDetails.registeredYear
+			// Always non-null in practice: step navigation locks step 2+ until business-identity
+			// (which collects it) is complete — see firstIncompleteStep in +layout.svelte.
+			registeredYear: fd.businessDetails.registeredYear ?? 0
 		},
 		addressDetails: {
 			address: streetAddress(fd.businessDetails.address),
@@ -84,20 +103,8 @@ export function toKybPayload(fd: OnboardingFormData) {
 	};
 }
 
-export async function saveOrganization(fd: OnboardingFormData) {
-	return request<{ data: unknown[]; message: string; statusCode: number }>(
-		'/organization',
-		'PUT',
-		toKybPayload(fd)
-	);
-}
-
-export async function fetchOrganization() {
-	return request<{ data: unknown[]; message: string; statusCode: number }>('/organization', 'GET');
-}
-
 // ── Step 3: bank details ──────────────────────────────────────────────────
-export function toBankPayload(b: BankDetails) {
+export function toBankPayload(b: BankDetails): BankAccountRequest {
 	return {
 		accountNumber: b.accountNumber,
 		accountType: b.accountType,
@@ -108,91 +115,49 @@ export function toBankPayload(b: BankDetails) {
 	};
 }
 
-export async function createBankAccount(b: BankDetails) {
-	return request<{ data: { accountId: number; status: string }[] }>(
-		'/organization/bank',
-		'POST',
-		toBankPayload(b)
-	);
-}
-
-export async function updateBankAccount(accountId: number, b: BankDetails) {
-	return request<{ data: unknown[] }>(`/organization/bank/${accountId}`, 'PUT', toBankPayload(b));
-}
-
-export async function listBankAccounts() {
-	return request<{ data: { id: number; accountNumber: string; status: string }[] }>(
-		'/organization/bank-accounts',
-		'GET'
-	);
-}
-
-// ── Step 4: directors (saved via org PUT above) + director documents ───────
-export async function saveDirectors(fd: OnboardingFormData) {
-	return saveOrganization(fd); // directors[] included in the same payload
-}
-
-export async function listDirectorDocuments(directorId: number) {
-	return request<{ data: { id: number; fileName: string; preSignedUrl: string }[] }>(
-		`/organization/directors/${directorId}/documents`,
-		'GET'
-	);
-}
-
-// TODO(api): request body shape (multipart vs presigned-URL) and the document-type
-// field are unconfirmed — do not call this until both are provided.
-export async function uploadDirectorDocument(directorId: number, file: File): Promise<never> {
-	void directorId;
-	void file;
-	throw new Error('uploadDirectorDocument: awaiting API request-body confirmation');
-}
-
 // ── Step 5: org-level documents ─────────────────────────────────────────────
-export async function listOrgDocuments() {
-	return request<{ data: { id: number; fileName: string; preSignedUrl: string }[] }>(
-		'/organization/documents',
-		'GET'
-	);
-}
-
-// Multipart field names the upload endpoint expects per document type, in the backend's own
-// camelCase vocabulary confirmed by lib/server/domains/organization/utils/document-field-names.ts
-// (used to parse real GET .../documents responses, not guessed). shopActLicence has no known
-// equivalent there at all, and addressProof isn't a real field either — the backend's address
-// proof is one of two specific documents (rentalAgreement / electricityBill), and picking between
-// them isn't something to infer silently. Both stay unsupported until confirmed, rather than
-// risk another rejected upload (or worse, one the backend silently misfiles) — see
-// isOrgDocumentUploadSupported.
-const ORG_DOCUMENT_FIELD_NAMES: Partial<Record<DocumentKey, string>> = {
-	gstCertificate: 'gstCertificate',
-	certificateOfIncorporation: 'incorpCertificate',
-	bankStatement: 'bankStatement'
+// Backend multipart field names each document slot may upload under, with the label shown for
+// it — the same vocabulary management onboarding uploads with (upload-documents.ts
+// backendFieldNameMap / document-field-names.ts), so nothing here is guessed. A slot with more
+// than one entry is a "pick one of" choice, exactly like management's documentChoiceGroups.
+export const ORG_DOCUMENT_FIELDS: Record<DocumentKey, Record<string, string>> = {
+	gstCertificate: { gstCertificate: 'GST certificate' },
+	businessPanCard: { businessPan: 'Business PAN card' },
+	uboDeclaration: { uboDeclaration: 'UBO declaration' },
+	boardResolution: { brDocument: 'Board resolution for authorized signatory' },
+	businessCertificate: {
+		incorpCertificate: 'Incorporation certificate',
+		udyamCertificate: 'Udyam certificate',
+		msmeCertificate: 'MSME certificate'
+	},
+	proofOfFunds: {
+		voidedCheque: 'Cancelled cheque',
+		bankStatement: 'Bank statement (last 3 months)'
+	},
+	addressProof: {
+		rentalAgreement: 'Rental agreement',
+		electricityBill: 'Electricity bill'
+	},
+	businessTan: { businessTan: 'Business TAN' },
+	aoa: { aoa: 'Article of Association (AOA)' },
+	moa: { moa: 'Memorandum of Association (MOA)' }
 };
 
-export function isOrgDocumentUploadSupported(documentType: DocumentKey): boolean {
-	return documentType in ORG_DOCUMENT_FIELD_NAMES;
+/** The backend fields a slot can upload under, as dropdown options (first one is the default). */
+export function documentFieldOptions(key: DocumentKey): { value: string; label: string }[] {
+	return Object.entries(ORG_DOCUMENT_FIELDS[key]).map(([value, label]) => ({ value, label }));
 }
 
-export async function uploadOrgDocument(documentType: DocumentKey, file: File) {
-	const fieldName = ORG_DOCUMENT_FIELD_NAMES[documentType];
-	if (!fieldName) {
-		throw new Error(`uploadOrgDocument: no confirmed backend field for "${documentType}" yet`);
-	}
-	const formData = new FormData();
-	formData.append(fieldName, file, file.name);
-	return requestMultipart<{ data: unknown[]; message: string; statusCode: number }>(
-		'/organization/documents',
-		formData
-	);
+/** Whether `fieldName` is one of the backend fields this slot may upload under. */
+export function isDocumentFieldName(key: DocumentKey, fieldName: string): boolean {
+	return Object.hasOwn(ORG_DOCUMENT_FIELDS[key], fieldName);
 }
 
-// ── Step 6: submit ───────────────────────────────────────────────────────
-export async function submitOnboarding() {
-	const res = await request<{ data: string; message: string; statusCode: number }>(
-		'/organization/submit',
-		'POST'
+/** Which slot a GET .../documents `fileName` (a backend field name) belongs to, for resume. */
+export function getDocumentKeyForFieldName(fieldName: string): DocumentKey | undefined {
+	return (Object.keys(ORG_DOCUMENT_FIELDS) as DocumentKey[]).find((key) =>
+		isDocumentFieldName(key, fieldName)
 	);
-	return { success: true as const, applicationId: res.data };
 }
 
 // ── Not yet available — no endpoint provided, keep manual-entry fallback ───

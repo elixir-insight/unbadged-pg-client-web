@@ -1,8 +1,16 @@
-import { STEPS, type StepId } from '$lib/components/self-onboarding/steps';
+import { untrack } from 'svelte';
+import {
+	resolveOnboardingStatus,
+	STEPS,
+	type OnboardingStatus,
+	type StepId
+} from '$lib/components/self-onboarding/steps';
 import {
 	ENTITY_TYPE_COMPANY_TYPES,
+	ENTITY_TYPE_LABELS,
 	parseEntityType,
-	requiresIncorporationCertificate,
+	DOCUMENT_KEYS,
+	isDocumentRequired,
 	type Address,
 	type BankDetails,
 	type BusinessDetails,
@@ -16,41 +24,60 @@ import {
 	type OnboardingMode
 } from '$lib/types/onboarding';
 
-const STORAGE_KEY = 'pg-self-onboarding-v3';
+const STORAGE_KEY = 'pg-self-onboarding-v4';
 
 function emptyAddress(): Address {
 	return { line1: '', line2: '', city: '', state: '', pincode: '' };
+}
+
+function emptyBankAccount(): BankDetails {
+	return {
+		accountHolderName: '',
+		accountNumber: '',
+		confirmAccountNumber: '',
+		ifscCode: '',
+		bankName: '',
+		branchName: '',
+		accountType: ''
+	};
+}
+
+function isEmptyBankAccount(bank: BankDetails): boolean {
+	return (
+		bank.accountId === undefined &&
+		bank.accountHolderName === '' &&
+		bank.accountNumber === '' &&
+		bank.ifscCode === '' &&
+		bank.bankName === '' &&
+		bank.branchName === '' &&
+		bank.accountType === ''
+	);
 }
 
 function emptyDocument(required: boolean): DocumentSlot {
 	return { uploaded: false, required, file: null, fileName: '' };
 }
 
+/** Builds a value for every document slot — keeps the slot list in one place (DOCUMENT_KEYS). */
+function mapDocumentKeys<T>(build: (key: DocumentKey) => T): Record<DocumentKey, T> {
+	return Object.fromEntries(DOCUMENT_KEYS.map((key) => [key, build(key)])) as Record<
+		DocumentKey,
+		T
+	>;
+}
+
 function emptyDocuments(entityType: EntityType | null): Documents {
-	return {
-		gstCertificate: emptyDocument(true),
-		certificateOfIncorporation: emptyDocument(requiresIncorporationCertificate(entityType)),
-		shopActLicence: emptyDocument(entityType === 'proprietorship'),
-		bankStatement: emptyDocument(true),
-		addressProof: emptyDocument(true)
-	};
+	return mapDocumentKeys((key) => emptyDocument(isDocumentRequired(key, entityType)));
 }
 
 function applyEntityDocumentRequirements(
 	docs: Documents,
 	entityType: EntityType | null
 ): Documents {
-	return {
-		...docs,
-		certificateOfIncorporation: {
-			...docs.certificateOfIncorporation,
-			required: requiresIncorporationCertificate(entityType)
-		},
-		shopActLicence: {
-			...docs.shopActLicence,
-			required: entityType === 'proprietorship'
-		}
-	};
+	return mapDocumentKeys((key) => ({
+		...docs[key],
+		required: isDocumentRequired(key, entityType)
+	}));
 }
 
 function emptyForm(): OnboardingFormData {
@@ -72,21 +99,13 @@ function emptyForm(): OnboardingFormData {
 			registeredYear: null,
 			communicationAddress: ''
 		},
-		bankDetails: {
-			accountHolderName: '',
-			accountNumber: '',
-			confirmAccountNumber: '',
-			ifscCode: '',
-			bankName: '',
-			branchName: '',
-			accountType: ''
-		},
+		bankAccounts: [emptyBankAccount()],
 		directors: [],
 		documents: emptyDocuments(null)
 	};
 }
 
-type PersistedDocuments = Record<DocumentKey, Omit<DocumentSlot, 'file'>>;
+type PersistedDocuments = Partial<Record<DocumentKey, Omit<DocumentSlot, 'file'>>>;
 
 interface PersistedState {
 	formData: Omit<OnboardingFormData, 'documents'> & { documents: PersistedDocuments };
@@ -105,22 +124,17 @@ function omitFile(slot: DocumentSlot): Omit<DocumentSlot, 'file'> {
 }
 
 function stripFiles(data: OnboardingFormData): PersistedState['formData'] {
-	const documents = {
-		gstCertificate: omitFile(data.documents.gstCertificate),
-		certificateOfIncorporation: omitFile(data.documents.certificateOfIncorporation),
-		shopActLicence: omitFile(data.documents.shopActLicence),
-		bankStatement: omitFile(data.documents.bankStatement),
-		addressProof: omitFile(data.documents.addressProof)
-	} satisfies PersistedDocuments;
+	const documents: PersistedDocuments = mapDocumentKeys((key) => omitFile(data.documents[key]));
 
 	return { ...data, documents };
 }
 
 function restoreForm(persisted: PersistedState['formData']): OnboardingFormData {
-	const restoreSlot = (slot: Omit<DocumentSlot, 'file'>): DocumentSlot => ({
-		uploaded: slot.uploaded,
-		required: slot.required,
-		fileName: slot.fileName ?? '',
+	// Slots missing from older persisted state (the document set has changed over time) start empty.
+	const restoreSlot = (slot: Omit<DocumentSlot, 'file'> | undefined): DocumentSlot => ({
+		uploaded: slot?.uploaded ?? false,
+		required: slot?.required ?? false,
+		fileName: slot?.fileName ?? '',
 		file: null
 	});
 	const entityType = parseEntityType(persisted.entityType);
@@ -133,15 +147,12 @@ function restoreForm(persisted: PersistedState['formData']): OnboardingFormData 
 			...persisted.businessDetails,
 			address: { ...emptyAddress(), ...persisted.businessDetails.address }
 		},
-		bankDetails: { ...emptyForm().bankDetails, ...persisted.bankDetails },
+		bankAccounts:
+			persisted.bankAccounts && persisted.bankAccounts.length > 0
+				? persisted.bankAccounts.map((bank) => ({ ...emptyBankAccount(), ...bank }))
+				: [emptyBankAccount()],
 		documents: applyEntityDocumentRequirements(
-			{
-				gstCertificate: restoreSlot(persisted.documents.gstCertificate),
-				certificateOfIncorporation: restoreSlot(persisted.documents.certificateOfIncorporation),
-				shopActLicence: restoreSlot(persisted.documents.shopActLicence),
-				bankStatement: restoreSlot(persisted.documents.bankStatement),
-				addressProof: restoreSlot(persisted.documents.addressProof)
-			},
+			mapDocumentKeys((key) => restoreSlot(persisted.documents?.[key])),
 			entityType
 		)
 	};
@@ -170,19 +181,29 @@ let focusField = $state(persisted?.focusField ?? '');
 // A save/submit error routed to a different step (see saveErrorRouting.ts) — a one-shot handoff
 // across navigation, so it is never persisted to sessionStorage.
 let saveError = $state('');
+// The org's real profileStatus, fetched once per layout mount (see +layout.server.ts) — never
+// persisted, always refetched, so a status change server-side is never shown stale.
+let profileStatus = $state('');
 
 const progressPercent = $derived(Math.round((completedSteps.length / STEPS.length) * 100));
 
+/**
+ * Untracked so a store mutator called from inside an `$effect` (e.g. the layout's
+ * setVerifications/hydrate* calls) never subscribes that effect to the whole store — otherwise
+ * the write re-triggers the effect and it loops forever (effect_update_depth_exceeded).
+ */
 function persist() {
 	if (typeof sessionStorage === 'undefined') return;
-	const payload: PersistedState = {
-		formData: stripFiles(formData),
-		mode,
-		completedSteps,
-		verifications,
-		focusField
-	};
-	sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+	untrack(() => {
+		const payload: PersistedState = {
+			formData: stripFiles(formData),
+			mode,
+			completedSteps,
+			verifications,
+			focusField
+		};
+		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+	});
 }
 
 function patchAddress(target: Address, patch: Partial<Address>): Address {
@@ -211,8 +232,18 @@ export const onboarding = {
 	get progressPercent() {
 		return progressPercent;
 	},
+	get profileStatus() {
+		return profileStatus;
+	},
+	get onboardingStatus(): OnboardingStatus {
+		return resolveOnboardingStatus(profileStatus);
+	},
 
 	persist,
+
+	setProfileStatus(next: string) {
+		profileStatus = next;
+	},
 
 	setVerifications(next: Record<string, string>) {
 		verifications = next;
@@ -252,6 +283,20 @@ export const onboarding = {
 		formData.businessPan = pan;
 		formData.entityType = entityType;
 		formData.entityName = entityName;
+		formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
+		formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
+		persist();
+	},
+
+	/**
+	 * Fills in the entity type captured at signup — the wizard has no control for it any more, so
+	 * this is the only way it ever gets set. Never overwrites a value the wizard already has
+	 * (either hydrated earlier or, on old persisted sessions, set via the removed selector).
+	 */
+	hydrateEntityType(entityType: EntityType) {
+		if (formData.entityType !== null) return;
+		formData.entityType = entityType;
+		formData.entityName = ENTITY_TYPE_LABELS[entityType];
 		formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
 		formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
 		persist();
@@ -322,8 +367,43 @@ export const onboarding = {
 		persist();
 	},
 
-	updateBankDetails(patch: Partial<BankDetails>) {
-		formData.bankDetails = { ...formData.bankDetails, ...patch };
+	addBankAccount() {
+		formData.bankAccounts = [...formData.bankAccounts, emptyBankAccount()];
+		persist();
+	},
+
+	/**
+	 * Fills in accounts fetched from GET .../bank-accounts (see bank-details/+page.server.ts) — the
+	 * wizard has no other way to learn about accounts saved outside this browser session. Never
+	 * overwrites accounts the user has already started filling in or that were already hydrated.
+	 */
+	hydrateBankAccounts(accounts: BankDetails[]) {
+		if (accounts.length === 0) return;
+		if (!formData.bankAccounts.every(isEmptyBankAccount)) return;
+		formData.bankAccounts = accounts;
+		persist();
+	},
+
+	updateBankAccount(index: number, patch: Partial<BankDetails>) {
+		const current = formData.bankAccounts[index];
+		if (!current) return;
+		formData.bankAccounts = formData.bankAccounts.map((bank, i) =>
+			i === index ? { ...bank, ...patch } : bank
+		);
+		persist();
+	},
+
+	removeBankAccount(index: number) {
+		formData.bankAccounts = formData.bankAccounts.filter((_, i) => i !== index);
+		persist();
+	},
+
+	/** Stores upstream account ids returned after a save; `undefined` entries keep the existing id. */
+	setBankAccountIds(ids: (number | undefined)[]) {
+		formData.bankAccounts = formData.bankAccounts.map((bank, i) => ({
+			...bank,
+			accountId: ids[i] ?? bank.accountId
+		}));
 		persist();
 	},
 
@@ -344,6 +424,14 @@ export const onboarding = {
 			file: null,
 			fileName: ''
 		};
+		persist();
+	},
+
+	/** Marks a document uploaded from GET .../documents (see documents/+page.server.ts) — safe to
+	 * call unconditionally: it only ever turns `uploaded` on, never off, so it can't lose local state. */
+	hydrateDocumentUploaded(key: DocumentKey) {
+		if (formData.documents[key].uploaded) return;
+		formData.documents[key] = { ...formData.documents[key], uploaded: true };
 		persist();
 	},
 

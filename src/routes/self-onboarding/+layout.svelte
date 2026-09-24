@@ -17,9 +17,10 @@
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { parseEntityType } from '$lib/types/onboarding';
 	import { allRoutedRemarks } from '$lib/utils/remarkRouting';
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	const MD_QUERY = '(min-width: 768px)';
 	let isMd = $state(browser ? window.matchMedia(MD_QUERY).matches : true);
@@ -29,10 +30,34 @@
 	const displayName = $derived(
 		onboarding.formData.businessDetails.brandName || merchantSession.session?.merchantName || ''
 	);
+	const onboardingStatus = $derived(onboarding.onboardingStatus);
 
-	// Steps unlock in order; a step with a management remark is always reachable.
+	// The wizard has no control for entity type any more (captured at signup instead) — fill it
+	// in from the server-fetched organization record the first time it's available locally.
 	$effect(() => {
-		if (!browser) return;
+		const entityType = parseEntityType(data.businessType);
+		if (entityType) onboarding.hydrateEntityType(entityType);
+	});
+
+	// Real profileStatus/verifications, fetched once per layout mount (see +layout.server.ts) —
+	// re-set on every load so a status change or a resolved remark is never shown stale.
+	$effect(() => {
+		onboarding.setProfileStatus(data.profileStatus);
+		onboarding.setVerifications(data.verifications);
+	});
+
+	// Submitted / under review / approved — no more edits. Always land on the read-only summary.
+	$effect(() => {
+		if (!browser || onboardingStatus !== 'read_only') return;
+		if (currentStep === 6) return;
+		void goto(resolve(stepHref('review-submit') as '/'), { replaceState: true });
+	});
+
+	// Steps unlock in order; a step with a management remark is always reachable. Doesn't apply
+	// once the application is read-only — the redirect above sends those straight to step 6
+	// regardless of completedSteps, which may be empty if this browser never ran the flow.
+	$effect(() => {
+		if (!browser || onboardingStatus === 'read_only') return;
 		const allowed = firstIncompleteStep(onboarding.completedSteps);
 		if (currentStep <= allowed || remarks.some((remark) => remark.step === currentStep)) return;
 		void goto(resolve(stepHref(STEPS[allowed - 1].path) as '/'), { replaceState: true });
@@ -44,7 +69,7 @@
 			entityType: onboarding.formData.entityType,
 			gstin: onboarding.formData.gstin,
 			business: onboarding.formData.businessDetails,
-			bank: onboarding.formData.bankDetails,
+			bank: onboarding.formData.bankAccounts,
 			directors: onboarding.formData.directors,
 			documents: onboarding.formData.documents,
 			mode: onboarding.mode,

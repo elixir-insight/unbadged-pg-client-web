@@ -1,151 +1,114 @@
 <script lang="ts">
-	import { createBankAccount, updateBankAccount } from '$lib/api/onboarding';
-	import { Button, Dropdown } from '$lib/components/reusable';
-	import type { DropdownOption } from '$lib/components/reusable';
-	import { FieldGrid, FieldRow, InlineRemark, StepShell } from '$lib/components/self-onboarding';
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { toast } from 'svelte-sonner';
+	import { Button } from '$lib/components/reusable';
+	import { BankCard, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
 	import {
-		bankDetailsAreComplete,
-		isValidAccountNumber,
-		isValidIfsc
+		bankAccountsAreComplete,
+		bankAccountsAreFilled
 	} from '$lib/components/self-onboarding/validation';
+	import { Plus } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { getFieldRemark } from '$lib/utils/remarkRouting';
+	import type { PageData } from './$types';
 
-	const ACCOUNT_TYPE_OPTIONS: DropdownOption[] = [
-		{ value: 'SAVINGS', label: 'Savings' },
-		{ value: 'CURRENT', label: 'Current' }
-	];
+	let { data }: { data: PageData } = $props();
 
 	let saving = $state(false);
 	let saveError = $state('');
+	let attempted = $state(false);
 
-	const bank = $derived(onboarding.formData.bankDetails);
-	const canContinue = $derived(bankDetailsAreComplete(onboarding.formData));
+	/** Gates the Continue button — every required field has a value, format not checked yet. */
+	const filled = $derived(bankAccountsAreFilled(onboarding.formData));
+	const canContinue = $derived(bankAccountsAreComplete(onboarding.formData));
 	const accountTypeRemark = $derived(
 		getFieldRemark(onboarding.verifications, 'bankDetails.accountType')
 	);
 
-	function digitsOnly(value: string): string {
-		return value.replace(/\D/g, '').slice(0, 18);
+	// Reconciles with accounts saved outside this browser session — see
+	// hydrateBankAccounts (only fills in when nothing has been entered locally yet).
+	$effect(() => {
+		onboarding.hydrateBankAccounts(data.bankAccounts);
+	});
+
+	function readAccountIds(resultData: unknown): (number | undefined)[] | undefined {
+		const ids =
+			resultData && typeof resultData === 'object' && 'accountIds' in resultData
+				? resultData.accountIds
+				: undefined;
+		return Array.isArray(ids) ? (ids as (number | undefined)[]) : undefined;
 	}
 
-	async function continueToDirectors() {
-		if (!canContinue || saving) return;
-		saving = true;
-		saveError = '';
-		const details = onboarding.formData.bankDetails;
-		try {
-			if (details.accountId === undefined) {
-				const res = await createBankAccount(details);
-				onboarding.updateBankDetails({ accountId: res.data?.[0]?.accountId });
-			} else {
-				await updateBankAccount(details.accountId, details);
-			}
-		} catch (error) {
-			const message =
-				error instanceof Error && error.message
-					? error.message
-					: 'Could not save your bank details. Please try again.';
-			saveError = await routeSaveError(message, 3);
-			saving = false;
+	function actionErrorMessage(data: unknown): string {
+		if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
+			return data.error;
+		}
+		return 'Could not save your bank details. Please try again.';
+	}
+
+	const onSaveEnhance: SubmitFunction = ({ cancel }) => {
+		attempted = true;
+		if (!canContinue || saving) {
+			cancel();
 			return;
 		}
-		saving = false;
-		await advanceFromStep(3);
-	}
+		saving = true;
+		saveError = '';
+		return async ({ result }) => {
+			saving = false;
+			if (result.type === 'success') {
+				const accountIds = readAccountIds(result.data);
+				if (accountIds) onboarding.setBankAccountIds(accountIds);
+				toast.success('Bank details saved.');
+				await advanceFromStep(3);
+				return;
+			}
+			// A partial-save failure still carries whichever accountIds *did* save (see
+			// +page.server.ts) — record them now so a retry can't re-create those as duplicates.
+			if (result.type === 'failure') {
+				const accountIds = readAccountIds(result.data);
+				if (accountIds) onboarding.setBankAccountIds(accountIds);
+			}
+			const message =
+				result.type === 'failure'
+					? actionErrorMessage(result.data)
+					: 'Could not save your bank details. Please try again.';
+			toast.error(message);
+			saveError = await routeSaveError(message, 3);
+		};
+	};
 </script>
 
+<form id="bank-details-form" method="POST" use:enhance={onSaveEnhance}>
+	<input type="hidden" name="payload" value={JSON.stringify(onboarding.formData.bankAccounts)} />
+</form>
+
 <StepShell error={saveError}>
-	<FieldGrid>
-		<FieldRow
-			label="Account holder name"
-			required
-			remarkKey="bankDetails.accountHolderName"
-			error={bank.accountHolderName.trim() ? '' : 'Account holder name is required.'}
-			value={bank.accountHolderName}
-			oninput={(next) => onboarding.updateBankDetails({ accountHolderName: next })}
-		/>
-		<FieldRow
-			label="IFSC code"
-			required
-			monospace
-			maxlength={11}
-			remarkKey="bankDetails.ifscCode"
-			hint="11 characters, e.g. HDFC0001234."
-			error={isValidIfsc(bank.ifscCode) ? '' : 'Enter a valid 11-character IFSC.'}
-			value={bank.ifscCode}
-			normalize={(next) =>
-				next
-					.replace(/[^a-zA-Z0-9]/g, '')
-					.toUpperCase()
-					.slice(0, 11)}
-			oninput={(next) => onboarding.updateBankDetails({ ifscCode: next })}
-		/>
-		<FieldRow
-			label="Bank name"
-			required
-			remarkKey="bankDetails.bankName"
-			error={bank.bankName.trim() ? '' : 'Bank name is required.'}
-			value={bank.bankName}
-			oninput={(next) => onboarding.updateBankDetails({ bankName: next })}
-		/>
-		<FieldRow
-			label="Branch name"
-			required
-			remarkKey="bankDetails.branchName"
-			error={bank.branchName.trim() ? '' : 'Branch name is required.'}
-			value={bank.branchName}
-			oninput={(next) => onboarding.updateBankDetails({ branchName: next })}
-		/>
-		<FieldRow
-			label="Account number"
-			required
-			monospace
-			secret
-			inputmode="numeric"
-			autocomplete="off"
-			remarkKey="bankDetails.accountNumber"
-			error={isValidAccountNumber(bank.accountNumber) ? '' : 'Enter a 9–18 digit account number.'}
-			value={bank.accountNumber}
-			normalize={digitsOnly}
-			oninput={(next) => onboarding.updateBankDetails({ accountNumber: next })}
-		/>
-		<FieldRow
-			label="Confirm account number"
-			required
-			monospace
-			secret
-			blockPaste
-			inputmode="numeric"
-			autocomplete="off"
-			error={bank.accountNumber === bank.confirmAccountNumber
-				? ''
-				: 'Account numbers do not match.'}
-			value={bank.confirmAccountNumber}
-			normalize={digitsOnly}
-			oninput={(next) => onboarding.updateBankDetails({ confirmAccountNumber: next })}
-		/>
-		<InlineRemark remark={accountTypeRemark} fieldKey="bankDetails.accountType">
-			<div class="block min-w-0 space-y-1.5">
-				<span class="text-sm font-medium text-foreground">
-					Account type <span class="text-destructive">*</span>
-				</span>
-				<Dropdown
-					name="accountType"
-					class="w-full"
-					ariaLabel="Account type"
-					value={bank.accountType}
-					options={ACCOUNT_TYPE_OPTIONS}
-					placeholder="Select account type"
-					onValueChange={(value) => onboarding.updateBankDetails({ accountType: value })}
-				/>
-			</div>
-		</InlineRemark>
-	</FieldGrid>
+	<div class="flex flex-col gap-4">
+		{#each onboarding.formData.bankAccounts as bank, index (index)}
+			<BankCard
+				{bank}
+				{index}
+				showErrors={attempted}
+				removable={onboarding.formData.bankAccounts.length > 1}
+				{accountTypeRemark}
+				onupdate={(i, patch) => onboarding.updateBankAccount(i, patch)}
+				onremove={(i) => onboarding.removeBankAccount(i)}
+			/>
+		{/each}
+
+		<div>
+			<Button variant="outline" size="sm" onclick={() => onboarding.addBankAccount()}>
+				<Plus class="size-4" />
+				Add bank account
+			</Button>
+		</div>
+	</div>
 
 	{#snippet footer()}
-		<Button disabled={!canContinue || saving} onclick={continueToDirectors}>
+		<Button type="submit" form="bank-details-form" disabled={!filled || saving}>
 			{saving ? 'Saving…' : 'Continue'}
 		</Button>
 	{/snippet}

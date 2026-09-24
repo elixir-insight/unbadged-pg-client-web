@@ -20,9 +20,11 @@
 		inputmode,
 		autocomplete,
 		required = false,
+		optional = false,
 		remark = '',
 		remarkKey = '',
 		error = '',
+		showErrors = false,
 		hint = '',
 		verifiedHint = '',
 		normalize,
@@ -43,11 +45,15 @@
 		inputmode?: HTMLInputAttributes['inputmode'];
 		autocomplete?: HTMLInputAttributes['autocomplete'];
 		required?: boolean;
+		/** Appends "(optional)" next to the label. */
+		optional?: boolean;
 		remark?: string;
 		/** `verifications` key: pulls the management remark and highlights the field on "Fix this". */
 		remarkKey?: string;
-		/** Validation message, shown once the field has been left. */
+		/** Validation message; only rendered while `showErrors` is true. */
 		error?: string;
+		/** Set once the parent form has attempted a submit, so errors don't appear before that. */
+		showErrors?: boolean;
 		hint?: string;
 		verifiedHint?: string;
 		/** Applied on every keystroke, e.g. strip characters and upper-case a PAN. */
@@ -59,7 +65,6 @@
 	} = $props();
 
 	const fieldId = $props.id();
-	let touched = $state(false);
 	let revealed = $state(false);
 
 	const readOnly = $derived(locked && !forceEdit);
@@ -67,10 +72,7 @@
 		remark || (remarkKey ? getFieldRemark(onboarding.verifications, remarkKey) : '')
 	);
 	const highlighted = $derived(Boolean(remarkKey) && onboarding.focusField === remarkKey);
-	// Format errors show as soon as there's content, so Continue staying disabled is never a
-	// silent mystery (e.g. autofill can populate a field without ever firing blur). "Required"
-	// errors on an empty field still wait for blur, so a fresh page doesn't open already red.
-	const shownError = $derived(value.trim().length > 0 || touched ? error : '');
+	const shownError = $derived(showErrors ? error : '');
 
 	function handleInput(event: Event & { currentTarget: HTMLInputElement }) {
 		const raw = event.currentTarget.value;
@@ -81,7 +83,6 @@
 	}
 
 	function handleBlur() {
-		touched = true;
 		oncommit?.(value);
 	}
 </script>
@@ -98,6 +99,8 @@
 		{label}
 		{#if required}
 			<span class="text-destructive">*</span>
+		{:else if optional}
+			<span class="text-muted-foreground">(optional)</span>
 		{/if}
 	</span>
 	{#if readOnly}

@@ -1,26 +1,67 @@
 <script lang="ts">
+	import { deserialize } from '$app/forms';
 	import { Button, PhoneInput } from '$lib/components/reusable';
-	import { Chip } from '$lib/components/ui/badge';
-	import { Trash2 } from '$lib/assets/icons';
+	import { Loader2, Trash2 } from '$lib/assets/icons';
 	import type { Director } from '$lib/types/onboarding';
 	import { normalizeAadhar, normalizePanInput } from '$lib/validation/organization-kyb';
+	import DirectorDocumentSlot from './director-document-slot.svelte';
 	import FieldGrid from './field-grid.svelte';
 	import FieldRow from './field-row.svelte';
-	import { isValidAadhaar, isValidEmail, isValidPan, isValidPhone } from './validation';
+	import {
+		directorDocumentsUploaded,
+		isValidAadhaar,
+		isValidEmail,
+		isValidPan,
+		isValidPhone
+	} from './validation';
 
 	let {
 		director,
 		index,
+		showErrors = false,
+		removing = false,
 		onupdate,
-		onremove
+		onremove,
+		onensureid
 	}: {
 		director: Director;
 		index: number;
+		showErrors?: boolean;
+		/** True while this director's DELETE call is in flight — disables the remove control. */
+		removing?: boolean;
 		onupdate: (index: number, patch: Partial<Director>) => void;
 		onremove: (index: number) => void;
+		/** Saves the directors when this one has no id yet, so its documents can be uploaded. */
+		onensureid: (index: number) => Promise<{ ok: true; id: number } | { ok: false; error: string }>;
 	} = $props();
 
 	const phoneInvalid = $derived(director.phone.length > 0 && !isValidPhone(director.phone));
+
+	/**
+	 * Picks up documents already on the backend for a saved director (uploaded in an earlier
+	 * session, or from management onboarding) — only ever fills a slot in, never clears one.
+	 */
+	async function syncDocuments(directorId: number) {
+		const formData = new FormData();
+		formData.set('directorId', String(directorId));
+		try {
+			const response = await fetch('?/getDirectorDocuments', { method: 'POST', body: formData });
+			const result = deserialize(await response.text());
+			if (result.type !== 'success' || !result.data) return;
+			const patch: Partial<Director> = {};
+			if (result.data.aadhar === true && !director.aadhaarDocument)
+				patch.aadhaarDocument = 'Uploaded';
+			if (result.data.pan === true && !director.panDocument) patch.panDocument = 'Uploaded';
+			if (Object.keys(patch).length > 0) onupdate(index, patch);
+		} catch {
+			// Best-effort: the slots simply show "Not uploaded" and can still be uploaded.
+		}
+	}
+
+	const directorId = $derived(director.id);
+	$effect(() => {
+		if (directorId !== undefined) void syncDocuments(directorId);
+	});
 </script>
 
 <div class="rounded-xl border border-border p-4">
@@ -31,19 +72,26 @@
 			size="icon-sm"
 			class="text-destructive hover:bg-destructive/10 hover:text-destructive"
 			aria-label={`Remove director ${index + 1}`}
+			disabled={removing}
 			onclick={() => onremove(index)}
 		>
-			<Trash2 class="size-4" />
+			{#if removing}
+				<Loader2 class="size-4 animate-spin" />
+			{:else}
+				<Trash2 class="size-4" />
+			{/if}
 		</Button>
 	</div>
 
 	<FieldGrid>
 		<FieldRow
 			label="Name"
+			placeholder="Enter your name"
 			required
 			value={director.name}
 			forceEdit
 			error={director.name.trim() ? '' : 'Name is required.'}
+			{showErrors}
 			oninput={(next) => onupdate(index, { name: next })}
 		/>
 		<FieldRow
@@ -51,13 +99,18 @@
 			required
 			monospace
 			maxlength={10}
+			autocomplete="off"
+			placeholder="Enter your PAN number"
+			hint="10 characters, format ABCDE1234F."
 			value={director.pan}
 			normalize={normalizePanInput}
 			error={isValidPan(director.pan) ? '' : 'Enter a valid 10-character PAN.'}
+			{showErrors}
 			oninput={(next) => onupdate(index, { pan: next })}
 		/>
 		<FieldRow
 			label="Aadhaar"
+			placeholder="Enter your Aadhaar number"
 			required
 			monospace
 			maxlength={12}
@@ -65,14 +118,17 @@
 			value={director.aadhaar}
 			normalize={normalizeAadhar}
 			error={isValidAadhaar(director.aadhaar) ? '' : 'Enter a valid 12-digit Aadhaar number.'}
+			{showErrors}
 			oninput={(next) => onupdate(index, { aadhaar: next })}
 		/>
 		<FieldRow
 			label="Email"
+			placeholder="Enter your email address"
 			required
 			type="email"
 			value={director.email}
 			error={isValidEmail(director.email) ? '' : 'Enter a valid email address.'}
+			{showErrors}
 			oninput={(next) => onupdate(index, { email: next })}
 		/>
 		<label class="block min-w-0 space-y-1.5">
@@ -80,32 +136,39 @@
 				Phone <span class="text-destructive">*</span>
 			</span>
 			<PhoneInput
+				placeholder="Enter your phone number"
 				value={director.phone}
-				invalid={phoneInvalid}
+				invalid={showErrors && phoneInvalid}
 				onValueChange={(next) => onupdate(index, { phone: next })}
 			/>
-			{#if phoneInvalid}
+			{#if showErrors && phoneInvalid}
 				<p class="text-xs text-destructive">Enter a valid 10-digit mobile number.</p>
 			{/if}
 		</label>
 	</FieldGrid>
 
-	<div
-		class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border px-3 py-2.5"
-	>
-		<div class="min-w-0">
-			<p class="text-sm font-medium">Director documents</p>
-			<p class="text-xs text-muted-foreground">
-				{director.id === undefined
-					? 'Save directors to enable document upload.'
-					: 'Document upload is coming soon.'}
-			</p>
-		</div>
-		<div class="flex items-center gap-2">
-			{#if director.id !== undefined}
-				<Chip variant="outline">Coming soon</Chip>
-			{/if}
-			<Button variant="outline" size="sm" disabled>Upload</Button>
-		</div>
+	<div class="mt-4 space-y-2">
+		<p class="text-sm font-medium">Director documents</p>
+		<DirectorDocumentSlot
+			directorId={director.id}
+			field="aadhar"
+			label="Aadhaar card"
+			uploadedName={director.aadhaarDocument}
+			invalid={showErrors}
+			ensureDirectorId={() => onensureid(index)}
+			onuploaded={(fileName) => onupdate(index, { aadhaarDocument: fileName })}
+		/>
+		<DirectorDocumentSlot
+			directorId={director.id}
+			field="pan"
+			label="PAN card"
+			uploadedName={director.panDocument}
+			invalid={showErrors}
+			ensureDirectorId={() => onensureid(index)}
+			onuploaded={(fileName) => onupdate(index, { panDocument: fileName })}
+		/>
+		{#if showErrors && !directorDocumentsUploaded(director)}
+			<p class="text-xs text-destructive">Upload both the Aadhaar card and PAN card.</p>
+		{/if}
 	</div>
 </div>

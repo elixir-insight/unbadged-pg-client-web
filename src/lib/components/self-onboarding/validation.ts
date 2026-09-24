@@ -1,6 +1,7 @@
-import { isOrgDocumentUploadSupported } from '$lib/api/onboarding';
+import { DOCUMENT_KEYS } from '$lib/types/onboarding';
 import type {
 	Address,
+	BankDetails,
 	Director,
 	Documents,
 	DocumentKey,
@@ -26,20 +27,19 @@ export const MIN_REGISTERED_YEAR = 1800;
 export const DOCUMENT_ACCEPT = '.pdf,.jpeg,.jpg,.png,.heif,.heic';
 export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
 
-export const DOCUMENT_KEYS: DocumentKey[] = [
-	'gstCertificate',
-	'certificateOfIncorporation',
-	'shopActLicence',
-	'bankStatement',
-	'addressProof'
-];
+export { DOCUMENT_KEYS };
 
 export const DOCUMENT_LABELS: Record<DocumentKey, string> = {
 	gstCertificate: 'GST Certificate',
-	certificateOfIncorporation: 'Certificate of Incorporation',
-	shopActLicence: 'Shop Act Licence',
-	bankStatement: 'Bank Statement',
-	addressProof: 'Address Proof'
+	businessPanCard: 'Business PAN Card',
+	uboDeclaration: 'UBO Declaration',
+	boardResolution: 'Board Resolution for Authorized Signatory',
+	businessCertificate: 'Business Certificate',
+	proofOfFunds: 'Proof of Funds',
+	addressProof: 'Address Proof',
+	businessTan: 'Business TAN',
+	aoa: 'Article of Association (AOA)',
+	moa: 'Memorandum of Association (MOA)'
 };
 
 export function isValidPan(value: string): boolean {
@@ -98,18 +98,8 @@ export function isValidRegisteredYear(
 	);
 }
 
-/**
- * Only blocks on a required document whose upload is actually wired to a confirmed backend
- * field (see isOrgDocumentUploadSupported) — otherwise the step could never be completed for a
- * document type still awaiting confirmation.
- */
-export function requiredDocumentsUploaded(
-	docs: Documents,
-	isSupported: (key: DocumentKey) => boolean = isOrgDocumentUploadSupported
-): boolean {
-	return DOCUMENT_KEYS.filter((key) => docs[key].required && isSupported(key)).every(
-		(key) => docs[key].uploaded
-	);
+export function requiredDocumentsUploaded(docs: Documents): boolean {
+	return DOCUMENT_KEYS.filter((key) => docs[key].required).every((key) => docs[key].uploaded);
 }
 
 export function visibleDocumentKeys(docs: Documents): DocumentKey[] {
@@ -130,12 +120,31 @@ export function isDirectorComplete(director: Director): boolean {
 	);
 }
 
+/** Both KYC documents the backend needs for every director before the application can submit. */
+export function directorDocumentsUploaded(director: Director): boolean {
+	return Boolean(director.aadhaarDocument && director.panDocument);
+}
+
 export function directorsAreComplete(data: OnboardingFormData): boolean {
 	return data.directors.length > 0 && data.directors.every(isDirectorComplete);
 }
 
-export function bankDetailsAreComplete(data: OnboardingFormData): boolean {
-	const bank = data.bankDetails;
+/** Presence-only check, e.g. for enabling Continue before the Submit-time format errors run. */
+export function isDirectorFilled(director: Director): boolean {
+	return (
+		filled(director.name) &&
+		filled(director.pan) &&
+		filled(director.aadhaar) &&
+		filled(director.email) &&
+		filled(director.phone)
+	);
+}
+
+export function directorsAreFilled(data: OnboardingFormData): boolean {
+	return data.directors.length > 0 && data.directors.every(isDirectorFilled);
+}
+
+export function isBankAccountComplete(bank: BankDetails): boolean {
 	return (
 		filled(bank.accountHolderName) &&
 		isValidAccountNumber(bank.accountNumber) &&
@@ -145,6 +154,27 @@ export function bankDetailsAreComplete(data: OnboardingFormData): boolean {
 		filled(bank.branchName) &&
 		filled(bank.accountType)
 	);
+}
+
+export function bankAccountsAreComplete(data: OnboardingFormData): boolean {
+	return data.bankAccounts.length > 0 && data.bankAccounts.every(isBankAccountComplete);
+}
+
+/** Presence-only check, e.g. for enabling Continue before the Submit-time format errors run. */
+export function isBankAccountFilled(bank: BankDetails): boolean {
+	return (
+		filled(bank.accountHolderName) &&
+		filled(bank.accountNumber) &&
+		filled(bank.confirmAccountNumber) &&
+		filled(bank.ifscCode) &&
+		filled(bank.bankName) &&
+		filled(bank.branchName) &&
+		filled(bank.accountType)
+	);
+}
+
+export function bankAccountsAreFilled(data: OnboardingFormData): boolean {
+	return data.bankAccounts.length > 0 && data.bankAccounts.every(isBankAccountFilled);
 }
 
 /** CIN is mandatory for private limited companies and optional (format-checked) otherwise. */
@@ -166,7 +196,25 @@ export function isIdentityComplete(data: OnboardingFormData): boolean {
 		isCinValid(details.cin, data.entityType) &&
 		isTanValid(details.tan) &&
 		filled(details.industry) &&
-		isValidRegisteredYear(details.registeredYear)
+		isValidRegisteredYear(details.registeredYear) &&
+		isValidPhone(details.phone) &&
+		isValidWebsite(details.website)
+	);
+}
+
+/** Presence-only check, e.g. for enabling Continue before the Submit-time format errors run. */
+export function isIdentityFilled(data: OnboardingFormData): boolean {
+	const details = data.businessDetails;
+	const cinFilled = data.entityType !== 'private_limited' || filled(details.cin);
+	return (
+		filled(data.businessPan) &&
+		data.entityType !== null &&
+		filled(data.gstin) &&
+		cinFilled &&
+		filled(details.industry) &&
+		details.registeredYear !== null &&
+		filled(details.phone) &&
+		filled(details.website)
 	);
 }
 
@@ -179,15 +227,24 @@ function isAddressComplete(address: Address): boolean {
 	);
 }
 
+function isAddressFilled(address: Address): boolean {
+	return (
+		filled(address.line1) &&
+		filled(address.city) &&
+		filled(address.state) &&
+		filled(address.pincode)
+	);
+}
+
 export function isProfileComplete(data: OnboardingFormData): boolean {
 	const details = data.businessDetails;
-	return (
-		filled(details.brandName) &&
-		isValidPhone(details.phone) &&
-		isValidWebsite(details.website) &&
-		filled(details.communicationAddress) &&
-		isAddressComplete(details.address)
-	);
+	return filled(details.communicationAddress) && isAddressComplete(details.address);
+}
+
+/** Presence-only check, e.g. for enabling Continue before the Submit-time format errors run. */
+export function isProfileFilled(data: OnboardingFormData): boolean {
+	const details = data.businessDetails;
+	return filled(details.communicationAddress) && isAddressFilled(details.address);
 }
 
 export function isStepDataComplete(step: StepId, data: OnboardingFormData): boolean {
@@ -197,9 +254,9 @@ export function isStepDataComplete(step: StepId, data: OnboardingFormData): bool
 		case 2:
 			return isProfileComplete(data);
 		case 3:
-			return bankDetailsAreComplete(data);
+			return bankAccountsAreComplete(data);
 		case 4:
-			return directorsAreComplete(data);
+			return directorsAreComplete(data) && data.directors.every(directorDocumentsUploaded);
 		case 5:
 			return requiredDocumentsUploaded(data.documents);
 		case 6:

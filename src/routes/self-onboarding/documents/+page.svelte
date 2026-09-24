@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isOrgDocumentUploadSupported, uploadOrgDocument } from '$lib/api/onboarding';
+	import { documentFieldOptions, getDocumentKeyForFieldName } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { Progress } from '$lib/components/ui/progress';
 	import { DocumentCard, StepShell } from '$lib/components/self-onboarding';
@@ -10,7 +10,9 @@
 		visibleDocumentKeys
 	} from '$lib/components/self-onboarding/validation';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
-	import type { DocumentKey } from '$lib/types/onboarding';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	const docs = $derived(onboarding.formData.documents);
 	const docKeys = $derived(visibleDocumentKeys(docs));
@@ -19,12 +21,14 @@
 	const percent = $derived(total === 0 ? 0 : Math.round((uploadedCount / total) * 100));
 	const canContinue = $derived(requiredDocumentsUploaded(docs));
 
-	// Only marks the slot uploaded once the file has actually reached the server — DocumentCard
-	// shows the thrown error inline and leaves the slot as not-uploaded on failure.
-	async function handleUpload(key: DocumentKey, file: File) {
-		await uploadOrgDocument(key, file);
-		onboarding.updateDocument(key, file);
-	}
+	// Reconciles with documents uploaded outside this browser session (see hydrateDocumentUploaded
+	// — only ever turns a slot on, never off, so it's safe to run on every load).
+	$effect(() => {
+		for (const fieldName of data.uploadedFieldNames) {
+			const key = getDocumentKeyForFieldName(fieldName);
+			if (key) onboarding.hydrateDocumentUploaded(key);
+		}
+	});
 </script>
 
 <StepShell>
@@ -40,10 +44,10 @@
 		{#each docKeys as key (key)}
 			<DocumentCard
 				label={DOCUMENT_LABELS[key]}
+				documentType={key}
 				documentSlot={docs[key]}
-				disabled={!isOrgDocumentUploadSupported(key)}
-				disabledNote="Upload pending backend confirmation"
-				onupload={(file) => handleUpload(key, file)}
+				fieldOptions={documentFieldOptions(key)}
+				onuploaded={(file) => onboarding.updateDocument(key, file)}
 				onclear={() => onboarding.clearDocument(key)}
 			/>
 		{/each}

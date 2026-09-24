@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { isOrgDocumentUploadSupported, submitOnboarding } from '$lib/api/onboarding';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
 	import { ReviewCard, StepShell } from '$lib/components/self-onboarding';
@@ -15,10 +17,8 @@
 	} from '$lib/components/self-onboarding/validation';
 	import { CheckCircle2 } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
-	import type { DocumentKey } from '$lib/types/onboarding';
 
 	let submitting = $state(false);
-	let submitError = $state('');
 	let applicationId = $state('');
 	let submitted = $state(false);
 
@@ -26,14 +26,13 @@
 	const details = $derived(data.businessDetails);
 	const complete = $derived(allRequiredComplete(data));
 	const docKeys = $derived(visibleDocumentKeys(data.documents));
+	const readOnly = $derived(onboarding.onboardingStatus === 'read_only');
 
 	function documentStatus(
-		key: DocumentKey,
 		uploaded: boolean,
 		required: boolean
 	): { label: string; variant: 'success' | 'error' | 'warning' } {
 		if (uploaded) return { label: 'Uploaded', variant: 'success' };
-		if (!isOrgDocumentUploadSupported(key)) return { label: 'Upload pending', variant: 'warning' };
 		if (required) return { label: 'Missing', variant: 'error' };
 		return { label: 'Optional · Skipped', variant: 'warning' };
 	}
@@ -45,26 +44,41 @@
 		);
 	}
 
-	async function handleSubmit() {
-		if (!complete || submitting) return;
-		submitting = true;
-		submitError = '';
-		try {
-			const result = await submitOnboarding();
-			applicationId = result.applicationId;
-		} catch (error) {
-			const message =
-				error instanceof Error && error.message
-					? error.message
-					: 'Could not submit your application. Please try again.';
-			submitError = await routeSaveError(message, 6);
-			submitting = false;
+	function actionErrorMessage(data: unknown): string {
+		if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
+			return data.error;
+		}
+		return 'Could not submit your application. Please try again.';
+	}
+
+	const onSubmitEnhance: SubmitFunction = ({ cancel }) => {
+		if (!complete || submitting) {
+			cancel();
 			return;
 		}
-		submitting = false;
-		onboarding.completeStep(6);
-		submitted = true;
-	}
+		submitting = true;
+		return async ({ result }) => {
+			submitting = false;
+			if (result.type === 'success') {
+				const id =
+					result.data && typeof result.data === 'object' && 'applicationId' in result.data
+						? result.data.applicationId
+						: '';
+				applicationId = typeof id === 'string' ? id : '';
+				onboarding.completeStep(6);
+				submitted = true;
+				toast.success('Application submitted.');
+				return;
+			}
+			const message =
+				result.type === 'failure'
+					? actionErrorMessage(result.data)
+					: 'Could not submit your application. Please try again.';
+			toast.error(message);
+			// Shown as a toast only; an error about another step's fields also takes the user there.
+			await routeSaveError(message, 6);
+		};
+	};
 </script>
 
 {#snippet row(label: string, value: string, mono = false)}
@@ -94,9 +108,22 @@
 		</div>
 	</div>
 {:else}
-	<StepShell error={submitError}>
+	<form id="review-submit-form" method="POST" use:enhance={onSubmitEnhance}></form>
+
+	{#snippet submitFooter()}
+		<Button type="submit" form="review-submit-form" disabled={submitting || !complete}>
+			{submitting ? 'Submitting…' : 'Submit'}
+		</Button>
+	{/snippet}
+
+	<StepShell footer={readOnly ? undefined : submitFooter}>
+		{#if readOnly}
+			<div class="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
+				Your application ({onboarding.profileStatus}) is no longer editable.
+			</div>
+		{/if}
 		<div class="flex flex-col gap-5">
-			<ReviewCard title="Business identity" editPath="business-identity">
+			<ReviewCard title="Tax and registration" editPath="business-identity" editable={!readOnly}>
 				<div class="grid gap-2 text-sm">
 					{@render row('PAN', data.businessPan, true)}
 					{@render row('Entity type', data.entityName)}
@@ -105,31 +132,39 @@
 					{@render row('TAN', details.tan, true)}
 					{@render row('Industry', details.industry)}
 					{@render row('Registered year', details.registeredYear?.toString() ?? '')}
+					{@render row('Phone', details.phone)}
+					{@render row('Website', details.website)}
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Business profile" editPath="business-profile">
+			<ReviewCard title="Address" editPath="business-profile" editable={!readOnly}>
 				<div class="grid gap-2 text-sm">
-					{@render row('Brand name', details.brandName)}
-					{@render row('Phone', details.phone)}
-					{@render row('Website', details.website)}
 					{@render row('Communication address', details.communicationAddress)}
 					{@render row('Registered address', addressText(details.address))}
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Bank details" editPath="bank-details">
-				<div class="grid gap-2 text-sm">
-					{@render row('Account holder', data.bankDetails.accountHolderName)}
-					{@render row('Account number', maskAccountNumber(data.bankDetails.accountNumber), true)}
-					{@render row('IFSC', data.bankDetails.ifscCode, true)}
-					{@render row('Bank', data.bankDetails.bankName)}
-					{@render row('Branch', data.bankDetails.branchName)}
-					{@render row('Account type', data.bankDetails.accountType)}
+			<ReviewCard title="Bank details" editPath="bank-details" editable={!readOnly}>
+				<div class="space-y-4">
+					{#each data.bankAccounts as bank, index (index)}
+						{#if data.bankAccounts.length > 1}
+							<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+								Bank account {index + 1}
+							</p>
+						{/if}
+						<div class="grid gap-2 text-sm">
+							{@render row('Account holder', bank.accountHolderName)}
+							{@render row('Account number', maskAccountNumber(bank.accountNumber), true)}
+							{@render row('IFSC', bank.ifscCode, true)}
+							{@render row('Bank', bank.bankName)}
+							{@render row('Branch', bank.branchName)}
+							{@render row('Account type', bank.accountType)}
+						</div>
+					{/each}
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Directors" editPath="directors">
+			<ReviewCard title="Directors" editPath="directors" editable={!readOnly}>
 				{#if data.directors.length === 0}
 					<p class="text-sm text-muted-foreground">No directors added.</p>
 				{:else}
@@ -147,11 +182,10 @@
 				{/if}
 			</ReviewCard>
 
-			<ReviewCard title="Documents" editPath="documents">
+			<ReviewCard title="Documents" editPath="documents" editable={!readOnly}>
 				<div class="space-y-2">
 					{#each docKeys as key (key)}
 						{@const status = documentStatus(
-							key,
 							data.documents[key].uploaded,
 							data.documents[key].required
 						)}
@@ -165,11 +199,5 @@
 				</div>
 			</ReviewCard>
 		</div>
-
-		{#snippet footer()}
-			<Button disabled={submitting || !complete} onclick={handleSubmit}>
-				{submitting ? 'Submitting…' : 'Submit'}
-			</Button>
-		{/snippet}
 	</StepShell>
 {/if}

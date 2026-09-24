@@ -3,6 +3,19 @@ import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
+/**
+ * Upstream validation errors can carry `message` as a list (one entry per rejected field) rather
+ * than a string — callers display it verbatim, so flatten it into one readable line.
+ */
+function upstreamMessage(message: unknown): string | undefined {
+	if (typeof message === 'string' && message.trim()) return message;
+	if (Array.isArray(message)) {
+		const parts = message.filter((part): part is string => typeof part === 'string' && !!part);
+		if (parts.length > 0) return parts.join('; ');
+	}
+	return undefined;
+}
+
 export async function apiFetch<TSchema extends v.GenericSchema>(
 	path: string,
 	opts: {
@@ -68,13 +81,13 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 
 		const errorBody =
 			json && typeof json === 'object'
-				? (json as { exceptionCode?: string; message?: string; statusCode?: number })
+				? (json as { exceptionCode?: string; message?: unknown; statusCode?: number })
 				: null;
 
 		// Upstream sometimes returns business errors with 2xx (e.g. sign-in session exists → 202).
 		if (!res.ok || errorBody?.exceptionCode) {
 			const status = errorBody?.statusCode ?? res.status;
-			const errorMessage = errorBody?.message ?? `Request failed (${status})`;
+			const errorMessage = upstreamMessage(errorBody?.message) ?? `Request failed (${status})`;
 			log.warn(
 				{
 					status,

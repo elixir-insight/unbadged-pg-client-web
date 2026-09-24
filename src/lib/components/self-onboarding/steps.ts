@@ -3,13 +3,13 @@ export const SELF_ONBOARDING_BASE = '/self-onboarding' as const;
 export const STEPS = [
 	{
 		path: 'business-identity',
-		label: 'Identity',
-		title: 'Business identity'
+		label: 'Tax and registration',
+		title: 'Tax and registration'
 	},
 	{
 		path: 'business-profile',
-		label: 'Profile',
-		title: 'Business profile'
+		label: 'Address',
+		title: 'Address'
 	},
 	{
 		path: 'bank-details',
@@ -78,4 +78,22 @@ export function firstIncompleteStep(completedSteps: readonly number[]): StepId {
 /** Overall progress, never showing 0% while the first step is in progress. */
 export function flooredProgressPercent(actualPercent: number, currentStep: StepId): number {
 	return Math.max(actualPercent, currentStep === 1 ? Math.round(100 / STEPS.length) : 0);
+}
+
+export type OnboardingStatus = 'in_progress' | 'remarked' | 'read_only';
+
+/**
+ * Any status past REMARKED — the application has left the applicant's hands, so the wizard
+ * should stop accepting edits. Exact enum unconfirmed beyond IN_PROGRESS/REMARKED (see the audit
+ * report); everything else falls through to `read_only` rather than silently staying editable.
+ */
+const REMARKED_STATUS = 'REMARKED';
+const IN_PROGRESS_STATUSES = new Set(['', 'DRAFT', 'IN_PROGRESS']);
+
+/** Interprets a raw `profileStatus` string off GET /organization — see extractProfileStatus. */
+export function resolveOnboardingStatus(profileStatus: string): OnboardingStatus {
+	const normalized = profileStatus.trim().toUpperCase();
+	if (normalized === REMARKED_STATUS) return 'remarked';
+	if (IN_PROGRESS_STATUSES.has(normalized)) return 'in_progress';
+	return 'read_only';
 }

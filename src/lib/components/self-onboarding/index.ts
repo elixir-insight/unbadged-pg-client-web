@@ -3,6 +3,7 @@ export { default as FieldRow } from './field-row.svelte';
 export { default as FieldGrid } from './field-grid.svelte';
 export { default as FormSection } from './form-section.svelte';
 export { default as DirectorCard } from './director-card.svelte';
+export { default as BankCard } from './bank-card.svelte';
 export { default as DocumentCard } from './document-card.svelte';
 export { default as ReviewCard } from './review-card.svelte';
 export { default as OnboardingSidebar } from './onboarding-sidebar.svelte';

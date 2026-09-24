@@ -8,16 +8,18 @@ describe('routeSaveErrorToStep', () => {
 		).toBe(1);
 	});
 
-	it('routes other identity fields (PAN, CIN, industry, registered year)', () => {
+	it('routes other identity fields (PAN, CIN, industry, registered year, brand, website, phone)', () => {
 		expect(routeSaveErrorToStep('This PAN is already registered')).toBe(1);
 		expect(routeSaveErrorToStep('CIN format is invalid')).toBe(1);
 		expect(routeSaveErrorToStep('Industry is not recognised')).toBe(1);
 		expect(routeSaveErrorToStep('Registered year cannot be in the future')).toBe(1);
+		expect(routeSaveErrorToStep('Brand name is already taken')).toBe(1);
+		expect(routeSaveErrorToStep('Website is unreachable')).toBe(1);
+		expect(routeSaveErrorToStep('Business phone is invalid')).toBe(1);
 	});
 
 	it('routes contact/address fields to the profile step', () => {
 		expect(routeSaveErrorToStep('Business email is already in use')).toBe(2);
-		expect(routeSaveErrorToStep('Website is unreachable')).toBe(2);
 		expect(routeSaveErrorToStep('Communication address is incomplete')).toBe(2);
 	});
 
