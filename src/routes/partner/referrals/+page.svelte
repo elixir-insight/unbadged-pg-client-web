@@ -1,29 +1,25 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import { navigating, page as pageState } from '$app/state';
-	import { SvelteURL } from 'svelte/reactivity';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import Table from '$lib/components/reusable/data-table/data-table.svelte';
 	import {
 		Chip,
 		Button,
-		DateRangePicker,
 		Dropdown,
 		FilterCards,
 		SearchField,
 		createUrlPagination
 	} from '$lib/components/reusable';
-	import type { DateRange } from 'bits-ui';
-	import { getLocalTimeZone } from '@internationalized/date';
 	import type { ReferralMerchant, ReferralStatus } from './types';
+	import {
+		formatReferralBusinessType,
+		REFERRAL_BUSINESS_TYPES
+	} from '$lib/partner/referrals/business-types';
 	import { debounce } from '$lib/utils/debounce.js';
-	import { goto } from '$app/navigation';
 	import { Download, RefreshCw, X } from '$lib/assets/icons';
 
 	let { data } = $props();
-
-	const DAY_MS = 86_400_000;
 
 	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
@@ -61,6 +57,11 @@
 		{ value: 'rejected', label: 'Rejected' }
 	];
 
+	const businessTypeOptions = REFERRAL_BUSINESS_TYPES.map((option) => ({
+		value: option.value,
+		label: option.label
+	}));
+
 	const searchFields = [
 		{ value: 'name', label: 'Merchant Name', placeholder: 'e.g. BlueCart Retail…' }
 	];
@@ -81,9 +82,12 @@
 		rejected: 'Rejected'
 	};
 
+	const referralsError = $derived(data.referralsError);
+	const useClientPagination = $derived(data.clientSideSearch);
+
 	const pagination = createUrlPagination({
 		defaultLimit: 8,
-		total: () => dateFilteredMerchants.length
+		total: () => (data.clientSideSearch ? data.referrals.merchants.length : data.pagination.total)
 	});
 
 	const searchField = $derived(
@@ -94,31 +98,13 @@
 		navigating.to !== null && navigating.to.url.pathname === pageState.url.pathname
 	);
 
-	let searchInput = $derived(pagination.search);
-
-	$effect(() => {
-		searchInput = pagination.search;
-	});
-
 	const debouncedSearch = debounce((value: string) => {
 		pagination.setSearch(value);
 	}, 300);
 
-	function setUrlParams(updates: Record<string, string | null>) {
-		const url = new SvelteURL(pageState.url.toString());
-		for (const [key, value] of Object.entries(updates)) {
-			if (value === null || value === '') url.searchParams.delete(key);
-			else url.searchParams.set(key, value);
-		}
-		url.searchParams.delete('skip');
-		const href =
-			`${pageState.url.pathname}?${url.searchParams.toString()}` as `${typeof pageState.url.pathname}?${string}`;
-		goto(resolve(href as '/'), { replaceState: true, noScroll: true, keepFocus: true });
-	}
+	const searchInput = $derived(pagination.search);
 
-	function handleSearch(field: string, value: string) {
-		searchInput = value;
-		setUrlParams({ searchField: field === 'name' ? null : field });
+	function handleSearch(_field: string, value: string) {
 		debouncedSearch(value);
 	}
 
@@ -130,92 +116,59 @@
 		pagination.setStatus(value);
 	}
 
-	let dateRange = $state<DateRange>({ start: undefined, end: undefined });
+	function onBusinessTypeChange(value: string) {
+		pagination.setType(value);
+	}
 
-	function removeFilter(key: 'date' | 'status' | 'search') {
-		if (key === 'date') {
-			dateRange = { start: undefined, end: undefined };
-		} else if (key === 'status') {
+	function removeFilter(key: 'status' | 'search' | 'businessType') {
+		if (key === 'status') {
 			pagination.setStatus('');
+		} else if (key === 'businessType') {
+			pagination.setType('');
 		} else if (key === 'search') {
-			searchInput = '';
-			setUrlParams({ search: null, searchField: null });
+			pagination.setSearch('');
 		}
 	}
 
 	function clearFilters() {
-		dateRange = { start: undefined, end: undefined };
-		searchInput = '';
-		setUrlParams({ search: null, status: null, searchField: null });
+		pagination.clearAllFilters();
 	}
 
-	const dateFilter = $derived.by(() => {
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			return {
-				start: dateRange.start.toDate(tz).getTime(),
-				end: dateRange.end.toDate(tz).getTime() + DAY_MS
-			};
+	const pageRows = $derived.by(() => {
+		if (useClientPagination) {
+			return data.referrals.merchants.slice(pagination.skip, pagination.skip + pagination.limit);
 		}
-		return null;
+		return data.referrals.merchants;
 	});
 
-	const dateFilteredMerchants = $derived.by(() => {
-		if (!dateFilter) return data.referrals.merchants;
-		return data.referrals.merchants.filter((merchant) => {
-			const ms = new Date(merchant.referredOn).getTime();
-			return ms >= dateFilter.start && ms <= dateFilter.end;
-		});
+	const filterCards = $derived.by(() => {
+		const counts = data.referrals.statusCounts;
+		return [
+			{ label: 'All', count: counts.all },
+			{ label: 'Active', count: counts.active },
+			{ label: 'Pending', count: counts.pending },
+			{ label: 'Inactive', count: counts.inactive },
+			{ label: 'Rejected', count: counts.rejected }
+		];
 	});
-
-	const pageRows = $derived(
-		dateFilteredMerchants.slice(pagination.skip, pagination.skip + pagination.limit)
-	);
-
-	const dateFilteredAllMerchants = $derived.by(() => {
-		if (!dateFilter) return data.referrals.allMerchants;
-		return data.referrals.allMerchants.filter((merchant) => {
-			const ms = new Date(merchant.referredOn).getTime();
-			return ms >= dateFilter.start && ms <= dateFilter.end;
-		});
-	});
-
-	const filterCards = $derived([
-		{ label: 'All', count: dateFilteredAllMerchants.length },
-		{
-			label: 'Active',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'active').length
-		},
-		{
-			label: 'Pending',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'pending').length
-		},
-		{
-			label: 'Inactive',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'inactive').length
-		},
-		{
-			label: 'Rejected',
-			count: dateFilteredAllMerchants.filter((m) => m.status === 'rejected').length
-		}
-	]);
 
 	const activeFilters = $derived.by(() => {
-		const filters: { key: 'date' | 'status' | 'search'; label: string; value: string }[] = [];
-
-		if (dateRange.start && dateRange.end) {
-			const tz = getLocalTimeZone();
-			const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-			filters.push({
-				key: 'date',
-				label: 'Date',
-				value: `${fmt(dateRange.start.toDate(tz))} – ${fmt(dateRange.end.toDate(tz))}`
-			});
-		}
-
+		const filters: {
+			key: 'status' | 'search' | 'businessType';
+			label: string;
+			value: string;
+		}[] = [];
 		if (pagination.status) {
 			const opt = statusOptions.find((o) => o.value === pagination.status);
 			filters.push({ key: 'status', label: 'Status', value: opt?.label ?? pagination.status });
+		}
+
+		if (pagination.type) {
+			filters.push({
+				key: 'businessType',
+				label: 'Business Type',
+				value: formatReferralBusinessType(pagination.type)
+			});
 		}
 
 		if (pagination.search) {
@@ -297,6 +250,15 @@
 		</p>
 	</div>
 
+	{#if referralsError}
+		<div
+			class="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+			role="alert"
+		>
+			<p>{referralsError}</p>
+		</div>
+	{/if}
+
 	<FilterCards
 		cards={filterCards}
 		selected={statusToFilterLabel[pagination.status] ?? 'All'}
@@ -308,7 +270,6 @@
 	<div class="flex flex-col gap-3">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex flex-wrap items-center gap-2">
-				<DateRangePicker bind:value={dateRange} />
 				<div class="w-44">
 					<Dropdown
 						value={pagination.status || undefined}
@@ -318,6 +279,17 @@
 						search={false}
 						options={statusOptions}
 						onValueChange={onStatusDropdownChange}
+					/>
+				</div>
+				<div class="w-52">
+					<Dropdown
+						value={pagination.type || undefined}
+						placeholder="Business Type"
+						disabled={false}
+						bordered={false}
+						search={false}
+						options={businessTypeOptions}
+						onValueChange={onBusinessTypeChange}
 					/>
 				</div>
 			</div>
@@ -372,7 +344,7 @@
 			</div>
 		</div>
 
-		{#if !isLoading && dateFilteredMerchants.length === 0}
+		{#if !isLoading && !referralsError && pageRows.length === 0}
 			<div class="flex flex-col items-center gap-3 px-6 py-16 text-center">
 				<div
 					class="flex size-12 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/10"
@@ -396,7 +368,7 @@
 					<p class="text-sm font-medium text-foreground">No referrals found</p>
 					<p class="mt-1 text-sm text-muted-foreground">
 						{#if hasActiveFilters}
-							Try adjusting your search, status, or date filter.
+							Try adjusting your search, status, or business type filter.
 						{:else}
 							Referred merchants will appear here once onboarding begins.
 						{/if}

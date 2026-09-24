@@ -39,19 +39,21 @@
 			contentClass
 		)}
 	>
-		<Dialog.Header class="shrink-0">
-			<Dialog.Title>{title}</Dialog.Title>
+		<Dialog.Header class="shrink-0 space-y-1.5 pr-8">
+			<Dialog.Title class="text-lg font-semibold tracking-tight text-foreground">
+				{title}
+			</Dialog.Title>
 			{#if description}
 				<Dialog.Description>{description}</Dialog.Description>
 			{/if}
 		</Dialog.Header>
 		{#if children}
-			<div class="min-h-0 overflow-y-auto pe-1">
+			<div class="min-h-0 overflow-y-auto p-1">
 				{@render children()}
 			</div>
 		{/if}
 		{#if footer}
-			<Dialog.Footer class="-mx-6 -mb-6 shrink-0 border-t border-border px-6 py-4">
+			<Dialog.Footer class="-mx-6 shrink-0 border-t border-border px-6 pt-4 pb-1">
 				{@render footer()}
 			</Dialog.Footer>
 		{/if}
