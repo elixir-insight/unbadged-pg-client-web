@@ -1,12 +1,24 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import { Bell, Calendar, Check, Clock, FileText, Search, ShieldCheck } from '$lib/assets/icons';
+	import {
+		AlertCircle,
+		Bell,
+		Calendar,
+		Check,
+		Clock,
+		FileText,
+		Search,
+		ShieldCheck
+	} from '$lib/assets/icons';
 	import { Chip } from '$lib/components/reusable';
 	import { cn } from '$lib/utils';
 	import {
+		disputeTimelineIconKind,
 		disputeTimelineStep,
 		formatDisputeStatusLabel,
-		type DisputeTimelineEventView
+		isDisputeTimelineTerminalStatus,
+		type DisputeTimelineEventView,
+		type DisputeTimelineIconKind
 	} from '$lib/utils/dispute-status';
 
 	interface Props {
@@ -24,6 +36,7 @@
 		date: string;
 		description: string;
 		icon: Component;
+		status?: string;
 	}
 
 	let {
@@ -34,6 +47,25 @@
 		evidenceDueBy = '',
 		class: className
 	}: Props = $props();
+
+	const timelineIcons: Record<DisputeTimelineIconKind, Component> = {
+		check: Check,
+		shield: ShieldCheck,
+		search: Search,
+		file: FileText,
+		bell: Bell,
+		calendar: Calendar,
+		alert: AlertCircle,
+		clock: Clock
+	};
+
+	function isLostTimelineStatus(eventStatus: string | undefined): boolean {
+		return disputeTimelineIconKind(eventStatus ?? '') === 'alert';
+	}
+
+	function iconForStatus(eventStatus: string): Component {
+		return timelineIcons[disputeTimelineIconKind(eventStatus)];
+	}
 
 	function formatDeadline(value: string): string {
 		const date = new Date(value);
@@ -47,9 +79,19 @@
 	}
 
 	const useApiEvents = $derived(events !== undefined);
-	const currentStep = $derived(
-		useApiEvents ? Math.max((events?.length ?? 1) - 1, 0) : disputeTimelineStep(status)
-	);
+	const currentStep = $derived.by(() => {
+		if (!useApiEvents) return disputeTimelineStep(status);
+
+		const list = events ?? [];
+		if (list.length === 0) return 0;
+
+		const lastStatus = list[list.length - 1]?.status ?? '';
+		// Terminal outcomes (e.g. Resolved Lost) are completed events, not pending.
+		if (isDisputeTimelineTerminalStatus(lastStatus)) {
+			return list.length;
+		}
+		return list.length - 1;
+	});
 
 	const fallbackSteps = $derived<TimelineStep[]>([
 		{
@@ -103,7 +145,8 @@
 					title: event.title,
 					date: event.date,
 					description: event.description,
-					icon: Clock
+					status: event.status,
+					icon: iconForStatus(event.status)
 				}))
 			: fallbackSteps
 	);
@@ -136,17 +179,23 @@
 				{@const isCompleted = index < currentStep}
 				{@const isCurrent = index === currentStep}
 				{@const isLast = index === steps.length - 1}
+				{@const isLost = isLostTimelineStatus(step.status)}
 				<li class="flex gap-4">
 					<div class="flex flex-col items-center">
 						<span
 							class={cn(
 								'flex size-9 shrink-0 items-center justify-center rounded-full border-2',
-								isCompleted && 'border-primary bg-primary text-primary-foreground',
+								isCompleted && !isLost && 'border-primary bg-primary text-primary-foreground',
+								isCompleted &&
+									isLost &&
+									'border-destructive bg-destructive text-destructive-foreground',
 								isCurrent && 'border-primary bg-primary/10 text-primary',
 								!isCompleted && !isCurrent && 'border-border bg-background text-muted-foreground'
 							)}
 						>
-							{#if isCompleted}
+							{#if isCompleted && isLost}
+								<AlertCircle class="size-4" />
+							{:else if isCompleted}
 								<Check class="size-4" />
 							{:else}
 								<Icon class="size-4" />
