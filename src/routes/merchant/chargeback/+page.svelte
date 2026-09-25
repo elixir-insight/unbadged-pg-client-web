@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { ColumnDef } from '@tanstack/table-core';
-	import { Table, createUrlPagination } from '$lib/components/reusable';
+	import { Button, Drawer, Table, createUrlPagination } from '$lib/components/reusable';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -13,6 +13,9 @@
 		defaultLimit: 10,
 		total: () => data.pagination.total
 	});
+
+	let selected = $state<ChargebackRow | null>(null);
+	let detailsOpen = $state(false);
 
 	const columns: ColumnDef<ChargebackRow>[] = [
 		{ accessorKey: 'disputeId', header: 'Dispute ID' },
@@ -27,26 +30,19 @@
 		return value.trim() || '—';
 	}
 
-	function openChargeback(row: ChargebackRow): void {
-		const disputeId = row.disputeId.trim();
-		const chargebackId = row.id.trim();
-		if (!disputeId || disputeId === '—' || !chargebackId || chargebackId === '—') return;
-		goto(
-			resolve('/merchant/chargeback/[disputeId]/[chargebackId]', {
-				disputeId,
-				chargebackId
-			})
-		);
-	}
-
-	function isRowClickable(row: ChargebackRow): boolean {
-		const disputeId = row.disputeId.trim();
-		const chargebackId = row.id.trim();
-		return Boolean(disputeId) && disputeId !== '—' && Boolean(chargebackId) && chargebackId !== '—';
+	function openDetails(row: ChargebackRow): void {
+		selected = row;
+		detailsOpen = true;
 	}
 
 	function getRowAriaLabel(row: ChargebackRow): string {
 		return `View chargeback ${display(row.id)}`;
+	}
+
+	function openDispute(): void {
+		const disputeId = selected?.disputeId.trim() ?? '';
+		if (!disputeId || disputeId === '—') return;
+		goto(resolve('/merchant/dispute/[disputeId]', { disputeId }));
 	}
 </script>
 
@@ -72,8 +68,7 @@
 				totalPages={pagination.pageCount}
 				setPageNumber={pagination.setPage}
 				variant="borderless"
-				onRowClick={openChargeback}
-				{isRowClickable}
+				onRowClick={openDetails}
 				{getRowAriaLabel}
 			/>
 		{:else}
@@ -86,3 +81,72 @@
 		{/if}
 	</div>
 </section>
+
+<Drawer bind:open={detailsOpen} title="Chargeback details" direction="right">
+	{#if selected}
+		<dl class="grid gap-4">
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Dispute ID
+				</dt>
+				<dd class="mt-1 font-mono text-sm text-foreground">{display(selected.disputeId)}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Chargeback amount
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.chargebackAmount}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Principal amount
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.principalAmount}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Additional fees
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.additionalFees}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Currency</dt>
+				<dd class="mt-1 text-sm text-foreground">{display(selected.currency)}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Bank reference
+				</dt>
+				<dd class="mt-1 font-mono text-sm break-all text-foreground">{selected.bankReference}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Recorded by
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.recordedBy}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Created at
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.createdAt}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+					Updated at
+				</dt>
+				<dd class="mt-1 text-sm text-foreground">{selected.updatedAt}</dd>
+			</div>
+			<div>
+				<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Notes</dt>
+				<dd class="mt-1 text-sm whitespace-pre-wrap text-foreground">{display(selected.notes)}</dd>
+			</div>
+		</dl>
+	{/if}
+
+	{#snippet footer()}
+		{#if selected?.disputeId.trim() && selected.disputeId !== '—'}
+			<Button class="w-full" onclick={openDispute}>View dispute</Button>
+		{/if}
+	{/snippet}
+</Drawer>

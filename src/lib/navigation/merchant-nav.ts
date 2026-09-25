@@ -71,13 +71,7 @@ export const merchantNav: NavGroup[] = [
 				href: '/merchant/chargeback',
 				icon: CreditCard,
 				service: 'payin',
-				requiredPermission: { module: 'PAYINS', action: 'read' },
-				breadcrumbChildren: [
-					{
-						matcher: /^\/merchant\/chargeback\/[^/]+\/[^/]+$/,
-						title: 'Chargeback Details'
-					}
-				]
+				requiredPermission: { module: 'PAYINS', action: 'read' }
 			},
 			{
 				title: 'Settlements',
