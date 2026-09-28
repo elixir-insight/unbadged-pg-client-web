@@ -199,7 +199,7 @@
 						<p class="text-center text-xs text-muted-foreground sm:text-sm">
 							Wrong email?
 							<a
-								href={resolve('/signup')}
+								href={resolve('/sign-up')}
 								class="underline underline-offset-4 hover:text-foreground"
 							>
 								Go back and edit it.

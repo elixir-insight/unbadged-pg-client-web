@@ -1,6 +1,7 @@
 import type * as v from 'valibot';
 import type { Logger } from 'pino';
 import type { BankAccountRequest, UpdateOrganizationRequest } from '$lib/api/onboarding';
+import type { ApiError, Result } from '$lib/server/http/errors';
 import { apiFetch } from '$lib/server/http/fetchClient';
 import type { OnboardingTokens } from './guard';
 import {
@@ -15,7 +16,22 @@ import {
 	UploadDocumentsResponseSchema
 } from './schema';
 
-function call<TSchema extends v.GenericSchema>(
+/**
+ * A 2xx whose body says otherwise (`statusCode` >= 400) — apiFetch only catches those that also
+ * carry an `exceptionCode`, and the onboarding endpoints don't always send one.
+ */
+function bodyStatusError(data: unknown): Extract<ApiError, { kind: 'http' }> | null {
+	if (!data || typeof data !== 'object' || !('statusCode' in data)) return null;
+	const status = data.statusCode;
+	if (typeof status !== 'number' || status < 400) return null;
+	const message =
+		'message' in data && typeof data.message === 'string' && data.message.trim()
+			? data.message
+			: `Request failed (${status})`;
+	return { kind: 'http', status, message, body: data };
+}
+
+async function call<TSchema extends v.GenericSchema>(
 	fetchFn: typeof fetch,
 	log: Logger,
 	tokens: OnboardingTokens,
@@ -23,8 +39,8 @@ function call<TSchema extends v.GenericSchema>(
 	method: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	schema: TSchema,
 	body?: unknown
-) {
-	return apiFetch(`/api/v1/onboarding/${path}`, {
+): Promise<Result<v.InferOutput<TSchema>>> {
+	const result = await apiFetch(`/api/v1/onboarding/${path}`, {
 		fetch: fetchFn,
 		logger: log,
 		method,
@@ -33,6 +49,13 @@ function call<TSchema extends v.GenericSchema>(
 		body,
 		schema
 	});
+	if (!result.ok) return result;
+	const error = bodyStatusError(result.data);
+	if (error) {
+		log.warn({ path, status: error.status, message: error.message }, 'request failed in body');
+		return { ok: false, error };
+	}
+	return result;
 }
 
 export const onboardingClient = {

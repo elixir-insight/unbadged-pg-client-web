@@ -5,7 +5,8 @@ import {
 	documentFieldOptions,
 	isDocumentFieldName,
 	toBankPayload,
-	toKybPayload
+	toKybPayload,
+	toSectionPayload
 } from './onboarding';
 
 function form(): OnboardingFormData {
@@ -21,7 +22,14 @@ function form(): OnboardingFormData {
 			tan: 'BLRA16345B',
 			industry: 'Retail',
 			registeredYear: 2018,
-			communicationAddress: 'Somewhere',
+			communicationAddress: {
+				line1: 'no 234 a.v kovil street',
+				line2: '',
+				city: 'chennai',
+				state: 'tamil nadu',
+				pincode: '600090'
+			},
+			sameAsCommunication: false,
 			address: { line1: '12 Park', line2: 'Floor 2', city: 'Pune', state: 'MH', pincode: '411001' },
 			phone: '9876543210',
 			website: 'https://acme.test',
@@ -81,11 +89,12 @@ describe('toKybPayload', () => {
 			businessPhone: '+919876543210',
 			organizationWebsite: 'https://acme.test',
 			industry: 'Retail',
-			communicationAddress: 'Somewhere',
+			communicationAddress: 'no 234 a.v kovil street, chennai, tamil nadu - 600090',
 			registeredYear: 2018
 		});
 		expect(payload.addressDetails).toEqual({
-			address: '12 Park, Floor 2',
+			address: '12 Park',
+			address2: 'Floor 2',
 			city: 'Pune',
 			state: 'MH',
 			country: 'India',
@@ -104,6 +113,30 @@ describe('toKybPayload', () => {
 			phoneNumber: '+919876543211'
 		});
 		expect(directors[1]).toMatchObject({ id: 5, name: 'Bo' });
+	});
+});
+
+describe('toKybPayload addresses', () => {
+	it('sends the communication address as registered while "Same as" is ticked', () => {
+		const data = form();
+		data.businessDetails.sameAsCommunication = true;
+		expect(toKybPayload(data).addressDetails).toEqual({
+			address: 'no 234 a.v kovil street',
+			address2: '',
+			city: 'chennai',
+			state: 'tamil nadu',
+			country: 'India',
+			pinCode: '600090'
+		});
+	});
+
+	it('trims every address value', () => {
+		const data = form();
+		data.businessDetails.communicationAddress.line1 = '  12 Park  ';
+		data.businessDetails.address.city = ' Pune ';
+		const payload = toKybPayload(data);
+		expect(payload.kyb.communicationAddress).toBe('12 Park, chennai, tamil nadu - 600090');
+		expect(payload.addressDetails.city).toBe('Pune');
 	});
 });
 
@@ -186,5 +219,73 @@ describe('org document fields', () => {
 		expect(getDocumentKeyForFieldName('electricityBill')).toBe('addressProof');
 		expect(getDocumentKeyForFieldName('moa')).toBe('moa');
 		expect(getDocumentKeyForFieldName('unknownField')).toBeUndefined();
+	});
+});
+
+describe('toSectionPayload', () => {
+	/** What GET returned: PAN masked, a different brand and GSTIN than the form now holds. */
+	function saved() {
+		const data = form();
+		data.businessPan = '**********';
+		data.gstin = '29ABCPE1234F1ZB';
+		data.businessDetails.brandName = 'Saved brand';
+		data.businessDetails.industry = 'Saved industry';
+		data.directors = [{ ...data.directors[1], pan: '**********', aadhaar: '************' }];
+		return data;
+	}
+
+	it('sends the whole object, with only the identity fields taken from the form', () => {
+		const payload = toSectionPayload('identity', form(), saved());
+		expect(payload.brandName).toBe('Acme');
+		expect(payload.kyb).toMatchObject({
+			businessPan: 'ABCDE1234F',
+			gstNumber: '27ABCPE1234F1ZB',
+			industry: 'Retail',
+			// Not this step's — as saved.
+			communicationAddress: toKybPayload(saved()).kyb.communicationAddress
+		});
+		expect(payload.addressDetails).toEqual(toKybPayload(saved()).addressDetails);
+		expect(payload.directors).toEqual([
+			{ id: 5, name: 'Bo', email: 'bo@x.test', phoneNumber: '+919876543212' }
+		]);
+	});
+
+	it('never sends a masked PAN', () => {
+		const data = form();
+		data.businessPan = '**********';
+		expect(toSectionPayload('identity', data, saved()).kyb).not.toHaveProperty('businessPan');
+	});
+
+	it('keeps the saved kyb on an address save, without the PAN', () => {
+		const payload = toSectionPayload('address', form(), saved());
+		expect(payload.kyb).not.toHaveProperty('businessPan');
+		expect(payload.kyb).toMatchObject({
+			gstNumber: '29ABCPE1234F1ZB',
+			industry: 'Saved industry',
+			communicationAddress: 'no 234 a.v kovil street, chennai, tamil nadu - 600090'
+		});
+		expect(payload.brandName).toBe('Saved brand');
+		expect(payload.addressDetails.address2).toBe('Floor 2');
+	});
+
+	it('fills an address not saved yet with placeholders on an identity save', () => {
+		const empty = saved();
+		empty.businessDetails.address = { line1: '', line2: '', city: '', state: '', pincode: '' };
+		empty.businessDetails.communicationAddress = { ...empty.businessDetails.address };
+		const payload = toSectionPayload('identity', form(), empty);
+		expect(payload.kyb.communicationAddress).toBe('-');
+		expect(payload.addressDetails).toMatchObject({
+			address: '-',
+			city: '-',
+			state: '-',
+			pinCode: '-'
+		});
+	});
+
+	it('takes only the directors from the form on a directors save', () => {
+		const payload = toSectionPayload('directors', form(), saved());
+		expect(payload.directors).toHaveLength(2);
+		expect(payload.kyb.gstNumber).toBe('29ABCPE1234F1ZB');
+		expect(payload.brandName).toBe('Saved brand');
 	});
 });

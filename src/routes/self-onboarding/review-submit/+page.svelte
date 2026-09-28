@@ -7,16 +7,21 @@
 	import { Button } from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
 	import { ReviewCard, StepShell } from '$lib/components/self-onboarding';
-	import { routeSaveError } from '$lib/components/self-onboarding/navigation';
+	import { actionFailure, routeSaveError } from '$lib/components/self-onboarding/navigation';
+	import { savedCompletedSteps } from '$lib/components/self-onboarding/saved-steps';
 	import {
 		DOCUMENT_LABELS,
-		allRequiredComplete,
 		formatAddress,
 		maskAccountNumber,
 		visibleDocumentKeys
 	} from '$lib/components/self-onboarding/validation';
 	import { CheckCircle2 } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
+	import type { Address } from '$lib/types/onboarding';
+	import { allRoutedRemarks } from '$lib/utils/remarkRouting';
+	import type { PageProps } from './$types';
+
+	let { data: saved }: PageProps = $props();
 
 	let submitting = $state(false);
 	let applicationId = $state('');
@@ -24,7 +29,11 @@
 
 	const data = $derived(onboarding.formData);
 	const details = $derived(data.businessDetails);
-	const complete = $derived(allRequiredComplete(data));
+	// Every step saved upstream, and no management remark left unanswered on this device.
+	const complete = $derived(
+		savedCompletedSteps(saved).length === 5 &&
+			allRoutedRemarks(onboarding.verifications).length === 0
+	);
 	const docKeys = $derived(visibleDocumentKeys(data.documents));
 	const readOnly = $derived(onboarding.onboardingStatus === 'read_only');
 
@@ -37,18 +46,11 @@
 		return { label: 'Optional · Skipped', variant: 'warning' };
 	}
 
-	function addressText(address: typeof details.address): string {
+	function addressText(address: Address): string {
 		return (
 			formatAddress(address.line1, address.line2, address.city, address.state, address.pincode) ||
 			'—'
 		);
-	}
-
-	function actionErrorMessage(data: unknown): string {
-		if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-			return data.error;
-		}
-		return 'Could not submit your application. Please try again.';
 	}
 
 	const onSubmitEnhance: SubmitFunction = ({ cancel }) => {
@@ -65,18 +67,15 @@
 						? result.data.applicationId
 						: '';
 				applicationId = typeof id === 'string' ? id : '';
-				onboarding.completeStep(6);
 				submitted = true;
 				toast.success('Application submitted.');
 				return;
 			}
-			const message =
-				result.type === 'failure'
-					? actionErrorMessage(result.data)
-					: 'Could not submit your application. Please try again.';
+			const { message, field } = actionFailure(result);
 			toast.error(message);
-			// Shown as a toast only; an error about another step's fields also takes the user there.
-			await routeSaveError(message, 6);
+			// An error about an earlier step's field (e.g. a GSTIN claimed in the meantime) takes the
+			// user there, with the field marked.
+			await routeSaveError(message, 6, field);
 		};
 	};
 </script>
@@ -140,8 +139,7 @@
 
 			<ReviewCard title="Address" editPath="business-profile" editable={!readOnly}>
 				<div class="grid gap-2 text-sm">
-					{@render row('Communication address', details.communicationAddress)}
-					{@render row('Registered address', addressText(details.address))}
+					{@render row('Communication address', addressText(details.communicationAddress))}
 				</div>
 			</ReviewCard>
 

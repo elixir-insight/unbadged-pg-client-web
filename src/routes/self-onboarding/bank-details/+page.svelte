@@ -5,7 +5,11 @@
 	import { toBankSaveSnapshot } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { BankCard, StepShell } from '$lib/components/self-onboarding';
-	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
+	import {
+		actionFailure,
+		advanceFromStep,
+		routeSaveError
+	} from '$lib/components/self-onboarding/navigation';
 	import {
 		bankAccountsAreComplete,
 		bankAccountsAreFilled
@@ -15,7 +19,6 @@
 	import { getFieldRemark } from '$lib/utils/remarkRouting';
 
 	let saving = $state(false);
-	let saveError = $state('');
 	let attempted = $state(false);
 
 	/** Gates the Continue button — every required field has a value, format not checked yet. */
@@ -31,13 +34,6 @@
 				? resultData.accountIds
 				: undefined;
 		return Array.isArray(ids) ? (ids as (number | undefined)[]) : undefined;
-	}
-
-	function actionErrorMessage(data: unknown): string {
-		if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-			return data.error;
-		}
-		return 'Could not save your bank details. Please try again.';
 	}
 
 	const onSaveEnhance: SubmitFunction = ({ cancel }) => {
@@ -56,30 +52,28 @@
 			return;
 		}
 		saving = true;
-		saveError = '';
 		return async ({ result }) => {
-			saving = false;
 			if (result.type === 'success') {
 				const accountIds = readAccountIds(result.data);
 				if (accountIds) onboarding.setBankAccountIds(accountIds);
 				// Snapshot after the ids are stored, so the next visit compares like with like.
 				onboarding.markClean('bankAccounts', toBankSaveSnapshot(onboarding.formData.bankAccounts));
 				toast.success('Bank details saved.');
+				// Stays "saving" until the next step (and the refreshed saved state) has loaded.
 				await advanceFromStep(3);
+				saving = false;
 				return;
 			}
+			saving = false;
 			// A partial-save failure still carries whichever accountIds *did* save (see
 			// +page.server.ts) — record them now so a retry can't re-create those as duplicates.
 			if (result.type === 'failure') {
 				const accountIds = readAccountIds(result.data);
 				if (accountIds) onboarding.setBankAccountIds(accountIds);
 			}
-			const message =
-				result.type === 'failure'
-					? actionErrorMessage(result.data)
-					: 'Could not save your bank details. Please try again.';
+			const { message, field } = actionFailure(result);
 			toast.error(message);
-			saveError = await routeSaveError(message, 3);
+			await routeSaveError(message, 3, field);
 		};
 	};
 </script>
@@ -88,7 +82,7 @@
 	<input type="hidden" name="payload" value={JSON.stringify(onboarding.formData.bankAccounts)} />
 </form>
 
-<StepShell error={saveError}>
+<StepShell>
 	<div class="flex flex-col gap-4">
 		{#each onboarding.formData.bankAccounts as bank, index (index)}
 			<BankCard

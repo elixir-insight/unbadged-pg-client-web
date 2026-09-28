@@ -61,6 +61,11 @@ export interface Address {
 export interface BusinessDetails {
 	companyType: string;
 	cin: string;
+	/**
+	 * The registered address as the user typed it. While `sameAsCommunication` is ticked the
+	 * communication address is used instead (see effectiveRegisteredAddress), but this copy is kept
+	 * so unticking restores it.
+	 */
 	address: Address;
 	phone: string;
 	website: string;
@@ -68,7 +73,10 @@ export interface BusinessDetails {
 	tan: string;
 	industry: string;
 	registeredYear: number | null;
-	communicationAddress: string;
+	/** Saved upstream as one joined string (see joinAddress); structured here. */
+	communicationAddress: Address;
+	/** "Same as communication address" — the registered address mirrors the communication one. */
+	sameAsCommunication: boolean;
 }
 
 export interface BankDetails {

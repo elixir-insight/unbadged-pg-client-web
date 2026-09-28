@@ -61,7 +61,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 	await redirectIfAlreadySignedIn(cookies, fetch, locals.logger);
 
 	const userEmail = requireSessionEmail(cookies);
-	if (!userEmail) redirect(303, '/signup');
+	if (!userEmail) redirect(303, '/sign-up');
 
 	return { userEmail };
 };
@@ -73,7 +73,7 @@ export const actions = {
 		const log = locals.logger;
 		const ip = getClientAddress();
 		const userEmail = requireSessionEmail(cookies);
-		if (!userEmail) redirect(303, '/signup');
+		if (!userEmail) redirect(303, '/sign-up');
 
 		const formData = await request.formData();
 		const confirmationCode = String(formData.get('confirmationCode') ?? '').replace(/\D/g, '');
@@ -110,7 +110,7 @@ export const actions = {
 		const log = locals.logger;
 		const ip = getClientAddress();
 		const userEmail = requireSessionEmail(cookies);
-		if (!userEmail) redirect(303, '/signup');
+		if (!userEmail) redirect(303, '/sign-up');
 
 		const parsed = v.safeParse(ResendSignUpConfirmationRequestSchema, { userEmail });
 		if (!parsed.success) {

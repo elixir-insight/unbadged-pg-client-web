@@ -25,7 +25,7 @@ import {
 // sign-in/sign-out or forgot/reset password flows.
 const PUBLIC_PATHS = [
 	'/login',
-	'/signup',
+	'/sign-up',
 	'/confirm-email',
 	'/forgot-password',
 	'/reset-password',

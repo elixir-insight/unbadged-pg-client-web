@@ -4,6 +4,7 @@ import { isDocumentFieldName } from '$lib/api/onboarding';
 import { DOCUMENT_KEYS } from '$lib/components/self-onboarding/validation';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import { saveFailure } from '$lib/server/domains/onboarding/save-section';
 import type { DocumentKey } from '$lib/types/onboarding';
 
 function isDocumentKey(value: FormDataEntryValue | null): value is DocumentKey {
@@ -47,10 +48,7 @@ export const actions: Actions = {
 			session.tokens,
 			upstreamForm
 		);
-		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
-			return fail(status, { error: result.error.message });
-		}
+		if (!result.ok) return saveFailure(result.error);
 
 		return { success: true as const, documentType };
 	}

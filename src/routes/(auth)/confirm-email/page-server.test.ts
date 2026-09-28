@@ -75,7 +75,7 @@ describe('/confirm-email load', () => {
 		expect(result).toEqual({ userEmail: 'cookie@acme.test' });
 	});
 
-	it('redirects to /signup when there is no signup session', async () => {
+	it('redirects to /sign-up when there is no signup session', async () => {
 		try {
 			await load({
 				cookies: fakeCookies(),
@@ -86,7 +86,7 @@ describe('/confirm-email load', () => {
 			expect.unreachable('load should have redirected');
 		} catch (error) {
 			expect(isRedirect(error)).toBe(true);
-			if (isRedirect(error)) expect(error.location).toBe('/signup');
+			if (isRedirect(error)) expect(error.location).toBe('/sign-up');
 		}
 	});
 });
@@ -109,13 +109,13 @@ describe('/confirm-email actions', () => {
 		});
 	});
 
-	it('redirects to /signup when confirming without a signup session', async () => {
+	it('redirects to /sign-up when confirming without a signup session', async () => {
 		try {
 			await actions.confirm(eventWithSession({ confirmationCode: '123456' }));
 			expect.unreachable('action should have redirected');
 		} catch (error) {
 			expect(isRedirect(error)).toBe(true);
-			if (isRedirect(error)) expect(error.location).toBe('/signup');
+			if (isRedirect(error)) expect(error.location).toBe('/sign-up');
 		}
 	});
 

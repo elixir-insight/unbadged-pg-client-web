@@ -2,10 +2,14 @@
 	import { applyAction, deserialize, enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
-	import { toKybPayload } from '$lib/api/onboarding';
+	import { toKybPayload, toSectionSnapshot } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { DirectorCard, InlineRemark, StepShell } from '$lib/components/self-onboarding';
-	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
+	import {
+		actionFailure,
+		advanceFromStep,
+		routeSaveError
+	} from '$lib/components/self-onboarding/navigation';
 	import {
 		directorDocumentsUploaded,
 		directorFieldIssues,
@@ -31,7 +35,6 @@
 	});
 
 	let saving = $state(false);
-	let saveError = $state('');
 	let attempted = $state(false);
 	let removingIndex = $state<number | null>(null);
 
@@ -104,6 +107,10 @@
 
 	let pendingSave: Promise<string> | null = null;
 
+	function directorsSnapshot() {
+		return toSectionSnapshot('directors', toKybPayload(onboarding.formData));
+	}
+
 	/** Saves the directors via the save action and stores the returned ids; '' on success. */
 	async function saveDirectorsInPlace(): Promise<string> {
 		const formData = new FormData();
@@ -118,7 +125,7 @@
 			return 'Director saved, but could not be linked for document upload. Refresh and try again.';
 		}
 		onboarding.setDirectorIds(directorIds as (number | undefined)[]);
-		onboarding.markClean('organization', toKybPayload(onboarding.formData));
+		onboarding.markClean('directors', directorsSnapshot());
 		return '';
 	}
 
@@ -188,15 +195,14 @@
 		// Unchanged since the last save, and every director already exists upstream — skip the PUT.
 		const directors = onboarding.formData.directors;
 		const saved = directors.every((director) => director.id !== undefined);
-		if (saved && !onboarding.isDirty('organization', toKybPayload(onboarding.formData))) {
+		if (saved && !onboarding.isDirty('directors', directorsSnapshot())) {
 			cancel();
 			void advanceFromStep(4);
 			return;
 		}
 		saving = true;
-		saveError = '';
+		onboarding.clearFieldSaveError();
 		return async ({ result }) => {
-			saving = false;
 			if (result.type === 'success') {
 				const directorIds =
 					result.data && typeof result.data === 'object' && 'directorIds' in result.data
@@ -206,22 +212,22 @@
 					onboarding.setDirectorIds(directorIds as (number | undefined)[]);
 				}
 				// Snapshot after the ids are stored, so the next visit compares like with like.
-				onboarding.markClean('organization', toKybPayload(onboarding.formData));
+				onboarding.markClean('directors', directorsSnapshot());
 				toast.success('Directors saved.');
+				// Stays "saving" until the next step (and the refreshed saved state) has loaded.
 				await advanceFromStep(4);
+				saving = false;
 				return;
 			}
+			saving = false;
 			// e.g. an expired session: the server hook answers with a redirect to /login.
 			if (result.type === 'redirect') {
 				await applyAction(result);
 				return;
 			}
-			const message =
-				result.type === 'failure'
-					? actionErrorMessage(result.data)
-					: 'Could not save directors. Please try again.';
+			const { message, field } = actionFailure(result);
 			toast.error(message);
-			saveError = await routeSaveError(message, 4);
+			await routeSaveError(message, 4, field);
 		};
 	};
 </script>
@@ -230,7 +236,7 @@
 	<input type="hidden" name="payload" value={JSON.stringify(onboarding.formData)} />
 </form>
 
-<StepShell error={saveError}>
+<StepShell>
 	<div class="flex flex-col gap-4">
 		{#if onboarding.formData.directors.length === 0}
 			<p class="text-sm text-muted-foreground">Add at least one director to continue.</p>

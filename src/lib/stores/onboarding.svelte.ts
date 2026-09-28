@@ -1,11 +1,8 @@
 import { untrack } from 'svelte';
 import {
 	resolveOnboardingStatus,
-	STEPS,
-	type OnboardingStatus,
-	type StepId
+	type OnboardingStatus
 } from '$lib/components/self-onboarding/steps';
-import { isStepDataComplete } from '$lib/components/self-onboarding/validation';
 import {
 	ENTITY_TYPE_COMPANY_TYPES,
 	ENTITY_TYPE_LABELS,
@@ -25,14 +22,20 @@ import {
 	type OnboardingPrefill,
 	type OnboardingMode
 } from '$lib/types/onboarding';
+import type { OrganizationSection } from '$lib/api/onboarding';
+import {
+	communicationFromSaved,
+	emptyAddress,
+	isAddressEmpty
+} from '$lib/utils/onboarding-address';
 
 const STORAGE_KEY = 'pg-self-onboarding-v4';
 
 /**
- * The saves the wizard makes: `organization` is PUT /organization (sent by both the address and
- * directors steps, carrying every step-1/2/4 field), `bankAccounts` is the bank create/update.
+ * The saves the wizard makes: one per step that saves PUT /organization (identity, address,
+ * directors — see toSectionPayload), and `bankAccounts` for the bank create/update.
  */
-export type SaveKey = 'organization' | 'bankAccounts';
+export type SaveKey = OrganizationSection | 'bankAccounts';
 
 /**
  * What the backend last confirmed per save, serialized — the layout seeds it from the server
@@ -60,13 +63,6 @@ function projectOnto(saved: unknown, server: unknown): unknown {
 		);
 	}
 	return saved;
-}
-
-/** Steps with form data to validate — step 6 (review) is only ever completed by submitting. */
-const DATA_STEPS = [1, 2, 3, 4, 5] as const;
-
-function emptyAddress(): Address {
-	return { line1: '', line2: '', city: '', state: '', pincode: '' };
 }
 
 function emptyBankAccount(): BankDetails {
@@ -136,7 +132,8 @@ function emptyForm(): OnboardingFormData {
 			tan: '',
 			industry: '',
 			registeredYear: null,
-			communicationAddress: ''
+			communicationAddress: emptyAddress(),
+			sameAsCommunication: true
 		},
 		bankAccounts: [emptyBankAccount()],
 		directors: [],
@@ -146,10 +143,21 @@ function emptyForm(): OnboardingFormData {
 
 type PersistedDocuments = Partial<Record<DocumentKey, Omit<DocumentSlot, 'file'>>>;
 
+/** Sessions persisted before the communication address was structured hold it as a string. */
+type PersistedBusinessDetails = Omit<
+	BusinessDetails,
+	'communicationAddress' | 'sameAsCommunication'
+> & {
+	communicationAddress: Address | string;
+	sameAsCommunication?: boolean;
+};
+
 interface PersistedState {
-	formData: Omit<OnboardingFormData, 'documents'> & { documents: PersistedDocuments };
+	formData: Omit<OnboardingFormData, 'documents' | 'businessDetails'> & {
+		businessDetails: PersistedBusinessDetails;
+		documents: PersistedDocuments;
+	};
 	mode: OnboardingMode;
-	completedSteps: number[];
 	verifications?: Record<string, string>;
 	focusField?: string;
 	/** Payloads this tab last saved successfully — only ever written by markClean. */
@@ -179,6 +187,8 @@ function restoreForm(persisted: PersistedState['formData']): OnboardingFormData 
 		file: null
 	});
 	const entityType = parseEntityType(persisted.entityType);
+	const address = { ...emptyAddress(), ...persisted.businessDetails.address };
+	const communication = persisted.businessDetails.communicationAddress;
 
 	return {
 		...persisted,
@@ -186,7 +196,13 @@ function restoreForm(persisted: PersistedState['formData']): OnboardingFormData 
 		businessDetails: {
 			...emptyForm().businessDetails,
 			...persisted.businessDetails,
-			address: { ...emptyAddress(), ...persisted.businessDetails.address }
+			address,
+			...(typeof communication === 'string'
+				? communicationFromSaved(communication, address)
+				: {
+						communicationAddress: { ...emptyAddress(), ...communication },
+						sameAsCommunication: persisted.businessDetails.sameAsCommunication ?? true
+					})
 		},
 		bankAccounts:
 			persisted.bankAccounts && persisted.bankAccounts.length > 0
@@ -216,23 +232,17 @@ const formData = $state<OnboardingFormData>(
 	persisted ? restoreForm(persisted.formData) : emptyForm()
 );
 let mode = $state<OnboardingMode>(persisted?.mode ?? 'manual');
-let completedSteps = $state<number[]>(persisted?.completedSteps ?? []);
 let verifications = $state<Record<string, string>>(persisted?.verifications ?? {});
 let focusField = $state(persisted?.focusField ?? '');
 // Plain, like savedSnapshots — persisted so a reload can tell "unmasked value I saved" from
 // "unmasked value I typed but never saved" (see seedClean).
 const lastSaved: Partial<Record<SaveKey, string>> = { ...persisted?.lastSaved };
-// A save/submit error routed to a different step (see saveErrorRouting.ts) — a one-shot handoff
-// across navigation, so it is never persisted to sessionStorage.
-let saveError = $state('');
-// A save/submit error pinned to one field (keyed like `verifications`, e.g. `kyb.gstNumber`) —
-// shown under that field until it's edited; not persisted, like saveError.
-let fieldSaveError = $state<{ key: string; message: string } | null>(null);
+// Save/submit errors pinned to fields (keyed like `verifications`, e.g. `kyb.gstNumber`) — each
+// shown under its field until that field is edited; never persisted.
+let fieldSaveErrors = $state<Record<string, string>>({});
 // The org's real profileStatus, fetched once per layout mount (see +layout.server.ts) — never
 // persisted, always refetched, so a status change server-side is never shown stale.
 let profileStatus = $state('');
-
-const progressPercent = $derived(Math.round((completedSteps.length / STEPS.length) * 100));
 
 /**
  * Untracked so a store mutator called from inside an `$effect` (e.g. the layout's
@@ -245,7 +255,6 @@ function persist() {
 		const payload: PersistedState = {
 			formData: stripFiles(formData),
 			mode,
-			completedSteps,
 			verifications,
 			focusField,
 			lastSaved
@@ -306,23 +315,14 @@ export const onboarding = {
 	get mode() {
 		return mode;
 	},
-	get completedSteps() {
-		return completedSteps;
-	},
 	get verifications() {
 		return verifications;
 	},
 	get focusField() {
 		return focusField;
 	},
-	get saveError() {
-		return saveError;
-	},
-	get fieldSaveError() {
-		return fieldSaveError;
-	},
-	get progressPercent() {
-		return progressPercent;
+	get fieldSaveErrors() {
+		return fieldSaveErrors;
 	},
 	get profileStatus() {
 		return profileStatus;
@@ -347,23 +347,21 @@ export const onboarding = {
 		persist();
 	},
 
-	setSaveError(message: string) {
-		saveError = message;
+	/** Replaces every pinned save error with `message` under each of `keys`. */
+	setFieldSaveErrors(keys: readonly string[], message: string) {
+		fieldSaveErrors = Object.fromEntries(keys.map((key) => [key, message]));
 	},
 
-	setFieldSaveError(key: string, message: string) {
-		fieldSaveError = { key, message };
-	},
-
-	clearFieldSaveError() {
-		fieldSaveError = null;
-	},
-
-	/** Reads and clears the pending error in one step, so it is shown at most once. */
-	consumeSaveError(): string {
-		const message = saveError;
-		saveError = '';
-		return message;
+	/** Drops one field's save error (it was edited), or all of them. */
+	clearFieldSaveError(key?: string) {
+		if (key === undefined) {
+			fieldSaveErrors = {};
+			return;
+		}
+		if (!(key in fieldSaveErrors)) return;
+		const next = { ...fieldSaveErrors };
+		delete next[key];
+		fieldSaveErrors = next;
 	},
 
 	clearVerification(key: string) {
@@ -432,7 +430,14 @@ export const onboarding = {
 				website: fillText(details.website, saved.website),
 				industry: fillText(details.industry, saved.industry),
 				registeredYear: details.registeredYear ?? saved.registeredYear,
-				communicationAddress: fillText(details.communicationAddress, saved.communicationAddress),
+				// The communication address is only ever taken whole: a local draft wins, and only an
+				// untouched one takes the saved parts and checkbox state.
+				...(isAddressEmpty(details.communicationAddress)
+					? {
+							communicationAddress: saved.communicationAddress,
+							sameAsCommunication: saved.sameAsCommunication
+						}
+					: {}),
 				address: {
 					line1: fillText(details.address.line1, saved.address.line1),
 					line2: fillText(details.address.line2, saved.address.line2),
@@ -471,13 +476,28 @@ export const onboarding = {
 		formData.businessDetails = {
 			...formData.businessDetails,
 			...patch,
-			address: formData.businessDetails.address
+			address: formData.businessDetails.address,
+			communicationAddress: formData.businessDetails.communicationAddress
 		};
 		persist();
 	},
 
 	updateBusinessAddress(patch: Partial<Address>) {
 		formData.businessDetails.address = patchAddress(formData.businessDetails.address, patch);
+		persist();
+	},
+
+	updateCommunicationAddress(patch: Partial<Address>) {
+		formData.businessDetails.communicationAddress = patchAddress(
+			formData.businessDetails.communicationAddress,
+			patch
+		);
+		persist();
+	},
+
+	/** Only flips the flag — the registered address typed earlier is kept for when it's unticked. */
+	setSameAsCommunication(same: boolean) {
+		formData.businessDetails.sameAsCommunication = same;
 		persist();
 	},
 
@@ -635,27 +655,5 @@ export const onboarding = {
 			saved !== undefined &&
 			JSON.stringify(projectOnto(JSON.parse(saved), serverPayload)) === server;
 		savedSnapshots[key] = matches ? saved : server;
-	},
-
-	/**
-	 * Marks every data step (1–5) whose fields are already complete — prefilled from the saved
-	 * organization or typed in — so the sidebar unlocks it without a Continue click. Only ever adds
-	 * steps (never un-completes one), and steps still unlock in order (see firstIncompleteStep).
-	 */
-	syncCompletedSteps() {
-		const done = DATA_STEPS.filter((step) => isStepDataComplete(step, formData));
-		untrack(() => {
-			const added = done.filter((step) => !completedSteps.includes(step));
-			if (added.length === 0) return;
-			completedSteps = [...completedSteps, ...added];
-			persist();
-		});
-	},
-
-	completeStep(step: StepId) {
-		if (!completedSteps.includes(step)) {
-			completedSteps = [...completedSteps, step];
-			persist();
-		}
 	}
 };

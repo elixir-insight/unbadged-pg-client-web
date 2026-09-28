@@ -1,6 +1,12 @@
 import { flushSync } from 'svelte';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { toBankSaveSnapshot, toKybPayload } from '$lib/api/onboarding';
+import {
+	toBankSaveSnapshot,
+	toKybPayload,
+	toSectionSnapshot,
+	type KybSource,
+	type OrganizationSection
+} from '$lib/api/onboarding';
 import type { BankDetails, OnboardingPrefill } from '$lib/types/onboarding';
 import type { onboarding as OnboardingStore } from './onboarding.svelte';
 
@@ -27,7 +33,14 @@ const prefill: OnboardingPrefill = {
 		website: 'https://acme.test',
 		industry: 'Fintech',
 		registeredYear: 2020,
-		communicationAddress: 'no 234 main street',
+		communicationAddress: {
+			line1: 'no 234 main street',
+			line2: '',
+			city: '',
+			state: '',
+			pincode: ''
+		},
+		sameAsCommunication: false,
 		address: {
 			line1: 'besant nagar',
 			line2: '',
@@ -60,11 +73,22 @@ const bank: BankDetails = {
 	accountType: 'CURRENT'
 };
 
+const SECTIONS = ['identity', 'address', 'directors'] as const;
+
+/** What Continue on one step compares: that step's part of the organization save. */
+function snap(section: OrganizationSection, source: KybSource) {
+	return toSectionSnapshot(section, toKybPayload(source));
+}
+
+function seedSections(store: typeof OnboardingStore, source: KybSource) {
+	for (const section of SECTIONS) store.seedClean(section, snap(section, source));
+}
+
 function hydrateLikeLayout() {
 	const cleanup = $effect.root(() => {
 		$effect(() => {
 			onboarding.hydrateFromOrganization(prefill);
-			onboarding.seedClean('organization', toKybPayload(prefill));
+			seedSections(onboarding, prefill);
 			onboarding.hydrateBankAccounts([bank]);
 			onboarding.seedClean('bankAccounts', toBankSaveSnapshot([bank]));
 		});
@@ -74,23 +98,28 @@ function hydrateLikeLayout() {
 }
 
 describe('dirty tracking after resume', () => {
-	it('treats an untouched resumed form as clean — Continue skips both saves', () => {
+	it('treats an untouched resumed form as clean — Continue skips every save', () => {
 		hydrateLikeLayout();
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(false);
+		for (const section of SECTIONS) {
+			expect(onboarding.isDirty(section, snap(section, onboarding.formData))).toBe(false);
+		}
 		expect(
 			onboarding.isDirty('bankAccounts', toBankSaveSnapshot(onboarding.formData.bankAccounts))
 		).toBe(false);
 	});
 
-	it('flags an edit on any step the organization save carries', () => {
+	it('flags an edit only on the step that owns the field', () => {
 		onboarding.updateBusinessAddress({ city: 'madurai' });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(true);
-		onboarding.markClean('organization', toKybPayload(onboarding.formData));
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(false);
+		onboarding.setSameAsCommunication(false);
+		expect(onboarding.isDirty('address', snap('address', onboarding.formData))).toBe(true);
+		expect(onboarding.isDirty('identity', snap('identity', onboarding.formData))).toBe(false);
+		onboarding.markClean('address', snap('address', onboarding.formData));
+		expect(onboarding.isDirty('address', snap('address', onboarding.formData))).toBe(false);
 
-		// A tax & registration edit must still dirty the save the address step sends.
+		// A tax & registration edit is the identity step's save, not the address step's.
 		onboarding.updateBusinessDetails({ industry: 'Retail' });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(true);
+		expect(onboarding.isDirty('identity', snap('identity', onboarding.formData))).toBe(true);
+		expect(onboarding.isDirty('address', snap('address', onboarding.formData))).toBe(false);
 	});
 
 	it('flags a bank edit', () => {
@@ -101,26 +130,26 @@ describe('dirty tracking after resume', () => {
 	});
 
 	it('counts a save with no baseline yet as dirty', () => {
-		expect(onboarding.isDirty('organization', undefined)).toBe(true);
+		expect(onboarding.isDirty('directors', undefined)).toBe(true);
 	});
 });
 
 describe('change and revert', () => {
 	it('is clean again once an edited value is typed back to the saved one', () => {
-		onboarding.markClean('organization', toKybPayload(onboarding.formData));
+		onboarding.markClean('identity', snap('identity', onboarding.formData));
 		const original = onboarding.formData.businessDetails.industry;
 		onboarding.updateBusinessDetails({ industry: 'XYZ' });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(true);
+		expect(onboarding.isDirty('identity', snap('identity', onboarding.formData))).toBe(true);
 		onboarding.updateBusinessDetails({ industry: original });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(false);
+		expect(onboarding.isDirty('identity', snap('identity', onboarding.formData))).toBe(false);
 	});
 
 	it('does the same for a director field', () => {
 		const original = onboarding.formData.directors[0].name;
 		onboarding.updateDirector(0, { name: 'Grace' });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(true);
+		expect(onboarding.isDirty('directors', snap('directors', onboarding.formData))).toBe(true);
 		onboarding.updateDirector(0, { name: original });
-		expect(onboarding.isDirty('organization', toKybPayload(onboarding.formData))).toBe(false);
+		expect(onboarding.isDirty('directors', snap('directors', onboarding.formData))).toBe(false);
 	});
 });
 
@@ -136,11 +165,11 @@ describe('dirty tracking after a reload in the same tab', () => {
 		return (await import(/* @vite-ignore */ url)).onboarding;
 	}
 
-	function seedFromServer(store: typeof OnboardingStore) {
+	function seedFromServer(store: typeof OnboardingStore, source: OnboardingPrefill = prefill) {
 		const cleanup = $effect.root(() => {
 			$effect(() => {
-				store.hydrateFromOrganization(prefill);
-				store.seedClean('organization', toKybPayload(prefill));
+				store.hydrateFromOrganization(source);
+				seedSections(store, source);
 			});
 		});
 		flushSync();
@@ -151,7 +180,8 @@ describe('dirty tracking after a reload in the same tab', () => {
 	function saveUnmasked(store: typeof OnboardingStore) {
 		store.setBusinessPan('ABCDE1234F');
 		store.setDirectors([{ ...prefill.directors[0], pan: 'ABCDE1234G', aadhaar: '234567890123' }]);
-		store.markClean('organization', toKybPayload(store.formData));
+		store.markClean('identity', snap('identity', store.formData));
+		store.markClean('directors', snap('directors', store.formData));
 	}
 
 	it('keeps an unchanged form clean although the server copy is masked', async () => {
@@ -163,7 +193,8 @@ describe('dirty tracking after a reload in the same tab', () => {
 		const reloaded = await reloadStore();
 		seedFromServer(reloaded);
 		expect(reloaded.formData.businessPan).toBe('ABCDE1234F');
-		expect(reloaded.isDirty('organization', toKybPayload(reloaded.formData))).toBe(false);
+		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(false);
+		expect(reloaded.isDirty('directors', snap('directors', reloaded.formData))).toBe(false);
 	});
 
 	it('still flags an unmasked value edited after that save', async () => {
@@ -171,7 +202,7 @@ describe('dirty tracking after a reload in the same tab', () => {
 		store.setBusinessPan('ABCDE9999F');
 		const reloaded = await reloadStore();
 		seedFromServer(reloaded);
-		expect(reloaded.isDirty('organization', toKybPayload(reloaded.formData))).toBe(true);
+		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(true);
 	});
 
 	it('falls back to the server copy when it changed elsewhere since this tab saved', async () => {
@@ -181,16 +212,8 @@ describe('dirty tracking after a reload in the same tab', () => {
 		saveUnmasked(first);
 
 		const reloaded = await reloadStore();
-		const changed = { ...prefill, gstin: '29ABCPE1234F1ZB' };
-		const cleanup = $effect.root(() => {
-			$effect(() => {
-				reloaded.hydrateFromOrganization(changed);
-				reloaded.seedClean('organization', toKybPayload(changed));
-			});
-		});
-		flushSync();
-		cleanup();
+		seedFromServer(reloaded, { ...prefill, gstin: '29ABCPE1234F1ZB' });
 		// Local form still holds this tab's GSTIN — it differs from the server, so it would save.
-		expect(reloaded.isDirty('organization', toKybPayload(reloaded.formData))).toBe(true);
+		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(true);
 	});
 });

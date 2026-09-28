@@ -1,6 +1,5 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-import { toKybPayload } from '$lib/api/onboarding';
 import { extractDirectorIds } from '$lib/components/self-onboarding/director-ids';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import {
@@ -8,8 +7,8 @@ import {
 	extractOrganizationDataArray
 } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import { saveFailure, saveOrganizationSection } from '$lib/server/domains/onboarding/save-section';
 import { parseDocumentFileName } from '$lib/server/domains/organization/utils/document-field-names';
-import type { OnboardingFormData } from '$lib/types/onboarding';
 import {
 	MAX_UPLOAD_FILE_SIZE_BYTES,
 	MAX_UPLOAD_FILE_SIZE_LABEL
@@ -45,10 +44,7 @@ export const actions: Actions = {
 			session.tokens,
 			directorId
 		);
-		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
-			return fail(status, { error: result.error.message });
-		}
+		if (!result.ok) return saveFailure(result.error);
 
 		return { success: true as const };
 	},
@@ -74,10 +70,7 @@ export const actions: Actions = {
 			session.tokens,
 			directorId
 		);
-		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
-			return fail(status, { error: result.error.message });
-		}
+		if (!result.ok) return saveFailure(result.error);
 
 		// Same fileName parsing management onboarding uses (DIRECTOR_<id>_aadharCard, pan, …).
 		const fields = extractDocuments(result.data.data).map((doc) => {
@@ -128,53 +121,24 @@ export const actions: Actions = {
 			directorId,
 			upstreamForm
 		);
-		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
-			return fail(status, { error: result.error.message });
-		}
+		if (!result.ok) return saveFailure(result.error);
 
 		return { success: true as const };
 	},
 
 	// Named, not `default`: SvelteKit rejects a default action on a page that also has named ones
 	// (deleteDirector) with a 500 — which is what every "Continue" here was hitting.
-	saveDirectors: async ({ request, cookies, fetch, locals }) => {
-		const session = await requireOnboardingSession({
-			cookies,
-			fetch,
-			log: locals.logger,
-			groups: locals.merchantSession?.groups
-		});
-		if (!session.ok) return session.failure;
+	saveDirectors: async (event) => {
+		const { fetch, locals } = event;
+		const saved = await saveOrganizationSection(event, 'directors');
+		if (!saved.ok) return saved.failure;
+		const { form: fd, data: result, tokens } = saved;
 
-		let fd: OnboardingFormData;
-		try {
-			const form = await request.formData();
-			fd = JSON.parse(String(form.get('payload') ?? '')) as OnboardingFormData;
-		} catch {
-			return fail(400, { error: 'Malformed request.' });
-		}
-
-		const result = await onboardingClient.saveOrganization(
-			fetch,
-			locals.logger,
-			session.tokens,
-			toKybPayload(fd)
-		);
-		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
-			return fail(status, { error: result.error.message });
-		}
-
-		let ids = extractDirectorIds(extractOrganizationDataArray(result.data.data), fd.directors);
+		let ids = extractDirectorIds(extractOrganizationDataArray(result.data), fd.directors);
 		if (!ids) {
 			// The PUT response didn't carry ids back — fall back to a GET, same as the client did
 			// before this call moved server-side.
-			const orgResult = await onboardingClient.fetchOrganization(
-				fetch,
-				locals.logger,
-				session.tokens
-			);
+			const orgResult = await onboardingClient.fetchOrganization(fetch, locals.logger, tokens);
 			if (orgResult.ok) {
 				ids = extractDirectorIds(extractOrganizationDataArray(orgResult.data.data), fd.directors);
 			}

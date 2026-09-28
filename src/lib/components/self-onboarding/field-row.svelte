@@ -10,6 +10,7 @@
 		label,
 		value = $bindable(''),
 		locked = false,
+		readonly = false,
 		forceEdit = false,
 		monospace = false,
 		secret = false,
@@ -34,6 +35,8 @@
 		label: string;
 		value?: string;
 		locked?: boolean;
+		/** A plain read-only input (grey, muted) — unlike `locked`, keeps the input's layout. */
+		readonly?: boolean;
 		forceEdit?: boolean;
 		monospace?: boolean;
 		/** Masks the value with a show/hide toggle (account numbers). */
@@ -73,11 +76,7 @@
 	);
 	const highlighted = $derived(Boolean(remarkKey) && onboarding.focusField === remarkKey);
 	/** A backend save error routed to this field (see navigation.ts routeSaveError). */
-	const savedError = $derived(
-		remarkKey && onboarding.fieldSaveError?.key === remarkKey
-			? onboarding.fieldSaveError.message
-			: ''
-	);
+	const savedError = $derived(remarkKey ? (onboarding.fieldSaveErrors[remarkKey] ?? '') : '');
 	const shownError = $derived((showErrors ? error : '') || savedError);
 
 	function handleInput(event: Event & { currentTarget: HTMLInputElement }) {
@@ -85,7 +84,7 @@
 		const next = normalize ? normalize(raw) : raw;
 		if (next !== raw) event.currentTarget.value = next;
 		value = next;
-		if (savedError) onboarding.clearFieldSaveError();
+		if (savedError) onboarding.clearFieldSaveError(remarkKey);
 		oninput?.(next);
 	}
 
@@ -129,8 +128,10 @@
 				class={cn(
 					monospace && 'font-mono tracking-wide',
 					secret && 'pr-10',
-					secret && !revealed && '[-webkit-text-security:disc]'
+					secret && !revealed && '[-webkit-text-security:disc]',
+					readonly && 'bg-gray-100 text-muted-foreground'
 				)}
+				{readonly}
 				{type}
 				{placeholder}
 				{maxlength}

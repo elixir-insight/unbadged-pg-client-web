@@ -11,6 +11,11 @@ import {
 	normalizeIndianMobilePhone,
 	toE164IndianPhone
 } from '$lib/validation/organization-kyb';
+import {
+	effectiveRegisteredAddress,
+	joinAddress,
+	trimAddress
+} from '$lib/utils/onboarding-address';
 
 // Request payload shapes, defined here (not in lib/server/domains/onboarding/schema.ts) because
 // this module is shared with client-side code (documents/+page.svelte, review-submit/+page.svelte
@@ -38,11 +43,13 @@ export interface UpdateOrganizationRequest {
 		businessPhone: string;
 		organizationWebsite: string;
 		industry: string;
+		/** The communication address joined into one string (see joinAddress). */
 		communicationAddress: string;
 		registeredYear: number;
 	};
 	addressDetails: {
 		address: string;
+		address2: string;
 		city: string;
 		state: string;
 		country: string;
@@ -85,13 +92,6 @@ function toDirectorPayload(d: Director): UpdateOrganizationDirectorPayload {
 	};
 }
 
-function streetAddress(address: BusinessDetails['address']): string {
-	return [address.line1, address.line2]
-		.map((part) => part.trim())
-		.filter(Boolean)
-		.join(', ');
-}
-
 /**
  * The form fields PUT /organization carries — satisfied by the live form and by the
  * server-prefill (OnboardingPrefill), so the saved baseline can be shaped exactly like a save.
@@ -101,6 +101,7 @@ export type KybSource = Pick<OnboardingFormData, 'businessPan' | 'gstin' | 'dire
 };
 
 export function toKybPayload(fd: KybSource): UpdateOrganizationRequest {
+	const registered = trimAddress(effectiveRegisteredAddress(fd.businessDetails));
 	return {
 		kyb: {
 			// GET returns the saved PAN masked; sending it back would overwrite it with asterisks.
@@ -111,21 +112,120 @@ export function toKybPayload(fd: KybSource): UpdateOrganizationRequest {
 			businessPhone: toPhonePayload(fd.businessDetails.phone),
 			organizationWebsite: fd.businessDetails.website,
 			industry: fd.businessDetails.industry,
-			communicationAddress: fd.businessDetails.communicationAddress,
+			communicationAddress: joinAddress(fd.businessDetails.communicationAddress),
 			// Always non-null in practice: step navigation locks step 2+ until business-identity
 			// (which collects it) is complete — see firstIncompleteStep in +layout.svelte.
 			registeredYear: fd.businessDetails.registeredYear ?? 0
 		},
 		addressDetails: {
-			address: streetAddress(fd.businessDetails.address),
-			city: fd.businessDetails.address.city,
-			state: fd.businessDetails.address.state,
-			country: fd.businessDetails.address.country ?? 'India',
-			pinCode: fd.businessDetails.address.pincode
+			address: registered.line1,
+			address2: registered.line2,
+			city: registered.city,
+			state: registered.state,
+			// Not collected in the wizard.
+			country: registered.country ?? 'India',
+			pinCode: registered.pincode
 		},
 		brandName: fd.businessDetails.brandName,
 		directors: fd.directors.map(toDirectorPayload)
 	};
+}
+
+// ── Per-step saves of PUT /organization ──────────────────────────────────
+/**
+ * The wizard steps that save through PUT /organization, each owning part of the payload:
+ * identity (step 1) = brandName + every kyb field but the communication address, address
+ * (step 2) = kyb.communicationAddress + addressDetails, directors (step 4) = directors.
+ */
+export type OrganizationSection = 'identity' | 'address' | 'directors';
+
+type KybPayload = UpdateOrganizationRequest['kyb'];
+
+/**
+ * Stand-ins for an address that hasn't been saved yet, so an identity save before the address
+ * step never sends blanks — the same placeholders management's "legal" save uses (update-kyb.ts).
+ * extractOnboardingPrefill reads them back as empty.
+ */
+export const ADDRESS_PLACEHOLDER = '-';
+
+function withAddressPlaceholders(payload: UpdateOrganizationRequest): UpdateOrganizationRequest {
+	const orPlaceholder = (value: string) => value.trim() || ADDRESS_PLACEHOLDER;
+	const address = payload.addressDetails;
+	return {
+		...payload,
+		kyb: { ...payload.kyb, communicationAddress: orPlaceholder(payload.kyb.communicationAddress) },
+		addressDetails: {
+			...address,
+			address: orPlaceholder(address.address),
+			city: orPlaceholder(address.city),
+			state: orPlaceholder(address.state),
+			pinCode: orPlaceholder(address.pinCode)
+		}
+	};
+}
+
+function identityKyb(kyb: KybPayload): Omit<KybPayload, 'communicationAddress'> {
+	const next: Partial<KybPayload> = { ...kyb };
+	delete next.communicationAddress;
+	return next as Omit<KybPayload, 'communicationAddress'>;
+}
+
+function withoutPan(kyb: KybPayload): KybPayload {
+	const next = { ...kyb };
+	delete next.businessPan;
+	return next;
+}
+
+/** The part of a payload one section owns — what Continue compares to skip unchanged saves. */
+export function toSectionSnapshot(
+	section: OrganizationSection,
+	payload: UpdateOrganizationRequest
+) {
+	switch (section) {
+		case 'identity':
+			return { brandName: payload.brandName, kyb: identityKyb(payload.kyb) };
+		case 'address':
+			return {
+				communicationAddress: payload.kyb.communicationAddress,
+				addressDetails: payload.addressDetails
+			};
+		case 'directors':
+			return { directors: payload.directors };
+	}
+}
+
+/**
+ * The full PUT /organization body for one step's save: everything as last saved upstream
+ * (`saved`, from a fresh GET), with only `section`'s fields taken from the form. Always the whole
+ * object, so it's correct whether the backend merges or replaces — and other steps' unsaved
+ * local edits are never sent along. businessPan is only sent when typed anew (see toKybPayload):
+ * never the masked value, and never on a non-identity save.
+ */
+export function toSectionPayload(
+	section: OrganizationSection,
+	form: KybSource,
+	saved: KybSource
+): UpdateOrganizationRequest {
+	const base = toKybPayload(saved);
+	const own = toKybPayload(form);
+	// Only a PAN the user typed on step 1 is ever sent — the saved one comes back masked.
+	const savedKyb = withoutPan(base.kyb);
+	switch (section) {
+		case 'identity':
+			return withAddressPlaceholders({
+				...base,
+				brandName: own.brandName,
+				kyb: { ...identityKyb(own.kyb), communicationAddress: base.kyb.communicationAddress }
+			});
+		case 'address':
+			return {
+				...base,
+				kyb: { ...savedKyb, communicationAddress: own.kyb.communicationAddress },
+				addressDetails: own.addressDetails
+			};
+		case 'directors':
+			return withAddressPlaceholders({ ...base, kyb: savedKyb, directors: own.directors });
+	}
 }
 
 // ── Step 3: bank details ──────────────────────────────────────────────────

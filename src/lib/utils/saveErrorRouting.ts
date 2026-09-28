@@ -1,4 +1,6 @@
 import type { StepId } from '$lib/components/self-onboarding/steps';
+import type { Director } from '$lib/types/onboarding';
+import { routeToStep } from './remarkRouting';
 
 /**
  * Backend save/submit failures are a plain message, not a structured field key like the
@@ -28,7 +30,15 @@ const STEP_ERROR_PATTERNS: readonly { step: StepId; patterns: readonly RegExp[] 
 	},
 	{
 		step: 2,
-		patterns: [/\bemail\b/i, /\baddress\b/i, /\bpincode\b/i, /\blegal name\b/i, /\bcompany name\b/i]
+		patterns: [
+			/\bemail\b/i,
+			/\baddress\b/i,
+			/\bpin\s?code\b/i,
+			/\bcity\b/i,
+			/\bstate\b/i,
+			/\blegal name\b/i,
+			/\bcompany name\b/i
+		]
 	}
 ];
 
@@ -63,26 +73,129 @@ export function routeSaveErrorToStep(message: string, currentStep?: StepId): Ste
 }
 
 /**
- * The identity-step fields a routed error can be pinned under, keyed like `verifications` (each
- * is a FieldRow with that `remarkKey`). Business phone is left out — it isn't a FieldRow.
+ * Identity-step fields a message can name, keyed like `verifications` (each input carries that
+ * key as its `remarkKey` / `fieldKey`). Every match is kept: "GST number or TAN is already
+ * registered…" marks both fields.
  */
 const IDENTITY_FIELD_PATTERNS: readonly { key: string; pattern: RegExp }[] = [
-	{ key: 'kyb.gstNumber', pattern: /\bgst(in)?\b/i },
 	{ key: 'kyb.businessPan', pattern: /\bpan\b/i },
+	{ key: 'brandName', pattern: /\bbrand/i },
+	{ key: 'kyb.gstNumber', pattern: /\bgst(in)?\b/i },
 	{ key: 'kyb.cin', pattern: /\bcin\b/i },
 	{ key: 'kyb.tan', pattern: /\btan\b/i },
 	{ key: 'kyb.industry', pattern: /\bindustry\b/i },
 	{ key: 'kyb.registeredYear', pattern: /\bregistered year\b/i },
-	{ key: 'kyb.organizationWebsite', pattern: /\bwebsite\b/i },
-	{ key: 'brandName', pattern: /\bbrand/i }
+	{ key: 'kyb.businessPhone', pattern: /\b(phone|mobile)\b/i },
+	{ key: 'kyb.organizationWebsite', pattern: /\bwebsite\b/i }
 ];
 
+type AddressField = 'address' | 'city' | 'state' | 'pinCode';
+
+const ADDRESS_FIELDS: readonly AddressField[] = ['address', 'city', 'state', 'pinCode'];
+
+const ADDRESS_FIELD_PATTERNS: readonly { field: AddressField; pattern: RegExp }[] = [
+	{ field: 'city', pattern: /\bcity\b/i },
+	{ field: 'state', pattern: /\bstate\b/i },
+	{ field: 'pinCode', pattern: /\bpin\s?code\b|\bpin\b|\bpostal\b/i }
+];
+
+/** The communication address inputs' keys — the backend knows it as one string. */
+export function communicationAddressKey(field: AddressField): string {
+	return field === 'address' ? 'kyb.communicationAddress' : `kyb.communicationAddress.${field}`;
+}
+
+export function registeredAddressKey(field: AddressField): string {
+	return `addressDetails.${field}`;
+}
+
+const DIRECTOR_FIELD_PATTERNS: readonly { field: string; pattern: RegExp }[] = [
+	{ field: 'pan', pattern: /\bpan\b/i },
+	{ field: 'aadhar', pattern: /\baadhaa?r\b/i },
+	{ field: 'email', pattern: /\be-?mail\b/i },
+	{ field: 'name', pattern: /\bname\b/i }
+];
+
+export interface SaveErrorContext {
+	/** The step whose save failed. */
+	currentStep?: StepId;
+	/** A field key the backend named, when it names one. */
+	field?: string;
+	/** "Same as communication address" — registered-address errors then show on the communication inputs. */
+	sameAsCommunication?: boolean;
+	/** For telling which director a message is about, by the values it quotes. */
+	directors?: readonly Pick<Director, 'name' | 'email' | 'pan' | 'phone'>[];
+}
+
+export interface SaveErrorTarget {
+	/** The step the error belongs on; null when nothing places it. */
+	step: StepId | null;
+	/** Input keys to mark (see FieldRow `remarkKey`), in form order; empty for a step-level error. */
+	fields: string[];
+}
+
+function addressKeyFromField(field: string, sameAsCommunication: boolean): string {
+	if (field === 'addressDetails' || field.startsWith('addressDetails.')) {
+		if (!sameAsCommunication) return field === 'addressDetails' ? 'addressDetails.address' : field;
+		const part = field.slice('addressDetails.'.length) as AddressField;
+		return communicationAddressKey(ADDRESS_FIELDS.includes(part) ? part : 'address');
+	}
+	return field;
+}
+
+function addressFields(message: string, sameAsCommunication: boolean): string[] {
+	const named = ADDRESS_FIELD_PATTERNS.filter(({ pattern }) => pattern.test(message)).map(
+		({ field }) => field
+	);
+	const fields: AddressField[] =
+		named.length > 0 ? named : /\baddress\b/i.test(message) ? ['address'] : [];
+	const communication = sameAsCommunication || /\bcommunication\b/i.test(message);
+	return fields.map((field) =>
+		communication ? communicationAddressKey(field) : registeredAddressKey(field)
+	);
+}
+
+function directorFields(message: string, directors: SaveErrorContext['directors'] = []): string[] {
+	const text = message.toLowerCase();
+	const quotes = (value: string) =>
+		value.trim().length > 2 && text.includes(value.trim().toLowerCase());
+	const index =
+		directors.length === 1
+			? 0
+			: directors.findIndex(
+					(d) => quotes(d.email) || quotes(d.pan) || quotes(d.phone) || quotes(d.name)
+				);
+	if (index === -1) return [];
+	return DIRECTOR_FIELD_PATTERNS.filter(({ pattern }) => pattern.test(message)).map(
+		({ field }) => `directors[${index}].${field}`
+	);
+}
+
 /**
- * The single field a save/submit error concerns, or null when it names none or several (e.g.
- * "GST number or TAN is already registered") — those stay a step-level message.
+ * Where a save/submit error belongs: the step, and the inputs to mark on it. A field key from the
+ * backend wins; otherwise the message text is matched against each step's field vocabulary.
  */
-export function routeSaveErrorToField(message: string): string | null {
-	if (routeSaveErrorToStep(message) !== 1) return null;
-	const keys = IDENTITY_FIELD_PATTERNS.filter(({ pattern }) => pattern.test(message));
-	return keys.length === 1 ? keys[0].key : null;
+export function mapSaveError(message: string, context: SaveErrorContext = {}): SaveErrorTarget {
+	const sameAsCommunication = context.sameAsCommunication ?? false;
+	if (context.field) {
+		return {
+			step: routeToStep(context.field),
+			fields: [addressKeyFromField(context.field, sameAsCommunication)]
+		};
+	}
+	const step = routeSaveErrorToStep(message, context.currentStep);
+	switch (step) {
+		case 1:
+			return {
+				step,
+				fields: IDENTITY_FIELD_PATTERNS.filter(({ pattern }) => pattern.test(message)).map(
+					({ key }) => key
+				)
+			};
+		case 2:
+			return { step, fields: addressFields(message, sameAsCommunication) };
+		case 4:
+			return { step, fields: directorFields(message, context.directors) };
+		default:
+			return { step, fields: [] };
+	}
 }

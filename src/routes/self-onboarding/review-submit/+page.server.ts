@@ -6,6 +6,7 @@ import {
 	missingOrganizationFields
 } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import { saveFailure } from '$lib/server/domains/onboarding/save-section';
 
 export const actions: Actions = {
 	default: async ({ cookies, fetch, locals }) => {
@@ -19,7 +20,8 @@ export const actions: Actions = {
 
 		const result = await onboardingClient.submitOnboarding(fetch, locals.logger, session.tokens);
 		if (!result.ok) {
-			const status = result.error.kind === 'http' ? result.error.status : 502;
+			if (result.error.kind !== 'http') return saveFailure(result.error);
+			const status = result.error.status;
 			// The upstream rejection doesn't say which fields are missing — look them up so the
 			// applicant knows what to go back and fill in.
 			const org = await onboardingClient.fetchOrganization(fetch, locals.logger, session.tokens);

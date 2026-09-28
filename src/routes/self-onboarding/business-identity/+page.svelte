@@ -1,7 +1,15 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { toast } from 'svelte-sonner';
+	import { toKybPayload, toSectionSnapshot } from '$lib/api/onboarding';
 	import { Button, PhoneInput } from '$lib/components/reusable';
 	import { FieldRow, InlineRemark, StepShell } from '$lib/components/self-onboarding';
-	import { advanceFromStep } from '$lib/components/self-onboarding/navigation';
+	import {
+		actionFailure,
+		advanceFromStep,
+		routeSaveError
+	} from '$lib/components/self-onboarding/navigation';
 	import {
 		businessPanError,
 		gstinError,
@@ -19,6 +27,7 @@
 	import { isMaskedPan } from '$lib/validation/organization-kyb';
 
 	let attempted = $state(false);
+	let saving = $state(false);
 
 	const data = $derived(onboarding.formData);
 	const details = $derived(data.businessDetails);
@@ -29,6 +38,7 @@
 	const panSaved = $derived(isMaskedPan(data.businessPan));
 	const phoneRemark = $derived(getFieldRemark(onboarding.verifications, 'kyb.businessPhone'));
 	const phoneInvalid = $derived(details.phone.length > 0 && !isValidPhone(details.phone));
+	const phoneSaveError = $derived(onboarding.fieldSaveErrors['kyb.businessPhone'] ?? '');
 
 	function normalizeId(value: string, maxLength: number): string {
 		return value
@@ -42,12 +52,46 @@
 		onboarding.updateBusinessDetails({ registeredYear: digits ? Number(digits) : null });
 	}
 
-	function continueToProfile() {
-		attempted = true;
-		if (!canContinue) return;
-		void advanceFromStep(1);
+	function handlePhoneInput(next: string) {
+		onboarding.clearFieldSaveError('kyb.businessPhone');
+		onboarding.updateBusinessDetails({ phone: next });
 	}
+
+	const onSaveEnhance: SubmitFunction = ({ cancel }) => {
+		attempted = true;
+		// Format checks first — nothing invalid is ever sent.
+		if (!canContinue || saving) {
+			cancel();
+			return;
+		}
+		const snapshot = toSectionSnapshot('identity', toKybPayload(onboarding.formData));
+		if (!onboarding.isDirty('identity', snapshot)) {
+			cancel();
+			void advanceFromStep(1);
+			return;
+		}
+		saving = true;
+		onboarding.clearFieldSaveError();
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				onboarding.markClean('identity', snapshot);
+				toast.success('Tax and registration details saved.');
+				// Stays "saving" until the next step (and the refreshed saved state) has loaded.
+				await advanceFromStep(1);
+				saving = false;
+				return;
+			}
+			saving = false;
+			const { message, field } = actionFailure(result);
+			toast.error(message);
+			await routeSaveError(message, 1, field);
+		};
+	};
 </script>
+
+<form id="business-identity-form" method="POST" use:enhance={onSaveEnhance}>
+	<input type="hidden" name="payload" value={JSON.stringify(onboarding.formData)} />
+</form>
 
 <StepShell>
 	<FieldRow
@@ -162,11 +206,13 @@
 				<PhoneInput
 					placeholder="Enter your phone number"
 					value={details.phone}
-					invalid={attempted && phoneInvalid}
-					onValueChange={(next) => onboarding.updateBusinessDetails({ phone: next })}
+					invalid={(attempted && phoneInvalid) || Boolean(phoneSaveError)}
+					onValueChange={handlePhoneInput}
 				/>
 				{#if attempted && phoneInvalid}
 					<p class="text-xs text-destructive">Enter a valid 10-digit mobile number.</p>
+				{:else if phoneSaveError}
+					<p class="text-xs text-destructive">{phoneSaveError}</p>
 				{/if}
 			</label>
 		</InlineRemark>
@@ -184,6 +230,8 @@
 	</div>
 
 	{#snippet footer()}
-		<Button disabled={!filled} onclick={continueToProfile}>Continue</Button>
+		<Button type="submit" form="business-identity-form" disabled={!filled || saving}>
+			{saving ? 'Saving…' : 'Continue'}
+		</Button>
 	{/snippet}
 </StepShell>

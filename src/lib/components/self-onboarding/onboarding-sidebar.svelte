@@ -2,24 +2,26 @@
 	import { Check, CompanyLogoLight } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
 	import OnboardingProfileCard from './onboarding-profile-card.svelte';
-	import { firstIncompleteStep, STEPS, type StepId, type StepPath } from './steps';
+	import { isStepReachable } from './saved-steps';
+	import { STEPS, type StepId, type StepPath } from './steps';
 
 	const stepLabels = STEPS.map((step) => step.title);
 
 	let {
 		currentStep,
 		completedSteps,
+		remarkSteps = [],
 		displayName,
 		onNavigate
 	}: {
 		currentStep: StepId;
+		/** Steps saved upstream (see savedCompletedSteps) — the only ones that get a checkmark. */
 		completedSteps: readonly number[];
+		/** Steps with a management remark — reachable even past an unsaved step. */
+		remarkSteps?: readonly number[];
 		displayName: string;
 		onNavigate: (path: StepPath) => void;
 	} = $props();
-
-	// Steps unlock in order; anything up to the first unfinished step is reachable.
-	const furthestStep = $derived(Math.max(firstIncompleteStep(completedSteps), currentStep));
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
@@ -32,7 +34,7 @@
 					{@const id = (index + 1) as StepId}
 					{@const current = id === currentStep}
 					{@const completed = !current && completedSteps.includes(id)}
-					{@const reachable = id <= furthestStep}
+					{@const reachable = current || isStepReachable(id, completedSteps, remarkSteps)}
 					<li class="relative">
 						{#if index < STEPS.length - 1}
 							<span

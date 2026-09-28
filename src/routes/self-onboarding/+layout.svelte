@@ -3,15 +3,20 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import {
 		getDocumentKeyForFieldName,
 		toBankSaveSnapshot,
-		toKybPayload
+		toKybPayload,
+		toSectionSnapshot
 	} from '$lib/api/onboarding';
 	import OnboardingMobileBar from '$lib/components/self-onboarding/onboarding-mobile-bar.svelte';
 	import OnboardingSidebar from '$lib/components/self-onboarding/onboarding-sidebar.svelte';
 	import RemarkBanner from '$lib/components/self-onboarding/remark-banner.svelte';
+	import {
+		isStepReachable,
+		savedCompletedSteps
+	} from '$lib/components/self-onboarding/saved-steps';
 	import { gotoOnboardingStep, gotoRemark } from '$lib/components/self-onboarding/navigation';
 	import {
 		firstIncompleteStep,
@@ -32,6 +37,12 @@
 
 	const currentStep = $derived(stepIdFromPathname(page.url.pathname));
 	const remarks = $derived(allRoutedRemarks(onboarding.verifications));
+	/** Only what the backend holds counts — the same after a refresh, never just typed locally. */
+	const completedSteps = $derived(savedCompletedSteps(data));
+	/** Steps management flagged stay reachable so the user can fix them, whatever comes before. */
+	const remarkSteps = $derived(allRoutedRemarks(data.verifications).map((remark) => remark.step));
+	/** A step change re-fetches the saved state — hold the guard until it has landed. */
+	const loading = $derived(navigating.to !== null);
 	const displayName = $derived(
 		onboarding.formData.businessDetails.brandName || merchantSession.session?.merchantName || ''
 	);
@@ -51,7 +62,10 @@
 	$effect(() => {
 		if (data.prefill) {
 			onboarding.hydrateFromOrganization(data.prefill);
-			onboarding.seedClean('organization', toKybPayload(data.prefill));
+			const saved = toKybPayload(data.prefill);
+			for (const section of ['identity', 'address', 'directors'] as const) {
+				onboarding.seedClean(section, toSectionSnapshot(section, saved));
+			}
 		}
 		if (data.bankAccounts.length > 0) {
 			onboarding.hydrateBankAccounts(data.bankAccounts);
@@ -61,13 +75,6 @@
 			const key = getDocumentKeyForFieldName(fieldName);
 			if (key) onboarding.hydrateDocumentUploaded(key);
 		}
-	});
-
-	// Unlocks every step whose fields are already filled and valid (prefilled or typed), so a
-	// resumed application isn't stuck clicking Continue through data it already saved. Declared
-	// before the step guard below so a deep link isn't bounced back before this runs.
-	$effect(() => {
-		onboarding.syncCompletedSteps();
 	});
 
 	// Real profileStatus/verifications, re-fetched on every step change (see +layout.server.ts).
@@ -90,14 +97,14 @@
 		void goto(resolve(stepHref('review-submit') as '/'), { replaceState: true });
 	});
 
-	// Steps unlock in order; a step with a management remark is always reachable. Doesn't apply
-	// once the application is read-only — the redirect above sends those straight to step 6
-	// regardless of completedSteps, which may be empty if this browser never ran the flow.
+	// Steps unlock in order, by what's saved upstream; a step with a management remark is always
+	// reachable. Opening a locked step (URL, back/forward) lands on the first unsaved one instead.
+	// Doesn't apply once the application is read-only — the redirect above sends those to step 6.
 	$effect(() => {
-		if (!browser || onboardingStatus === 'read_only') return;
-		const allowed = firstIncompleteStep(onboarding.completedSteps);
-		if (currentStep <= allowed || remarks.some((remark) => remark.step === currentStep)) return;
-		void goto(resolve(stepHref(STEPS[allowed - 1].path) as '/'), { replaceState: true });
+		if (!browser || loading || onboardingStatus === 'read_only') return;
+		if (isStepReachable(currentStep, completedSteps, remarkSteps)) return;
+		const first = firstIncompleteStep(completedSteps);
+		void goto(resolve(stepHref(STEPS[first - 1].path) as '/'), { replaceState: true });
 	});
 
 	$effect(() => {
@@ -110,7 +117,6 @@
 			directors: onboarding.formData.directors,
 			documents: onboarding.formData.documents,
 			mode: onboarding.mode,
-			completedSteps: onboarding.completedSteps,
 			verifications: onboarding.verifications,
 			focusField: onboarding.focusField
 		});
@@ -151,7 +157,8 @@
 		>
 			<OnboardingSidebar
 				{currentStep}
-				completedSteps={onboarding.completedSteps}
+				{completedSteps}
+				{remarkSteps}
 				{displayName}
 				onNavigate={(path) => void gotoOnboardingStep(path)}
 			/>
@@ -171,7 +178,14 @@
 			</div>
 		{/if}
 
-		<div class="min-h-0 flex-1">
+		<div class="relative min-h-0 flex-1" aria-busy={loading}>
+			{#if loading}
+				<div
+					class="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-primary"
+					role="progressbar"
+					aria-label="Loading your saved details"
+				></div>
+			{/if}
 			{@render children()}
 		</div>
 	</main>

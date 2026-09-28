@@ -4,6 +4,7 @@ import { toBankPayload } from '$lib/api/onboarding';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import { extractAccountId } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import { GENERIC_SAVE_ERROR } from '$lib/server/domains/onboarding/save-section';
 import type { BankDetails } from '$lib/types/onboarding';
 
 // Saved accounts are loaded once by the layout (+layout.server.ts), alongside the org record.
@@ -48,7 +49,7 @@ export const actions: Actions = {
 			if (!result.ok) {
 				firstError ??= {
 					status: result.error.kind === 'http' ? result.error.status : 502,
-					message: result.error.message
+					message: result.error.kind === 'http' ? result.error.message : GENERIC_SAVE_ERROR
 				};
 				accountIds.push(bank.accountId);
 				continue;

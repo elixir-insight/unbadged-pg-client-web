@@ -60,7 +60,7 @@ const validFields = {
 	affiliateId: ''
 };
 
-describe('/signup load', () => {
+describe('/sign-up load', () => {
 	it('allows an unauthenticated visitor to open signup', async () => {
 		const result = await load({
 			cookies: fakeCookies(),
@@ -72,7 +72,7 @@ describe('/signup load', () => {
 	});
 });
 
-describe('/signup action', () => {
+describe('/sign-up action', () => {
 	beforeEach(() => {
 		vi.mocked(authClient.signUp).mockReset();
 	});

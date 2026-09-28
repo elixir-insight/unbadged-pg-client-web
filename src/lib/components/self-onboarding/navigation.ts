@@ -1,8 +1,10 @@
+import { tick } from 'svelte';
+import type { ActionResult } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { onboarding } from '$lib/stores/onboarding.svelte';
 import { routeToStep, type RoutedRemark } from '$lib/utils/remarkRouting';
-import { routeSaveErrorToField, routeSaveErrorToStep } from '$lib/utils/saveErrorRouting';
+import { mapSaveError } from '$lib/utils/saveErrorRouting';
 import { nextStepPath, stepHref, STEPS, type StepId, type StepPath } from './steps';
 
 export async function gotoOnboardingStep(path: StepPath, fieldKey?: string): Promise<void> {
@@ -10,28 +12,57 @@ export async function gotoOnboardingStep(path: StepPath, fieldKey?: string): Pro
 	await goto(resolve(stepHref(path) as '/'));
 }
 
+/** Shown for failures that aren't a backend rejection (network, timeout, unexpected response). */
+export const GENERIC_SAVE_ERROR = 'Something went wrong. Please try again.';
+
+/** A failed step action's message, and the field the backend named when it named one. */
+export function actionFailure(result: ActionResult): { message: string; field?: string } {
+	if (result.type !== 'failure' || !result.data) return { message: GENERIC_SAVE_ERROR };
+	const { error, field } = result.data as { error?: unknown; field?: unknown };
+	return {
+		message: typeof error === 'string' && error.trim() ? error : GENERIC_SAVE_ERROR,
+		...(typeof field === 'string' && field && { field })
+	};
+}
+
+/** Scrolls the input with this key (FieldRow `remarkKey`) into view and focuses it. */
+async function revealField(fieldKey: string): Promise<void> {
+	await tick();
+	const target = document.querySelector(`[data-remark-field="${fieldKey.replaceAll('"', '')}"]`);
+	if (!target) return;
+	target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	target
+		.querySelector<HTMLElement>('input, textarea, select, button')
+		?.focus({ preventScroll: true });
+}
+
 /**
- * Shows a save/submit failure on the step whose fields it concerns, not wherever the request
- * happened to fire from — e.g. saving the profile step can fail on an identity-step field
- * (GST/TAN), which that step can't display or let the user fix. Returns the message to show
- * locally when it belongs on the current step (or can't be placed); returns '' after routing
- * elsewhere, since the target step will show it instead.
+ * Shows a save/submit failure where it belongs (see mapSaveError): under the field(s) it names,
+ * on the step that owns them — navigating there when that isn't the current step (e.g. a GSTIN
+ * claimed by another org, reported by the final submit). The message itself is the caller's toast.
+ * Returns the message when it names no field on the current step (nothing to pin it under), ''
+ * otherwise.
  */
-export async function routeSaveError(message: string, currentStep: StepId): Promise<string> {
-	const targetStep = routeSaveErrorToStep(message, currentStep);
-	if (targetStep === null) return message;
-	// Naming a single identity field (e.g. "Invalid GST Format") — show it under that field
-	// instead of the footer, and highlight it. Only for step 1: a director's "Invalid PAN" kept on
-	// step 4 must not be pinned under the business PAN.
-	const fieldKey = targetStep === 1 ? routeSaveErrorToField(message) : null;
-	if (fieldKey) onboarding.setFieldSaveError(fieldKey, message);
-	if (targetStep === currentStep) {
-		if (!fieldKey) return message;
-		onboarding.setFocusField(fieldKey);
+export async function routeSaveError(
+	message: string,
+	currentStep: StepId,
+	field?: string
+): Promise<string> {
+	const target = mapSaveError(message, {
+		currentStep,
+		field,
+		sameAsCommunication: onboarding.formData.businessDetails.sameAsCommunication,
+		directors: onboarding.formData.directors
+	});
+	onboarding.setFieldSaveErrors(target.fields, message);
+	const [firstField] = target.fields;
+	if (target.step !== null && target.step !== currentStep) {
+		await gotoOnboardingStep(STEPS[target.step - 1].path);
+		if (firstField) await revealField(firstField);
 		return '';
 	}
-	if (!fieldKey) onboarding.setSaveError(message);
-	await gotoOnboardingStep(STEPS[targetStep - 1].path, fieldKey ?? undefined);
+	if (!firstField) return message;
+	await revealField(firstField);
 	return '';
 }
 
@@ -51,11 +82,14 @@ function clearStepRemarks(step: StepId): void {
 	if (cleared) onboarding.setVerifications(remaining);
 }
 
-/** Marks the step done, drops its management remarks, and moves to the next step. */
+/**
+ * Drops the step's management remarks and moves to the next step — only after its save
+ * succeeded. The navigation re-runs the layout load, so the route guard and sidebar see the
+ * newly saved state before the next step renders (see savedCompletedSteps).
+ */
 export async function advanceFromStep(step: StepId): Promise<void> {
 	clearStepRemarks(step);
 	onboarding.clearFieldSaveError();
-	onboarding.completeStep(step);
 	const next = nextStepPath(step);
 	if (next) await gotoOnboardingStep(next);
 }

@@ -8,6 +8,7 @@ import type {
 	OnboardingFormData
 } from '$lib/types/onboarding';
 import { isMaskedAadhar, isMaskedPan } from '$lib/validation/organization-kyb';
+import { effectiveRegisteredAddress } from '$lib/utils/onboarding-address';
 import type { StepId } from './steps';
 
 export const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -345,7 +346,7 @@ function isAddressComplete(address: Address): boolean {
 	);
 }
 
-function isAddressFilled(address: Address): boolean {
+export function isAddressFilled(address: Address): boolean {
 	return (
 		filled(address.line1) &&
 		filled(address.city) &&
@@ -354,15 +355,23 @@ function isAddressFilled(address: Address): boolean {
 	);
 }
 
+// While "Same as communication address" is ticked the registered address is the communication
+// one, so checking the effective address skips the hidden registered fields.
 export function isProfileComplete(data: OnboardingFormData): boolean {
 	const details = data.businessDetails;
-	return filled(details.communicationAddress) && isAddressComplete(details.address);
+	return (
+		isAddressComplete(details.communicationAddress) &&
+		isAddressComplete(effectiveRegisteredAddress(details))
+	);
 }
 
 /** Presence-only check, e.g. for enabling Continue before the Submit-time format errors run. */
 export function isProfileFilled(data: OnboardingFormData): boolean {
 	const details = data.businessDetails;
-	return filled(details.communicationAddress) && isAddressFilled(details.address);
+	return (
+		isAddressFilled(details.communicationAddress) &&
+		isAddressFilled(effectiveRegisteredAddress(details))
+	);
 }
 
 export function isStepDataComplete(step: StepId, data: OnboardingFormData): boolean {

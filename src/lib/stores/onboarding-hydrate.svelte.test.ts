@@ -37,7 +37,14 @@ const prefill: OnboardingPrefill = {
 		website: 'https://acme.test',
 		industry: 'Fintech',
 		registeredYear: 2020,
-		communicationAddress: 'no 234 main street',
+		communicationAddress: {
+			line1: 'no 234 main street',
+			line2: '',
+			city: '',
+			state: '',
+			pincode: ''
+		},
+		sameAsCommunication: false,
 		address: {
 			line1: 'besant nagar',
 			line2: '',
@@ -53,7 +60,6 @@ const prefill: OnboardingPrefill = {
 function runInEffect(fn: () => void) {
 	const cleanup = $effect.root(() => {
 		$effect(fn);
-		$effect(() => onboarding.syncCompletedSteps());
 	});
 	flushSync();
 	cleanup();

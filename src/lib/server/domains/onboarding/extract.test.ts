@@ -196,7 +196,15 @@ describe('extractOnboardingPrefill', () => {
 				website: 'https://acme.test',
 				industry: 'Fintech',
 				registeredYear: 2026,
-				communicationAddress: 'no 234 main street',
+				// An old free-text communication address that doesn't match the registered one.
+				communicationAddress: {
+					line1: 'no 234 main street',
+					line2: '',
+					city: '',
+					state: '',
+					pincode: ''
+				},
+				sameAsCommunication: false,
 				address: {
 					line1: 'nagar, besant nagar',
 					line2: '',

@@ -1,4 +1,6 @@
-import type { BankDetails, Director, OnboardingPrefill } from '$lib/types/onboarding';
+import type { Address, BankDetails, Director, OnboardingPrefill } from '$lib/types/onboarding';
+import { ADDRESS_PLACEHOLDER } from '$lib/api/onboarding';
+import { communicationFromSaved } from '$lib/utils/onboarding-address';
 import { normalizeIndianMobilePhone } from '$lib/validation/organization-kyb';
 import type {
 	BankAccountRecord,
@@ -92,12 +94,26 @@ function toPrefillDirector(record: OrganizationDirectorRecord): Director {
 /**
  * Everything the applicant already saved, off a GET .../organization response, in the wizard's
  * own form shape — so a resumed session (new browser, cleared storage) shows the saved details
- * instead of an empty form. The street address was saved as `line1, line2` joined (see
- * toKybPayload's streetAddress), so it comes back whole in line1.
+ * instead of an empty form. Older saves sent the street address as `line1, line2` joined, so
+ * those come back whole in line1. The communication address is stored as one string, so its
+ * parts are recovered best-effort (see communicationFromSaved).
  */
+/** An address part as saved — the placeholder an identity-only save sends reads as empty. */
+function addressText(value: string | null | undefined): string {
+	return value && value.trim() !== ADDRESS_PLACEHOLDER ? value : '';
+}
+
 export function extractOnboardingPrefill(data: unknown): OnboardingPrefill | null {
 	const org = extractOrganizationRecord(data);
 	if (!org) return null;
+	const address: Address = {
+		line1: addressText(org.address?.address),
+		line2: addressText(org.address?.address2),
+		city: addressText(org.address?.city),
+		state: addressText(org.address?.state),
+		pincode: addressText(org.address?.pinCode),
+		...(org.address?.country && { country: org.address.country })
+	};
 	return {
 		businessPan: org.orgPan ?? '',
 		gstin: org.gstNumber ?? '',
@@ -109,15 +125,8 @@ export function extractOnboardingPrefill(data: unknown): OnboardingPrefill | nul
 			website: org.organizationWebsite ?? '',
 			industry: org.industry ?? '',
 			registeredYear: toRegisteredYear(org.registeredYear),
-			communicationAddress: org.communicationAddress ?? '',
-			address: {
-				line1: org.address?.address ?? '',
-				line2: org.address?.address2 ?? '',
-				city: org.address?.city ?? '',
-				state: org.address?.state ?? '',
-				pincode: org.address?.pinCode ?? '',
-				...(org.address?.country && { country: org.address.country })
-			}
+			...communicationFromSaved(addressText(org.communicationAddress), address),
+			address
 		},
 		directors: (org.directors ?? []).map(toPrefillDirector)
 	};
