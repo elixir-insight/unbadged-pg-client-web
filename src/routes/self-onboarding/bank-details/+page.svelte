@@ -27,6 +27,7 @@
 	const accountTypeRemark = $derived(
 		getFieldRemark(onboarding.verifications, 'bankDetails.accountType')
 	);
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
 
 	function readAccountIds(resultData: unknown): (number | undefined)[] | undefined {
 		const ids =
@@ -96,12 +97,14 @@
 			/>
 		{/each}
 
-		<div>
-			<Button variant="outline" size="sm" onclick={() => onboarding.addBankAccount()}>
-				<Plus class="size-4" />
-				Add bank account
-			</Button>
-		</div>
+		{#if !remarked}
+			<div>
+				<Button variant="outline" size="sm" onclick={() => onboarding.addBankAccount()}>
+					<Plus class="size-4" />
+					Add bank account
+				</Button>
+			</div>
+		{/if}
 	</div>
 
 	{#snippet footer()}

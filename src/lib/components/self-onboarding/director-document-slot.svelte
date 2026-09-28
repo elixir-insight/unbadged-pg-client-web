@@ -14,6 +14,7 @@
 		label,
 		uploadedName = '',
 		invalid = false,
+		locked = false,
 		remark = '',
 		remarkKey = '',
 		highlighted = false,
@@ -30,6 +31,8 @@
 		uploadedName?: string;
 		/** Highlights the slot as missing once the parent form has attempted to continue. */
 		invalid?: boolean;
+		/** Correction mode: this document was not rejected, so it cannot be replaced. */
+		locked?: boolean;
 		/** Management remark on this document — asks for a replacement until one is uploaded. */
 		remark?: string;
 		/** The remark's `verifications` key — the scroll target for "Fix this". */
@@ -155,13 +158,15 @@
 				</p>
 			{/if}
 		</div>
-		<FileUpload
-			bind:file={pickedFile}
-			accept=".pdf,.jpeg,.jpg,.png"
-			placeholder={uploadedName ? 'Replace' : 'Upload'}
-			disabled={uploading}
-			onchange={(file) => void handleFile(file)}
-			class="w-auto shrink-0"
-		/>
+		{#if !locked}
+			<FileUpload
+				bind:file={pickedFile}
+				accept=".pdf,.jpeg,.jpg,.png"
+				placeholder={uploadedName ? 'Replace' : 'Upload'}
+				disabled={uploading}
+				onchange={(file) => void handleFile(file)}
+				class="w-auto shrink-0"
+			/>
+		{/if}
 	</div>
 </form>

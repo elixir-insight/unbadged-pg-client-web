@@ -15,6 +15,7 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 	return {
 		all: 0,
 		IN_PROGRESS: 0,
+		IN_REVIEW: 0,
 		APPROVED: 0,
 		ACTIVE: 0,
 		ON_HOLD: 0,
@@ -82,6 +83,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 	}
 
 	const mapped = mapOrganizationsTableResponse(result.data);
+	console.log(mapped, 'mapped');
 
 	return {
 		organizations: mapped.organizations,

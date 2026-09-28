@@ -35,7 +35,7 @@ function prefill(): OnboardingPrefill {
 
 function saved(overrides: Partial<SavedOnboardingData> = {}): SavedOnboardingData {
 	return {
-		businessType: 'LLP',
+		businessType: 'SOLE_PROPRIETORSHIP',
 		prefill: prefill(),
 		bankAccounts: [
 			{
@@ -94,6 +94,16 @@ describe('savedCompletedSteps', () => {
 		data.bankAccounts = [{ ...data.bankAccounts[0], accountId: undefined }];
 		data.prefill!.directors = [{ ...data.prefill!.directors[0], id: undefined }];
 		expect(savedCompletedSteps(data)).toEqual([1, 2, 5]);
+	});
+
+	it('needs business TAN, AOA and MOA from every entity type but a sole proprietorship', () => {
+		for (const businessType of ['PRIVATE_LIMITED', 'PARTNERSHIP', 'LLP']) {
+			expect(savedCompletedSteps(saved({ businessType }))).not.toContain(5);
+		}
+		const withCompanyDocuments = [...saved().uploadedFieldNames, 'businessTan', 'aoa', 'moa'];
+		expect(
+			savedCompletedSteps(saved({ businessType: 'LLP', uploadedFieldNames: withCompanyDocuments }))
+		).toContain(5);
 	});
 
 	it('needs every required document uploaded', () => {

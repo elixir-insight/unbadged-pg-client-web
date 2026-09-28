@@ -90,7 +90,8 @@
 		onboarding.setVerifications(data.verifications);
 	});
 
-	// Submitted / under review / approved — no more edits. Always land on the read-only summary.
+	// In review, approved, and later — no more edits. Always land on the read-only summary.
+	// REMARKED stays in the wizard so only rejected fields can be corrected.
 	$effect(() => {
 		if (!browser || onboardingStatus !== 'read_only') return;
 		if (currentStep === 6) return;
@@ -178,14 +179,15 @@
 			</div>
 		{/if}
 
-		<div class="relative min-h-0 flex-1" aria-busy={loading}>
-			{#if loading}
-				<div
-					class="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-primary"
-					role="progressbar"
-					aria-label="Loading your saved details"
-				></div>
-			{/if}
+		<!-- In the flow, not absolutely positioned: a `relative` wrapper around the step would
+		     become the containing block of absolutely positioned bits inside its scroll area
+		     (e.g. a file input), letting focus scroll this overflow-hidden panel. -->
+		<div
+			class={['h-0.5 shrink-0', loading && 'animate-pulse bg-primary']}
+			role={loading ? 'progressbar' : undefined}
+			aria-label={loading ? 'Loading your saved details' : undefined}
+		></div>
+		<div class="min-h-0 flex-1" aria-busy={loading}>
 			{@render children()}
 		</div>
 	</main>

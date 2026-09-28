@@ -380,9 +380,11 @@ export type GetDashboardMerchantsResponse = v.InferOutput<
 
 export const OrganizationTableProfileStatusSchema = v.picklist([
 	'IN_PROGRESS',
+	'IN_REVIEW',
 	'APPROVED',
 	'ACTIVE',
 	'ON_HOLD',
+	'FROZEN',
 	'REJECTED'
 ]);
 

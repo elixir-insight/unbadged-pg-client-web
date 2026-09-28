@@ -93,8 +93,126 @@ describe('mapOrganizationsTableResponse', () => {
 		expect(mapped.statusCounts).toEqual({
 			all: 3,
 			IN_PROGRESS: 0,
+			IN_REVIEW: 0,
 			APPROVED: 2,
 			ACTIVE: 1,
+			ON_HOLD: 0,
+			FROZEN: 0,
+			REJECTED: 0
+		});
+	});
+
+	it('maps profileStatus to status without defaulting unknown values to IN_PROGRESS', () => {
+		const mapped = mapOrganizationsTableResponse({
+			data: [
+				{
+					id: 'ORG_2cL',
+					name: 'Finsol Consultancy',
+					businessType: 'SOLE_PROPRIETORSHIP',
+					category: 'MERCHANT',
+					profileStatus: 'IN_PROGRESS',
+					createdAt: '2026-09-28'
+				},
+				{
+					id: 'ORG_2cK',
+					name: 'Priority Pvt Ltd',
+					businessType: 'PARTNERSHIP',
+					category: 'MERCHANT',
+					profileStatus: 'IN_REVIEW',
+					createdAt: '2026-09-28'
+				},
+				{
+					id: 'ORG_2cJ',
+					name: 'Wooten Clay Inc',
+					businessType: 'PRIVATE_LIMITED',
+					category: 'MERCHANT',
+					profileStatus: 'ACTIVE',
+					createdAt: '2026-09-23'
+				}
+			],
+			pagination: {
+				total: 53,
+				page: 1,
+				limit: 10
+			},
+			statusCounts: [
+				{ status: 'IN_PROGRESS', count: 25 },
+				{ status: 'ACTIVE', count: 24 },
+				{ status: 'APPROVED', count: 2 },
+				{ status: 'IN_REVIEW', count: 2 }
+			],
+			totalPages: 6
+		});
+
+		expect(mapped.organizations).toEqual([
+			{
+				id: 'ORG_2cL',
+				name: 'Finsol Consultancy',
+				businessType: 'SOLE_PROPRIETORSHIP',
+				category: 'MERCHANT',
+				createdAt: '2026-09-28',
+				status: 'IN_PROGRESS'
+			},
+			{
+				id: 'ORG_2cK',
+				name: 'Priority Pvt Ltd',
+				businessType: 'PARTNERSHIP',
+				category: 'MERCHANT',
+				createdAt: '2026-09-28',
+				status: 'IN_REVIEW'
+			},
+			{
+				id: 'ORG_2cJ',
+				name: 'Wooten Clay Inc',
+				businessType: 'PRIVATE_LIMITED',
+				category: 'MERCHANT',
+				createdAt: '2026-09-23',
+				status: 'ACTIVE'
+			}
+		]);
+		expect(mapped.pagination).toEqual({ total: 53, page: 1, limit: 10 });
+		expect(mapped.statusCounts).toEqual({
+			all: 53,
+			IN_PROGRESS: 25,
+			IN_REVIEW: 2,
+			APPROVED: 2,
+			ACTIVE: 24,
+			ON_HOLD: 0,
+			FROZEN: 0,
+			REJECTED: 0
+		});
+	});
+
+	it('does not convert a future profileStatus into IN_PROGRESS', () => {
+		const mapped = mapOrganizationsTableResponse({
+			data: [
+				{
+					id: 'ORG_future',
+					name: 'Future Org',
+					businessType: 'PRIVATE_LIMITED',
+					category: 'MERCHANT',
+					profileStatus: 'PENDING_LEGAL',
+					createdAt: '2026-09-28'
+				}
+			],
+			pagination: {
+				total: 35,
+				page: 1,
+				limit: 10
+			},
+			statusCounts: [
+				{ status: 'IN_PROGRESS', count: 25 },
+				{ status: 'PENDING_LEGAL', count: 10 }
+			]
+		});
+
+		expect(mapped.organizations[0]?.status).toBe('PENDING_LEGAL');
+		expect(mapped.statusCounts).toEqual({
+			all: 35,
+			IN_PROGRESS: 25,
+			IN_REVIEW: 0,
+			APPROVED: 0,
+			ACTIVE: 0,
 			ON_HOLD: 0,
 			FROZEN: 0,
 			REJECTED: 0

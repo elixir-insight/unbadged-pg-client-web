@@ -42,6 +42,7 @@
 	const filled = $derived(directorsAreFilled(onboarding.formData));
 	const canContinue = $derived(directorsAreComplete(onboarding.formData));
 	const directorRemarks = $derived(remarksForStep(onboarding.verifications, 4));
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
 	const focusField = $derived(onboarding.focusField);
 
 	/** Director fields that show their own remark (FieldRow `remarkKey` in DirectorCard). */
@@ -261,12 +262,14 @@
 			</InlineRemark>
 		{/each}
 
-		<div>
-			<Button variant="outline" size="sm" onclick={() => onboarding.addDirector()}>
-				<Plus class="size-4" />
-				Add director
-			</Button>
-		</div>
+		{#if !remarked}
+			<div>
+				<Button variant="outline" size="sm" onclick={() => onboarding.addDirector()}>
+					<Plus class="size-4" />
+					Add director
+				</Button>
+			</div>
+		{/if}
 	</div>
 
 	{#snippet footer()}

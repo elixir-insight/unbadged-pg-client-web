@@ -5,7 +5,7 @@
 	import { Dropdown, FileUpload } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { Chip } from '$lib/components/ui/badge';
-	import { CheckCircle2, Loader2 } from '$lib/assets/icons';
+	import { CheckCircle2, Loader2, LockIcon } from '$lib/assets/icons';
 	import type { DocumentKey, DocumentSlot } from '$lib/types/onboarding';
 	import { DOCUMENT_ACCEPT, DOCUMENT_MAX_BYTES } from './validation';
 
@@ -14,6 +14,7 @@
 		documentType,
 		documentSlot,
 		fieldOptions,
+		locked = false,
 		onuploaded,
 		onclear
 	}: {
@@ -26,6 +27,8 @@
 		 * uploader picks which document this file is.
 		 */
 		fieldOptions: DropdownOption[];
+		/** Correction mode: this document was not rejected, so it cannot be replaced. */
+		locked?: boolean;
 		/** Called once the server has confirmed the upload — never optimistically before that. */
 		onuploaded: (file: File) => void;
 		onclear: () => void;
@@ -123,7 +126,17 @@
 			{/if}
 		</div>
 
-		{#if documentSlot.uploaded}
+		{#if locked}
+			<div
+				class="flex h-9 items-center gap-2 rounded-md bg-muted px-2.5 text-sm text-muted-foreground"
+				aria-readonly="true"
+			>
+				<LockIcon class="size-3.5 shrink-0" />
+				<span class="min-w-0 truncate">
+					{documentSlot.fileName || (documentSlot.uploaded ? 'Uploaded' : 'Not uploaded')}
+				</span>
+			</div>
+		{:else if documentSlot.uploaded}
 			<div
 				class="flex items-center gap-2.5 rounded-xl border border-success/25 bg-success/10 px-3.5 py-2.5"
 			>

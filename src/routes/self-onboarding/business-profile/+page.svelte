@@ -150,6 +150,7 @@
 		{#snippet action()}
 			<Checkbox
 				label="Same as communication address"
+				disabled={onboarding.onboardingStatus === 'remarked'}
 				bind:checked={() => sameAsCommunication, (next) => onboarding.setSameAsCommunication(next)}
 			/>
 		{/snippet}

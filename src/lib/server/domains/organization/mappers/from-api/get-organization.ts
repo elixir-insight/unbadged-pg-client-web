@@ -200,6 +200,7 @@ function mapStatus(value: string): OrganizationStatus {
 	const normalized = value.trim().toUpperCase().replace(/\s+/g, '_');
 	if (
 		normalized === 'IN_PROGRESS' ||
+		normalized === 'IN_REVIEW' ||
 		normalized === 'APPROVED' ||
 		normalized === 'ACTIVE' ||
 		normalized === 'ON_HOLD' ||

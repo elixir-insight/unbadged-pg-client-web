@@ -37,6 +37,7 @@
 	const cinRequired = $derived(data.entityType === 'private_limited');
 	const panSaved = $derived(isMaskedPan(data.businessPan));
 	const phoneRemark = $derived(getFieldRemark(onboarding.verifications, 'kyb.businessPhone'));
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
 	const phoneInvalid = $derived(details.phone.length > 0 && !isValidPhone(details.phone));
 	const phoneSaveError = $derived(onboarding.fieldSaveErrors['kyb.businessPhone'] ?? '');
 
@@ -206,6 +207,7 @@
 				<PhoneInput
 					placeholder="Enter your phone number"
 					value={details.phone}
+					disabled={remarked && !phoneRemark}
 					invalid={(attempted && phoneInvalid) || Boolean(phoneSaveError)}
 					onValueChange={handlePhoneInput}
 				/>

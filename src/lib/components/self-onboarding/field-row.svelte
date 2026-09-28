@@ -24,6 +24,7 @@
 		optional = false,
 		remark = '',
 		remarkKey = '',
+		unlockWith = '',
 		error = '',
 		showErrors = false,
 		hint = '',
@@ -53,6 +54,11 @@
 		remark?: string;
 		/** `verifications` key: pulls the management remark and highlights the field on "Fix this". */
 		remarkKey?: string;
+		/**
+		 * Another field's remark key that keeps this one editable in correction mode
+		 * (confirm account number follows the account number).
+		 */
+		unlockWith?: string;
 		/** Validation message; only rendered while `showErrors` is true. */
 		error?: string;
 		/** Set once the parent form has attempted a submit, so errors don't appear before that. */
@@ -70,10 +76,17 @@
 	const fieldId = $props.id();
 	let revealed = $state(false);
 
-	const readOnly = $derived(locked && !forceEdit);
 	const remarkText = $derived(
 		remark || (remarkKey ? getFieldRemark(onboarding.verifications, remarkKey) : '')
 	);
+	const unlockText = $derived(
+		unlockWith ? getFieldRemark(onboarding.verifications, unlockWith) : ''
+	);
+	/** Correction mode: a field stays editable only when management rejected it. */
+	const correctionLocked = $derived(
+		onboarding.onboardingStatus === 'remarked' && !remarkText && !unlockText
+	);
+	const readOnly = $derived((locked && !forceEdit) || correctionLocked);
 	const highlighted = $derived(Boolean(remarkKey) && onboarding.focusField === remarkKey);
 	/** A backend save error routed to this field (see navigation.ts routeSaveError). */
 	const savedError = $derived(remarkKey ? (onboarding.fieldSaveErrors[remarkKey] ?? '') : '');

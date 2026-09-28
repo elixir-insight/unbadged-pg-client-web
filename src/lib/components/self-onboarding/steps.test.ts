@@ -57,8 +57,10 @@ describe('resolveOnboardingStatus', () => {
 		}
 	});
 
-	it('recognises REMARKED and locks everything past it', () => {
+	it('recognises REMARKED and locks IN_REVIEW and everything past it', () => {
 		expect(resolveOnboardingStatus(' remarked ')).toBe('remarked');
+		expect(resolveOnboardingStatus('IN_REVIEW')).toBe('read_only');
+		expect(resolveOnboardingStatus('IN REVIEW')).toBe('read_only');
 		expect(resolveOnboardingStatus('APPROVED')).toBe('read_only');
 		expect(resolveOnboardingStatus('ACTIVE')).toBe('read_only');
 	});

@@ -15,9 +15,9 @@ export const ENTITY_TYPE_COMPANY_TYPES: Record<EntityType, string> = {
 	private_limited: 'Private Limited'
 };
 
-/** Business TAN, AOA and MOA — only asked of private limited companies, same as management onboarding. */
+/** Business TAN, AOA and MOA — asked of every entity type except a sole proprietorship. */
 export function requiresCompanyDocuments(entityType: EntityType | null): boolean {
-	return entityType === 'private_limited';
+	return entityType !== null && entityType !== 'proprietorship';
 }
 
 /**

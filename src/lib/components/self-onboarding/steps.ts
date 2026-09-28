@@ -83,9 +83,8 @@ export function flooredProgressPercent(actualPercent: number, currentStep: StepI
 export type OnboardingStatus = 'in_progress' | 'remarked' | 'read_only';
 
 /**
- * Any status past REMARKED — the application has left the applicant's hands, so the wizard
- * should stop accepting edits. Exact enum unconfirmed beyond IN_PROGRESS/REMARKED (see the audit
- * report); everything else falls through to `read_only` rather than silently staying editable.
+ * REMARKED is sent back for corrections: only rejected fields stay editable.
+ * IN_REVIEW and anything later (APPROVED, ACTIVE, …) is fully read-only.
  */
 const REMARKED_STATUS = 'REMARKED';
 const IN_PROGRESS_STATUSES = new Set(['', 'DRAFT', 'IN_PROGRESS']);

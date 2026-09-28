@@ -39,9 +39,9 @@
 	} from '../../helpers';
 	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { formatDate } from '$lib/utils/format-time';
-	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
+	import { DocumentPreviewModal } from '$lib/components/document-preview';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
-	import { hasDocumentPreview } from '../documents/document-preview';
+	import { hasDocumentPreview } from '$lib/components/document-preview';
 	import ActivateProfileModal from './activate-profile-modal.svelte';
 	import { getContext } from 'svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';

@@ -9,6 +9,7 @@
 	import { ReviewCard, StepShell } from '$lib/components/self-onboarding';
 	import { actionFailure, routeSaveError } from '$lib/components/self-onboarding/navigation';
 	import { savedCompletedSteps } from '$lib/components/self-onboarding/saved-steps';
+	import type { StepId } from '$lib/components/self-onboarding/steps';
 	import {
 		DOCUMENT_LABELS,
 		formatAddress,
@@ -36,6 +37,23 @@
 	);
 	const docKeys = $derived(visibleDocumentKeys(data.documents));
 	const readOnly = $derived(onboarding.onboardingStatus === 'read_only');
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
+	const inReview = $derived(
+		onboarding.profileStatus
+			.trim()
+			.toUpperCase()
+			.replace(/[\s-]+/g, '_') === 'IN_REVIEW'
+	);
+	const remarkedSteps = $derived(
+		new Set(allRoutedRemarks(onboarding.verifications).map((item) => item.step))
+	);
+
+	/** In correction mode, Edit opens only a section that has a rejected field. */
+	function sectionEditable(step: StepId): boolean {
+		if (readOnly) return false;
+		if (remarked) return remarkedSteps.has(step);
+		return true;
+	}
 
 	function documentStatus(
 		uploaded: boolean,
@@ -116,13 +134,27 @@
 	{/snippet}
 
 	<StepShell footer={readOnly ? undefined : submitFooter}>
-		{#if readOnly}
+		{#if inReview}
+			<div
+				class="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground"
+			>
+				Your profile is under review. We'll notify you once it's complete.
+			</div>
+		{:else if readOnly}
 			<div class="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
 				Your application ({onboarding.profileStatus}) is no longer editable.
 			</div>
+		{:else if remarked}
+			<div class="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+				Only rejected fields can be edited. Other fields stay as submitted.
+			</div>
 		{/if}
 		<div class="flex flex-col gap-5">
-			<ReviewCard title="Tax and registration" editPath="business-identity" editable={!readOnly}>
+			<ReviewCard
+				title="Tax and registration"
+				editPath="business-identity"
+				editable={sectionEditable(1)}
+			>
 				<div class="grid gap-2 text-sm">
 					{@render row('PAN', data.businessPan, true)}
 					{@render row('Entity type', data.entityName)}
@@ -137,13 +169,13 @@
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Address" editPath="business-profile" editable={!readOnly}>
+			<ReviewCard title="Address" editPath="business-profile" editable={sectionEditable(2)}>
 				<div class="grid gap-2 text-sm">
 					{@render row('Communication address', addressText(details.communicationAddress))}
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Bank details" editPath="bank-details" editable={!readOnly}>
+			<ReviewCard title="Bank details" editPath="bank-details" editable={sectionEditable(3)}>
 				<div class="space-y-4">
 					{#each data.bankAccounts as bank, index (index)}
 						{#if data.bankAccounts.length > 1}
@@ -163,7 +195,7 @@
 				</div>
 			</ReviewCard>
 
-			<ReviewCard title="Directors" editPath="directors" editable={!readOnly}>
+			<ReviewCard title="Directors" editPath="directors" editable={sectionEditable(4)}>
 				{#if data.directors.length === 0}
 					<p class="text-sm text-muted-foreground">No directors added.</p>
 				{:else}
@@ -181,7 +213,7 @@
 				{/if}
 			</ReviewCard>
 
-			<ReviewCard title="Documents" editPath="documents" editable={!readOnly}>
+			<ReviewCard title="Documents" editPath="documents" editable={sectionEditable(5)}>
 				<div class="space-y-2">
 					{#each docKeys as key (key)}
 						{@const status = documentStatus(

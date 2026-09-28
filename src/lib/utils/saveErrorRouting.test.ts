@@ -95,6 +95,12 @@ describe('mapSaveError', () => {
 		expect(mapSaveError('Bank account PAN mismatch')).toEqual({ step: 3, fields: [] });
 	});
 
+	it('sends the missing-documents submit error to the documents step, not the TAN field', () => {
+		const message =
+			'required onboarding documents are incomplete: business TAN, articles of association, memorandum of association';
+		expect(mapSaveError(message, { currentStep: 6 })).toEqual({ step: 5, fields: [] });
+	});
+
 	it("uses the backend's field key when it sends one", () => {
 		expect(mapSaveError('Already taken', { field: 'kyb.tan' })).toEqual({
 			step: 1,

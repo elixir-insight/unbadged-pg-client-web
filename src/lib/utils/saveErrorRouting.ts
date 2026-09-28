@@ -12,6 +12,12 @@ import { routeToStep } from './remarkRouting';
  */
 const STEP_ERROR_PATTERNS: readonly { step: StepId; patterns: readonly RegExp[] }[] = [
 	{ step: 4, patterns: [/\bdirector/i, /\baadhaar?\b/i] },
+	// Ahead of identity: "documents are incomplete: business TAN, …" is about the uploads, not the
+	// TAN field.
+	{
+		step: 5,
+		patterns: [/\bdocuments?\b/i, /\barticles? of association\b/i, /\bmemorandum\b/i]
+	},
 	{ step: 3, patterns: [/\bbank\b/i, /\bifsc\b/i, /\baccount\b/i, /\bbranch\b/i] },
 	{
 		step: 1,

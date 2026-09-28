@@ -1,6 +1,6 @@
 export type OrganizationCategory = 'MERCHANT' | 'PARTNER' | 'PLATFORM';
 export type OrganizationStatus =
-	'IN_PROGRESS' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
+	'IN_PROGRESS' | 'IN_REVIEW' | 'APPROVED' | 'ACTIVE' | 'ON_HOLD' | 'FROZEN' | 'REJECTED';
 export type OrganizationBusinessType =
 	'SOLE_PROPRIETORSHIP' | 'PARTNERSHIP' | 'LLP' | 'PRIVATE_LIMITED';
 export type KybVerificationStatus = 'Not Started' | 'IN_PROGRESS' | 'VERIFIED' | 'FAILED';

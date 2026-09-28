@@ -2,7 +2,9 @@
 	import { Button, Dropdown } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import { Trash2 } from '$lib/assets/icons';
+	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import type { BankDetails } from '$lib/types/onboarding';
+	import { getFieldRemark } from '$lib/utils/remarkRouting';
 	import FieldGrid from './field-grid.svelte';
 	import FieldRow from './field-row.svelte';
 	import InlineRemark from './inline-remark.svelte';
@@ -32,6 +34,13 @@
 		onremove: (index: number) => void;
 	} = $props();
 
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
+	const accountTypeLocked = $derived(
+		remarked &&
+			!getFieldRemark(onboarding.verifications, 'bankDetails.accountType') &&
+			!accountTypeRemark
+	);
+
 	function digitsOnly(value: string): string {
 		return value.replace(/\D/g, '').slice(0, 18);
 	}
@@ -40,7 +49,7 @@
 <div class="rounded-xl border border-border p-4">
 	<div class="mb-4 flex items-center justify-between gap-3">
 		<p class="text-sm font-medium">{bank.bankName || `Bank account ${index + 1}`}</p>
-		{#if removable}
+		{#if removable && !remarked}
 			<Button
 				variant="ghost"
 				size="icon-sm"
@@ -126,6 +135,7 @@
 			blockPaste
 			inputmode="numeric"
 			autocomplete="off"
+			unlockWith="bankDetails.accountNumber"
 			error={bank.accountNumber === bank.confirmAccountNumber
 				? ''
 				: 'Account numbers do not match.'}
@@ -143,6 +153,7 @@
 					name="accountType"
 					class="w-full"
 					ariaLabel="Account type"
+					disabled={accountTypeLocked}
 					value={bank.accountType}
 					options={ACCOUNT_TYPE_OPTIONS}
 					placeholder="Select account type"

@@ -4,7 +4,7 @@
 	import { Loader2, Trash2 } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import type { Director } from '$lib/types/onboarding';
-	import { directorDocumentRemark } from '$lib/utils/remarkRouting';
+	import { directorDocumentRemark, getFieldRemark } from '$lib/utils/remarkRouting';
 	import { normalizeAadhar, normalizePanInput } from '$lib/validation/organization-kyb';
 	import DirectorDocumentSlot from './director-document-slot.svelte';
 	import FieldGrid from './field-grid.svelte';
@@ -38,8 +38,13 @@
 	} = $props();
 
 	const phoneInvalid = $derived(director.phone.length > 0 && !isValidPhone(director.phone));
+	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
 	/** `verifications` keys for this director's fields, e.g. `directors[0].pan`. */
 	const remarkKey = (field: string) => `directors[${index}].${field}`;
+	const phoneRemark = $derived(
+		getFieldRemark(onboarding.verifications, remarkKey('phone')) ||
+			getFieldRemark(onboarding.verifications, remarkKey('phoneNumber'))
+	);
 	const aadharRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'aadhar'));
 	const panRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'pan'));
 
@@ -79,20 +84,22 @@
 <div class="rounded-xl border border-border p-4">
 	<div class="mb-4 flex items-center justify-between gap-3">
 		<p class="text-sm font-medium">{director.name || `Director ${index + 1}`}</p>
-		<Button
-			variant="ghost"
-			size="icon-sm"
-			class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-			aria-label={`Remove director ${index + 1}`}
-			disabled={removing}
-			onclick={() => onremove(index)}
-		>
-			{#if removing}
-				<Loader2 class="size-4 animate-spin" />
-			{:else}
-				<Trash2 class="size-4" />
-			{/if}
-		</Button>
+		{#if !remarked}
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+				aria-label={`Remove director ${index + 1}`}
+				disabled={removing}
+				onclick={() => onremove(index)}
+			>
+				{#if removing}
+					<Loader2 class="size-4 animate-spin" />
+				{:else}
+					<Trash2 class="size-4" />
+				{/if}
+			</Button>
+		{/if}
 	</div>
 
 	<FieldGrid>
@@ -156,6 +163,7 @@
 			<PhoneInput
 				placeholder="Enter your phone number"
 				value={director.phone}
+				disabled={remarked && !phoneRemark}
 				invalid={showErrors && phoneInvalid}
 				onValueChange={(next) => onupdate(index, { phone: next })}
 			/>
@@ -173,6 +181,7 @@
 			label="Aadhaar card"
 			uploadedName={director.aadhaarDocument}
 			invalid={showErrors}
+			locked={remarked && !aadharRemark}
 			remark={aadharRemark?.message}
 			remarkKey={aadharRemark?.key}
 			highlighted={Boolean(aadharRemark) && onboarding.focusField === aadharRemark?.key}
@@ -185,6 +194,7 @@
 			label="PAN card"
 			uploadedName={director.panDocument}
 			invalid={showErrors}
+			locked={remarked && !panRemark}
 			remark={panRemark?.message}
 			remarkKey={panRemark?.key}
 			highlighted={Boolean(panRemark) && onboarding.focusField === panRemark?.key}

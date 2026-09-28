@@ -50,6 +50,7 @@
 					documentType={key}
 					documentSlot={docs[key]}
 					fieldOptions={documentFieldOptions(key)}
+					locked={onboarding.onboardingStatus === 'remarked' && !remark}
 					onuploaded={(file) => handleUploaded(key, file)}
 					onclear={() => onboarding.clearDocument(key)}
 				/>
