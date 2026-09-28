@@ -8,22 +8,31 @@
 	import { ChevronDown, X } from '$lib/assets/icons';
 	import { PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { areAllSelected, toggleSelectAllValues } from './toggle-select-all';
 
 	let {
 		value = $bindable<string[]>([]),
 		options = [] as MultiSelectOption[],
 		placeholder = 'Select options…',
 		disabled = false,
+		selectAll = false,
 		class: className
 	}: {
 		value?: string[];
 		options: MultiSelectOption[];
 		placeholder: string;
 		disabled?: boolean;
+		selectAll?: boolean;
 		class?: string;
 	} = $props();
 
 	let open = $state(false);
+
+	const enabledValues = $derived(options.filter((opt) => !opt.disabled).map((opt) => opt.value));
+	const allSelected = $derived(areAllSelected(value, enabledValues));
+	const someSelected = $derived(
+		!allSelected && enabledValues.some((enabledValue) => value.includes(enabledValue))
+	);
 
 	function toggle(val: string) {
 		if (value.includes(val)) {
@@ -31,6 +40,10 @@
 		} else {
 			value = [...value, val];
 		}
+	}
+
+	function toggleSelectAll() {
+		value = toggleSelectAllValues(value, enabledValues);
 	}
 
 	function remove(val: string, e: MouseEvent) {
@@ -80,6 +93,32 @@
 
 	<PopoverContent align="start" sideOffset={6} class="w-(--bits-popover-anchor-width) p-1">
 		<ul role="listbox" aria-multiselectable="true" class="flex flex-col gap-0.5">
+			{#if selectAll}
+				<li
+					role="option"
+					aria-selected={allSelected}
+					class="border-b border-border pb-0.5 dark:border-white/10"
+				>
+					<button
+						type="button"
+						onclick={toggleSelectAll}
+						class={cn(
+							'flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+							'cursor-pointer hover:bg-accent ',
+							'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none'
+						)}
+					>
+						Select all
+						<Checkbox
+							checked={allSelected}
+							indeterminate={someSelected}
+							tabindex={-1}
+							aria-hidden={true}
+							class="pointer-events-none"
+						/>
+					</button>
+				</li>
+			{/if}
 			{#each options as opt (opt.value)}
 				<li role="option" aria-selected={value.includes(opt.value)} aria-disabled={opt.disabled}>
 					<button

@@ -58,12 +58,6 @@
 		if (!chargebackAmount.trim()) {
 			errors.chargebackAmount = 'Chargeback amount is required';
 		}
-		if (!currencyValue.trim()) {
-			errors.currency = 'Currency is required';
-		}
-		if (!principalAmountValue.trim()) {
-			errors.principalAmount = 'Principal amount is required';
-		}
 
 		fieldErrors = errors;
 		return Object.keys(errors).length === 0;
@@ -127,21 +121,16 @@
 	<div class="flex flex-col gap-5">
 		<div class="grid gap-5 sm:grid-cols-2">
 			<div class="flex flex-col gap-2">
-				<label for="chargeback-principal-amount" class="text-sm font-medium text-foreground">
-					Principal amount <span class="text-destructive">*</span>
-				</label>
-				<Input
-					id="chargeback-principal-amount"
-					bind:value={principalAmountValue}
-					inputmode="decimal"
-					placeholder="Enter principal amount"
-					aria-invalid={Boolean(fieldErrors.principalAmount)}
-				/>
-				{#if fieldErrors.principalAmount}
-					<p class="text-xs text-destructive">{fieldErrors.principalAmount}</p>
-				{/if}
+				<p class="text-sm font-medium text-foreground">Principal amount</p>
+				<p class="text-sm text-foreground">{principalAmountValue.trim() || '—'}</p>
 			</div>
+			<div class="flex flex-col gap-2">
+				<p class="text-sm font-medium text-foreground">Currency</p>
+				<p class="text-sm text-foreground">{currencyValue.trim() || '—'}</p>
+			</div>
+		</div>
 
+		<div class="grid gap-5 sm:grid-cols-2">
 			<div class="flex flex-col gap-2">
 				<label for="chargeback-amount" class="text-sm font-medium text-foreground">
 					Chargeback amount <span class="text-destructive">*</span>
@@ -157,9 +146,6 @@
 					<p class="text-xs text-destructive">{fieldErrors.chargebackAmount}</p>
 				{/if}
 			</div>
-		</div>
-
-		<div class="grid gap-5 sm:grid-cols-2">
 			<div class="flex flex-col gap-2">
 				<label for="chargeback-additional-fees" class="text-sm font-medium text-foreground">
 					Additional fees
@@ -170,21 +156,6 @@
 					inputmode="decimal"
 					placeholder="Enter additional fees"
 				/>
-			</div>
-
-			<div class="flex flex-col gap-2">
-				<label for="chargeback-currency" class="text-sm font-medium text-foreground">
-					Currency <span class="text-destructive">*</span>
-				</label>
-				<Input
-					id="chargeback-currency"
-					bind:value={currencyValue}
-					placeholder="INR"
-					aria-invalid={Boolean(fieldErrors.currency)}
-				/>
-				{#if fieldErrors.currency}
-					<p class="text-xs text-destructive">{fieldErrors.currency}</p>
-				{/if}
 			</div>
 		</div>
 

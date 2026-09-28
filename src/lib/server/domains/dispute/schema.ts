@@ -363,3 +363,20 @@ export const ListDisputeChargebacksResponseSchema = v.object({
 export type ListDisputeChargebacksResponse = v.InferOutput<
 	typeof ListDisputeChargebacksResponseSchema
 >;
+
+/**
+ * GET single chargeback — upstream may return one object or a one-item array.
+ * Array branch MUST come first: Valibot treats arrays as objects, so object-first
+ * unions parse `[{...}]` as an empty item (all optional defaults).
+ */
+export const GetDisputeChargebackResponseSchema = v.object({
+	data: v.optional(
+		v.union([v.array(DisputeChargebackItemSchema), DisputeChargebackItemSchema]),
+		[]
+	),
+	message: v.optional(v.string(), ''),
+	pagination: v.optional(DisputePaginationSchema, { limit: 10, page: 0, total: 0 }),
+	statusCode: v.optional(v.number(), 200)
+});
+
+export type GetDisputeChargebackResponse = v.InferOutput<typeof GetDisputeChargebackResponseSchema>;
