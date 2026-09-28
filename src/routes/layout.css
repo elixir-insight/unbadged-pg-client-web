@@ -504,3 +504,35 @@
 		display: none !important;
 	}
 }
+
+@media print {
+	@page {
+		size: A4;
+		margin: 12mm;
+	}
+
+	html,
+	body {
+		background: white !important;
+		height: auto !important;
+		overflow: visible !important;
+	}
+
+	body * {
+		visibility: hidden !important;
+	}
+
+	.invoice-print-root,
+	.invoice-print-root * {
+		visibility: visible !important;
+	}
+
+	.invoice-print-root {
+		position: absolute;
+		inset: 0;
+		width: 210mm;
+		min-height: 297mm;
+		margin: 0 auto;
+		background: white;
+	}
+}

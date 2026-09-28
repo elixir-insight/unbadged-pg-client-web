@@ -12,6 +12,7 @@
 	const PAYIN_ROUTES = [
 		'/merchant/dispute',
 		'/merchant/payment-links',
+		'/merchant/invoices',
 		'/merchant/settlements',
 		'/merchant/transactions/collections'
 	];

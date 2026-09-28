@@ -10,6 +10,8 @@ export { default as ArrowUpDown } from '@lucide/svelte/icons/arrow-up-down';
 export { default as ArrowRight } from '@lucide/svelte/icons/arrow-right';
 export { default as Download } from '@lucide/svelte/icons/download';
 export { default as Plus } from '@lucide/svelte/icons/plus';
+export { default as CirclePlus } from '@lucide/svelte/icons/circle-plus';
+export { default as Package } from '@lucide/svelte/icons/package';
 export { default as Eye } from '@lucide/svelte/icons/eye';
 export { default as MessageSquareWarning } from '@lucide/svelte/icons/message-square-warning';
 export { default as CheckCircle2 } from '@lucide/svelte/icons/check-circle-2';
