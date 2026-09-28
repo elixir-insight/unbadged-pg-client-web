@@ -75,21 +75,21 @@
 								<p class="text-sm text-muted-foreground">Amount</p>
 								<p class="text-sm font-medium text-foreground">{dispute.amount}</p>
 							</div>
+						</div>
+
+						<div class="flex flex-col gap-5 lg:pl-8">
 							{@render detailRow('Raised on', dispute.raisedOn)}
 							<div class="grid grid-cols-2 items-center gap-6">
 								<p class="text-sm text-muted-foreground">Source</p>
 								<p><Chip variant="secondary">{dispute.sourceLabel}</Chip></p>
 							</div>
-						</div>
-
-						<div class="flex flex-col gap-5 lg:pl-8">
 							{@render detailRow('Status', dispute.statusLabel)}
 							{@render detailRow('Bank Reference Number', dispute.bankRefNumber)}
 							{@render detailRow('Evidence Due By', dispute.evidenceDueBy)}
-							{@render detailRow('Assigned to', dispute.assignedTo)}
-							{@render detailRow('Raised by', dispute.raisedBy)}
+							<!-- {@render detailRow('Assigned to', dispute.assignedTo)} -->
+							<!-- {@render detailRow('Raised by', dispute.raisedBy)} -->
 							{@render detailRow('Reason Code', dispute.reasonCode)}
-							{@render detailRow('Resolved by', dispute.resolvedBy)}
+							<!-- {@render detailRow('Resolved by', dispute.resolvedBy)} -->
 						</div>
 					</div>
 				</div>

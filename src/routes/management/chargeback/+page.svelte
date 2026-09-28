@@ -8,16 +8,19 @@
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import type { PageData } from './$types';
 
-	const CHARGEBACK_RATIO_WARNING_THRESHOLD = 0.7;
+	const CHARGEBACK_RATIO_YELLOW_MAX = 0.6;
+	const CHARGEBACK_RATIO_GREEN_MAX = 0.3;
 
 	function parseChargebackRatio(value: string): number {
-		return Number.parseFloat(value);
+		return Number.parseFloat(value.replace(/%/g, ''));
 	}
 
 	function chargebackRatioChipVariant(value: string): BadgeVariant {
 		const ratio = parseChargebackRatio(value);
 		if (!Number.isFinite(ratio)) return 'secondary';
-		return ratio > CHARGEBACK_RATIO_WARNING_THRESHOLD ? 'warning' : 'success';
+		if (ratio <= CHARGEBACK_RATIO_GREEN_MAX) return 'success';
+		if (ratio <= CHARGEBACK_RATIO_YELLOW_MAX) return 'warning';
+		return 'error';
 	}
 
 	let { data }: { data: PageData } = $props();
