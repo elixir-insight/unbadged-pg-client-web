@@ -3,12 +3,21 @@ import { GST_STATE_CODES, gstinStateName } from './gst-states';
 import {
 	allRequiredComplete,
 	bankAccountsAreComplete,
+	directorFieldIssues,
+	directorPanError,
 	directorsAreComplete,
+	businessPanError,
+	gstinCheckDigit,
+	gstinError,
 	isCinValid,
 	isIdentityComplete,
+	isIdentityFilled,
 	isProfileComplete,
 	isStepDataComplete,
 	isValidAadhaar,
+	isValidBusinessPan,
+	isValidDirectorAadhaar,
+	isValidDirectorPan,
 	isValidGstin,
 	isValidPan,
 	isValidRegisteredYear,
@@ -27,10 +36,10 @@ const address = {
 
 function validForm(): OnboardingFormData {
 	return {
-		businessPan: 'ABCDE1234F',
+		businessPan: 'ABCPE1234F',
 		entityType: 'private_limited',
 		entityName: 'Private Limited',
-		gstin: '27ABCDE1234F1Z5',
+		gstin: '27ABCPE1234F1ZB',
 		gstinList: [],
 		businessDetails: {
 			companyType: 'Private Limited',
@@ -58,7 +67,7 @@ function validForm(): OnboardingFormData {
 		directors: [
 			{
 				name: 'Ada',
-				pan: 'PQRST2345P',
+				pan: 'PQRPT2345P',
 				aadhaar: '234567890123',
 				email: 'ada@acme.test',
 				phone: '9876543211',
@@ -97,7 +106,7 @@ describe('GST state codes', () => {
 describe('field validators', () => {
 	it('accepts a valid PAN and GSTIN', () => {
 		expect(isValidPan('ABCDE1234F')).toBe(true);
-		expect(isValidGstin('27ABCDE1234F1Z5')).toBe(true);
+		expect(isValidGstin('27ABCPE1234F1ZB')).toBe(true);
 	});
 
 	it('validates Aadhaar as 12 digits not starting with 0 or 1', () => {
@@ -123,6 +132,110 @@ describe('field validators', () => {
 	it('masks account numbers without revealing short values', () => {
 		expect(maskAccountNumber('12')).toBe('••');
 		expect(maskAccountNumber('123456789012')).toBe('••••••••9012');
+	});
+});
+
+describe('GSTIN check digit', () => {
+	it('rejects a GSTIN whose last character is not its check digit', () => {
+		expect(gstinCheckDigit('27ABCPE1234F1Z')).toBe('B');
+		expect(isValidGstin('27ABCPE1234F1ZB')).toBe(true);
+		expect(isValidGstin('27ABCDE1234F1Z8')).toBe(false);
+	});
+
+	it('says which rule failed', () => {
+		expect(gstinError('27ABC')).toBe('Enter a valid 15-character GSTIN.');
+		expect(gstinError('27ABCDE1234F1Z8')).toMatch(/isn’t a valid PAN/);
+		// The value from the bug report: right format, wrong check digit (should end in Z).
+		expect(gstinError('27ABCPE1234F1ZC')).toMatch(/last character/);
+	});
+
+	it('rejects a GSTIN whose embedded PAN has no valid holder type', () => {
+		// From the bug report: check digit is right, but PAN ABCDE1234F has holder type D.
+		expect(gstinCheckDigit('27ABCDE1234F2Z')).toBe('Z');
+		expect(isValidGstin('27ABCDE1234F2ZZ')).toBe(false);
+		expect(gstinError('27ABCDE1234F2ZZ')).toMatch(/ABCDE1234F isn’t a valid PAN/);
+	});
+
+	it('requires the GSTIN to carry the typed business PAN', () => {
+		expect(gstinError('27ABCPE1234F1ZB', 'ABCPE1234F')).toBe('');
+		expect(gstinError('27ABCPE1234F1ZB', 'ZZZPE9999F')).toMatch(/characters 3–12/);
+		// A saved (masked) PAN can't be compared — left to the backend.
+		expect(gstinError('27ABCPE1234F1ZB', '**********')).toBe('');
+		expect(gstinError('27ABCPE1234F1ZB')).toBe('');
+	});
+});
+
+describe('business PAN holder type', () => {
+	it('accepts only individual (P), firm (F) or company (C) holders', () => {
+		expect(isValidBusinessPan('ABCPE1234F')).toBe(true);
+		expect(isValidBusinessPan('ABCFE1234F')).toBe(true);
+		expect(isValidBusinessPan('ABCCE1234F')).toBe(true);
+		expect(isValidBusinessPan('ABCDE1234F')).toBe(false);
+		expect(isValidBusinessPan('ABCHE1234F')).toBe(false);
+	});
+
+	it('explains a wrong holder type separately from a malformed PAN', () => {
+		expect(businessPanError('ABCPE1234F')).toBe('');
+		expect(businessPanError('ABC')).toBe('Enter a valid 10-character PAN.');
+		expect(businessPanError('ABCDE1234F')).toMatch(/4th character must be P/);
+	});
+});
+
+describe('masked values from the saved organization', () => {
+	it('treats a masked PAN / Aadhaar as already saved', () => {
+		expect(isValidBusinessPan('**********')).toBe(true);
+		expect(isValidDirectorPan('**********')).toBe(true);
+		expect(isValidDirectorAadhaar('************')).toBe(true);
+	});
+
+	it('lets a resumed application with a masked business PAN pass step 1', () => {
+		const data = validForm();
+		data.businessPan = '**********';
+		expect(isIdentityComplete(data)).toBe(true);
+	});
+
+	it('lets masked director PAN / Aadhaar pass the directors step', () => {
+		const data = validForm();
+		data.directors[0].pan = '**********';
+		data.directors[0].aadhaar = '************';
+		expect(directorsAreComplete(data)).toBe(true);
+	});
+});
+
+describe('brand name', () => {
+	// Backend submit: "required organization fields are incomplete: brandName".
+	it('is required to finish tax and registration', () => {
+		const data = validForm();
+		data.businessDetails.brandName = '  ';
+		expect(isIdentityFilled(data)).toBe(false);
+		expect(isIdentityComplete(data)).toBe(false);
+	});
+});
+
+describe('director PAN', () => {
+	// The backend: "Personal PAN must be valid and have holder type P".
+	it('accepts only a personal PAN (4th character P) or a saved, masked one', () => {
+		expect(directorPanError('ABCPE1234F')).toBe('');
+		expect(directorPanError('**********')).toBe('');
+		expect(directorPanError('ABCDE1234F')).toMatch(/4th character must be P/);
+		expect(directorPanError('ABCCE1234F')).toMatch(/4th character must be P/);
+		expect(directorPanError('ABC12')).toBe('Enter a valid 10-character PAN.');
+	});
+
+	it('names PAN as the field to fix before documents can upload', () => {
+		const director = { ...validForm().directors[0], pan: 'ABCDE1234F' };
+		expect(directorFieldIssues(director)).toEqual(['PAN']);
+	});
+});
+
+describe('director field issues', () => {
+	it('is empty for a complete director', () => {
+		expect(directorFieldIssues(validForm().directors[0])).toEqual([]);
+	});
+
+	it('names each missing or invalid field in form order', () => {
+		const director = { ...validForm().directors[0], name: ' ', aadhaar: '123', phone: '12345' };
+		expect(directorFieldIssues(director)).toEqual(['Name', 'Aadhaar', 'Phone']);
 	});
 });
 

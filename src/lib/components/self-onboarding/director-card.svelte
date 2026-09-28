@@ -2,16 +2,18 @@
 	import { deserialize } from '$app/forms';
 	import { Button, PhoneInput } from '$lib/components/reusable';
 	import { Loader2, Trash2 } from '$lib/assets/icons';
+	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import type { Director } from '$lib/types/onboarding';
+	import { directorDocumentRemark } from '$lib/utils/remarkRouting';
 	import { normalizeAadhar, normalizePanInput } from '$lib/validation/organization-kyb';
 	import DirectorDocumentSlot from './director-document-slot.svelte';
 	import FieldGrid from './field-grid.svelte';
 	import FieldRow from './field-row.svelte';
 	import {
 		directorDocumentsUploaded,
-		isValidAadhaar,
+		directorPanError,
+		isValidDirectorAadhaar,
 		isValidEmail,
-		isValidPan,
 		isValidPhone
 	} from './validation';
 
@@ -36,6 +38,16 @@
 	} = $props();
 
 	const phoneInvalid = $derived(director.phone.length > 0 && !isValidPhone(director.phone));
+	/** `verifications` keys for this director's fields, e.g. `directors[0].pan`. */
+	const remarkKey = (field: string) => `directors[${index}].${field}`;
+	const aadharRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'aadhar'));
+	const panRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'pan'));
+
+	/** Records the upload; a replacement also answers the management remark on that document. */
+	function handleUploaded(patch: Partial<Director>, remarkToClear: string | undefined) {
+		onupdate(index, patch);
+		if (remarkToClear) onboarding.clearVerification(remarkToClear);
+	}
 
 	/**
 	 * Picks up documents already on the backend for a saved director (uploaded in an earlier
@@ -89,6 +101,7 @@
 			placeholder="Enter your name"
 			required
 			value={director.name}
+			remarkKey={remarkKey('name')}
 			forceEdit
 			error={director.name.trim() ? '' : 'Name is required.'}
 			{showErrors}
@@ -101,10 +114,11 @@
 			maxlength={10}
 			autocomplete="off"
 			placeholder="Enter your PAN number"
-			hint="10 characters, format ABCDE1234F."
+			hint="Personal PAN, 10 characters, e.g. ABCPE1234F (4th character P)."
 			value={director.pan}
+			remarkKey={remarkKey('pan')}
 			normalize={normalizePanInput}
-			error={isValidPan(director.pan) ? '' : 'Enter a valid 10-character PAN.'}
+			error={directorPanError(director.pan)}
 			{showErrors}
 			oninput={(next) => onupdate(index, { pan: next })}
 		/>
@@ -116,8 +130,11 @@
 			maxlength={12}
 			inputmode="numeric"
 			value={director.aadhaar}
+			remarkKey={remarkKey('aadhar')}
 			normalize={normalizeAadhar}
-			error={isValidAadhaar(director.aadhaar) ? '' : 'Enter a valid 12-digit Aadhaar number.'}
+			error={isValidDirectorAadhaar(director.aadhaar)
+				? ''
+				: 'Enter a valid 12-digit Aadhaar number.'}
 			{showErrors}
 			oninput={(next) => onupdate(index, { aadhaar: next })}
 		/>
@@ -127,6 +144,7 @@
 			required
 			type="email"
 			value={director.email}
+			remarkKey={remarkKey('email')}
 			error={isValidEmail(director.email) ? '' : 'Enter a valid email address.'}
 			{showErrors}
 			oninput={(next) => onupdate(index, { email: next })}
@@ -155,8 +173,11 @@
 			label="Aadhaar card"
 			uploadedName={director.aadhaarDocument}
 			invalid={showErrors}
+			remark={aadharRemark?.message}
+			remarkKey={aadharRemark?.key}
+			highlighted={Boolean(aadharRemark) && onboarding.focusField === aadharRemark?.key}
 			ensureDirectorId={() => onensureid(index)}
-			onuploaded={(fileName) => onupdate(index, { aadhaarDocument: fileName })}
+			onuploaded={(fileName) => handleUploaded({ aadhaarDocument: fileName }, aadharRemark?.key)}
 		/>
 		<DirectorDocumentSlot
 			directorId={director.id}
@@ -164,8 +185,11 @@
 			label="PAN card"
 			uploadedName={director.panDocument}
 			invalid={showErrors}
+			remark={panRemark?.message}
+			remarkKey={panRemark?.key}
+			highlighted={Boolean(panRemark) && onboarding.focusField === panRemark?.key}
 			ensureDirectorId={() => onensureid(index)}
-			onuploaded={(fileName) => onupdate(index, { panDocument: fileName })}
+			onuploaded={(fileName) => handleUploaded({ panDocument: fileName }, panRemark?.key)}
 		/>
 		{#if showErrors && !directorDocumentsUploaded(director)}
 			<p class="text-xs text-destructive">Upload both the Aadhaar card and PAN card.</p>

@@ -7,11 +7,14 @@
 		remark = '',
 		fieldKey = '',
 		highlighted = false,
+		instruction = '',
 		children
 	}: {
 		remark?: string;
 		fieldKey?: string;
 		highlighted?: boolean;
+		/** What the applicant should do about the remark, shown under it. */
+		instruction?: string;
 		children: Snippet;
 	} = $props();
 
@@ -31,6 +34,9 @@
 			<span class="min-w-0">
 				<span class="block font-semibold">Management Remark</span>
 				<span class="block">{remark}</span>
+				{#if instruction}
+					<span class="block text-muted-foreground">{instruction}</span>
+				{/if}
 			</span>
 		</p>
 	{/if}

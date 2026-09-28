@@ -2,7 +2,7 @@ import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { onboarding } from '$lib/stores/onboarding.svelte';
 import { routeToStep, type RoutedRemark } from '$lib/utils/remarkRouting';
-import { routeSaveErrorToStep } from '$lib/utils/saveErrorRouting';
+import { routeSaveErrorToField, routeSaveErrorToStep } from '$lib/utils/saveErrorRouting';
 import { nextStepPath, stepHref, STEPS, type StepId, type StepPath } from './steps';
 
 export async function gotoOnboardingStep(path: StepPath, fieldKey?: string): Promise<void> {
@@ -18,10 +18,20 @@ export async function gotoOnboardingStep(path: StepPath, fieldKey?: string): Pro
  * elsewhere, since the target step will show it instead.
  */
 export async function routeSaveError(message: string, currentStep: StepId): Promise<string> {
-	const targetStep = routeSaveErrorToStep(message);
-	if (targetStep === null || targetStep === currentStep) return message;
-	onboarding.setSaveError(message);
-	await gotoOnboardingStep(STEPS[targetStep - 1].path);
+	const targetStep = routeSaveErrorToStep(message, currentStep);
+	if (targetStep === null) return message;
+	// Naming a single identity field (e.g. "Invalid GST Format") — show it under that field
+	// instead of the footer, and highlight it. Only for step 1: a director's "Invalid PAN" kept on
+	// step 4 must not be pinned under the business PAN.
+	const fieldKey = targetStep === 1 ? routeSaveErrorToField(message) : null;
+	if (fieldKey) onboarding.setFieldSaveError(fieldKey, message);
+	if (targetStep === currentStep) {
+		if (!fieldKey) return message;
+		onboarding.setFocusField(fieldKey);
+		return '';
+	}
+	if (!fieldKey) onboarding.setSaveError(message);
+	await gotoOnboardingStep(STEPS[targetStep - 1].path, fieldKey ?? undefined);
 	return '';
 }
 
@@ -44,6 +54,7 @@ function clearStepRemarks(step: StepId): void {
 /** Marks the step done, drops its management remarks, and moves to the next step. */
 export async function advanceFromStep(step: StepId): Promise<void> {
 	clearStepRemarks(step);
+	onboarding.clearFieldSaveError();
 	onboarding.completeStep(step);
 	const next = nextStepPath(step);
 	if (next) await gotoOnboardingStep(next);

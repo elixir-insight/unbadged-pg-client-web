@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
+	import { toBankSaveSnapshot } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { BankCard, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
@@ -12,9 +13,6 @@
 	import { Plus } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { getFieldRemark } from '$lib/utils/remarkRouting';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
 
 	let saving = $state(false);
 	let saveError = $state('');
@@ -26,12 +24,6 @@
 	const accountTypeRemark = $derived(
 		getFieldRemark(onboarding.verifications, 'bankDetails.accountType')
 	);
-
-	// Reconciles with accounts saved outside this browser session — see
-	// hydrateBankAccounts (only fills in when nothing has been entered locally yet).
-	$effect(() => {
-		onboarding.hydrateBankAccounts(data.bankAccounts);
-	});
 
 	function readAccountIds(resultData: unknown): (number | undefined)[] | undefined {
 		const ids =
@@ -50,8 +42,17 @@
 
 	const onSaveEnhance: SubmitFunction = ({ cancel }) => {
 		attempted = true;
+		// Validation first: an invalid field blocks Continue even when nothing changed.
 		if (!canContinue || saving) {
 			cancel();
+			return;
+		}
+		// Unchanged since the last save, and every account already exists upstream — nothing to send.
+		const banks = onboarding.formData.bankAccounts;
+		const saved = banks.every((bank) => bank.accountId !== undefined);
+		if (saved && !onboarding.isDirty('bankAccounts', toBankSaveSnapshot(banks))) {
+			cancel();
+			void advanceFromStep(3);
 			return;
 		}
 		saving = true;
@@ -61,6 +62,8 @@
 			if (result.type === 'success') {
 				const accountIds = readAccountIds(result.data);
 				if (accountIds) onboarding.setBankAccountIds(accountIds);
+				// Snapshot after the ids are stored, so the next visit compares like with like.
+				onboarding.markClean('bankAccounts', toBankSaveSnapshot(onboarding.formData.bankAccounts));
 				toast.success('Bank details saved.');
 				await advanceFromStep(3);
 				return;

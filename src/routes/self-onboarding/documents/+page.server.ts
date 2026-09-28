@@ -1,9 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
+import type { Actions } from './$types';
 import { isDocumentFieldName } from '$lib/api/onboarding';
 import { DOCUMENT_KEYS } from '$lib/components/self-onboarding/validation';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
-import { extractDocuments } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
 import type { DocumentKey } from '$lib/types/onboarding';
 
@@ -11,33 +10,7 @@ function isDocumentKey(value: FormDataEntryValue | null): value is DocumentKey {
 	return typeof value === 'string' && (DOCUMENT_KEYS as string[]).includes(value);
 }
 
-/**
- * GET /organization/documents was never called anywhere before this — "uploaded" only ever came
- * from a local flag set right after a successful POST, so a resumed session (new tab, cleared
- * storage) had no way to learn a document already exists upstream. Best-effort: on failure, the
- * client just keeps whatever it already has locally, same as every other load in this flow.
- */
-export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
-	const session = await requireOnboardingSession({
-		cookies,
-		fetch,
-		log: locals.logger,
-		groups: locals.merchantSession?.groups
-	});
-	if (!session.ok) return { uploadedFieldNames: [] };
-
-	const result = await onboardingClient.getOrgDocuments(fetch, locals.logger, session.tokens);
-	if (!result.ok) return { uploadedFieldNames: [] };
-
-	// fileName on this endpoint is the backend's own field name (see document-field-names.ts) —
-	// matched directly against ORG_DOCUMENT_FIELDS rather than guessed from a display name.
-	return {
-		uploadedFieldNames: extractDocuments(result.data.data)
-			.map((doc) => doc.fileName)
-			.filter((name): name is string => typeof name === 'string' && name !== '')
-	};
-};
-
+// Uploaded documents are loaded once by the layout (+layout.server.ts), alongside the org record.
 export const actions: Actions = {
 	default: async ({ request, cookies, fetch, locals }) => {
 		const session = await requireOnboardingSession({

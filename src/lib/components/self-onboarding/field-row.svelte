@@ -72,13 +72,20 @@
 		remark || (remarkKey ? getFieldRemark(onboarding.verifications, remarkKey) : '')
 	);
 	const highlighted = $derived(Boolean(remarkKey) && onboarding.focusField === remarkKey);
-	const shownError = $derived(showErrors ? error : '');
+	/** A backend save error routed to this field (see navigation.ts routeSaveError). */
+	const savedError = $derived(
+		remarkKey && onboarding.fieldSaveError?.key === remarkKey
+			? onboarding.fieldSaveError.message
+			: ''
+	);
+	const shownError = $derived((showErrors ? error : '') || savedError);
 
 	function handleInput(event: Event & { currentTarget: HTMLInputElement }) {
 		const raw = event.currentTarget.value;
 		const next = normalize ? normalize(raw) : raw;
 		if (next !== raw) event.currentTarget.value = next;
 		value = next;
+		if (savedError) onboarding.clearFieldSaveError();
 		oninput?.(next);
 	}
 

@@ -2,17 +2,33 @@
 	import { applyAction, deserialize, enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
+	import { toKybPayload } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { DirectorCard, InlineRemark, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
 	import {
 		directorDocumentsUploaded,
+		directorFieldIssues,
 		directorsAreComplete,
 		directorsAreFilled
 	} from '$lib/components/self-onboarding/validation';
 	import { Plus } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
-	import { directorRemarkIndex, remarksForStep } from '$lib/utils/remarkRouting';
+	import {
+		directorRemarkField,
+		directorRemarkIndex,
+		remarkDocument,
+		remarksForStep
+	} from '$lib/utils/remarkRouting';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	// Fresh ids for the directors saved upstream — the layout re-fetches the organization on every
+	// step change (+layout.server.ts), and a save elsewhere can re-create directors under new ids.
+	$effect(() => {
+		if (data.prefill) onboarding.syncDirectorIds(data.prefill.directors);
+	});
 
 	let saving = $state(false);
 	let saveError = $state('');
@@ -25,8 +41,20 @@
 	const directorRemarks = $derived(remarksForStep(onboarding.verifications, 4));
 	const focusField = $derived(onboarding.focusField);
 
-	function remarksForDirector(index: number) {
-		return directorRemarks.filter((remark) => directorRemarkIndex(remark.key) === index);
+	/** Director fields that show their own remark (FieldRow `remarkKey` in DirectorCard). */
+	const FIELD_LEVEL_REMARKS = new Set(['name', 'pan', 'aadhar', 'email']);
+
+	/**
+	 * This director's remarks that no single field or document slot shows (e.g. phone) — those
+	 * go above the card instead, so every remark is shown exactly once.
+	 */
+	function cardLevelRemarks(index: number) {
+		return directorRemarks.filter(
+			(remark) =>
+				directorRemarkIndex(remark.key) === index &&
+				!FIELD_LEVEL_REMARKS.has(directorRemarkField(remark.key) ?? '') &&
+				!remarkDocument(remark.key)
+		);
 	}
 
 	function actionErrorMessage(data: unknown): string {
@@ -90,7 +118,24 @@
 			return 'Director saved, but could not be linked for document upload. Refresh and try again.';
 		}
 		onboarding.setDirectorIds(directorIds as (number | undefined)[]);
+		onboarding.markClean('organization', toKybPayload(onboarding.formData));
 		return '';
+	}
+
+	/**
+	 * The save carries every director, so one incomplete director blocks uploads on all of them —
+	 * name the fields (and the director, when it isn't this one) so the user knows what to fix.
+	 */
+	function incompleteDirectorsMessage(index: number): string {
+		const directors = onboarding.formData.directors;
+		const own = directors[index] ? directorFieldIssues(directors[index]) : [];
+		if (own.length > 0) return `Fix ${own.join(', ')} above, then upload again.`;
+		const other = directors.findIndex((director) => directorFieldIssues(director).length > 0);
+		if (other === -1) return 'Complete the director details above, then upload again.';
+		const issues = directorFieldIssues(directors[other]).join(', ');
+		// Same label as the card heading, so the user can find it.
+		const label = directors[other].name.trim() || `Director ${other + 1}`;
+		return `Fix ${issues} for ${label} first — all directors are saved together.`;
 	}
 
 	/**
@@ -103,7 +148,7 @@
 	): Promise<{ ok: true; id: number } | { ok: false; error: string }> {
 		attempted = true;
 		if (!canContinue) {
-			return { ok: false, error: 'Complete the director details above, then upload again.' };
+			return { ok: false, error: incompleteDirectorsMessage(index) };
 		}
 		if (!pendingSave) {
 			saving = true;
@@ -115,7 +160,13 @@
 				});
 		}
 		const error = await pendingSave;
-		if (error) return { ok: false, error };
+		if (error) {
+			toast.error(error);
+			// This save carries the whole organization, so it can fail on another step's field
+			// (e.g. "Invalid GST Format") — send the user there instead of showing it on the slot.
+			const localError = await routeSaveError(error, 4);
+			return { ok: false, error: localError || error };
+		}
 		const id = onboarding.formData.directors[index]?.id;
 		return id === undefined
 			? { ok: false, error: 'Director saved, but could not be linked. Refresh and try again.' }
@@ -134,6 +185,14 @@
 			cancel();
 			return;
 		}
+		// Unchanged since the last save, and every director already exists upstream — skip the PUT.
+		const directors = onboarding.formData.directors;
+		const saved = directors.every((director) => director.id !== undefined);
+		if (saved && !onboarding.isDirty('organization', toKybPayload(onboarding.formData))) {
+			cancel();
+			void advanceFromStep(4);
+			return;
+		}
 		saving = true;
 		saveError = '';
 		return async ({ result }) => {
@@ -146,6 +205,8 @@
 				if (Array.isArray(directorIds)) {
 					onboarding.setDirectorIds(directorIds as (number | undefined)[]);
 				}
+				// Snapshot after the ids are stored, so the next visit compares like with like.
+				onboarding.markClean('organization', toKybPayload(onboarding.formData));
 				toast.success('Directors saved.');
 				await advanceFromStep(4);
 				return;
@@ -176,7 +237,7 @@
 		{/if}
 
 		{#each onboarding.formData.directors as director, index (index)}
-			{@const remarks = remarksForDirector(index)}
+			{@const remarks = cardLevelRemarks(index)}
 			<InlineRemark
 				remark={remarks.map((item) => `${item.field}: ${item.message}`).join(' ')}
 				fieldKey={remarks[0]?.key ?? `directors[${index}]`}

@@ -4,6 +4,7 @@ import {
 	flooredProgressPercent,
 	nextStepPath,
 	previousStepPath,
+	resolveOnboardingStatus,
 	STEP_BY_PATH,
 	STEPS,
 	stepIdFromPathname
@@ -39,5 +40,26 @@ describe('steps', () => {
 		expect(flooredProgressPercent(0, 1)).toBe(17);
 		expect(flooredProgressPercent(0, 2)).toBe(0);
 		expect(flooredProgressPercent(50, 1)).toBe(50);
+	});
+});
+
+describe('resolveOnboardingStatus', () => {
+	it('treats every spelling of in progress as editable, like management mapStatus', () => {
+		for (const status of [
+			'',
+			'DRAFT',
+			'IN_PROGRESS',
+			'IN PROGRESS',
+			'In Progress',
+			'in-progress'
+		]) {
+			expect(resolveOnboardingStatus(status)).toBe('in_progress');
+		}
+	});
+
+	it('recognises REMARKED and locks everything past it', () => {
+		expect(resolveOnboardingStatus(' remarked ')).toBe('remarked');
+		expect(resolveOnboardingStatus('APPROVED')).toBe('read_only');
+		expect(resolveOnboardingStatus('ACTIVE')).toBe('read_only');
 	});
 });

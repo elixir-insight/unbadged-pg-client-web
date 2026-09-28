@@ -1,49 +1,12 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
+import type { Actions } from './$types';
 import { toBankPayload } from '$lib/api/onboarding';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
-import { extractAccountId, extractBankAccounts } from '$lib/server/domains/onboarding/extract';
+import { extractAccountId } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
 import type { BankDetails } from '$lib/types/onboarding';
 
-/**
- * GET /organization/bank-accounts was never called anywhere before this — bank state lived only
- * in the client's sessionStorage wizard store, so a resumed session (new tab, cleared storage)
- * had no way to learn accounts already exist upstream. Best-effort like the layout's org fetch:
- * on failure, the client just keeps whatever it already has locally.
- */
-export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
-	const session = await requireOnboardingSession({
-		cookies,
-		fetch,
-		log: locals.logger,
-		groups: locals.merchantSession?.groups
-	});
-	if (!session.ok) return { bankAccounts: [] };
-
-	const result = await onboardingClient.getBankAccounts(fetch, locals.logger, session.tokens);
-	if (!result.ok) return { bankAccounts: [] };
-
-	const accounts = extractBankAccounts(result.data.data);
-	return {
-		bankAccounts: accounts.map((account) => ({
-			accountId:
-				typeof account.id === 'number'
-					? account.id
-					: typeof account.id === 'string'
-						? Number(account.id)
-						: undefined,
-			accountHolderName: account.holderName ?? '',
-			accountNumber: account.accountNumber ?? '',
-			confirmAccountNumber: account.accountNumber ?? '',
-			ifscCode: account.ifscCode ?? '',
-			bankName: account.bankName ?? '',
-			branchName: account.branchName ?? '',
-			accountType: account.accountType ?? ''
-		}))
-	};
-};
-
+// Saved accounts are loaded once by the layout (+layout.server.ts), alongside the org record.
 export const actions: Actions = {
 	default: async ({ request, cookies, fetch, locals }) => {
 		const session = await requireOnboardingSession({

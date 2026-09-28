@@ -4,6 +4,11 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import {
+		getDocumentKeyForFieldName,
+		toBankSaveSnapshot,
+		toKybPayload
+	} from '$lib/api/onboarding';
 	import OnboardingMobileBar from '$lib/components/self-onboarding/onboarding-mobile-bar.svelte';
 	import OnboardingSidebar from '$lib/components/self-onboarding/onboarding-sidebar.svelte';
 	import RemarkBanner from '$lib/components/self-onboarding/remark-banner.svelte';
@@ -39,10 +44,42 @@
 		if (entityType) onboarding.hydrateEntityType(entityType);
 	});
 
-	// Real profileStatus/verifications, fetched once per layout mount (see +layout.server.ts) —
-	// re-set on every load so a status change or a resolved remark is never shown stale.
+	// Everything already saved upstream (previous session, other browser) — fills only empty
+	// fields, and records the server's copy as the baseline Continue compares against, so an
+	// unchanged step moves on without re-saving (see onboarding.isDirty / seedClean). Opening the
+	// wizard or moving between steps never saves — only Continue with a real change does.
+	$effect(() => {
+		if (data.prefill) {
+			onboarding.hydrateFromOrganization(data.prefill);
+			onboarding.seedClean('organization', toKybPayload(data.prefill));
+		}
+		if (data.bankAccounts.length > 0) {
+			onboarding.hydrateBankAccounts(data.bankAccounts);
+			onboarding.seedClean('bankAccounts', toBankSaveSnapshot(data.bankAccounts));
+		}
+		for (const fieldName of data.uploadedFieldNames) {
+			const key = getDocumentKeyForFieldName(fieldName);
+			if (key) onboarding.hydrateDocumentUploaded(key);
+		}
+	});
+
+	// Unlocks every step whose fields are already filled and valid (prefilled or typed), so a
+	// resumed application isn't stuck clicking Continue through data it already saved. Declared
+	// before the step guard below so a deep link isn't bounced back before this runs.
+	$effect(() => {
+		onboarding.syncCompletedSteps();
+	});
+
+	// Real profileStatus/verifications, re-fetched on every step change (see +layout.server.ts).
+	// Remarks are only re-applied when the server's set actually changed: the load now re-runs on
+	// each navigation, and re-applying an unchanged set would bring back a remark the user already
+	// answered here (e.g. by uploading a replacement document) until they resubmit.
+	let appliedVerifications: string | undefined;
 	$effect(() => {
 		onboarding.setProfileStatus(data.profileStatus);
+		const next = JSON.stringify(data.verifications);
+		if (next === appliedVerifications) return;
+		appliedVerifications = next;
 		onboarding.setVerifications(data.verifications);
 	});
 

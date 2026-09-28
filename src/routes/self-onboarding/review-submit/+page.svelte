@@ -127,6 +127,7 @@
 				<div class="grid gap-2 text-sm">
 					{@render row('PAN', data.businessPan, true)}
 					{@render row('Entity type', data.entityName)}
+					{@render row('Brand name', details.brandName)}
 					{@render row('GSTIN', data.gstin, true)}
 					{@render row('CIN', details.cin, true)}
 					{@render row('TAN', details.tan, true)}

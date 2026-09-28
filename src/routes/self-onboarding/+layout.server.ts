@@ -1,37 +1,75 @@
 import type { LayoutServerLoad } from './$types';
+import type { BankDetails, OnboardingPrefill } from '$lib/types/onboarding';
 import {
+	extractBankDetails,
 	extractBusinessType,
+	extractOnboardingPrefill,
 	extractProfileStatus,
+	extractUploadedFieldNames,
 	extractVerifications
 } from '$lib/server/domains/onboarding/extract';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
 
 /**
- * Best-effort fetch of the org record, once per layout mount, so the client store can fill in
- * things it has no other way to learn: `entityType` (no selector on this side of the flow, see
- * business-identity/+page.svelte), the real management remarks (`verifications` — previously never
- * fetched anywhere; see remarkRouting.ts and RemarkBanner, which were already wired to consume it),
- * and `profileStatus` (drives read-only / remarked routing — see +layout.svelte).
- * Never blocks the page — on any failure (auth, network, unrecognized shape) the client just falls
- * back to empty/unknown values and behaves as if this were a fresh IN_PROGRESS application.
+ * Everything already saved upstream, re-fetched on every step change (see the `url.pathname`
+ * read below) so each step shows what the backend holds right now — a returning merchant
+ * resumes where they left off: every step's fields prefilled, finished steps checked, and
+ * /self-onboarding redirecting to the first unfinished one. Also the entity type from signup,
+ * management remarks (`verifications`) and `profileStatus` (read-only / remarked routing — see
+ * +layout.svelte). The three calls run in parallel and each is best-effort: a failed one just
+ * leaves its part empty, and the client behaves as if nothing was saved there yet.
  */
-export const load: LayoutServerLoad = async ({ cookies, fetch, locals }) => {
+const EMPTY = {
+	businessType: '',
+	profileStatus: '',
+	verifications: {} as Record<string, string>,
+	prefill: null as OnboardingPrefill | null,
+	bankAccounts: [] as BankDetails[],
+	uploadedFieldNames: [] as string[]
+};
+
+export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) => {
+	// Reading the pathname makes SvelteKit re-run this load on every step navigation, not just on
+	// the first mount. GETs only — nothing is saved by moving between steps.
+	locals.logger.debug({ step: url.pathname }, 'self-onboarding: loading saved state');
 	const session = await requireOnboardingSession({
 		cookies,
 		fetch,
 		log: locals.logger,
 		groups: locals.merchantSession?.groups
 	});
-	if (!session.ok) return { businessType: '', profileStatus: '', verifications: {} };
+	if (!session.ok) return EMPTY;
 
-	const result = await onboardingClient.fetchOrganization(fetch, locals.logger, session.tokens);
-	if (!result.ok) return { businessType: '', profileStatus: '', verifications: {} };
+	const [orgResult, bankResult, documentsResult] = await Promise.all([
+		onboardingClient.fetchOrganization(fetch, locals.logger, session.tokens),
+		onboardingClient.getBankAccounts(fetch, locals.logger, session.tokens),
+		onboardingClient.getOrgDocuments(fetch, locals.logger, session.tokens)
+	]);
 
-	const org = result.data.data;
+	// A failed call leaves its part empty; log which one, or an empty step is a mystery.
+	for (const [name, result] of [
+		['organization', orgResult],
+		['bank-accounts', bankResult],
+		['documents', documentsResult]
+	] as const) {
+		if (!result.ok) {
+			locals.logger.warn(
+				{ call: name, error: result.error.message },
+				'self-onboarding: could not load saved state'
+			);
+		}
+	}
+
+	const org = orgResult.ok ? orgResult.data.data : undefined;
 	return {
 		businessType: extractBusinessType(org),
 		profileStatus: extractProfileStatus(org),
-		verifications: extractVerifications(org)
+		verifications: extractVerifications(org),
+		prefill: extractOnboardingPrefill(org),
+		bankAccounts: bankResult.ok ? extractBankDetails(bankResult.data.data) : [],
+		uploadedFieldNames: documentsResult.ok
+			? extractUploadedFieldNames(documentsResult.data.data)
+			: []
 	};
 };

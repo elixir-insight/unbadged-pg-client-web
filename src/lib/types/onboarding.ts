@@ -155,3 +155,15 @@ export interface OnboardingFormData {
 	directors: Director[];
 	documents: Documents;
 }
+
+/**
+ * What GET .../organization already holds, reshaped into the wizard's form fields (see
+ * toOnboardingPrefill). PANs / Aadhaar may come back masked (e.g. `**********`) — kept as-is so
+ * the form shows "already saved" and toKybPayload leaves them out of the next save.
+ */
+export interface OnboardingPrefill {
+	businessPan: string;
+	gstin: string;
+	businessDetails: Omit<BusinessDetails, 'companyType'>;
+	directors: Director[];
+}

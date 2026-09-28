@@ -5,6 +5,7 @@ import {
 	type OnboardingStatus,
 	type StepId
 } from '$lib/components/self-onboarding/steps';
+import { isStepDataComplete } from '$lib/components/self-onboarding/validation';
 import {
 	ENTITY_TYPE_COMPANY_TYPES,
 	ENTITY_TYPE_LABELS,
@@ -21,10 +22,48 @@ import {
 	type EntityType,
 	type GstinItem,
 	type OnboardingFormData,
+	type OnboardingPrefill,
 	type OnboardingMode
 } from '$lib/types/onboarding';
 
 const STORAGE_KEY = 'pg-self-onboarding-v4';
+
+/**
+ * The saves the wizard makes: `organization` is PUT /organization (sent by both the address and
+ * directors steps, carrying every step-1/2/4 field), `bankAccounts` is the bank create/update.
+ */
+export type SaveKey = 'organization' | 'bankAccounts';
+
+/**
+ * What the backend last confirmed per save, serialized — the layout seeds it from the server
+ * data on every load (see seedClean), and each successful save updates it. Plain
+ * (non-reactive): nothing renders from it.
+ */
+const savedSnapshots: Partial<Record<SaveKey, string>> = {};
+
+/**
+ * `saved` cut down to the keys `server` has, in `server`'s key order. GET returns PAN/Aadhaar
+ * masked, and the save payload leaves masked values out (see toKybPayload) — so the server's
+ * copy lacks exactly those keys, and this is the last saved payload as the server would show it.
+ */
+function projectOnto(saved: unknown, server: unknown): unknown {
+	if (Array.isArray(saved) && Array.isArray(server)) {
+		return saved.length === server.length
+			? saved.map((item, i) => projectOnto(item, server[i]))
+			: saved;
+	}
+	if (saved && server && typeof saved === 'object' && typeof server === 'object') {
+		const source = saved as Record<string, unknown>;
+		const target = server as Record<string, unknown>;
+		return Object.fromEntries(
+			Object.keys(target).map((key) => [key, projectOnto(source[key], target[key])])
+		);
+	}
+	return saved;
+}
+
+/** Steps with form data to validate — step 6 (review) is only ever completed by submitting. */
+const DATA_STEPS = [1, 2, 3, 4, 5] as const;
 
 function emptyAddress(): Address {
 	return { line1: '', line2: '', city: '', state: '', pincode: '' };
@@ -113,6 +152,8 @@ interface PersistedState {
 	completedSteps: number[];
 	verifications?: Record<string, string>;
 	focusField?: string;
+	/** Payloads this tab last saved successfully — only ever written by markClean. */
+	lastSaved?: Partial<Record<SaveKey, string>>;
 }
 
 function omitFile(slot: DocumentSlot): Omit<DocumentSlot, 'file'> {
@@ -178,9 +219,15 @@ let mode = $state<OnboardingMode>(persisted?.mode ?? 'manual');
 let completedSteps = $state<number[]>(persisted?.completedSteps ?? []);
 let verifications = $state<Record<string, string>>(persisted?.verifications ?? {});
 let focusField = $state(persisted?.focusField ?? '');
+// Plain, like savedSnapshots — persisted so a reload can tell "unmasked value I saved" from
+// "unmasked value I typed but never saved" (see seedClean).
+const lastSaved: Partial<Record<SaveKey, string>> = { ...persisted?.lastSaved };
 // A save/submit error routed to a different step (see saveErrorRouting.ts) — a one-shot handoff
 // across navigation, so it is never persisted to sessionStorage.
 let saveError = $state('');
+// A save/submit error pinned to one field (keyed like `verifications`, e.g. `kyb.gstNumber`) —
+// shown under that field until it's edited; not persisted, like saveError.
+let fieldSaveError = $state<{ key: string; message: string } | null>(null);
 // The org's real profileStatus, fetched once per layout mount (see +layout.server.ts) — never
 // persisted, always refetched, so a status change server-side is never shown stale.
 let profileStatus = $state('');
@@ -200,10 +247,52 @@ function persist() {
 			mode,
 			completedSteps,
 			verifications,
-			focusField
+			focusField,
+			lastSaved
 		};
 		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 	});
+}
+
+/**
+ * Brings local director ids in line with the directors actually saved upstream. An id the
+ * backend no longer has (the director was deleted or re-created by a save) is dropped along with
+ * its document flags — using it fails with "Director not found" — and any director without an id
+ * takes the id of its saved match, by email then name. PAN can't be matched on: the saved one
+ * comes back masked. Without an id, delete only drops a director locally and its documents can't
+ * be fetched or uploaded.
+ */
+function reconcileDirectorIds(local: Director[], saved: Director[]): Director[] {
+	const savedIds = saved.map((director) => director.id).filter((id) => id !== undefined);
+	const current = local.map((director) =>
+		director.id === undefined || savedIds.includes(director.id)
+			? director
+			: { ...director, id: undefined, aadhaarDocument: '', panDocument: '' }
+	);
+
+	const key = (value: string) => value.trim().toLowerCase();
+	const taken: (number | undefined)[] = current.map((director) => director.id);
+	const findBy = (field: 'email' | 'name', value: string) =>
+		value === ''
+			? undefined
+			: saved.find((s) => s.id !== undefined && !taken.includes(s.id) && key(s[field]) === value);
+	return current.map((director) => {
+		if (director.id !== undefined) return director;
+		const match = findBy('email', key(director.email)) ?? findBy('name', key(director.name));
+		if (match?.id === undefined) return director;
+		taken.push(match.id);
+		return { ...director, id: match.id };
+	});
+}
+
+function sameDirectorIds(a: Director[], b: Director[]): boolean {
+	return a.every((director, i) => director.id === b[i]?.id);
+}
+
+/** Writes reconciled ids back only when something changed, so it never churns the store. */
+function reconcileDirectors(saved: Director[]) {
+	const next = reconcileDirectorIds(formData.directors, saved);
+	if (!sameDirectorIds(formData.directors, next)) formData.directors = next;
 }
 
 function patchAddress(target: Address, patch: Partial<Address>): Address {
@@ -228,6 +317,9 @@ export const onboarding = {
 	},
 	get saveError() {
 		return saveError;
+	},
+	get fieldSaveError() {
+		return fieldSaveError;
 	},
 	get progressPercent() {
 		return progressPercent;
@@ -257,6 +349,14 @@ export const onboarding = {
 
 	setSaveError(message: string) {
 		saveError = message;
+	},
+
+	setFieldSaveError(key: string, message: string) {
+		fieldSaveError = { key, message };
+	},
+
+	clearFieldSaveError() {
+		fieldSaveError = null;
 	},
 
 	/** Reads and clears the pending error in one step, so it is shown at most once. */
@@ -294,12 +394,62 @@ export const onboarding = {
 	 * (either hydrated earlier or, on old persisted sessions, set via the removed selector).
 	 */
 	hydrateEntityType(entityType: EntityType) {
-		if (formData.entityType !== null) return;
-		formData.entityType = entityType;
-		formData.entityName = ENTITY_TYPE_LABELS[entityType];
-		formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
-		formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
-		persist();
+		// Untracked, like every hydrate*: called from an $effect, and reads what it writes.
+		untrack(() => {
+			if (formData.entityType !== null) return;
+			formData.entityType = entityType;
+			formData.entityName = ENTITY_TYPE_LABELS[entityType];
+			formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
+			formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
+			persist();
+		});
+	},
+
+	/**
+	 * Fills in details already saved upstream (see +layout.server.ts) — the wizard otherwise only
+	 * knows what this browser session typed. Only fills fields that are still empty, and directors
+	 * only when none exist locally, so it never overwrites what the user is editing and is safe to
+	 * run on every load.
+	 */
+	hydrateFromOrganization(prefill: OnboardingPrefill) {
+		// Untracked: this runs inside the layout's $effect and both reads and writes formData —
+		// tracked, each write would re-run that effect forever (effect_update_depth_exceeded),
+		// which halts rendering and leaves the step content blank.
+		untrack(() => {
+			const fillText = (current: string, saved: string) => (current.trim() ? current : saved);
+
+			formData.businessPan = fillText(formData.businessPan, prefill.businessPan);
+			formData.gstin = fillText(formData.gstin, prefill.gstin);
+
+			const details = formData.businessDetails;
+			const saved = prefill.businessDetails;
+			formData.businessDetails = {
+				...details,
+				cin: fillText(details.cin, saved.cin),
+				tan: fillText(details.tan, saved.tan),
+				brandName: fillText(details.brandName, saved.brandName),
+				phone: fillText(details.phone, saved.phone),
+				website: fillText(details.website, saved.website),
+				industry: fillText(details.industry, saved.industry),
+				registeredYear: details.registeredYear ?? saved.registeredYear,
+				communicationAddress: fillText(details.communicationAddress, saved.communicationAddress),
+				address: {
+					line1: fillText(details.address.line1, saved.address.line1),
+					line2: fillText(details.address.line2, saved.address.line2),
+					city: fillText(details.address.city, saved.address.city),
+					state: fillText(details.address.state, saved.address.state),
+					pincode: fillText(details.address.pincode, saved.address.pincode),
+					country: details.address.country ?? saved.address.country
+				}
+			};
+
+			if (formData.directors.length === 0 && prefill.directors.length > 0) {
+				formData.directors = prefill.directors;
+			} else {
+				reconcileDirectors(prefill.directors);
+			}
+			persist();
+		});
 	},
 
 	switchToManual() {
@@ -358,6 +508,18 @@ export const onboarding = {
 		persist();
 	},
 
+	/**
+	 * Re-syncs director ids with the directors saved upstream, fetched fresh each time the
+	 * directors step loads (see directors/+page.server.ts) — ids go stale when a save elsewhere
+	 * re-creates them. Untracked: called from an $effect and reads what it writes.
+	 */
+	syncDirectorIds(saved: Director[]) {
+		untrack(() => {
+			reconcileDirectors(saved);
+			persist();
+		});
+	},
+
 	/** Stores upstream ids returned after a save; `undefined` entries keep the existing id. */
 	setDirectorIds(ids: (number | undefined)[]) {
 		formData.directors = formData.directors.map((director, i) => ({
@@ -378,10 +540,16 @@ export const onboarding = {
 	 * overwrites accounts the user has already started filling in or that were already hydrated.
 	 */
 	hydrateBankAccounts(accounts: BankDetails[]) {
-		if (accounts.length === 0) return;
-		if (!formData.bankAccounts.every(isEmptyBankAccount)) return;
-		formData.bankAccounts = accounts;
-		persist();
+		// Untracked: called from the bank page's $effect and reads what it writes. Accounts that
+		// map to nothing (unrecognised upstream shape) are dropped — hydrating those would leave the
+		// list "empty" and, tracked, re-run the effect forever (effect_update_depth_exceeded).
+		untrack(() => {
+			const saved = accounts.filter((account) => !isEmptyBankAccount(account));
+			if (saved.length === 0) return;
+			if (!formData.bankAccounts.every(isEmptyBankAccount)) return;
+			formData.bankAccounts = saved;
+			persist();
+		});
 	},
 
 	updateBankAccount(index: number, patch: Partial<BankDetails>) {
@@ -430,9 +598,58 @@ export const onboarding = {
 	/** Marks a document uploaded from GET .../documents (see documents/+page.server.ts) — safe to
 	 * call unconditionally: it only ever turns `uploaded` on, never off, so it can't lose local state. */
 	hydrateDocumentUploaded(key: DocumentKey) {
-		if (formData.documents[key].uploaded) return;
-		formData.documents[key] = { ...formData.documents[key], uploaded: true };
+		untrack(() => {
+			if (formData.documents[key].uploaded) return;
+			formData.documents[key] = { ...formData.documents[key], uploaded: true };
+			persist();
+		});
+	},
+
+	/**
+	 * Whether `payload` differs from what the backend last confirmed for this save — Continue
+	 * skips the network call when it doesn't. Unknown baseline (nothing saved yet) counts as dirty.
+	 */
+	isDirty(key: SaveKey, payload: unknown): boolean {
+		return savedSnapshots[key] !== JSON.stringify(payload);
+	},
+
+	/** Records `payload` as what the backend now holds, right after a successful save. */
+	markClean(key: SaveKey, payload: unknown) {
+		const serialized = JSON.stringify(payload);
+		savedSnapshots[key] = serialized;
+		lastSaved[key] = serialized;
 		persist();
+	},
+
+	/**
+	 * Sets the baseline from the server's copy on load. The server masks PAN/Aadhaar, but this tab
+	 * still holds the unmasked values it saved (sessionStorage) — compared against the masked copy
+	 * those would always read as changed and re-save on every Continue. So when this tab's last
+	 * save matches the server on every field the server shows, that save is the baseline instead;
+	 * anything else (edited elsewhere, never saved here) falls back to the server's copy.
+	 */
+	seedClean(key: SaveKey, serverPayload: unknown) {
+		const server = JSON.stringify(serverPayload);
+		const saved = lastSaved[key];
+		const matches =
+			saved !== undefined &&
+			JSON.stringify(projectOnto(JSON.parse(saved), serverPayload)) === server;
+		savedSnapshots[key] = matches ? saved : server;
+	},
+
+	/**
+	 * Marks every data step (1–5) whose fields are already complete — prefilled from the saved
+	 * organization or typed in — so the sidebar unlocks it without a Continue click. Only ever adds
+	 * steps (never un-completes one), and steps still unlock in order (see firstIncompleteStep).
+	 */
+	syncCompletedSteps() {
+		const done = DATA_STEPS.filter((step) => isStepDataComplete(step, formData));
+		untrack(() => {
+			const added = done.filter((step) => !completedSteps.includes(step));
+			if (added.length === 0) return;
+			completedSteps = [...completedSteps, ...added];
+			persist();
+		});
 	},
 
 	completeStep(step: StepId) {

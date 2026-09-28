@@ -5,6 +5,12 @@ import type {
 	DocumentKey,
 	OnboardingFormData
 } from '$lib/types/onboarding';
+import {
+	isMaskedAadhar,
+	isMaskedPan,
+	normalizeIndianMobilePhone,
+	toE164IndianPhone
+} from '$lib/validation/organization-kyb';
 
 // Request payload shapes, defined here (not in lib/server/domains/onboarding/schema.ts) because
 // this module is shared with client-side code (documents/+page.svelte, review-submit/+page.svelte
@@ -14,15 +20,18 @@ import type {
 export interface UpdateOrganizationDirectorPayload {
 	id?: number;
 	name: string;
-	aadhar: string;
-	pan: string;
+	/** Omitted when masked — the backend already holds it (see isMaskedAadhar). */
+	aadhar?: string;
+	/** Omitted when masked — the backend already holds it (see isMaskedPan). */
+	pan?: string;
 	email: string;
 	phoneNumber: string;
 }
 
 export interface UpdateOrganizationRequest {
 	kyb: {
-		businessPan: string;
+		/** Omitted when masked — the backend already holds it (see isMaskedPan). */
+		businessPan?: string;
 		gstNumber: string;
 		cin: string;
 		tan: string;
@@ -58,14 +67,21 @@ export interface BankAccountRequest {
 // auth tokens never reach the browser.
 
 // ── Steps 1+2: save org (kyb + address + brand), fired at end of step 2 ──────
+/** `+91XXXXXXXXXX` from any common typed form (`098…`, `+91 98…`) — the backend requires E.164. */
+function toPhonePayload(phone: string): string {
+	return toE164IndianPhone(normalizeIndianMobilePhone(phone));
+}
+
 function toDirectorPayload(d: Director): UpdateOrganizationDirectorPayload {
 	return {
 		...(d.id !== undefined && { id: d.id }),
 		name: d.name,
-		aadhar: d.aadhaar,
-		pan: d.pan,
+		...(!isMaskedAadhar(d.aadhaar) && { aadhar: d.aadhaar }),
+		...(!isMaskedPan(d.pan) && { pan: d.pan }),
 		email: d.email,
-		phoneNumber: d.phone
+		// The backend rejects anything else: "Phone numbers must contain country code and be in
+		// E.164 format". Same formatting as management's update-kyb.ts.
+		phoneNumber: toPhonePayload(d.phone)
 	};
 }
 
@@ -76,14 +92,23 @@ function streetAddress(address: BusinessDetails['address']): string {
 		.join(', ');
 }
 
-export function toKybPayload(fd: OnboardingFormData): UpdateOrganizationRequest {
+/**
+ * The form fields PUT /organization carries — satisfied by the live form and by the
+ * server-prefill (OnboardingPrefill), so the saved baseline can be shaped exactly like a save.
+ */
+export type KybSource = Pick<OnboardingFormData, 'businessPan' | 'gstin' | 'directors'> & {
+	businessDetails: Omit<BusinessDetails, 'companyType'>;
+};
+
+export function toKybPayload(fd: KybSource): UpdateOrganizationRequest {
 	return {
 		kyb: {
-			businessPan: fd.businessPan,
+			// GET returns the saved PAN masked; sending it back would overwrite it with asterisks.
+			...(!isMaskedPan(fd.businessPan) && { businessPan: fd.businessPan }),
 			gstNumber: fd.gstin,
 			cin: fd.businessDetails.cin,
 			tan: fd.businessDetails.tan,
-			businessPhone: fd.businessDetails.phone,
+			businessPhone: toPhonePayload(fd.businessDetails.phone),
 			organizationWebsite: fd.businessDetails.website,
 			industry: fd.businessDetails.industry,
 			communicationAddress: fd.businessDetails.communicationAddress,
@@ -113,6 +138,14 @@ export function toBankPayload(b: BankDetails): BankAccountRequest {
 		holderName: b.accountHolderName,
 		ifscCode: b.ifscCode
 	};
+}
+
+/**
+ * Everything the bank save sends, per account — including the id, since an account without one
+ * is created rather than updated. Compared against the last saved copy to skip no-op saves.
+ */
+export function toBankSaveSnapshot(banks: BankDetails[]) {
+	return banks.map((bank) => ({ accountId: bank.accountId, ...toBankPayload(bank) }));
 }
 
 // ── Step 5: org-level documents ─────────────────────────────────────────────

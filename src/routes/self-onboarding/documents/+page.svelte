@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { documentFieldOptions, getDocumentKeyForFieldName } from '$lib/api/onboarding';
+	import { documentFieldOptions } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
-	import { DocumentCard, StepShell } from '$lib/components/self-onboarding';
+	import { DocumentCard, InlineRemark, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep } from '$lib/components/self-onboarding/navigation';
 	import {
 		DOCUMENT_LABELS,
@@ -9,24 +9,28 @@
 		visibleDocumentKeys
 	} from '$lib/components/self-onboarding/validation';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import { organizationDocumentRemark } from '$lib/utils/remarkRouting';
+	import { DOCUMENT_KEYS, type DocumentKey } from '$lib/types/onboarding';
 
 	const docs = $derived(onboarding.formData.documents);
-	const docKeys = $derived(visibleDocumentKeys(docs));
+	// A remarked slot is always shown, even an optional one that's otherwise hidden.
+	const docKeys = $derived(
+		DOCUMENT_KEYS.filter(
+			(key) =>
+				visibleDocumentKeys(docs).includes(key) ||
+				organizationDocumentRemark(onboarding.verifications, key) !== undefined
+		)
+	);
 	const uploadedCount = $derived(docKeys.filter((key) => docs[key].uploaded).length);
 	const total = $derived(docKeys.length);
 	const canContinue = $derived(requiredDocumentsUploaded(docs));
 
-	// Reconciles with documents uploaded outside this browser session (see hydrateDocumentUploaded
-	// — only ever turns a slot on, never off, so it's safe to run on every load).
-	$effect(() => {
-		for (const fieldName of data.uploadedFieldNames) {
-			const key = getDocumentKeyForFieldName(fieldName);
-			if (key) onboarding.hydrateDocumentUploaded(key);
-		}
-	});
+	/** A replacement upload answers the management remark on that slot — drop it. */
+	function handleUploaded(key: DocumentKey, file: File) {
+		onboarding.updateDocument(key, file);
+		const remark = organizationDocumentRemark(onboarding.verifications, key);
+		if (remark) onboarding.clearVerification(remark.key);
+	}
 </script>
 
 <StepShell>
@@ -34,14 +38,22 @@
 
 	<div class="flex flex-col gap-3">
 		{#each docKeys as key (key)}
-			<DocumentCard
-				label={DOCUMENT_LABELS[key]}
-				documentType={key}
-				documentSlot={docs[key]}
-				fieldOptions={documentFieldOptions(key)}
-				onuploaded={(file) => onboarding.updateDocument(key, file)}
-				onclear={() => onboarding.clearDocument(key)}
-			/>
+			{@const remark = organizationDocumentRemark(onboarding.verifications, key)}
+			<InlineRemark
+				remark={remark?.message ?? ''}
+				fieldKey={remark?.key ?? ''}
+				highlighted={Boolean(remark) && onboarding.focusField === remark?.key}
+				instruction="Please update this document based on the management remark."
+			>
+				<DocumentCard
+					label={DOCUMENT_LABELS[key]}
+					documentType={key}
+					documentSlot={docs[key]}
+					fieldOptions={documentFieldOptions(key)}
+					onuploaded={(file) => handleUploaded(key, file)}
+					onclear={() => onboarding.clearDocument(key)}
+				/>
+			</InlineRemark>
 		{/each}
 	</div>
 

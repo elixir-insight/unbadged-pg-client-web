@@ -1,4 +1,5 @@
 import type { Director } from '$lib/types/onboarding';
+import { isMaskedPan } from '$lib/validation/organization-kyb';
 
 type LocalDirector = Pick<Director, 'id' | 'pan' | 'email'>;
 type UpstreamDirector = { id: number; pan: string; email: string };
@@ -12,15 +13,21 @@ function text(value: unknown): string {
 	return typeof value === 'string' ? value.trim().toUpperCase() : '';
 }
 
+/** A masked PAN (`**********`) is the same for every director, so it can't identify one. */
+function panKey(value: unknown): string {
+	const pan = text(value);
+	return isMaskedPan(pan) ? '' : pan;
+}
+
 function upstreamDirectors(list: unknown): UpstreamDirector[] | null {
 	if (!Array.isArray(list)) return null;
 	const directors: UpstreamDirector[] = [];
 	for (const item of list) {
 		if (!item || typeof item !== 'object') return null;
-		const record = item as { id?: unknown; pan?: unknown; email?: unknown };
-		const id = toId(record.id);
+		const record = item as { id?: unknown; directorId?: unknown; pan?: unknown; email?: unknown };
+		const id = toId(record.id ?? record.directorId);
 		if (id === undefined) return null;
-		directors.push({ id, pan: text(record.pan), email: text(record.email) });
+		directors.push({ id, pan: panKey(record.pan), email: text(record.email) });
 	}
 	return directors;
 }
@@ -53,7 +60,7 @@ export function extractDirectorIds(data: unknown, local: LocalDirector[]): numbe
 	};
 
 	const ids = local.map((director) => {
-		const pan = text(director.pan);
+		const pan = panKey(director.pan);
 		const email = text(director.email);
 		return (
 			claim(upstream.find((u) => u.id === director.id)) ??

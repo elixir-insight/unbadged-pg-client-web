@@ -8,65 +8,81 @@ import * as v from 'valibot';
 // the real backend shape has never been confirmed against a live response (see extract.ts's prior
 // v.unknown() usage). A too-strict response schema would reject a whole call over one unexpected
 // or missing field; that's the failure mode to avoid until the shapes below are confirmed live.
+//
+// So every response field is tolerant: `null` is accepted (the backend sends it for unset values),
+// and a field of an unexpected type falls back to `undefined` instead of failing the record. One
+// odd field (e.g. a date sent as an array, a number where text was expected) used to reject the
+// whole GET — valibot reports that as `data: Expected (Array | null) but received Array` — and the
+// wizard then showed an empty step as if nothing had been saved.
 
-const PaginationSchema = v.optional(
-	v.object({
-		limit: v.optional(v.number()),
-		page: v.optional(v.number()),
-		total: v.optional(v.number())
-	})
+/** Text from a response: a string, or a number where text was expected (ids, pincodes). */
+const text = v.fallback(
+	v.nullish(v.pipe(v.union([v.string(), v.number()]), v.transform(String))),
+	undefined
 );
+/** An id the backend has sent both as a number and as a numeric string. */
+const id = v.fallback(v.nullish(v.union([v.number(), v.string()])), undefined);
+const count = v.fallback(v.nullish(v.number()), undefined);
+/** A field nothing reads — accepted in any shape, or missing. */
+const ignored = v.optional(v.unknown());
+
+const PaginationSchema = ignored;
 
 // ── 1. GET /organization ────────────────────────────────────────────────
 
 export const OrganizationAddressSchema = v.object({
-	address: v.optional(v.string()),
-	address2: v.optional(v.string()),
-	city: v.optional(v.string()),
-	country: v.optional(v.string()),
-	pinCode: v.optional(v.string()),
-	state: v.optional(v.string())
+	address: text,
+	address2: text,
+	city: text,
+	country: text,
+	pinCode: text,
+	state: text
 });
 
 export const OrganizationDirectorRecordSchema = v.object({
-	id: v.optional(v.union([v.number(), v.string()])),
-	name: v.optional(v.string()),
-	pan: v.optional(v.string()),
-	email: v.optional(v.string()),
-	phoneNumber: v.optional(v.string()),
-	aadhar: v.optional(v.string())
+	id,
+	// Management's mapper (organization/mappers/from-api/directors.ts) reads `id ?? directorId`.
+	directorId: id,
+	name: text,
+	pan: text,
+	email: text,
+	phoneNumber: text,
+	phone: text,
+	aadhar: text
 });
 
 export const GetOrganizationRecordSchema = v.object({
-	orgId: v.optional(v.string()),
-	profileStatus: v.optional(v.string()),
-	profileType: v.optional(v.string()),
-	legalCompanyName: v.optional(v.string()),
-	businessType: v.optional(v.string()),
-	brandName: v.optional(v.string()),
-	orgPan: v.optional(v.string()),
-	gstNumber: v.optional(v.string()),
-	cin: v.optional(v.string()),
-	orgTan: v.optional(v.string()),
-	email: v.optional(v.string()),
-	phoneNumber: v.optional(v.string()),
-	businessPhone: v.optional(v.string()),
-	organizationWebsite: v.optional(v.string()),
-	industry: v.optional(v.string()),
-	communicationAddress: v.optional(v.string()),
-	registeredYear: v.optional(v.number()),
-	serviceTypes: v.optional(v.array(v.string())),
-	address: v.optional(OrganizationAddressSchema),
-	directors: v.optional(v.array(OrganizationDirectorRecordSchema)),
-	verifications: v.optional(v.record(v.string(), v.string()))
+	orgId: text,
+	profileStatus: text,
+	profileType: text,
+	legalCompanyName: text,
+	businessType: text,
+	brandName: text,
+	orgPan: text,
+	gstNumber: text,
+	cin: text,
+	orgTan: text,
+	email: text,
+	phoneNumber: text,
+	businessPhone: text,
+	organizationWebsite: text,
+	industry: text,
+	communicationAddress: text,
+	// Seen as a number; a numeric string is converted in extract.ts.
+	registeredYear: id,
+	serviceTypes: ignored,
+	address: v.fallback(v.nullish(OrganizationAddressSchema), undefined),
+	directors: v.fallback(v.nullish(v.array(OrganizationDirectorRecordSchema)), undefined),
+	// Values other than a non-blank string are dropped in extractVerifications.
+	verifications: v.fallback(v.nullish(v.record(v.string(), v.unknown())), undefined)
 });
 
 export const GetOrganizationResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
 	// Documented as `data: GetOrganizationResponse[]` — always treat as a single org, data[0].
-	data: v.optional(v.union([v.array(GetOrganizationRecordSchema), v.null()]))
+	data: v.nullish(v.array(GetOrganizationRecordSchema))
 });
 
 // ── 2. PUT /organization ────────────────────────────────────────────────
@@ -108,18 +124,22 @@ export const UpdateOrganizationRequestSchema = v.object({
 	kyb: UpdateOrganizationKybDetailsSchema
 });
 
-/** Same section shapes echoed back — never treat as authoritative beyond ids (see extract.ts). */
+/**
+ * Same section shapes echoed back — only the director ids are ever read (see extract.ts), so the
+ * rest is accepted in any shape: validating the echo strictly turned a successful save into an
+ * "Unexpected response shape" failure whenever it came back with an empty/null address field.
+ */
 export const UpdateOrganizationResponseSectionSchema = v.object({
-	addressDetails: v.optional(UpdateOrganizationAddressDetailsSchema),
-	directors: v.optional(v.array(OrganizationDirectorRecordSchema)),
-	kyb: v.optional(v.unknown())
+	addressDetails: ignored,
+	directors: v.fallback(v.nullish(v.array(OrganizationDirectorRecordSchema)), undefined),
+	kyb: ignored
 });
 
 export const UpdateOrganizationResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.union([v.array(UpdateOrganizationResponseSectionSchema), v.null()]))
+	data: v.nullish(v.array(UpdateOrganizationResponseSectionSchema))
 });
 
 // ── 3 & 5. POST /organization/bank, PUT /organization/bank/{accountId} ────
@@ -134,106 +154,111 @@ export const BankAccountRequestSchema = v.object({
 });
 
 export const CreatedBankAccountRecordSchema = v.object({
-	accountId: v.optional(v.union([v.number(), v.string()])),
-	accountNumber: v.optional(v.string()),
-	accountType: v.optional(v.string()),
-	bankName: v.optional(v.string()),
-	branchName: v.optional(v.string()),
-	holderName: v.optional(v.string()),
-	ifscCode: v.optional(v.string()),
-	status: v.optional(v.string())
+	accountId: id,
+	accountNumber: text,
+	accountType: text,
+	bankName: text,
+	branchName: text,
+	holderName: text,
+	ifscCode: text,
+	status: text
 });
 
 export const CreateBankAccountResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.union([v.array(CreatedBankAccountRecordSchema), v.null()]))
+	data: v.nullish(v.array(CreatedBankAccountRecordSchema))
 });
 
 /** PUT bank response has never echoed a usable body (`data: [{}]` per contract) — id unchanged. */
 export const UpdateBankAccountResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.unknown())
+	data: ignored
 });
 
 // ── 4. GET /organization/bank-accounts ──────────────────────────────────
 
 export const BankAccountRecordSchema = v.object({
-	id: v.optional(v.union([v.number(), v.string()])),
-	accountNumber: v.optional(v.string()),
-	accountType: v.optional(v.string()),
-	bankName: v.optional(v.string()),
-	branchName: v.optional(v.string()),
-	holderName: v.optional(v.string()),
-	ifscCode: v.optional(v.string()),
-	status: v.optional(v.string()),
-	createdAt: v.optional(v.string()),
-	createdBy: v.optional(v.string()),
-	updatedAt: v.optional(v.string()),
-	updatedBy: v.optional(v.string())
+	id,
+	accountId: id,
+	accountNumber: text,
+	accountType: text,
+	bankName: text,
+	branchName: text,
+	holderName: text,
+	ifscCode: text,
+	status: text,
+	// Audit fields — never read, and dates may come as arrays (e.g. Java LocalDateTime).
+	createdAt: ignored,
+	createdBy: ignored,
+	updatedAt: ignored,
+	updatedBy: ignored
 });
 
 export const GetBankAccountsResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.union([v.array(BankAccountRecordSchema), v.null()]))
+	data: v.nullish(v.array(BankAccountRecordSchema))
 });
 
 // ── 6. DELETE /organization/directors/{directorId} ──────────────────────
 
 export const DeleteDirectorResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.string())
+	// Never read — kept loose so an unexpected `data` (null, object) can't turn a successful
+	// delete into an "Unexpected response shape" error.
+	data: ignored
 });
 
 // ── 7 & 9. GET director/org documents ───────────────────────────────────
 
 export const DocumentRecordSchema = v.object({
-	id: v.optional(v.union([v.number(), v.string()])),
-	documentId: v.optional(v.union([v.number(), v.string()])),
-	fileName: v.optional(v.string()),
-	fileSize: v.optional(v.number()),
-	fileType: v.optional(v.string()),
-	createdAt: v.optional(v.string()),
-	preSignedUrl: v.optional(v.string())
+	id,
+	documentId: id,
+	fileName: text,
+	fileSize: count,
+	fileType: text,
+	createdAt: ignored,
+	preSignedUrl: text
 });
 
 export const GetDocumentsResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.union([v.array(DocumentRecordSchema), v.null()]))
+	data: v.nullish(v.array(DocumentRecordSchema))
 });
 
 // ── 8 & 10. POST director/org documents ─────────────────────────────────
 
 export const UploadDocumentRecordSchema = v.object({
-	documentId: v.optional(v.union([v.number(), v.string()])),
-	fileName: v.optional(v.string()),
-	fileSize: v.optional(v.number()),
-	fileType: v.optional(v.string())
+	documentId: id,
+	fileName: text,
+	fileSize: count,
+	fileType: text
 });
 
 export const UploadDocumentsResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.union([v.array(UploadDocumentRecordSchema), v.null()]))
+	data: v.nullish(v.array(UploadDocumentRecordSchema))
 });
 
 // ── 11. POST /organization/submit ───────────────────────────────────────
 
 export const SubmitOnboardingResponseSchema = v.object({
-	message: v.optional(v.string()),
-	statusCode: v.optional(v.number()),
+	message: text,
+	statusCode: count,
 	pagination: PaginationSchema,
-	data: v.optional(v.string())
+	// The application id.
+	data: text
 });
 
 // ── Error envelope — documented shape; not yet observed live (see client.ts's apiFetch, which
@@ -246,6 +271,7 @@ export const OnboardingApiErrorSchema = v.object({
 
 // ── Inferred types ───────────────────────────────────────────────────────
 
+export type OrganizationDirectorRecord = v.InferOutput<typeof OrganizationDirectorRecordSchema>;
 export type GetOrganizationRecord = v.InferOutput<typeof GetOrganizationRecordSchema>;
 export type GetOrganizationResponse = v.InferOutput<typeof GetOrganizationResponseSchema>;
 export type UpdateOrganizationRequest = v.InferOutput<typeof UpdateOrganizationRequestSchema>;

@@ -3,12 +3,12 @@
 	import { FieldRow, InlineRemark, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep } from '$lib/components/self-onboarding/navigation';
 	import {
+		businessPanError,
+		gstinError,
 		isCinValid,
 		isIdentityComplete,
 		isIdentityFilled,
 		isTanValid,
-		isValidGstin,
-		isValidPan,
 		isValidPhone,
 		isValidRegisteredYear,
 		isValidWebsite,
@@ -16,6 +16,7 @@
 	} from '$lib/components/self-onboarding/validation';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import { getFieldRemark } from '$lib/utils/remarkRouting';
+	import { isMaskedPan } from '$lib/validation/organization-kyb';
 
 	let attempted = $state(false);
 
@@ -25,6 +26,7 @@
 	const filled = $derived(isIdentityFilled(data));
 	const canContinue = $derived(isIdentityComplete(data));
 	const cinRequired = $derived(data.entityType === 'private_limited');
+	const panSaved = $derived(isMaskedPan(data.businessPan));
 	const phoneRemark = $derived(getFieldRemark(onboarding.verifications, 'kyb.businessPhone'));
 	const phoneInvalid = $derived(details.phone.length > 0 && !isValidPhone(details.phone));
 
@@ -56,8 +58,10 @@
 		autocomplete="off"
 		placeholder="Enter your business PAN"
 		remarkKey="kyb.businessPan"
-		hint="10 characters, format ABCDE1234F."
-		error={isValidPan(data.businessPan) ? '' : 'Enter a valid 10-character PAN.'}
+		hint={panSaved
+			? 'Already saved — hidden for security. Type a new PAN only to change it.'
+			: '10 characters, format ABCDE1234F. 4th character must be P, F or C.'}
+		error={businessPanError(data.businessPan)}
 		showErrors={attempted}
 		value={data.businessPan}
 		normalize={(next) => normalizeId(next, 10)}
@@ -65,6 +69,18 @@
 	/>
 
 	<div class="flex flex-col gap-4">
+		<!-- Required by the backend's submit ("required organization fields are incomplete: brandName"). -->
+		<FieldRow
+			label="Brand name"
+			required
+			placeholder="Enter your brand name"
+			remarkKey="brandName"
+			hint="The name customers see, e.g. on payment pages."
+			error={details.brandName.trim() ? '' : 'Brand name is required.'}
+			showErrors={attempted}
+			value={details.brandName}
+			oninput={(next) => onboarding.updateBusinessDetails({ brandName: next })}
+		/>
 		<FieldRow
 			label="GSTIN"
 			placeholder="Enter your GSTIN"
@@ -73,8 +89,8 @@
 			maxlength={15}
 			autocomplete="off"
 			remarkKey="kyb.gstNumber"
-			hint="15 characters, e.g. 27ABCDE1234F1Z5."
-			error={isValidGstin(data.gstin) ? '' : 'Enter a valid 15-character GSTIN.'}
+			hint="15 characters, e.g. 27ABCPE1234F1ZB."
+			error={gstinError(data.gstin, data.businessPan)}
 			showErrors={attempted}
 			value={data.gstin}
 			normalize={(next) => normalizeId(next, 15)}

@@ -42,3 +42,18 @@ describe('extractDirectorIds', () => {
 		expect(extractDirectorIds([], [ada])).toBeNull();
 	});
 });
+
+describe('extractDirectorIds with masked PANs', () => {
+	it('matches by email, not by the masked PAN every director shares', () => {
+		const masked = '**********';
+		const upstream = [
+			{ id: 11, pan: masked, email: 'bo@x.test' },
+			{ id: 12, pan: masked, email: 'ada@x.test' }
+		];
+		const local = [
+			{ pan: masked, email: 'ADA@x.test' },
+			{ pan: masked, email: 'bo@x.test' }
+		];
+		expect(extractDirectorIds([{ directors: upstream }], local)).toEqual([12, 11]);
+	});
+});

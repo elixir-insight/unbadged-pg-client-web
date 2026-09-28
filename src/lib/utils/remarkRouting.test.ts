@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { DUMMY_REMARKED_ORG } from '$lib/components/self-onboarding/dummy-org-response';
 import {
 	allRoutedRemarks,
+	directorDocumentRemark,
 	directorRemarkIndex,
+	organizationDocumentRemark,
+	remarkDocument,
 	remarksForStep,
 	routeToStep,
 	routeVerificationKey
@@ -76,5 +79,54 @@ describe('dummy remarked org fixture', () => {
 	it('filters remarks by step', () => {
 		expect(remarksForStep(DUMMY_REMARKED_ORG.verifications, 3)).toHaveLength(1);
 		expect(remarksForStep(DUMMY_REMARKED_ORG.verifications, 4)).toHaveLength(0);
+	});
+});
+
+describe('document remarks', () => {
+	it('routes a director KYC document remark to that director on the directors step', () => {
+		expect(routeVerificationKey('directors[0].panDocument')).toEqual({
+			step: 4,
+			field: 'Director 1 — PAN card'
+		});
+		expect(remarkDocument('directors[1].aadharCard')).toEqual({
+			kind: 'director',
+			index: 1,
+			field: 'aadhar'
+		});
+	});
+
+	it('keeps director number fields as fields, not documents', () => {
+		expect(remarkDocument('directors[0].pan')).toBeNull();
+		expect(remarkDocument('directors[0].aadhar')).toBeNull();
+	});
+
+	it('routes org document remarks to the documents step, bare or under documents.', () => {
+		expect(routeVerificationKey('gstCertificate')).toEqual({ step: 5, field: 'GST certificate' });
+		expect(routeVerificationKey('documents.voidedCheque')).toEqual({
+			step: 5,
+			field: 'Cancelled cheque'
+		});
+		expect(remarkDocument('electricityBill')).toMatchObject({
+			kind: 'organization',
+			key: 'addressProof'
+		});
+	});
+
+	it('keeps kyb.businessPan (the number) on step 1 and businessPan (the card) on step 5', () => {
+		expect(routeToStep('kyb.businessPan')).toBe(1);
+		expect(routeToStep('businessPan')).toBe(5);
+	});
+
+	it('finds the remark for one slot', () => {
+		const verifications = {
+			'directors[0].panDocument': 'Invalid document',
+			gstCertificate: 'Expired',
+			'kyb.cin': 'Not Clear'
+		};
+		expect(directorDocumentRemark(verifications, 0, 'pan')?.message).toBe('Invalid document');
+		expect(directorDocumentRemark(verifications, 0, 'aadhar')).toBeUndefined();
+		expect(directorDocumentRemark(verifications, 1, 'pan')).toBeUndefined();
+		expect(organizationDocumentRemark(verifications, 'gstCertificate')?.key).toBe('gstCertificate');
+		expect(organizationDocumentRemark(verifications, 'aoa')).toBeUndefined();
 	});
 });

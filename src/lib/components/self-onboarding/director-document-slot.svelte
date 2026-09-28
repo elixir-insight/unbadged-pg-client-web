@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { FileUpload } from '$lib/components/reusable';
-	import { CheckCircle2, Loader2 } from '$lib/assets/icons';
+	import { AlertCircle, CheckCircle2, Loader2 } from '$lib/assets/icons';
 	import {
 		MAX_UPLOAD_FILE_SIZE_BYTES,
 		MAX_UPLOAD_FILE_SIZE_LABEL
@@ -14,6 +14,9 @@
 		label,
 		uploadedName = '',
 		invalid = false,
+		remark = '',
+		remarkKey = '',
+		highlighted = false,
 		ensureDirectorId,
 		onuploaded
 	}: {
@@ -27,6 +30,12 @@
 		uploadedName?: string;
 		/** Highlights the slot as missing once the parent form has attempted to continue. */
 		invalid?: boolean;
+		/** Management remark on this document — asks for a replacement until one is uploaded. */
+		remark?: string;
+		/** The remark's `verifications` key — the scroll target for "Fix this". */
+		remarkKey?: string;
+		/** Set while "Fix this" points at this document. */
+		highlighted?: boolean;
 		/** Saves the director when it has no id yet; resolves with the reason when that fails. */
 		ensureDirectorId: () => Promise<{ ok: true; id: number } | { ok: false; error: string }>;
 		onuploaded: (fileName: string) => void;
@@ -34,6 +43,8 @@
 
 	let error = $state('');
 	let uploading = $state(false);
+	/** The file shown in the picker — cleared on failure so it doesn't look accepted. */
+	let pickedFile = $state<File | null>(null);
 	let formEl: HTMLFormElement;
 	let pendingFile: File | null = null;
 	let pendingDirectorId: number | null = null;
@@ -43,6 +54,7 @@
 		if (!file) return;
 		if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
 			error = `File must be ${MAX_UPLOAD_FILE_SIZE_LABEL} or smaller.`;
+			pickedFile = null;
 			return;
 		}
 		uploading = true;
@@ -52,6 +64,7 @@
 			if (!ensured.ok) {
 				uploading = false;
 				error = ensured.error;
+				pickedFile = null;
 				return;
 			}
 			id = ensured.id;
@@ -78,6 +91,7 @@
 				onuploaded(file.name);
 				return;
 			}
+			pickedFile = null;
 			error =
 				result.type === 'failure' &&
 				result.data &&
@@ -98,9 +112,14 @@
 	use:enhance={onUploadEnhance}
 >
 	<div
+		data-remark-field={remarkKey || undefined}
 		class={[
 			'flex items-center gap-2.5 rounded-lg border border-dashed px-3 py-2',
-			invalid && !uploadedName ? 'border-destructive' : 'border-border'
+			remark || highlighted
+				? 'border-warning ring-2 ring-warning/40'
+				: invalid && !uploadedName
+					? 'border-destructive'
+					: 'border-border'
 		]}
 	>
 		<div class="min-w-0 flex-1">
@@ -123,8 +142,21 @@
 			{#if error}
 				<p class="text-xs text-destructive">{error}</p>
 			{/if}
+			{#if remark}
+				<p class="mt-1 flex items-start gap-1.5 text-xs text-warning">
+					<AlertCircle class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+					<span class="min-w-0">
+						<span class="block font-semibold">Management Remark</span>
+						<span class="block">{remark}</span>
+						<span class="block text-muted-foreground">
+							Please update this document based on the management remark.
+						</span>
+					</span>
+				</p>
+			{/if}
 		</div>
 		<FileUpload
+			bind:file={pickedFile}
 			accept=".pdf,.jpeg,.jpg,.png"
 			placeholder={uploadedName ? 'Replace' : 'Upload'}
 			disabled={uploading}

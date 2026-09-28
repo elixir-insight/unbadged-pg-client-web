@@ -16,6 +16,15 @@ function upstreamMessage(message: unknown): string | undefined {
 	return undefined;
 }
 
+/**
+ * The issues that actually failed. A union (e.g. `Array | null`) only reports "expected one of
+ * these" at its own path — the field inside the array that broke it sits in its nested `issues`,
+ * which is what the log needs to show.
+ */
+function leafIssues(issues: readonly v.BaseIssue<unknown>[]): v.BaseIssue<unknown>[] {
+	return issues.flatMap((issue) => (issue.issues?.length ? leafIssues(issue.issues) : [issue]));
+}
+
 export async function apiFetch<TSchema extends v.GenericSchema>(
 	path: string,
 	opts: {
@@ -114,7 +123,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 
 		const parsed = v.safeParse(opts.schema, json);
 		if (!parsed.success) {
-			const issues = parsed.issues.map((issue) => ({
+			const issues = leafIssues(parsed.issues).map((issue) => ({
 				path: issue.path?.map((segment) => segment.key).join('.'),
 				message: issue.message,
 				expected: issue.expected,

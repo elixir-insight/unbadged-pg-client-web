@@ -92,7 +92,12 @@ const IN_PROGRESS_STATUSES = new Set(['', 'DRAFT', 'IN_PROGRESS']);
 
 /** Interprets a raw `profileStatus` string off GET /organization — see extractProfileStatus. */
 export function resolveOnboardingStatus(profileStatus: string): OnboardingStatus {
-	const normalized = profileStatus.trim().toUpperCase();
+	// Same normalization as management's mapStatus (get-organization.ts): "In Progress" and
+	// "IN_PROGRESS" are one status — without it a spaced value falls through to read-only.
+	const normalized = profileStatus
+		.trim()
+		.toUpperCase()
+		.replace(/[\s-]+/g, '_');
 	if (normalized === REMARKED_STATUS) return 'remarked';
 	if (IN_PROGRESS_STATUSES.has(normalized)) return 'in_progress';
 	return 'read_only';

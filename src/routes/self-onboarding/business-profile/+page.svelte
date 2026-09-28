@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
+	import { toKybPayload } from '$lib/api/onboarding';
 	import { Button } from '$lib/components/reusable';
 	import { FieldGrid, FieldRow, FormSection, StepShell } from '$lib/components/self-onboarding';
 	import { advanceFromStep, routeSaveError } from '$lib/components/self-onboarding/navigation';
@@ -36,8 +37,17 @@
 
 	const onSaveEnhance: SubmitFunction = ({ cancel }) => {
 		attempted = true;
+		// Validation first: an invalid field blocks Continue even when nothing changed.
 		if (!canContinue || saving) {
 			cancel();
+			return;
+		}
+		// This PUT also carries the tax & registration fields — skipped only when none of them
+		// changed since the backend last confirmed them either.
+		const payload = toKybPayload(onboarding.formData);
+		if (!onboarding.isDirty('organization', payload)) {
+			cancel();
+			void advanceFromStep(2);
 			return;
 		}
 		saving = true;
@@ -45,6 +55,7 @@
 		return async ({ result }) => {
 			saving = false;
 			if (result.type === 'success') {
+				onboarding.markClean('organization', payload);
 				toast.success('Address saved.');
 				await advanceFromStep(2);
 				return;

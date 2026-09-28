@@ -13,7 +13,7 @@ function form(): OnboardingFormData {
 		businessPan: 'ABCDE1234F',
 		entityType: 'llp',
 		entityName: 'LLP',
-		gstin: '27ABCDE1234F1Z5',
+		gstin: '27ABCPE1234F1ZB',
 		gstinList: [],
 		businessDetails: {
 			companyType: 'LLP',
@@ -75,10 +75,10 @@ describe('toKybPayload', () => {
 		const payload = toKybPayload(form());
 		expect(payload.kyb).toEqual({
 			businessPan: 'ABCDE1234F',
-			gstNumber: '27ABCDE1234F1Z5',
+			gstNumber: '27ABCPE1234F1ZB',
 			cin: '',
 			tan: 'BLRA16345B',
-			businessPhone: '9876543210',
+			businessPhone: '+919876543210',
 			organizationWebsite: 'https://acme.test',
 			industry: 'Retail',
 			communicationAddress: 'Somewhere',
@@ -101,9 +101,39 @@ describe('toKybPayload', () => {
 			aadhar: '234567890123',
 			pan: 'PQRST2345P',
 			email: 'ada@x.test',
-			phoneNumber: '9876543211'
+			phoneNumber: '+919876543211'
 		});
 		expect(directors[1]).toMatchObject({ id: 5, name: 'Bo' });
+	});
+});
+
+describe('toKybPayload phone numbers', () => {
+	// Backend: "Phone numbers must contain country code and be in E.164 format".
+	it('sends business and director phones as +91 E.164, whatever form they were typed in', () => {
+		const data = form();
+		data.businessDetails.phone = '+91 98765 43210';
+		data.directors[0].phone = '09876543211';
+		const payload = toKybPayload(data);
+		expect(payload.kyb.businessPhone).toBe('+919876543210');
+		expect(payload.directors[0].phoneNumber).toBe('+919876543211');
+	});
+});
+
+describe('toKybPayload with masked values', () => {
+	it('leaves out a masked business PAN so the saved one is not overwritten', () => {
+		const data = form();
+		data.businessPan = '**********';
+		expect(toKybPayload(data).kyb).not.toHaveProperty('businessPan');
+	});
+
+	it('leaves out masked director PAN / Aadhaar but keeps the rest', () => {
+		const data = form();
+		data.directors[1].pan = '**********';
+		data.directors[1].aadhaar = '************';
+		const director = toKybPayload(data).directors[1];
+		expect(director).not.toHaveProperty('pan');
+		expect(director).not.toHaveProperty('aadhar');
+		expect(director).toMatchObject({ id: 5, name: 'Bo', email: 'bo@x.test' });
 	});
 });
 
