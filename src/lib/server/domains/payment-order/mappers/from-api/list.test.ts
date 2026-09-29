@@ -161,6 +161,8 @@ describe('payment order list mapper', () => {
 				amount: '4500',
 				createdAt: '2026-07-21T10:05:00.000Z',
 				eventTitle: 'Payment captured',
+				eventDescription: 'Payment captured for client order ID CLIENT-1',
+				gatewayDescription: 'CAPTURED',
 				orderId: 'ORD-1',
 				status: 'CAPTURED'
 			}),
@@ -168,6 +170,7 @@ describe('payment order list mapper', () => {
 				amount: '4500',
 				createdAt: '2026-07-21T10:00:00.000Z',
 				eventTitle: 'Order created',
+				eventDescription: 'payment order created for client order ID 178971662025108',
 				orderId: 'ORD-1',
 				status: 'CREATED'
 			})
@@ -177,7 +180,28 @@ describe('payment order list mapper', () => {
 			'Order created',
 			'Payment captured'
 		]);
+		expect(timeline[0]?.entryDescription).toBe(
+			'payment order created for client order ID 178971662025108'
+		);
+		expect(timeline[1]?.entryDescription).toBe('Payment captured for client order ID CLIENT-1');
 		expect(timeline[1]?.entryType).toBe('payment_completed');
+	});
+
+	it('uses only eventDescription for timeline copy', () => {
+		const timeline = mapPaymentOrderTimeline([
+			v.parse(PaymentOrderTimelineItemSchema, {
+				amount: '4500',
+				createdAt: '2026-07-21T10:00:00.000Z',
+				eventTitle: 'Payment initiation failed',
+				eventDescription: '',
+				gatewayDescription: 'REQUEST_FAILED',
+				orderId: 'ORD-1',
+				status: 'FAILED'
+			})
+		]);
+
+		expect(timeline[0]?.entryDescription).toBe('');
+		expect(timeline[0]?.errorDescription).toBe('');
 	});
 
 	it('aggregates API counts into the visible cards', () => {

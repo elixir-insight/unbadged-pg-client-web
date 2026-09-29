@@ -3,7 +3,7 @@ import {
 	isSessionFailure,
 	requireSession
 } from '$lib/server/domains/organization/mutations/session';
-import { disputeClient } from '../client';
+import { disputeClient, type DisputePortal } from '../client';
 import {
 	emptyDisputePagination,
 	mapChargebackDetailResponse,
@@ -24,8 +24,10 @@ export async function loadChargebacksByOrganization(params: {
 	orgId: string;
 	limit: number;
 	page: number;
+	portal?: DisputePortal;
 }): Promise<ChargebackDetailLoadResult> {
 	const orgId = params.orgId.trim();
+	const portal = params.portal ?? 'management';
 	const empty = {
 		rows: [] as ChargebackDetailRow[],
 		pagination: emptyDisputePagination(params.limit, params.page),
@@ -51,12 +53,13 @@ export async function loadChargebacksByOrganization(params: {
 		session.accessToken,
 		session.gatewayToken,
 		orgId,
-		{ limit: params.limit, page: params.page }
+		{ limit: params.limit, page: params.page },
+		portal
 	);
 
 	if (!result.ok) {
 		params.log.warn(
-			{ orgId, message: result.error.message, kind: result.error.kind },
+			{ orgId, portal, message: result.error.message, kind: result.error.kind },
 			'GET organization chargebacks failed'
 		);
 		return { ...empty, listError: result.error.message };

@@ -19,7 +19,10 @@
 	import DisputeSupportingDocuments from '$lib/components/transactions/disputes/dispute-supporting-documents.svelte';
 	import DisputeTimeline from '$lib/components/transactions/disputes/dispute-timeline.svelte';
 	import RaiseChargebackModal from '$lib/components/transactions/disputes/raise-chargeback-modal.svelte';
-	import { getRaiseChargebackDisabledReason } from '$lib/utils/dispute-status';
+	import {
+		getChangeDisputeStatusDisabledReason,
+		getRaiseChargebackDisabledReason
+	} from '$lib/utils/dispute-status';
 	import { userPermissions } from '$lib/stores/rbac';
 	import { formatDate, formatEvidenceDueByForApi } from '$lib/utils/format-time';
 	import type { PageData } from './$types';
@@ -34,6 +37,15 @@
 			? getRaiseChargebackDisabledReason(dispute.status, Boolean(data.hasChargeback))
 			: 'Dispute details are unavailable.'
 	);
+	const statusChangeLockedReason = $derived(
+		dispute ? getChangeDisputeStatusDisabledReason(dispute.status) : null
+	);
+	const changeStatusDisabledReason = $derived.by(() => {
+		if (!canEdit) return "You don't have permission to perform this action.";
+		if (data.statusOptions.length === 0) return 'No status options are available.';
+		return statusChangeLockedReason;
+	});
+	const changeStatusDisabled = $derived(Boolean(changeStatusDisabledReason));
 	let statusChangeOpen = $state(false);
 	let chargebackOpen = $state(false);
 	let confirmOpen = $state(false);
@@ -362,12 +374,14 @@
 								</div>
 								{@render detailRow('Assigned to', dispute.assignedTo)}
 								{@render detailRow('Raised by', dispute.raisedBy)}
+
 								<div class="grid grid-cols-2 items-center gap-6">
 									<label for="reason-code" class="text-sm font-medium text-foreground">
 										Reason Code
 									</label>
 									<Input id="reason-code" bind:value={reasonCode} placeholder="Enter reason code" />
 								</div>
+
 								{@render detailRow('Resolved by', dispute.resolvedBy)}
 							</fieldset>
 						</div>
@@ -418,7 +432,8 @@
 						status={dispute.status}
 						catalog={data.statusOptions}
 						evidenceDueBy={dispute.evidenceDueByRaw}
-						changeDisabled={!canEdit || data.statusOptions.length === 0}
+						changeDisabled={changeStatusDisabled}
+						changeDisabledReason={changeStatusDisabledReason}
 						onChangeStatus={() => (statusChangeOpen = true)}
 					/>
 				</div>

@@ -113,7 +113,8 @@ export async function loadDisputeById(params: {
 					session.accessToken,
 					session.gatewayToken,
 					orgId,
-					{ limit: 100, page: 0 }
+					{ limit: 100, page: 0 },
+					portal
 				)
 			: Promise.resolve(null)
 	]);
