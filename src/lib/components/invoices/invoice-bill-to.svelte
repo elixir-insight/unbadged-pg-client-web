@@ -1,24 +1,28 @@
 <script lang="ts">
 	import { Pencil, Plus, User } from '$lib/assets/icons';
-	import { Button, Input, Modal, PhoneInput } from '$lib/components/reusable';
+	import { Button, Input, Modal, PhoneInput, Textarea } from '$lib/components/reusable';
 	import { validateInvoiceCustomer, type InvoiceCustomerErrors } from '$lib/validation/invoice';
 
 	let {
 		customerName = $bindable(''),
 		customerEmail = $bindable(''),
 		customerPhone = $bindable(''),
+		customerAddress = $bindable(''),
 		disabled = false,
 		nameError = '',
 		emailError = '',
-		phoneError = ''
+		phoneError = '',
+		addressError = ''
 	}: {
 		customerName?: string;
 		customerEmail?: string;
 		customerPhone?: string;
+		customerAddress?: string;
 		disabled?: boolean;
 		nameError?: string;
 		emailError?: string;
 		phoneError?: string;
+		addressError?: string;
 	} = $props();
 
 	let open = $state(false);
@@ -26,10 +30,11 @@
 	let draftName = $state('');
 	let draftEmail = $state('');
 	let draftPhone = $state('');
+	let draftAddress = $state('');
 	let draftErrors = $state<InvoiceCustomerErrors>({});
 
 	const hasCustomer = $derived(customerName.trim().length > 0);
-	const summaryError = $derived(nameError || emailError || phoneError);
+	const summaryError = $derived(nameError || emailError || phoneError || addressError);
 	const phoneLabel = $derived(formatBillingPhone(customerPhone));
 
 	function formatBillingPhone(phone: string): string {
@@ -45,6 +50,7 @@
 		draftName = '';
 		draftEmail = '';
 		draftPhone = '';
+		draftAddress = '';
 		draftErrors = {};
 		open = true;
 	}
@@ -55,6 +61,7 @@
 		draftName = customerName;
 		draftEmail = customerEmail;
 		draftPhone = customerPhone;
+		draftAddress = customerAddress;
 		draftErrors = {};
 		open = true;
 	}
@@ -64,14 +71,23 @@
 		const errors = validateInvoiceCustomer({
 			customerName: draftName,
 			customerEmail: draftEmail,
-			customerPhone: draftPhone
+			customerPhone: draftPhone,
+			customerAddress: draftAddress
 		});
 		draftErrors = errors;
-		if (errors.customerName || errors.customerEmail || errors.customerPhone) return;
+		if (
+			errors.customerName ||
+			errors.customerEmail ||
+			errors.customerPhone ||
+			errors.customerAddress
+		) {
+			return;
+		}
 
 		customerName = draftName.trim();
 		customerEmail = draftEmail.trim();
 		customerPhone = draftPhone.trim();
+		customerAddress = draftAddress.trim();
 		open = false;
 	}
 </script>
@@ -87,6 +103,9 @@
 			</div>
 			<div class="min-w-0 flex-1">
 				<p class="truncate text-sm font-semibold text-foreground">{customerName}</p>
+				{#if customerAddress.trim()}
+					<p class="truncate text-xs text-muted-foreground">{customerAddress}</p>
+				{/if}
 				<p class="truncate text-xs text-muted-foreground">
 					{customerEmail}
 					{#if phoneLabel}
@@ -121,7 +140,7 @@
 			</div>
 			<div class="min-w-0">
 				<p class="text-sm font-medium text-foreground">Add billing details</p>
-				<p class="text-xs text-muted-foreground">Name, email, and mobile</p>
+				<p class="text-xs text-muted-foreground">Name, address, email, and mobile</p>
 			</div>
 		</button>
 	{/if}
@@ -134,7 +153,7 @@
 <Modal
 	bind:open
 	title={editing ? 'Edit billing details' : 'Add billing details'}
-	description="Customer name, email, and mobile for this invoice."
+	description="Customer name, address, email, and mobile for this invoice."
 >
 	<form id="invoice-bill-to-form" class="flex flex-col gap-4 py-2" onsubmit={saveCustomer}>
 		<div class="flex flex-col gap-1.5">
@@ -144,6 +163,20 @@
 			<Input id="invoice-bill-customer-name" placeholder="Customer name" bind:value={draftName} />
 			{#if draftErrors.customerName}
 				<p class="text-xs text-destructive">{draftErrors.customerName}</p>
+			{/if}
+		</div>
+		<div class="flex flex-col gap-1.5">
+			<label for="invoice-bill-customer-address" class="text-sm font-medium text-foreground">
+				Address <span class="text-destructive">*</span>
+			</label>
+			<Textarea
+				id="invoice-bill-customer-address"
+				placeholder="Customer address"
+				rows={3}
+				bind:value={draftAddress}
+			/>
+			{#if draftErrors.customerAddress}
+				<p class="text-xs text-destructive">{draftErrors.customerAddress}</p>
 			{/if}
 		</div>
 		<div class="flex flex-col gap-1.5">

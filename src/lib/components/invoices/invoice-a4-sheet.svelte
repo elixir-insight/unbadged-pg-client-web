@@ -1,14 +1,17 @@
 <script lang="ts">
 	import InvoiceBill from './invoice-bill.svelte';
-	import { mockInvoiceIssuer } from '$lib/data/invoices-mock';
 	import type { Invoice } from '$lib/types/invoice';
 	import { cn } from '$lib/utils';
 
 	let {
 		invoice,
+		issuerName = '',
+		issuerGstin = '',
 		class: className
 	}: {
 		invoice: Invoice;
+		issuerName?: string;
+		issuerGstin?: string;
 		class?: string;
 	} = $props();
 </script>
@@ -24,14 +27,14 @@
 		customerName={invoice.customerName}
 		customerEmail={invoice.customerEmail}
 		customerPhone={invoice.customerPhone}
+		customerAddress={invoice.customerAddress}
 		dueDate={invoice.dueDate}
 		issuedDate={invoice.createdAt.slice(0, 10)}
 		description={invoice.description}
 		amount={invoice.amount}
 		items={invoice.items ?? []}
-		issuerName={mockInvoiceIssuer.brandName}
-		issuerAddress={mockInvoiceIssuer.address}
-		issuerGstin={mockInvoiceIssuer.gstin}
+		{issuerName}
+		{issuerGstin}
 		class="flex-1"
 	/>
 </div>

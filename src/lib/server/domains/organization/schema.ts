@@ -273,7 +273,8 @@ export const OrganizationProfileRecordSchema = v.object({
 	country: v.string(),
 	registeredDate: v.string(),
 	website: v.string(),
-	username: v.string()
+	username: v.string(),
+	gstNumber: v.optional(v.nullable(v.string()), '')
 });
 
 export const GetOrganizationProfileResponseSchema = v.object({

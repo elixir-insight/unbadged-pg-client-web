@@ -19,6 +19,7 @@
 			name: 'Consulting',
 			description: '',
 			amount: '3000',
+			quantity: '2',
 			taxPercent: '0'
 		},
 		{
@@ -26,6 +27,7 @@
 			name: 'Hardware',
 			description: '',
 			amount: '1500',
+			quantity: '1',
 			taxPercent: '0'
 		}
 	]);

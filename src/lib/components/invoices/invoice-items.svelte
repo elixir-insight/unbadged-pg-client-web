@@ -3,6 +3,8 @@
 	import { Button, Input, Modal } from '$lib/components/reusable';
 	import {
 		createEmptyInvoiceLineItem,
+		lineItemQuantity,
+		lineItemTotal,
 		toInvoiceAmountString,
 		validateInvoiceLineItem,
 		type InvoiceFormLineItem,
@@ -23,6 +25,7 @@
 	let editingId = $state<string | null>(null);
 	let draftName = $state('');
 	let draftAmount = $state('');
+	let draftQuantity = $state('1');
 	let draftErrors = $state<InvoiceLineItemErrors>({});
 
 	const isEditing = $derived(editingId !== null);
@@ -32,6 +35,7 @@
 		editingId = null;
 		draftName = '';
 		draftAmount = '';
+		draftQuantity = '1';
 		draftErrors = {};
 		open = true;
 	}
@@ -41,6 +45,7 @@
 		editingId = item.id;
 		draftName = item.name;
 		draftAmount = item.amount;
+		draftQuantity = item.quantity || '1';
 		draftErrors = {};
 		open = true;
 	}
@@ -51,16 +56,18 @@
 			name: draftName,
 			description: '',
 			amount: draftAmount,
+			quantity: draftQuantity,
 			taxPercent: '0'
 		});
 		draftErrors = errors;
-		if (errors.name || errors.amount) return;
+		if (errors.name || errors.amount || errors.quantity) return;
 
 		const next: InvoiceFormLineItem = {
 			id: editingId ?? createEmptyInvoiceLineItem().id,
 			name: draftName.trim(),
 			description: '',
 			amount: toInvoiceAmountString(draftAmount),
+			quantity: String(lineItemQuantity({ quantity: draftQuantity })),
 			taxPercent: '0'
 		};
 
@@ -85,6 +92,12 @@
 			maximumFractionDigits: 2
 		}).format(amount);
 	}
+
+	function displayLineTotal(item: InvoiceFormLineItem): string {
+		const total = lineItemTotal(item);
+		if (total <= 0) return '—';
+		return displayAmountValue(String(total));
+	}
 </script>
 
 <div class="flex flex-col gap-4">
@@ -108,7 +121,7 @@
 			</div>
 			<div class="min-w-0">
 				<p class="text-sm font-medium text-foreground">Add product details</p>
-				<p class="text-xs text-muted-foreground">Name and amount</p>
+				<p class="text-xs text-muted-foreground">Name, quantity, and amount</p>
 			</div>
 		</button>
 	{:else}
@@ -126,6 +139,9 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<p class="truncate text-sm font-semibold text-foreground">{item.name}</p>
+							<p class="text-xs text-muted-foreground">
+								Qty {lineItemQuantity(item) || 1} · ₹{displayAmountValue(item.amount)} each
+							</p>
 						</div>
 					</div>
 
@@ -133,7 +149,7 @@
 						<div
 							class="relative flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-background px-3 text-sm text-foreground sm:w-40 sm:flex-none"
 						>
-							<span class="truncate">{displayAmountValue(item.amount)}</span>
+							<span class="truncate">{displayLineTotal(item)}</span>
 							<span
 								class="ml-auto flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"
 								aria-hidden="true"
@@ -189,7 +205,7 @@
 <Modal
 	bind:open
 	title={isEditing ? 'Edit product details' : 'Add product details'}
-	description="Item name and amount for this invoice line."
+	description="Item name, quantity, and unit amount for this invoice line."
 >
 	<form id="invoice-item-form" class="flex flex-col gap-4 py-2" onsubmit={saveItem}>
 		<div class="flex flex-col gap-1.5">
@@ -201,29 +217,47 @@
 				<p class="text-xs text-destructive">{draftErrors.name}</p>
 			{/if}
 		</div>
-		<div class="flex flex-col gap-1.5">
-			<label for="invoice-item-amount" class="text-sm font-medium text-foreground">
-				Amount <span class="text-destructive">*</span>
-			</label>
-			<div class="relative">
-				<span
-					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
-				>
-					₹
-				</span>
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<div class="flex flex-col gap-1.5">
+				<label for="invoice-item-quantity" class="text-sm font-medium text-foreground">
+					Quantity <span class="text-destructive">*</span>
+				</label>
 				<Input
-					id="invoice-item-amount"
+					id="invoice-item-quantity"
 					type="number"
-					min="0"
-					step="0.01"
-					placeholder="0.00"
-					bind:value={draftAmount}
-					class="pl-7"
+					min="1"
+					step="1"
+					placeholder="1"
+					bind:value={draftQuantity}
 				/>
+				{#if draftErrors.quantity}
+					<p class="text-xs text-destructive">{draftErrors.quantity}</p>
+				{/if}
 			</div>
-			{#if draftErrors.amount}
-				<p class="text-xs text-destructive">{draftErrors.amount}</p>
-			{/if}
+			<div class="flex flex-col gap-1.5">
+				<label for="invoice-item-amount" class="text-sm font-medium text-foreground">
+					Unit price <span class="text-destructive">*</span>
+				</label>
+				<div class="relative">
+					<span
+						class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
+					>
+						₹
+					</span>
+					<Input
+						id="invoice-item-amount"
+						type="number"
+						min="0"
+						step="0.01"
+						placeholder="0.00"
+						bind:value={draftAmount}
+						class="pl-7"
+					/>
+				</div>
+				{#if draftErrors.amount}
+					<p class="text-xs text-destructive">{draftErrors.amount}</p>
+				{/if}
+			</div>
 		</div>
 	</form>
 	{#snippet footer()}

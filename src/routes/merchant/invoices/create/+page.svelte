@@ -12,16 +12,20 @@
 		toast
 	} from '$lib/components/reusable';
 	import { InvoiceBillTo, InvoiceItems, InvoicePreview } from '$lib/components/invoices';
-	import { mockInvoiceIssuer } from '$lib/data/invoices-mock';
+	import { createInvoiceRequest, InvoiceReferenceConflictError } from '$lib/api/invoices';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import {
 		PAYMENT_LINK_ALLOWED_METHODS,
 		PAYMENT_LINK_METHOD_OPTIONS,
-		type PaymentLinkAllowedMethod
+		type PaymentLinkAllowedMethod,
+		type PaymentLinkDeliveryMethod
 	} from '$lib/types/payment-link';
+	import { toExpiryUtcIso } from '$lib/utils/payment-link-expiry';
 	import {
 		firstInvoiceValidationError,
 		invoiceItemsDescription,
 		invoiceItemsSubtotal,
+		lineItemQuantity,
 		toInvoiceAmountString,
 		validateCreateInvoiceForm,
 		type CreateInvoiceFormValues,
@@ -34,14 +38,24 @@
 		persistCreatedInvoice
 	} from '$lib/utils/invoices-store';
 	import type { Invoice, InvoiceLineItem } from '$lib/types/invoice';
+	import type { PageData } from './$types';
 
+	let { data }: { data: PageData } = $props();
+
+	const DEFAULT_EXPIRE_AT = '23:59';
 	const expiryMinDate = today(getLocalTimeZone());
 	const fieldLabel = 'text-sm font-medium text-muted-foreground';
+
+	const issuerName = $derived(
+		data.issuer?.name?.trim() || merchantSession.session?.merchantName?.trim() || 'Merchant'
+	);
+	const issuerGstin = $derived(data.issuer?.gstNumber?.trim() || '');
 
 	let invoiceNumber = $state('');
 	let customerName = $state('');
 	let customerEmail = $state('');
 	let customerPhone = $state('');
+	let customerAddress = $state('');
 	let items = $state<InvoiceFormLineItem[]>([]);
 	let dueDate = $state(today(getLocalTimeZone()).add({ days: 14 }).toString());
 	let allowedPaymentMethods = $state<string[]>([...PAYMENT_LINK_ALLOWED_METHODS]);
@@ -55,6 +69,7 @@
 		customerName,
 		customerEmail,
 		customerPhone,
+		customerAddress,
 		items,
 		dueDate,
 		allowedPaymentMethods,
@@ -73,6 +88,7 @@
 				name: item.name.trim() || 'Item',
 				description: item.description.trim(),
 				amount: Number(toInvoiceAmountString(item.amount)) || 0,
+				quantity: lineItemQuantity(item) || 1,
 				taxPercent: Number(toInvoiceAmountString(item.taxPercent)) || 0
 			}))
 	);
@@ -87,7 +103,18 @@
 		);
 	}
 
-	function handleSubmit(event: Event) {
+	function selectedDeliveryMethods(): PaymentLinkDeliveryMethod[] {
+		const methods: PaymentLinkDeliveryMethod[] = [];
+		if (notifyEmail) methods.push('EMAIL');
+		if (notifySms) methods.push('SMS');
+		return methods;
+	}
+
+	function formatAmountForApi(value: number): string {
+		return value.toFixed(2);
+	}
+
+	async function handleSubmit(event: Event) {
 		event.preventDefault();
 		if (submitting) return;
 		submitAttempted = true;
@@ -102,41 +129,91 @@
 		const now = new Date();
 		const id = createInvoiceId();
 		const number = invoiceNumber.trim();
+		const methods = selectedMethods(allowedPaymentMethods);
+		const deliveryMethods = selectedDeliveryMethods();
+		const address = customerAddress.trim();
 		const lineItems: InvoiceLineItem[] = items.map((item) => ({
 			id: item.id,
 			name: item.name.trim(),
 			description: item.description.trim(),
 			amount: Number(toInvoiceAmountString(item.amount)),
+			quantity: lineItemQuantity(item) || 1,
 			taxPercent: Number(toInvoiceAmountString(item.taxPercent)) || 0
 		}));
-		const invoice: Invoice = {
-			id,
-			invoiceNumber: number,
-			createdAt: now.toISOString(),
-			createdAtMs: now.getTime(),
-			amount: invoiceItemsSubtotal(items),
-			description: invoiceItemsDescription(items),
-			items: lineItems,
-			status: 'issued',
-			receiptNo: number,
-			dueDate,
-			customerName: customerName.trim(),
-			customerEmail: customerEmail.trim(),
-			customerPhone: customerPhone.trim(),
-			paymentLinkUrl: `https://pay.example.com/inv/${id}`,
-			allowedPaymentMethods: selectedMethods(allowedPaymentMethods),
-			notifyEmail,
-			notifySms,
-			transactionId: null,
-			createdBy: 'Merchant Admin'
-		};
+		const amountValue = formatAmountForApi(invoiceItemsSubtotal(items));
+		const descriptionValue = invoiceItemsDescription(items);
+		const expiresBy = toExpiryUtcIso(dueDate, DEFAULT_EXPIRE_AT);
+		const customerPhoneE164 = `+91${customerPhone.trim()}`;
+		const merchantName = issuerName;
+		const gstNumber = issuerGstin;
 
-		persistCreatedInvoice(invoice);
-		toast.success('Invoice sent', {
-			description: notifyEmail || notifySms ? 'The customer has been notified.' : undefined
-		});
-		submitting = false;
-		goto(resolve('/merchant/invoices'));
+		if (!gstNumber) {
+			toast.error('GST number not found on your organization profile.');
+			submitting = false;
+			return;
+		}
+
+		try {
+			const created = await createInvoiceRequest({
+				amount: amountValue,
+				description: descriptionValue,
+				referenceId: id,
+				customerName: customerName.trim(),
+				customerEmail: customerEmail.trim(),
+				customerPhone: customerPhoneE164,
+				customerAddress: address,
+				allowedPaymentMethods: methods,
+				deliveryMethods,
+				expiresBy,
+				items: lineItems.map((item) => ({
+					itemName: item.name,
+					price: formatAmountForApi(item.amount),
+					quantity: item.quantity,
+					total: formatAmountForApi(item.amount * item.quantity)
+				})),
+				merchantName,
+				gstNumber
+			});
+
+			const invoice: Invoice = {
+				id,
+				invoiceNumber: number,
+				createdAt: now.toISOString(),
+				createdAtMs: now.getTime(),
+				amount: invoiceItemsSubtotal(items),
+				description: descriptionValue,
+				items: lineItems,
+				status: 'issued',
+				receiptNo: number,
+				dueDate,
+				customerName: customerName.trim(),
+				customerEmail: customerEmail.trim(),
+				customerPhone: customerPhone.trim(),
+				customerAddress: address,
+				paymentLinkUrl: created.invoiceUrl,
+				allowedPaymentMethods: methods,
+				notifyEmail,
+				notifySms,
+				transactionId: null,
+				createdBy: merchantName
+			};
+
+			persistCreatedInvoice(invoice);
+			toast.success(created.message || 'Invoice sent', {
+				description: deliveryMethods.length > 0 ? 'The customer has been notified.' : undefined
+			});
+			goto(resolve('/merchant/invoices'));
+		} catch (error) {
+			const message =
+				error instanceof InvoiceReferenceConflictError
+					? error.message
+					: error instanceof Error
+						? error.message
+						: 'Unable to create invoice. Please try again.';
+			toast.error(message);
+		} finally {
+			submitting = false;
+		}
 	}
 </script>
 
@@ -147,6 +224,10 @@
 			{submitting ? 'Sending…' : 'Send Invoice'}
 		</Button>
 	</div>
+
+	{#if data.issuerError}
+		<p class="text-sm text-destructive print:hidden" role="alert">{data.issuerError}</p>
+	{/if}
 
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		<form id="create-invoice-form" class="flex flex-col print:hidden" onsubmit={handleSubmit}>
@@ -161,10 +242,12 @@
 						bind:customerName
 						bind:customerEmail
 						bind:customerPhone
+						bind:customerAddress
 						disabled={submitting}
 						nameError={fieldErrors.customerName ?? ''}
 						emailError={fieldErrors.customerEmail ?? ''}
 						phoneError={fieldErrors.customerPhone ?? ''}
+						addressError={fieldErrors.customerAddress ?? ''}
 					/>
 				</div>
 
@@ -250,14 +333,14 @@
 				{customerName}
 				{customerEmail}
 				{customerPhone}
+				{customerAddress}
 				{dueDate}
 				issuedDate={new Date().toISOString().slice(0, 10)}
 				{description}
 				amount={parsedAmount}
 				items={previewItems}
-				issuerName={mockInvoiceIssuer.brandName}
-				issuerAddress={mockInvoiceIssuer.address}
-				issuerGstin={mockInvoiceIssuer.gstin}
+				{issuerName}
+				{issuerGstin}
 			/>
 		</section>
 	</div>

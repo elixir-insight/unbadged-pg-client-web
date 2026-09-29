@@ -8,6 +8,7 @@ export interface InvoiceFormLineItem {
 	name: string;
 	description: string;
 	amount: string;
+	quantity: string;
 	taxPercent: string;
 }
 
@@ -16,6 +17,7 @@ export interface CreateInvoiceFormValues {
 	customerName: string;
 	customerEmail: string;
 	customerPhone: string;
+	customerAddress: string;
 	items: InvoiceFormLineItem[];
 	dueDate: string;
 	allowedPaymentMethods: string[];
@@ -38,14 +40,22 @@ export function createEmptyInvoiceLineItem(): InvoiceFormLineItem {
 		name: '',
 		description: '',
 		amount: '',
+		quantity: '1',
 		taxPercent: '0'
 	};
 }
 
-export function lineItemTotal(item: Pick<InvoiceFormLineItem, 'amount'>): number {
+export function lineItemQuantity(item: Pick<InvoiceFormLineItem, 'quantity'>): number {
+	const quantity = Number(toInvoiceAmountString(item.quantity));
+	if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+	return Math.floor(quantity);
+}
+
+export function lineItemTotal(item: Pick<InvoiceFormLineItem, 'amount' | 'quantity'>): number {
 	const amount = Number(toInvoiceAmountString(item.amount));
-	if (!Number.isFinite(amount) || amount <= 0) return 0;
-	return amount;
+	const quantity = lineItemQuantity(item);
+	if (!Number.isFinite(amount) || amount <= 0 || quantity <= 0) return 0;
+	return amount * quantity;
 }
 
 export function invoiceItemsSubtotal(items: InvoiceFormLineItem[]): number {
@@ -64,7 +74,7 @@ export function invoiceItemsDescription(items: InvoiceFormLineItem[]): string {
 		.join('; ');
 }
 
-export type InvoiceLineItemField = 'name' | 'description' | 'amount' | 'taxPercent';
+export type InvoiceLineItemField = 'name' | 'description' | 'amount' | 'quantity' | 'taxPercent';
 export type InvoiceLineItemErrors = Partial<Record<InvoiceLineItemField, string>>;
 
 export function validateInvoiceLineItem(
@@ -84,10 +94,19 @@ export function validateInvoiceLineItem(
 		errors.amount = 'Enter an amount greater than zero';
 	}
 
+	const quantityRaw = toInvoiceAmountString(values.quantity);
+	const quantity = Number(quantityRaw);
+	if (!quantityRaw) {
+		errors.quantity = 'Quantity is required';
+	} else if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity < 1) {
+		errors.quantity = 'Enter a whole number of at least 1';
+	}
+
 	return errors;
 }
 
-export type InvoiceCustomerField = 'customerName' | 'customerEmail' | 'customerPhone';
+export type InvoiceCustomerField =
+	'customerName' | 'customerEmail' | 'customerPhone' | 'customerAddress';
 export type InvoiceCustomerErrors = Partial<Record<InvoiceCustomerField, string>>;
 
 export function validateInvoiceCustomer(
@@ -114,6 +133,10 @@ export function validateInvoiceCustomer(
 		errors.customerPhone = 'Enter a valid 10-digit phone number';
 	}
 
+	if (!values.customerAddress.trim()) {
+		errors.customerAddress = 'Customer address is required';
+	}
+
 	return errors;
 }
 
@@ -134,7 +157,7 @@ export function validateCreateInvoiceForm(values: CreateInvoiceFormValues): Crea
 			(item) => Object.keys(validateInvoiceLineItem(item)).length > 0
 		);
 		if (incomplete) {
-			errors.items = 'Each item needs a name and an amount greater than zero';
+			errors.items = 'Each item needs a name, quantity, and an amount greater than zero';
 		}
 	}
 
@@ -172,6 +195,7 @@ export function firstInvoiceValidationError(errors: CreateInvoiceErrors): string
 		errors.customerName ??
 		errors.customerEmail ??
 		errors.customerPhone ??
+		errors.customerAddress ??
 		errors.items ??
 		errors.description ??
 		errors.amount ??

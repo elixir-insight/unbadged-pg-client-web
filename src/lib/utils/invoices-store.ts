@@ -75,6 +75,7 @@ function normalizeInvoice(value: unknown): Invoice | null {
 		customerName: row.customerName,
 		customerEmail: row.customerEmail,
 		customerPhone: row.customerPhone,
+		customerAddress: typeof row.customerAddress === 'string' ? row.customerAddress : '',
 		paymentLinkUrl: typeof row.paymentLinkUrl === 'string' ? row.paymentLinkUrl : null,
 		allowedPaymentMethods: methods.filter(
 			(method): method is Invoice['allowedPaymentMethods'][number] =>

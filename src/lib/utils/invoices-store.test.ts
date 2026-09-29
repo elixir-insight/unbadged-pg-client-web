@@ -71,6 +71,7 @@ describe('validateCreateInvoiceForm', () => {
 			customerName: '',
 			customerEmail: 'bad',
 			customerPhone: '123',
+			customerAddress: '',
 			items: [],
 			dueDate: '',
 			allowedPaymentMethods: [],
@@ -81,6 +82,7 @@ describe('validateCreateInvoiceForm', () => {
 		expect(errors.customerName).toBeDefined();
 		expect(errors.customerEmail).toBeDefined();
 		expect(errors.customerPhone).toBeDefined();
+		expect(errors.customerAddress).toBeDefined();
 		expect(errors.items).toBeDefined();
 		expect(errors.dueDate).toBeDefined();
 		expect(errors.allowedPaymentMethods).toBeDefined();

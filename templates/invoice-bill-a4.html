@@ -228,8 +228,8 @@
       issuedDate: string (display format)
       dueDate: string (display format)
 
-      issuer: { name, address?, gstin? }
-      customer: { name, email?, phone? }
+      issuer: { name, gstin? }
+      customer: { name, address?, email?, phone? }
 
       items: Array<{ name: string, quantity: number, unitPrice: number, total: number }>
       subtotal: number
@@ -251,13 +251,13 @@
 				<div>
 					<p class="party-label">Billed By :</p>
 					<p class="party-name">Your Company</p>
-					<p class="party-line">12 Residency Road, Bengaluru, Karnataka 560025</p>
 					<p class="party-line">GSTIN — 29AABCU9603R1ZM</p>
 					<p class="party-date">Date Issued : <strong>28 September 2026</strong></p>
 				</div>
 				<div>
 					<p class="party-label">Billed To :</p>
 					<p class="party-name">Customer Name</p>
+					<p class="party-line">18 Residency Road, Bengaluru, Karnataka 560025</p>
 					<p class="party-line">customer@example.com</p>
 					<p class="party-line">+91 98765 43210</p>
 					<p class="party-date">Due Date : <strong>12 October 2026</strong></p>

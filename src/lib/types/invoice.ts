@@ -25,6 +25,7 @@ export interface InvoiceLineItem {
 	name: string;
 	description: string;
 	amount: number;
+	quantity: number;
 	taxPercent: number;
 }
 
@@ -42,6 +43,7 @@ export interface Invoice {
 	customerName: string;
 	customerEmail: string;
 	customerPhone: string;
+	customerAddress: string;
 	paymentLinkUrl: string | null;
 	allowedPaymentMethods: PaymentLinkAllowedMethod[];
 	notifyEmail: boolean;

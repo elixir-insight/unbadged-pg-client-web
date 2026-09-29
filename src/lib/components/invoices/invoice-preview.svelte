@@ -7,26 +7,26 @@
 		customerName = '',
 		customerEmail = '',
 		customerPhone = '',
+		customerAddress = '',
 		dueDate = '',
 		issuedDate = '',
 		description = '',
 		amount = 0,
 		items = [],
 		issuerName = '',
-		issuerAddress = '',
 		issuerGstin = ''
 	}: {
 		invoiceNumber?: string;
 		customerName?: string;
 		customerEmail?: string;
 		customerPhone?: string;
+		customerAddress?: string;
 		dueDate?: string;
 		issuedDate?: string;
 		description?: string;
 		amount?: number;
 		items?: InvoiceLineItem[];
 		issuerName?: string;
-		issuerAddress?: string;
 		issuerGstin?: string;
 	} = $props();
 </script>
@@ -42,13 +42,13 @@
 			{customerName}
 			{customerEmail}
 			{customerPhone}
+			{customerAddress}
 			{dueDate}
 			{issuedDate}
 			{description}
 			{amount}
 			{items}
 			{issuerName}
-			{issuerAddress}
 			{issuerGstin}
 			class="flex-1"
 		/>

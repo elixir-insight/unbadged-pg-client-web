@@ -9,13 +9,13 @@
 		customerName = '',
 		customerEmail = '',
 		customerPhone = '',
+		customerAddress = '',
 		dueDate = '',
 		issuedDate = '',
 		description = '',
 		amount = 0,
 		items = [],
 		issuerName = '',
-		issuerAddress = '',
 		issuerGstin = '',
 		class: className
 	}: {
@@ -23,13 +23,13 @@
 		customerName?: string;
 		customerEmail?: string;
 		customerPhone?: string;
+		customerAddress?: string;
 		dueDate?: string;
 		issuedDate?: string;
 		description?: string;
 		amount?: number;
 		items?: InvoiceLineItem[];
 		issuerName?: string;
-		issuerAddress?: string;
 		issuerGstin?: string;
 		class?: string;
 	} = $props();
@@ -38,6 +38,7 @@
 	const displayName = $derived(customerName.trim() || 'Customer name');
 	const displayEmail = $derived(customerEmail.trim() || 'email@example.com');
 	const displayPhone = $derived(formatPhone(customerPhone));
+	const displayAddress = $derived(customerAddress.trim());
 	const displayDue = $derived(dueDate.trim() ? formatInvoiceDueDate(dueDate) : '—');
 	const displayIssued = $derived(
 		issuedDate.trim()
@@ -45,7 +46,6 @@
 			: formatInvoiceDueDate(new Date().toISOString().slice(0, 10))
 	);
 	const displayIssuer = $derived(issuerName.trim() || 'Issuer');
-	const displayIssuerAddress = $derived(issuerAddress.trim());
 	const displayGstin = $derived(issuerGstin.trim());
 
 	const lineItems = $derived.by(() => {
@@ -57,13 +57,18 @@
 				name: description.trim(),
 				description: '',
 				amount,
+				quantity: 1,
 				taxPercent: 0
 			} satisfies InvoiceLineItem
 		].filter((item) => item.name.length > 0 || item.amount > 0);
 	});
 
 	const subtotal = $derived(
-		lineItems.reduce((sum, item) => sum + (item.amount > 0 ? item.amount : 0), 0)
+		lineItems.reduce((sum, item) => {
+			const quantity = item.quantity > 0 ? item.quantity : 0;
+			const unitPrice = item.amount > 0 ? item.amount : 0;
+			return sum + unitPrice * quantity;
+		}, 0)
 	);
 	const grandTotal = $derived(subtotal);
 
@@ -75,6 +80,15 @@
 
 	function itemLabel(item: InvoiceLineItem): string {
 		return item.name.trim() || '—';
+	}
+
+	function itemQuantity(item: InvoiceLineItem): number {
+		return item.quantity > 0 ? item.quantity : 1;
+	}
+
+	function itemTotal(item: InvoiceLineItem): number {
+		const unitPrice = item.amount > 0 ? item.amount : 0;
+		return unitPrice * itemQuantity(item);
 	}
 
 	function formatMoney(value: number): string {
@@ -101,9 +115,6 @@
 			<div>
 				<p class="text-muted-foreground">Billed By :</p>
 				<p class="mt-0.5 font-semibold text-foreground">{displayIssuer}</p>
-				{#if displayIssuerAddress}
-					<p class="mt-0.5 text-muted-foreground">{displayIssuerAddress}</p>
-				{/if}
 				{#if displayGstin}
 					<p class="text-muted-foreground">GSTIN — {displayGstin}</p>
 				{/if}
@@ -120,6 +131,9 @@
 			<div>
 				<p class="text-muted-foreground">Billed To :</p>
 				<p class="mt-0.5 font-semibold text-foreground">{displayName}</p>
+				{#if displayAddress}
+					<p class="mt-0.5 whitespace-pre-line text-muted-foreground">{displayAddress}</p>
+				{/if}
 				<p class="mt-0.5 text-muted-foreground">{displayEmail}</p>
 				{#if displayPhone}
 					<p class="text-muted-foreground">{displayPhone}</p>
@@ -153,12 +167,14 @@
 							<td class="py-2 pr-3 align-top">
 								<p class="font-medium text-foreground">{itemLabel(item)}</p>
 							</td>
-							<td class="py-2 pr-3 text-center align-top text-foreground">1</td>
+							<td class="py-2 pr-3 text-center align-top text-foreground">
+								{itemQuantity(item)}
+							</td>
 							<td class="py-2 pr-3 text-right align-top text-foreground">
 								{item.amount > 0 ? formatInvoiceAmount(item.amount) : '—'}
 							</td>
 							<td class="py-2 text-right align-top font-medium text-foreground">
-								{item.amount > 0 ? formatInvoiceAmount(item.amount) : '—'}
+								{itemTotal(item) > 0 ? formatInvoiceAmount(itemTotal(item)) : '—'}
 							</td>
 						</tr>
 					{/each}

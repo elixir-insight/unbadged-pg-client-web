@@ -13,9 +13,11 @@
 	let emptyName = $state('');
 	let emptyEmail = $state('');
 	let emptyPhone = $state('');
+	let emptyAddress = $state('');
 	let savedName = $state('Jason Momoa');
 	let savedEmail = $state('jason@example.com');
 	let savedPhone = $state('9876543210');
+	let savedAddress = $state('18 Residency Road, Bengaluru, Karnataka 560025');
 </script>
 
 <Story name="Empty">
@@ -25,6 +27,7 @@
 				bind:customerName={emptyName}
 				bind:customerEmail={emptyEmail}
 				bind:customerPhone={emptyPhone}
+				bind:customerAddress={emptyAddress}
 			/>
 		</div>
 	{/snippet}
@@ -37,6 +40,7 @@
 				bind:customerName={savedName}
 				bind:customerEmail={savedEmail}
 				bind:customerPhone={savedPhone}
+				bind:customerAddress={savedAddress}
 			/>
 		</div>
 	{/snippet}

@@ -53,6 +53,7 @@ function seedInvoice(
 		customerName: 'Acme Enterprise',
 		customerEmail: 'billing@acme.example',
 		customerPhone: '9876501234',
+		customerAddress: '42 Industrial Layout, Bengaluru, Karnataka 560025',
 		paymentLinkUrl: hasLink ? buildLink(id) : null,
 		allowedPaymentMethods: [...PAYMENT_LINK_ALLOWED_METHODS],
 		notifyEmail: true,

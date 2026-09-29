@@ -42,8 +42,14 @@
 	} from '$lib/utils/invoices-store';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	type StatusTab = keyof InvoiceCounts;
+
+	const issuerName = $derived(data.issuer?.name?.trim() || 'Merchant');
+	const issuerGstin = $derived(data.issuer?.gstNumber?.trim() || '');
 
 	const summaryCards: { label: StatusTab; status: InvoiceStatus | null }[] = [
 		{ label: 'All', status: null },
@@ -328,7 +334,7 @@
 
 {#if selectedInvoice}
 	<div class="invoice-print-root hidden print:block">
-		<InvoiceA4Sheet invoice={selectedInvoice} />
+		<InvoiceA4Sheet invoice={selectedInvoice} {issuerName} {issuerGstin} />
 	</div>
 {/if}
 
