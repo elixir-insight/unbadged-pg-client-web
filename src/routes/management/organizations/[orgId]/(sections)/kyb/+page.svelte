@@ -1,11 +1,27 @@
 <script lang="ts">
 	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import KybReviewPage from '$lib/kyb-review/KybReviewPage.svelte';
+	import type { ProfileFormOptions } from '$lib/kyb-review/profile';
 	import ExistingKybForm from './existing-kyb-form.svelte';
+	// Same service/affiliate choices the create-organization profile step offers.
+	import {
+		affiliatesByPipeline,
+		availableServiceTypes
+	} from '../../../create-organization/constants';
 
 	let { data } = $props();
 
 	const inReview = $derived(data.kybReview.organization.status === 'IN_REVIEW');
+
+	const profileOptions = $derived<ProfileFormOptions>({
+		availableServiceTypes,
+		bankPipelinesByService: {
+			'Pay-Ins': data.kybReview.pipelines.payin,
+			Payouts: data.kybReview.pipelines.payout
+		},
+		affiliatesByPipeline,
+		pipelinesError: data.kybReview.pipelines.error
+	});
 
 	let reviewPage = $state<KybReviewPage>();
 	let bypassNavigation = false;
@@ -34,6 +50,7 @@
 			organization={data.kybReview.organization}
 			sections={data.kybReview.sections}
 			verifications={data.kybReview.verifications}
+			{profileOptions}
 			bind:this={reviewPage}
 			onContinue={continueTo}
 		/>

@@ -22,6 +22,7 @@
 
 	let {
 		field,
+		tracked,
 		draft,
 		changed,
 		showSaved,
@@ -33,6 +34,8 @@
 		onView
 	}: {
 		field: ReviewField;
+		/** False when GET /verifications has no record for this fieldName: no review controls. */
+		tracked: boolean;
 		draft: FieldReview;
 		changed: boolean;
 		showSaved: boolean;
@@ -46,7 +49,7 @@
 
 	const domId = $derived(field.fieldName.replaceAll('.', '-'));
 	const noteId = $derived(`${domId}-note`);
-	const needsReviewNote = $derived(draft.status === 'REJECTED');
+	const needsReviewNote = $derived(tracked && draft.status === 'REJECTED');
 
 	function onStatusChange(value: string) {
 		if (value === 'PENDING' || value === 'VERIFIED' || value === 'REJECTED') {
@@ -89,18 +92,22 @@
 				</button>
 			{/if}
 		</div>
-		<!-- Dropdown does not accept an id, so this status control is labelled by a wrapping label. -->
-		<label class="w-36 shrink-0">
-			<span class="sr-only">{field.label} status</span>
-			<Dropdown
-				value={draft.status}
-				options={statusOptions}
-				ariaLabel={`${field.label} status`}
-				{disabled}
-				class={triggerClass[draft.status]}
-				onValueChange={onStatusChange}
-			/>
-		</label>
+		{#if tracked}
+			<!-- Dropdown does not accept an id, so this status control is labelled by a wrapping label. -->
+			<label class="w-36 shrink-0">
+				<span class="sr-only">{field.label} status</span>
+				<Dropdown
+					value={draft.status}
+					options={statusOptions}
+					ariaLabel={`${field.label} status`}
+					{disabled}
+					class={triggerClass[draft.status]}
+					onValueChange={onStatusChange}
+				/>
+			</label>
+		{:else}
+			<p class="w-36 shrink-0 text-xs text-muted-foreground">Not tracked</p>
+		{/if}
 	</div>
 
 	{#if needsReviewNote}

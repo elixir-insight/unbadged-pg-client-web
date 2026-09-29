@@ -173,8 +173,8 @@
 			<OnboardingMobileBar {currentStep} />
 		{/if}
 
-		{#if remarks.length > 0}
-			<div class="mx-auto w-full max-w-[640px] shrink-0 px-6 pt-4">
+		{#if remarks.length > 0 && !isMd}
+			<div class="w-full shrink-0 px-4 pt-4">
 				<RemarkBanner {remarks} onFix={(remark) => void gotoRemark(remark)} />
 			</div>
 		{/if}
@@ -187,8 +187,15 @@
 			role={loading ? 'progressbar' : undefined}
 			aria-label={loading ? 'Loading your saved details' : undefined}
 		></div>
-		<div class="min-h-0 flex-1" aria-busy={loading}>
-			{@render children()}
+		<div class="flex min-h-0 flex-1">
+			<div class="min-h-0 min-w-0 flex-1" aria-busy={loading}>
+				{@render children()}
+			</div>
+			{#if remarks.length > 0 && isMd}
+				<aside class="w-80 shrink-0 overflow-y-auto border-l border-border/60 p-4">
+					<RemarkBanner {remarks} onFix={(remark) => void gotoRemark(remark)} />
+				</aside>
+			{/if}
 		</div>
 	</main>
 </div>

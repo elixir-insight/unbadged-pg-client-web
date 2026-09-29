@@ -112,6 +112,9 @@ export interface DocumentSlot {
 	fileName?: string;
 }
 
+/** A file picked for a document slot, uploaded only when the Documents step continues. */
+export type PendingDocument = { file: File; fieldName: string };
+
 /**
  * Mirrors management onboarding's document set (fixedRequiredDocuments, documentChoiceGroups and
  * privateLimitedExtraDocuments in lib/data/mockData.ts). businessCertificate, proofOfFunds and

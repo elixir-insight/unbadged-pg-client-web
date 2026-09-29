@@ -1,6 +1,11 @@
-export const VERIFICATION_STATUSES = ['VERIFIED', 'PENDING', 'REJECTED'] as const;
+import type {
+	FieldVerification,
+	ReviewPayload,
+	VerificationStatus
+} from '$lib/onboarding/verificationFields';
 
-export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+export { VERIFICATION_STATUSES } from '$lib/onboarding/verificationFields';
+export type { VerificationStatus };
 
 export const VERIFICATION_STATUS_LABEL: Record<VerificationStatus, string> = {
 	VERIFIED: 'Verified',
@@ -13,12 +18,7 @@ export type FieldReview = {
 	remarks: string;
 };
 
-/** One item from GET /verifications `data`. */
-export type VerificationItem = {
-	fieldName: string;
-	status: VerificationStatus;
-	remarks?: string | null;
-};
+export type VerificationItem = FieldVerification;
 
 export type ReviewFieldKind = 'field' | 'document';
 
@@ -66,10 +66,12 @@ export type RemarkEntry = {
 	remarks: string;
 };
 
-export type SectionPayload = {
-	verified?: string[];
-	rejected?: RemarkEntry[];
-	resetToPending?: string[];
+export type SectionPayload = ReviewPayload;
+
+/** Body for finishing a review (PUT .../status). */
+export type ReviewDecision = {
+	profileStatus: 'APPROVED' | 'REMARKED';
+	remarks: string;
 };
 
 export type ReviewMessage = {

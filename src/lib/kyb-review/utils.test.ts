@@ -93,7 +93,7 @@ describe('mapVerifications', () => {
 				{ fieldName: 'kyb.cin', status: 'REJECTED', remarks: ' Not clear ' }
 			])
 		).toEqual({
-			'kyb.gstNumber': { status: 'VERIFIED', remarks: '' },
+			'kyb.gstNumber': { status: 'VERIFIED', remarks: 'ok' },
 			'kyb.cin': { status: 'REJECTED', remarks: 'Not clear' }
 		});
 	});

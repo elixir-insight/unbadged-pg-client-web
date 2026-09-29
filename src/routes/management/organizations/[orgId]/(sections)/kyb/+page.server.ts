@@ -10,8 +10,11 @@ import {
 } from '$lib/server/domains/auth/getValidSession';
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { organizationClient } from '$lib/server/domains/organization/client';
+import { pipelineClient } from '$lib/server/domains/pipeline/client';
+import { toPipelineDropdownOptions } from '$lib/server/domains/pipeline/map-options';
 import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 import { loadOrganizationDocuments } from '$lib/server/domains/organization/loaders/documents';
+import { loadOrganizationBankAccounts } from '$lib/server/domains/organization/loaders/bank-accounts';
 import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/utils/form-data';
 import { updateKybSectionMutation } from '$lib/server/domains/organization/mutations/update-kyb-section';
 import { buildSections } from '$lib/kyb-review/sections';
@@ -71,6 +74,7 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 
 	if (!detailsResult.ok) throwApiError(detailsResult.error);
 	if (!verificationsResult.ok) throwApiError(verificationsResult.error);
+	log.info({ orgId, response: detailsResult.data }, 'GET organization details succeeded');
 	log.info({ orgId, response: verificationsResult.data }, 'GET verifications succeeded');
 
 	const mapped = mapGetOrganizationResponse(detailsResult.data, orgId);
@@ -78,15 +82,35 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		error(404, 'Organization not found');
 	}
 
-	// Org details carry no files; fetch business and director documents like the documents page.
-	const { documents, directors } = await loadOrganizationDocuments({
-		fetch,
-		log,
-		cookies,
-		orgId,
-		organizationBase: mapped
-	});
-	const organization = { ...mapped, documents, directors };
+	// Org details carry no files or bank accounts; fetch them like the documents and bank pages.
+	const loaderParams = { fetch, log, cookies, orgId, organizationBase: mapped };
+	const [{ documents, directors }, { bankAccounts, bankAccountsLoadError }] = await Promise.all([
+		loadOrganizationDocuments(loaderParams),
+		loadOrganizationBankAccounts(loaderParams)
+	]);
+	log.info(
+		{ orgId, fromBankApi: bankAccounts, fromDetails: mapped.bankAccounts, bankAccountsLoadError },
+		'GET bank accounts for review'
+	);
+	const organization = {
+		...mapped,
+		documents,
+		directors,
+		// Prefer the bank-accounts API; fall back to accounts embedded in the details response.
+		bankAccounts: bankAccounts.length > 0 ? bankAccounts : mapped.bankAccounts
+	};
+
+	// Pipelines feed the approve popup's profile form; only needed while the org is in review.
+	const [payinResult, payoutResult] =
+		organization.status === 'IN_REVIEW'
+			? await Promise.all([
+					pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYIN'),
+					pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYOUT')
+				])
+			: [null, null];
+	const pipelineFailures = [payinResult, payoutResult]
+		.map((result) => (result && !result.ok ? result.error.message : null))
+		.filter((message): message is string => Boolean(message));
 
 	const items = (verificationsResult.data.data ?? []).map((item) => ({
 		fieldName: item.fieldName ?? '',
@@ -98,7 +122,12 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		kybReview: {
 			organization,
 			verifications: mapVerifications(items),
-			sections: buildSections(organization)
+			sections: buildSections(organization),
+			pipelines: {
+				payin: toPipelineDropdownOptions(payinResult?.ok ? payinResult.data : null),
+				payout: toPipelineDropdownOptions(payoutResult?.ok ? payoutResult.data : null),
+				error: pipelineFailures.length > 0 ? [...new Set(pipelineFailures)].join('; ') : null
+			}
 		}
 	};
 };

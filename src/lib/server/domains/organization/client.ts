@@ -12,11 +12,13 @@ import {
 	GetOrganizationProfileResponseSchema,
 	GetOrganizationsTableResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
+	UpdateOrganizationProfileResponseSchema,
 	UpdateOrganizationResponseSchema,
 	UpdateOrganizationStatusResponseSchema,
 	type AddOrganizationBankRequest,
 	type CreateOrganizationRequest,
 	type UpdateOrganizationKybRequest,
+	type UpdateOrganizationProfileRequest,
 	type UpdateOrganizationStatusRequest
 } from './schema';
 
@@ -83,6 +85,24 @@ export const organizationClient = {
 			accessToken,
 			gatewayToken,
 			schema: GetOrganizationProfileResponseSchema
+		}),
+
+	updateProfile: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		body: UpdateOrganizationProfileRequest
+	) =>
+		apiFetch(`api/v1/management/onboard/organization/${encodeURIComponent(orgId)}/profile`, {
+			fetch: fetchFn,
+			logger,
+			method: 'PATCH',
+			accessToken,
+			gatewayToken,
+			body,
+			schema: UpdateOrganizationProfileResponseSchema
 		}),
 
 	update: (

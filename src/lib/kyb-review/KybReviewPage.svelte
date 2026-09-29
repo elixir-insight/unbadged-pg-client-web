@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Button } from '$lib/components/reusable';
 	import { page } from '$app/state';
+	import { invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Organization } from '$lib/data/mockData';
 	import { DocumentPreviewModal } from '$lib/components/document-preview';
@@ -8,7 +10,9 @@
 	import LeaveDialog from './LeaveDialog.svelte';
 	import ReviewField from './ReviewField.svelte';
 	import ReviewSummary from './ReviewSummary.svelte';
+	import ReviewDecisionFooter from './ReviewDecisionFooter.svelte';
 	import { KybReviewState } from './review.svelte';
+	import type { ProfileFormOptions } from './profile';
 	import {
 		REVIEW_TABS,
 		type FieldReview,
@@ -21,19 +25,30 @@
 		organization,
 		sections,
 		verifications,
+		profileOptions,
 		onContinue
 	}: {
 		organization: Organization;
 		sections: ReviewSection[];
 		verifications: Record<string, FieldReview>;
+		profileOptions: ProfileFormOptions;
 		onContinue: (href: string) => void;
 	} = $props();
 
 	const review = new KybReviewState(
 		() => sections,
 		() => verifications,
-		(payload) => submitSectionReview(organization.id, payload)
+		async (payload) => {
+			await submitSectionReview(organization.id, payload);
+			// Refetch GET /verifications so statuses come from the server, not local guesses.
+			await invalidate('kyb:verifications');
+		}
 	);
+
+	$effect(() => {
+		const next = verifications;
+		untrack(() => review.sync(next));
+	});
 
 	let dialogOpen = $state(false);
 	let previewOpen = $state(false);
@@ -106,6 +121,11 @@
 	const nextTab = $derived(review.nextTab());
 	const activeSection = $derived(sections.find((item) => item.id === review.activeTab));
 	const dialogSection = $derived(review.activeTab);
+	const currentProfile = $derived({
+		profileType: organization.category,
+		serviceTypes: organization.serviceTypes,
+		affiliateId: organization.affiliateId ?? ''
+	});
 </script>
 
 {#snippet sectionPanel(section: ReviewSection)}
@@ -123,6 +143,7 @@
 				{#each section.fields as field (field.fieldName)}
 					<ReviewField
 						{field}
+						tracked={Object.hasOwn(verifications, field.fieldName)}
 						draft={review.draftFor(field.fieldName)}
 						changed={review.isFieldChanged(field.fieldName)}
 						showSaved={review.showsSaved(field.fieldName)}
@@ -183,6 +204,14 @@
 			saved={review.saved}
 			tabLabel={(sectionId) => review.label(sectionId)}
 			onOpen={requestTab}
+		/>
+		<ReviewDecisionFooter
+			orgId={organization.id}
+			profileStatus={organization.status}
+			{sections}
+			saved={review.saved}
+			profile={currentProfile}
+			{profileOptions}
 		/>
 		<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
 			<Button variant="outline" href="/management/organizations">Cancel</Button>

@@ -4,68 +4,44 @@ import type {
 	OrganizationAddress,
 	OrganizationDocument
 } from '$lib/data/mockData';
+import {
+	addressField,
+	bankField,
+	directorDoc,
+	directorField,
+	docField,
+	ORGANIZATION_FIELD_MAP,
+	type OrganizationDocumentName
+} from '$lib/onboarding/verificationFields';
 import { flattenCommunicationAddress, joinStreetAddress } from '$lib/validation/organization-kyb';
 import type { ReviewField, ReviewSection } from './types';
 
 type DocumentDef = {
 	label: string;
-	fieldName: string;
+	name: OrganizationDocumentName;
 	documentType: DocumentType;
 };
 
+/** Every org document the verification API tracks (see ORGANIZATION_DOCUMENTS). */
 const BUSINESS_DOCUMENTS: DocumentDef[] = [
-	{
-		label: 'GST certificate',
-		fieldName: 'documents.gstCertificate',
-		documentType: 'GST certificate'
-	},
-	{
-		label: 'Business PAN',
-		fieldName: 'documents.businessPan',
-		documentType: 'Business PAN card'
-	},
-	{ label: 'Business TAN', fieldName: 'documents.businessTan', documentType: 'Business TAN' },
+	{ label: 'GST certificate', name: 'gstCertificate', documentType: 'GST certificate' },
+	{ label: 'Business PAN', name: 'businessPan', documentType: 'Business PAN card' },
+	{ label: 'Business TAN', name: 'businessTan', documentType: 'Business TAN' },
 	{
 		label: 'Incorporation certificate',
-		fieldName: 'documents.incorpCertificate',
+		name: 'incorpCertificate',
 		documentType: 'Incorporation certificate'
 	},
+	{ label: 'MOA', name: 'moa', documentType: 'Memorandum of Association (MOA)' },
+	{ label: 'AOA', name: 'aoa', documentType: 'Article of Association (AOA)' },
+	{ label: 'UBO declaration', name: 'uboDeclaration', documentType: 'UBO Declaration' },
 	{
-		label: 'MOA',
-		fieldName: 'documents.moa',
-		documentType: 'Memorandum of Association (MOA)'
+		label: 'Board resolution',
+		name: 'brDocument',
+		documentType: 'Board Resolution for Authorized Signatory'
 	},
-	{ label: 'AOA', fieldName: 'documents.aoa', documentType: 'Article of Association (AOA)' },
-	{
-		label: 'MSME certificate',
-		fieldName: 'documents.msmeCertificate',
-		documentType: 'MSME certificate'
-	},
-	{
-		label: 'Udyam certificate',
-		fieldName: 'documents.udyamCertificate',
-		documentType: 'Udyam certificate'
-	},
-	{
-		label: 'Bank statement',
-		fieldName: 'documents.bankStatement',
-		documentType: 'Bank statement (last 3 months)'
-	},
-	{
-		label: 'Voided cheque',
-		fieldName: 'documents.voidedCheque',
-		documentType: 'Cancelled cheque'
-	},
-	{
-		label: 'Electricity bill',
-		fieldName: 'documents.electricityBill',
-		documentType: 'Electricity bill'
-	},
-	{
-		label: 'Rental agreement',
-		fieldName: 'documents.rentalAgreement',
-		documentType: 'Rental agreement'
-	}
+	{ label: 'Voided cheque', name: 'voidedCheque', documentType: 'Cancelled cheque' },
+	{ label: 'Electricity bill', name: 'electricityBill', documentType: 'Electricity bill' }
 ];
 
 function shown(value: string | number | null | undefined): string {
@@ -125,7 +101,7 @@ function uploadedField(
 
 function documentField(documents: OrganizationDocument[], def: DocumentDef): ReviewField {
 	const match = documents.find((document) => document.documentType === def.documentType);
-	return uploadedField(def.fieldName, def.label, match);
+	return uploadedField(docField(def.name), def.label, match);
 }
 
 function registeredStreet(address: OrganizationAddress): string {
@@ -140,16 +116,21 @@ export function buildSections(organization: Organization): ReviewSection[] {
 		title: 'Business Registration',
 		subtitle: 'Review legal registration and business details.',
 		fields: [
-			field('kyb.gstNumber', 'GSTIN', shown(kyb.gstin)),
-			field('kyb.businessPan', 'Business PAN', shown(kyb.businessPan)),
-			field('kyb.businessPhone', 'Business phone', phoneValue(kyb.businessPhone), {
+			field(ORGANIZATION_FIELD_MAP.brandName, 'Brand name', shown(kyb.brandName)),
+			field(ORGANIZATION_FIELD_MAP.gstNumber, 'GSTIN', shown(kyb.gstin)),
+			field(ORGANIZATION_FIELD_MAP.orgPan, 'Business PAN', shown(kyb.businessPan)),
+			field(ORGANIZATION_FIELD_MAP.businessPhone, 'Business phone', phoneValue(kyb.businessPhone), {
 				prefix: '+91'
 			}),
-			field('kyb.industry', 'Industry', shown(kyb.industry)),
-			field('kyb.organizationWebsite', 'Organization website', shown(kyb.organizationWebsite)),
-			field('kyb.registeredYear', 'Registered year', shown(kyb.registeredYear)),
-			field('kyb.cin', 'CIN (optional)', shown(kyb.cin)),
-			field('kyb.tan', 'TAN (optional)', shown(kyb.tan))
+			field(ORGANIZATION_FIELD_MAP.industry, 'Industry', shown(kyb.industry)),
+			field(
+				ORGANIZATION_FIELD_MAP.organizationWebsite,
+				'Organization website',
+				shown(kyb.organizationWebsite)
+			),
+			field(ORGANIZATION_FIELD_MAP.registeredYear, 'Registered year', shown(kyb.registeredYear)),
+			field(ORGANIZATION_FIELD_MAP.cin, 'CIN (optional)', shown(kyb.cin)),
+			field(ORGANIZATION_FIELD_MAP.orgTan, 'TAN (optional)', shown(kyb.tan))
 		]
 	};
 
@@ -158,57 +139,64 @@ export function buildSections(organization: Organization): ReviewSection[] {
 		title: 'Registered Address',
 		subtitle: 'Review the registered and communication addresses.',
 		fields: [
-			field('addressDetails.address', 'Address', registeredStreet(addressDetails)),
-			field('addressDetails.city', 'City', shown(addressDetails.city)),
-			field('addressDetails.state', 'State', shown(addressDetails.state)),
-			field('addressDetails.country', 'Country', shown(addressDetails.country)),
-			field('addressDetails.pinCode', 'PIN code', shown(addressDetails.pincode)),
+			field(addressField('address'), 'Address', registeredStreet(addressDetails)),
+			field(addressField('city'), 'City', shown(addressDetails.city)),
+			field(addressField('state'), 'State', shown(addressDetails.state)),
+			field(addressField('country'), 'Country', shown(addressDetails.country)),
+			field(addressField('pinCode'), 'PIN code', shown(addressDetails.pincode)),
 			field(
-				'kyb.communicationAddress',
+				ORGANIZATION_FIELD_MAP.communicationAddress,
 				'Communication address',
 				shown(flattenCommunicationAddress(kyb.communicationAddress))
 			)
 		]
 	};
 
-	// Keys follow the backend's `directors[<index>].<field>` vocabulary (see remarkRouting.ts).
+	// Keyed by director.id, never the array index.
 	const directorFields: ReviewField[] = directors.flatMap((director, index) => {
 		const labelPrefix = `Director ${index + 1}`;
-		const key = (name: string) => `directors[${index}].${name}`;
+		const id = director.id;
 		return [
-			field(key('name'), `${labelPrefix} Name`, shown(director.name)),
-			field(key('email'), `${labelPrefix} Email`, shown(director.email)),
-			field(key('phoneNumber'), `${labelPrefix} Phone`, phoneValue(director.phone), {
+			field(directorField(id, 'name'), `${labelPrefix} Name`, shown(director.name)),
+			field(directorField(id, 'email'), `${labelPrefix} Email`, shown(director.email)),
+			field(directorField(id, 'phoneNumber'), `${labelPrefix} Phone`, phoneValue(director.phone), {
 				prefix: '+91'
 			}),
-			field(key('pan'), `${labelPrefix} PAN`, shown(director.pan)),
-			field(key('aadhar'), `${labelPrefix} Aadhaar`, shown(director.aadhar)),
-			uploadedField(key('panDocument'), `${labelPrefix} PAN document`, director.panDocument),
+			field(directorField(id, 'pan'), `${labelPrefix} PAN`, shown(director.pan)),
+			field(directorField(id, 'aadhar'), `${labelPrefix} Aadhaar`, shown(director.aadhar)),
+			uploadedField(directorDoc(id, 'pan'), `${labelPrefix} PAN document`, director.panDocument),
 			uploadedField(
-				key('aadharDocument'),
+				directorDoc(id, 'aadhar'),
 				`${labelPrefix} Aadhaar document`,
 				director.aadharDocument
 			)
 		];
 	});
 
-	// The backend keys bank verifications as `bankDetails.<field>` with no account index, so only
-	// the settlement (first) account can be reviewed.
-	const settlement = bankAccounts[0];
-	const bankFields: ReviewField[] = settlement
-		? [
-				field(
-					'bankDetails.accountHolderName',
-					'Account holder',
-					shown(settlement.accountHolderName)
-				),
-				field('bankDetails.bankName', 'Bank name', shown(settlement.bankName)),
-				field('bankDetails.branchName', 'Branch', shown(settlement.branch)),
-				field('bankDetails.accountNumber', 'Account number', shown(settlement.accountNumber)),
-				field('bankDetails.accountType', 'Account type', titled(settlement.accountType)),
-				field('bankDetails.ifscCode', 'IFSC', shown(settlement.ifscCode))
-			]
-		: [];
+	const bankFields: ReviewField[] = bankAccounts.flatMap((account, index) => {
+		const labelPrefix = `Account ${index + 1}`;
+		const id = account.id;
+		return [
+			field(
+				bankField(id, 'holderName'),
+				`${labelPrefix} Account holder`,
+				shown(account.accountHolderName)
+			),
+			field(bankField(id, 'bankName'), `${labelPrefix} Bank name`, shown(account.bankName)),
+			field(bankField(id, 'branchName'), `${labelPrefix} Branch`, shown(account.branch)),
+			field(
+				bankField(id, 'accountNumber'),
+				`${labelPrefix} Account number`,
+				shown(account.accountNumber)
+			),
+			field(
+				bankField(id, 'accountType'),
+				`${labelPrefix} Account type`,
+				titled(account.accountType)
+			),
+			field(bankField(id, 'ifscCode'), `${labelPrefix} IFSC`, shown(account.ifscCode))
+		];
+	});
 
 	// TODO: Photo attestation has no backend fieldName yet, so it is omitted from this section.
 	const documentFields = BUSINESS_DOCUMENTS.map((def) => documentField(documents, def));
@@ -225,7 +213,7 @@ export function buildSections(organization: Organization): ReviewSection[] {
 		{
 			id: 'bank',
 			title: 'Bank Account',
-			subtitle: 'Review the settlement account.',
+			subtitle: 'Review each bank account.',
 			fields: bankFields
 		},
 		{

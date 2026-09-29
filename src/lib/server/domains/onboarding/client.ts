@@ -1,6 +1,10 @@
 import type * as v from 'valibot';
 import type { Logger } from 'pino';
-import type { BankAccountRequest, UpdateOrganizationRequest } from '$lib/api/onboarding';
+import type {
+	BankAccountRequest,
+	RemarkedUpdateRequest,
+	UpdateOrganizationRequest
+} from '$lib/api/onboarding';
 import type { ApiError, Result } from '$lib/server/http/errors';
 import { apiFetch } from '$lib/server/http/fetchClient';
 import type { OnboardingTokens } from './guard';
@@ -63,7 +67,7 @@ export const onboardingClient = {
 		fetchFn: typeof fetch,
 		log: Logger,
 		tokens: OnboardingTokens,
-		payload: UpdateOrganizationRequest
+		payload: UpdateOrganizationRequest | RemarkedUpdateRequest
 	) {
 		return call(
 			fetchFn,

@@ -1,10 +1,16 @@
 import { fail, type ActionFailure, type Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
-import { toSectionPayload, type KybSource, type OrganizationSection } from '$lib/api/onboarding';
+import {
+	pickRejectedFields,
+	toSectionPayload,
+	type KybSource,
+	type OrganizationSection
+} from '$lib/api/onboarding';
+import { resolveOnboardingStatus } from '$lib/components/self-onboarding/steps';
 import type { ApiError } from '$lib/server/http/errors';
 import type { OnboardingFormData } from '$lib/types/onboarding';
 import { onboardingClient } from './client';
-import { extractOnboardingPrefill } from './extract';
+import { extractOnboardingPrefill, extractProfileStatus, extractVerifications } from './extract';
 import { requireOnboardingSession } from './guard';
 
 /** Shown for anything that isn't a backend rejection (network, timeout, unexpected response). */
@@ -85,6 +91,21 @@ export async function saveOrganizationSection(
 	const saved = extractOnboardingPrefill(savedResult.data.data) ?? emptySource();
 
 	const payload = toSectionPayload(section, form, saved);
+	const remarked =
+		resolveOnboardingStatus(extractProfileStatus(savedResult.data.data)) === 'remarked';
+	if (remarked) {
+		// A remarked org may only resend the fields management rejected.
+		const rejectedKeys = Object.keys(extractVerifications(savedResult.data.data));
+		const picked = pickRejectedFields(payload, rejectedKeys);
+		if (Object.keys(picked).length === 0) {
+			// Nothing on this step was rejected, so there is nothing to save.
+			return { ok: true as const, form, data: savedResult.data, tokens: session.tokens };
+		}
+		const result = await onboardingClient.saveOrganization(fetch, log, session.tokens, picked);
+		if (!result.ok) return { ok: false as const, failure: saveFailure(result.error) };
+		return { ok: true as const, form, data: result.data, tokens: session.tokens };
+	}
+
 	const result = await onboardingClient.saveOrganization(fetch, log, session.tokens, payload);
 	if (!result.ok) return { ok: false as const, failure: saveFailure(result.error) };
 	return { ok: true as const, form, data: result.data, tokens: session.tokens };

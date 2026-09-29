@@ -228,6 +228,88 @@ export function toSectionPayload(
 	}
 }
 
+// ── Remarked saves ────────────────────────────────────────────────────────
+/**
+ * A PUT /organization body carrying only some fields. While an org is REMARKED the backend
+ * rejects any field management didn't reject ("Only rejected fields can be updated while the
+ * organization is remarked"), even unchanged ones.
+ */
+export type RemarkedUpdateRequest = {
+	brandName?: string;
+	kyb?: Partial<KybPayload>;
+	addressDetails?: Partial<UpdateOrganizationRequest['addressDetails']>;
+	directors?: Partial<UpdateOrganizationDirectorPayload>[];
+};
+
+const DIRECTOR_BY_ID = /^directors\.(\d+)\.([A-Za-z]+)$/;
+const DIRECTOR_BY_INDEX = /^directors\[(\d+)\]\.([A-Za-z]+)$/;
+const DIRECTOR_PAYLOAD_FIELDS: Record<string, keyof UpdateOrganizationDirectorPayload> = {
+	name: 'name',
+	email: 'email',
+	pan: 'pan',
+	aadhar: 'aadhar',
+	phoneNumber: 'phoneNumber',
+	phone: 'phoneNumber'
+};
+
+/**
+ * Narrows a full save payload to the fields named by `rejectedKeys` (the remark keys off GET
+ * /organization `verifications`). Keys the payload doesn't carry — documents, bank fields, a
+ * masked PAN — are skipped, so the result can be empty: then there is nothing to save.
+ */
+export function pickRejectedFields(
+	payload: UpdateOrganizationRequest,
+	rejectedKeys: readonly string[]
+): RemarkedUpdateRequest {
+	const picked: RemarkedUpdateRequest = {};
+	const kyb: Partial<KybPayload> = {};
+	const address: Partial<UpdateOrganizationRequest['addressDetails']> = {};
+	const directorPatches = new Map<number, Partial<UpdateOrganizationDirectorPayload>>();
+
+	function patchDirector(index: number, field: string) {
+		const director = payload.directors[index];
+		const key = DIRECTOR_PAYLOAD_FIELDS[field];
+		if (!director || !key || director[key] === undefined) return;
+		const patch = directorPatches.get(index) ?? {
+			...(director.id !== undefined && { id: director.id })
+		};
+		directorPatches.set(index, { ...patch, [key]: director[key] });
+	}
+
+	for (const rawKey of rejectedKeys) {
+		const key = rawKey.trim();
+		if (key === 'brandName') {
+			picked.brandName = payload.brandName;
+		} else if (key.startsWith('kyb.communicationAddress')) {
+			kyb.communicationAddress = payload.kyb.communicationAddress;
+		} else if (key.startsWith('kyb.')) {
+			const field = key.slice('kyb.'.length) as keyof KybPayload;
+			if (payload.kyb[field] !== undefined) Object.assign(kyb, { [field]: payload.kyb[field] });
+		} else if (key.startsWith('addressDetails.')) {
+			const field = key.slice('addressDetails.'.length) as keyof typeof address;
+			if (field in payload.addressDetails) address[field] = payload.addressDetails[field];
+		} else {
+			const byId = DIRECTOR_BY_ID.exec(key);
+			if (byId) {
+				const index = payload.directors.findIndex((d) => String(d.id) === byId[1]);
+				if (index >= 0) patchDirector(index, byId[2]);
+				continue;
+			}
+			const byIndex = DIRECTOR_BY_INDEX.exec(key);
+			if (byIndex) patchDirector(Number(byIndex[1]), byIndex[2]);
+		}
+	}
+
+	if (Object.keys(kyb).length > 0) picked.kyb = kyb;
+	if (Object.keys(address).length > 0) picked.addressDetails = address;
+	if (directorPatches.size > 0) {
+		picked.directors = [...directorPatches.entries()]
+			.sort(([a], [b]) => a - b)
+			.map(([, patch]) => patch);
+	}
+	return picked;
+}
+
 // ── Step 3: bank details ──────────────────────────────────────────────────
 export function toBankPayload(b: BankDetails): BankAccountRequest {
 	return {

@@ -40,6 +40,16 @@ export class KybReviewState {
 		this.onSubmitSection = onSubmitSection;
 	}
 
+	/** Adopts freshly loaded verifications; drafts that now match the server are dropped. */
+	sync(next: Record<string, FieldReview>) {
+		this.saved = { ...next };
+		const drafts: Record<string, FieldReview> = {};
+		for (const [fieldName, draft] of Object.entries(this.drafts)) {
+			if (isChanged(this.reviewFor(fieldName), draft)) drafts[fieldName] = draft;
+		}
+		this.drafts = drafts;
+	}
+
 	label(tab: string): string {
 		return isReviewTab(tab) ? REVIEW_TAB_LABEL[tab] : tab;
 	}

@@ -16,6 +16,7 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 		all: 0,
 		IN_PROGRESS: 0,
 		IN_REVIEW: 0,
+		REMARKED: 0,
 		APPROVED: 0,
 		ACTIVE: 0,
 		ON_HOLD: 0,

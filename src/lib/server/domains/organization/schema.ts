@@ -109,7 +109,9 @@ export const OrganizationProfileStatusSchema = v.picklist([
 	'ACTIVE',
 	'ON_HOLD',
 	'FROZEN',
-	'IN_PROGRESS'
+	'IN_PROGRESS',
+	'REJECTED',
+	'REMARKED'
 ]);
 
 export const UpdateOrganizationStatusRequestSchema = v.object({
@@ -276,6 +278,19 @@ export const OrganizationProfileRecordSchema = v.object({
 	username: v.string()
 });
 
+/** PATCH /api/v1/management/onboard/organization/{orgId}/profile — set during KYB approval. */
+export const UpdateOrganizationProfileRequestSchema = v.object({
+	profileType: OrganizationProfileTypeSchema,
+	serviceTypes: v.optional(v.array(CreateOrganizationServiceTypeSchema)),
+	affiliateId: v.optional(v.pipe(v.string(), v.trim(), v.minLength(1)))
+});
+
+export const UpdateOrganizationProfileResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.unknown())
+});
+
 export const GetOrganizationProfileResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),
@@ -366,6 +381,9 @@ export type OrganizationDetailsRecord = v.InferOutput<typeof OrganizationDetails
 export type GetOrganizationDetailsResponse = v.InferOutput<
 	typeof GetOrganizationDetailsResponseSchema
 >;
+export type UpdateOrganizationProfileRequest = v.InferOutput<
+	typeof UpdateOrganizationProfileRequestSchema
+>;
 export type OrganizationProfileRecord = v.InferOutput<typeof OrganizationProfileRecordSchema>;
 export type GetOrganizationProfileResponse = v.InferOutput<
 	typeof GetOrganizationProfileResponseSchema
@@ -381,6 +399,7 @@ export type GetDashboardMerchantsResponse = v.InferOutput<
 export const OrganizationTableProfileStatusSchema = v.picklist([
 	'IN_PROGRESS',
 	'IN_REVIEW',
+	'REMARKED',
 	'APPROVED',
 	'ACTIVE',
 	'ON_HOLD',

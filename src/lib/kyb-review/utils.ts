@@ -43,7 +43,8 @@ export function mapVerifications(
 		const status = isVerificationStatus(normalized) ? normalized : 'PENDING';
 		mapped[fieldName] = {
 			status,
-			remarks: status === 'VERIFIED' ? '' : (item.remarks ?? '').trim()
+			// Kept for every status so the review summary can show whatever note the server has.
+			remarks: (item.remarks ?? '').trim()
 		};
 	}
 

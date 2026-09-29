@@ -1,18 +1,51 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { isDocumentFieldName } from '$lib/api/onboarding';
-import { DOCUMENT_KEYS } from '$lib/components/self-onboarding/validation';
+import { DOCUMENT_KEYS, DOCUMENT_LABELS } from '$lib/components/self-onboarding/validation';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
-import { saveFailure } from '$lib/server/domains/onboarding/save-section';
+import { GENERIC_SAVE_ERROR } from '$lib/server/domains/onboarding/save-section';
 import type { DocumentKey } from '$lib/types/onboarding';
 
-function isDocumentKey(value: FormDataEntryValue | null): value is DocumentKey {
+function isDocumentKey(value: unknown): value is DocumentKey {
 	return typeof value === 'string' && (DOCUMENT_KEYS as string[]).includes(value);
+}
+
+type UploadItem = { documentType: DocumentKey; fieldName: string; file: File };
+
+/** The picked documents, as `documents` (JSON list of slot + field) plus one `file:<slot>` each. */
+function readUploads(form: FormData): UploadItem[] | string {
+	let entries: unknown;
+	try {
+		entries = JSON.parse(String(form.get('documents') ?? '[]'));
+	} catch {
+		return 'Malformed request.';
+	}
+	if (!Array.isArray(entries) || entries.length === 0) return 'Pick at least one document.';
+
+	const items: UploadItem[] = [];
+	for (const entry of entries) {
+		const record = (entry ?? {}) as Record<string, unknown>;
+		const documentType = record.documentType;
+		const fieldName = record.fieldName;
+		if (!isDocumentKey(documentType)) return 'Unknown document type.';
+		// Only ever forward a field name from this slot's own allowlist — never an arbitrary
+		// client-supplied one (see ORG_DOCUMENT_FIELDS).
+		if (typeof fieldName !== 'string' || !isDocumentFieldName(documentType, fieldName)) {
+			return 'Select which document this is.';
+		}
+		const file = form.get(`file:${documentType}`);
+		if (!(file instanceof File) || file.size === 0) {
+			return `${DOCUMENT_LABELS[documentType]}: a file is required.`;
+		}
+		items.push({ documentType, fieldName, file });
+	}
+	return items;
 }
 
 // Uploaded documents are loaded once by the layout (+layout.server.ts), alongside the org record.
 export const actions: Actions = {
+	/** Uploads every document picked on this step, when the user continues. */
 	default: async ({ request, cookies, fetch, locals }) => {
 		const session = await requireOnboardingSession({
 			cookies,
@@ -22,34 +55,32 @@ export const actions: Actions = {
 		});
 		if (!session.ok) return session.failure;
 
-		const form = await request.formData();
-		const documentType = form.get('documentType');
-		const file = form.get('file');
-		const fieldName = form.get('fieldName');
+		const items = readUploads(await request.formData());
+		if (typeof items === 'string') return fail(400, { error: items, uploaded: [] });
 
-		if (!isDocumentKey(documentType)) {
-			return fail(400, { error: 'Unknown document type.' });
+		const uploaded: DocumentKey[] = [];
+		for (const { documentType, fieldName, file } of items) {
+			const upstreamForm = new FormData();
+			upstreamForm.append(fieldName, file, file.name);
+
+			const result = await onboardingClient.uploadOrgDocument(
+				fetch,
+				locals.logger,
+				session.tokens,
+				upstreamForm
+			);
+			if (!result.ok) {
+				const status = result.error.kind === 'http' ? result.error.status : 502;
+				const message = result.error.kind === 'http' ? result.error.message : GENERIC_SAVE_ERROR;
+				// Stop at the first failure; the ones before it did upload and stay uploaded.
+				return fail(status, {
+					error: `${DOCUMENT_LABELS[documentType]}: ${message}`,
+					uploaded
+				});
+			}
+			uploaded.push(documentType);
 		}
-		// Only ever forward a field name from this slot's own allowlist — never an arbitrary
-		// client-supplied one (see ORG_DOCUMENT_FIELDS).
-		if (typeof fieldName !== 'string' || !isDocumentFieldName(documentType, fieldName)) {
-			return fail(400, { error: 'Select which document this is.' });
-		}
-		if (!(file instanceof File) || file.size === 0) {
-			return fail(400, { error: 'A file is required.' });
-		}
 
-		const upstreamForm = new FormData();
-		upstreamForm.append(fieldName, file, file.name);
-
-		const result = await onboardingClient.uploadOrgDocument(
-			fetch,
-			locals.logger,
-			session.tokens,
-			upstreamForm
-		);
-		if (!result.ok) return saveFailure(result.error);
-
-		return { success: true as const, documentType };
+		return { success: true as const, uploaded };
 	}
 };

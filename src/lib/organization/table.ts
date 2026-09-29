@@ -14,6 +14,7 @@ export interface OrganizationTableStatusCounts {
 	all: number;
 	IN_PROGRESS: number;
 	IN_REVIEW: number;
+	REMARKED: number;
 	APPROVED: number;
 	ACTIVE: number;
 	ON_HOLD: number;
