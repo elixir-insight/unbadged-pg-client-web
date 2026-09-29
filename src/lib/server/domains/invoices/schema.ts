@@ -86,6 +86,113 @@ export const CreateInvoiceCreatedSchema = v.object({
 	status: v.optional(v.nullable(v.string()), '')
 });
 
+const OptionalStringishSchema = v.optional(v.nullable(StringishSchema), '');
+const OptionalStringSchema = v.optional(v.nullable(v.string()), '');
+
+export const InvoiceListItemSchema = v.object({
+	id: OptionalStringishSchema,
+	createdAt: OptionalStringishSchema,
+	updatedAt: OptionalStringishSchema,
+	createdAtIst: OptionalStringishSchema,
+	clientOrderId: OptionalStringishSchema,
+	orderId: OptionalStringishSchema,
+	payinAttemptId: OptionalStringishSchema,
+	transactionAmount: OptionalStringishSchema,
+	description: OptionalStringishSchema,
+	gatewayDescription: OptionalStringishSchema,
+	bankPipelineCode: OptionalStringishSchema,
+	pipelineClass: OptionalStringishSchema,
+	customerPhoneNumber: OptionalStringishSchema,
+	customerName: OptionalStringishSchema,
+	customerEmail: OptionalStringishSchema,
+	orgId: OptionalStringishSchema,
+	virtualAccountNumber: OptionalStringishSchema,
+	vaIdentifier: OptionalStringishSchema,
+	status: OptionalStringishSchema,
+	checkoutExpiry: OptionalStringishSchema,
+	closedAt: OptionalStringishSchema,
+	redirectUrl: v.optional(
+		v.nullable(
+			v.object({
+				successUrl: OptionalStringSchema,
+				cancelUrl: OptionalStringSchema,
+				failureUrl: OptionalStringSchema
+			})
+		)
+	),
+	paymentLink: OptionalStringishSchema,
+	requestIpAddress: OptionalStringishSchema,
+	allowedPaymentMethods: v.optional(v.nullable(v.array(v.string())), []),
+	invoice: v.optional(
+		v.nullable(
+			v.object({
+				referenceId: OptionalStringishSchema,
+				description: OptionalStringishSchema,
+				merchantName: OptionalStringishSchema,
+				gstNumber: OptionalStringishSchema,
+				customerAddress: OptionalStringishSchema,
+				customerCity: OptionalStringishSchema,
+				customerCountry: OptionalStringishSchema,
+				customerZipCode: OptionalStringishSchema,
+				currency: OptionalStringishSchema,
+				deliveryMethods: v.optional(v.nullable(v.array(v.string())), []),
+				items: v.optional(
+					v.nullable(
+						v.array(
+							v.object({
+								itemName: OptionalStringishSchema,
+								quantity: v.optional(v.nullable(v.number()), 0),
+								price: OptionalStringishSchema,
+								total: OptionalStringishSchema
+							})
+						)
+					),
+					[]
+				)
+			})
+		)
+	)
+});
+
+export const InvoicePaginationSchema = v.object({
+	limit: v.number(),
+	page: v.number(),
+	total: v.number()
+});
+
+export const InvoiceListResponseSchema = v.object({
+	data: v.array(InvoiceListItemSchema),
+	message: v.optional(v.nullable(v.string()), ''),
+	pagination: v.optional(InvoicePaginationSchema),
+	statusCode: v.optional(v.nullable(v.number()), 200)
+});
+
+const CountSchema = v.optional(v.nullable(v.number()), 0);
+
+export const InvoiceCountsSchema = v.object({
+	totalCount: CountSchema,
+	createdCount: CountSchema,
+	initiatedCount: CountSchema,
+	authorizedCount: CountSchema,
+	capturedCount: CountSchema,
+	failedCount: CountSchema,
+	rejectedCount: CountSchema,
+	suspectedCount: CountSchema,
+	cancelledCount: CountSchema,
+	expiredCount: CountSchema
+});
+
+export const InvoiceCountsResponseSchema = v.object({
+	data: v.array(InvoiceCountsSchema),
+	message: v.optional(v.nullable(v.string()), ''),
+	statusCode: v.optional(v.nullable(v.number()), 200)
+});
+
 export type CreateInvoiceClientRequest = v.InferOutput<typeof CreateInvoiceClientRequestSchema>;
 export type CreateInvoiceUpstreamRequest = v.InferOutput<typeof CreateInvoiceUpstreamRequestSchema>;
 export type CreateInvoiceCreated = v.InferOutput<typeof CreateInvoiceCreatedSchema>;
+export type InvoiceListItem = v.InferOutput<typeof InvoiceListItemSchema>;
+export type InvoicePagination = v.InferOutput<typeof InvoicePaginationSchema>;
+export type InvoiceListResponse = v.InferOutput<typeof InvoiceListResponseSchema>;
+export type InvoiceApiCounts = v.InferOutput<typeof InvoiceCountsSchema>;
+export type InvoiceCountsResponse = v.InferOutput<typeof InvoiceCountsResponseSchema>;

@@ -31,13 +31,8 @@
 		type CreateInvoiceFormValues,
 		type InvoiceFormLineItem
 	} from '$lib/validation/invoice';
-	import {
-		createInvoiceId,
-		loadInvoices,
-		nextInvoiceNumber,
-		persistCreatedInvoice
-	} from '$lib/utils/invoices-store';
-	import type { Invoice, InvoiceLineItem } from '$lib/types/invoice';
+	import { createInvoiceId, loadInvoices, nextInvoiceNumber } from '$lib/utils/invoices-store';
+	import type { InvoiceLineItem } from '$lib/types/invoice';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -126,9 +121,7 @@
 		}
 
 		submitting = true;
-		const now = new Date();
 		const id = createInvoiceId();
-		const number = invoiceNumber.trim();
 		const methods = selectedMethods(allowedPaymentMethods);
 		const deliveryMethods = selectedDeliveryMethods();
 		const address = customerAddress.trim();
@@ -175,30 +168,6 @@
 				gstNumber
 			});
 
-			const invoice: Invoice = {
-				id,
-				invoiceNumber: number,
-				createdAt: now.toISOString(),
-				createdAtMs: now.getTime(),
-				amount: invoiceItemsSubtotal(items),
-				description: descriptionValue,
-				items: lineItems,
-				status: 'issued',
-				receiptNo: number,
-				dueDate,
-				customerName: customerName.trim(),
-				customerEmail: customerEmail.trim(),
-				customerPhone: customerPhone.trim(),
-				customerAddress: address,
-				paymentLinkUrl: created.invoiceUrl,
-				allowedPaymentMethods: methods,
-				notifyEmail,
-				notifySms,
-				transactionId: null,
-				createdBy: merchantName
-			};
-
-			persistCreatedInvoice(invoice);
 			toast.success(created.message || 'Invoice sent', {
 				description: deliveryMethods.length > 0 ? 'The customer has been notified.' : undefined
 			});

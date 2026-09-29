@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/reusable';
 	import { Details, type DetailSection } from '$lib/components/transactions/collections';
-	import InvoiceA4Sheet from './invoice-a4-sheet.svelte';
 	import InvoiceStatusBadge from './invoice-status-badge.svelte';
 	import type { Invoice } from '$lib/types/invoice';
 	import {
@@ -10,19 +8,7 @@
 		formatInvoiceDueDate
 	} from '$lib/utils/invoices-store';
 
-	let {
-		invoice,
-		onCancel,
-		onPrint
-	}: {
-		invoice: Invoice;
-		onCancel?: (invoice: Invoice) => void;
-		onPrint?: (invoice: Invoice) => void;
-	} = $props();
-
-	const canCancel = $derived(
-		invoice.status === 'issued' || invoice.status === 'attempted' || invoice.status === 'overdue'
-	);
+	let { invoice }: { invoice: Invoice } = $props();
 
 	const sections = $derived<DetailSection[]>([
 		{
@@ -64,32 +50,10 @@
 </script>
 
 <div class="flex flex-col gap-6">
-	<div class="flex flex-wrap items-center justify-between gap-3 print:hidden">
-		<div class="flex items-center gap-2">
-			<span class="text-sm text-muted-foreground">Status</span>
-			<InvoiceStatusBadge status={invoice.status} />
-		</div>
-		<div class="flex flex-wrap gap-2">
-			<Button
-				variant="outline"
-				onclick={() => onPrint?.(invoice)}
-				aria-label="Download invoice PDF"
-			>
-				Download PDF
-			</Button>
-			{#if canCancel}
-				<Button variant="destructive" onclick={() => onCancel?.(invoice)}>Cancel invoice</Button>
-			{/if}
-		</div>
+	<div class="flex items-center gap-2">
+		<span class="text-sm text-muted-foreground">Status</span>
+		<InvoiceStatusBadge status={invoice.status} />
 	</div>
 
-	<div class="overflow-x-auto bg-muted p-4 print:bg-transparent print:p-0">
-		<div class="mx-auto w-fit max-w-full">
-			<InvoiceA4Sheet {invoice} />
-		</div>
-	</div>
-
-	<div class="print:hidden">
-		<Details {sections} flat />
-	</div>
+	<Details {sections} flat />
 </div>
