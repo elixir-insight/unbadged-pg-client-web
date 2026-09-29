@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { areAllSelected, toggleSelectAllValues } from './toggle-select-all';
 
-const methods = ['UPI', 'CARD', 'NETBANKING'];
+const methods = ['UPI', 'CARD', 'NET_BANKING'];
 
 describe('toggleSelectAllValues', () => {
 	it('selects every enabled option when none are selected', () => {
@@ -9,7 +9,7 @@ describe('toggleSelectAllValues', () => {
 	});
 
 	it('selects remaining enabled options when some are already selected', () => {
-		expect(toggleSelectAllValues(['UPI'], methods)).toEqual(['UPI', 'CARD', 'NETBANKING']);
+		expect(toggleSelectAllValues(['UPI'], methods)).toEqual(['UPI', 'CARD', 'NET_BANKING']);
 	});
 
 	it('clears every enabled option when all are selected', () => {
@@ -17,7 +17,7 @@ describe('toggleSelectAllValues', () => {
 	});
 
 	it('leaves values that are not in the enabled list unchanged', () => {
-		expect(toggleSelectAllValues(['OTHER', 'UPI', 'CARD', 'NETBANKING'], methods)).toEqual([
+		expect(toggleSelectAllValues(['OTHER', 'UPI', 'CARD', 'NET_BANKING'], methods)).toEqual([
 			'OTHER'
 		]);
 	});

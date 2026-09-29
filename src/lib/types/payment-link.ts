@@ -9,7 +9,7 @@ export const PAYMENT_LINK_STATUSES = [
 
 export type PaymentLinkStatus = (typeof PAYMENT_LINK_STATUSES)[number];
 
-export const PAYMENT_LINK_ALLOWED_METHODS = ['UPI', 'CARD', 'NETBANKING'] as const;
+export const PAYMENT_LINK_ALLOWED_METHODS = ['UPI', 'CARD', 'NET_BANKING'] as const;
 
 export type PaymentLinkAllowedMethod = (typeof PAYMENT_LINK_ALLOWED_METHODS)[number];
 
@@ -19,7 +19,7 @@ export const PAYMENT_LINK_METHOD_OPTIONS: {
 }[] = [
 	{ value: 'UPI', label: 'UPI' },
 	{ value: 'CARD', label: 'Card' },
-	{ value: 'NETBANKING', label: 'Net Banking' }
+	{ value: 'NET_BANKING', label: 'Net Banking' }
 ];
 
 export const PAYMENT_LINK_DELIVERY_METHODS = ['EMAIL', 'SMS'] as const;

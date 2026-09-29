@@ -79,7 +79,7 @@ function normalizeInvoice(value: unknown): Invoice | null {
 		paymentLinkUrl: typeof row.paymentLinkUrl === 'string' ? row.paymentLinkUrl : null,
 		allowedPaymentMethods: methods.filter(
 			(method): method is Invoice['allowedPaymentMethods'][number] =>
-				method === 'UPI' || method === 'CARD' || method === 'NETBANKING'
+				method === 'UPI' || method === 'CARD' || method === 'NET_BANKING'
 		),
 		notifyEmail: row.notifyEmail,
 		notifySms: row.notifySms,
