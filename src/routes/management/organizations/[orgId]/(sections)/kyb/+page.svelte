@@ -51,6 +51,7 @@
 			sections={data.kybReview.sections}
 			verifications={data.kybReview.verifications}
 			{profileOptions}
+			sensitiveDataError={data.kybReview.sensitiveDataError}
 			bind:this={reviewPage}
 			onContinue={continueTo}
 		/>

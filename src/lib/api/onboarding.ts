@@ -142,26 +142,30 @@ export type OrganizationSection = 'identity' | 'address' | 'directors';
 type KybPayload = UpdateOrganizationRequest['kyb'];
 
 /**
- * Stand-ins for an address that hasn't been saved yet, so an identity save before the address
- * step never sends blanks — the same placeholders management's "legal" save uses (update-kyb.ts).
- * extractOnboardingPrefill reads them back as empty.
+ * Stand-in older identity saves sent for an address not saved yet. The backend now rejects it
+ * ("Invalid City"), so it is no longer sent (see dropUnsavedAddress) — only read back as empty by
+ * extractOnboardingPrefill, for orgs that still have it stored.
  */
 export const ADDRESS_PLACEHOLDER = '-';
 
-function withAddressPlaceholders(payload: UpdateOrganizationRequest): UpdateOrganizationRequest {
-	const orPlaceholder = (value: string) => value.trim() || ADDRESS_PLACEHOLDER;
+/**
+ * A step save's body without an address that hasn't been saved yet: an identity or directors save
+ * before step 2 would otherwise send a blank (or placeholder) address, which the backend rejects.
+ * The address step always sends its own, so it never loses anything here.
+ */
+export function dropUnsavedAddress(payload: UpdateOrganizationRequest): RemarkedUpdateRequest {
+	const next: RemarkedUpdateRequest = { ...payload, kyb: { ...payload.kyb } };
+	if (!payload.kyb.communicationAddress.trim()) delete next.kyb?.communicationAddress;
 	const address = payload.addressDetails;
-	return {
-		...payload,
-		kyb: { ...payload.kyb, communicationAddress: orPlaceholder(payload.kyb.communicationAddress) },
-		addressDetails: {
-			...address,
-			address: orPlaceholder(address.address),
-			city: orPlaceholder(address.city),
-			state: orPlaceholder(address.state),
-			pinCode: orPlaceholder(address.pinCode)
-		}
-	};
+	const addressEmpty = [
+		address.address,
+		address.address2,
+		address.city,
+		address.state,
+		address.pinCode
+	].every((value) => !value?.trim());
+	if (addressEmpty) delete next.addressDetails;
+	return next;
 }
 
 function identityKyb(kyb: KybPayload): Omit<KybPayload, 'communicationAddress'> {
@@ -212,11 +216,11 @@ export function toSectionPayload(
 	const savedKyb = withoutPan(base.kyb);
 	switch (section) {
 		case 'identity':
-			return withAddressPlaceholders({
+			return {
 				...base,
 				brandName: own.brandName,
 				kyb: { ...identityKyb(own.kyb), communicationAddress: base.kyb.communicationAddress }
-			});
+			};
 		case 'address':
 			return {
 				...base,
@@ -224,7 +228,7 @@ export function toSectionPayload(
 				addressDetails: own.addressDetails
 			};
 		case 'directors':
-			return withAddressPlaceholders({ ...base, kyb: savedKyb, directors: own.directors });
+			return { ...base, kyb: savedKyb, directors: own.directors };
 	}
 }
 

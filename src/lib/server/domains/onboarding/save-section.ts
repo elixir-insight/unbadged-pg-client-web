@@ -1,6 +1,7 @@
 import { fail, type ActionFailure, type Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
 import {
+	dropUnsavedAddress,
 	pickRejectedFields,
 	toSectionPayload,
 	type KybSource,
@@ -106,7 +107,12 @@ export async function saveOrganizationSection(
 		return { ok: true as const, form, data: result.data, tokens: session.tokens };
 	}
 
-	const result = await onboardingClient.saveOrganization(fetch, log, session.tokens, payload);
+	const result = await onboardingClient.saveOrganization(
+		fetch,
+		log,
+		session.tokens,
+		dropUnsavedAddress(payload)
+	);
 	if (!result.ok) return { ok: false as const, failure: saveFailure(result.error) };
 	return { ok: true as const, form, data: result.data, tokens: session.tokens };
 }

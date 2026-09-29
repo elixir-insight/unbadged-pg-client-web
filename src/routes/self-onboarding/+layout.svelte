@@ -48,6 +48,10 @@
 	);
 	const onboardingStatus = $derived(onboarding.onboardingStatus);
 
+	// Every visit starts empty and is filled from the API alone — runs before any child step
+	// renders and before the hydrate* effects below. Nothing is kept in browser storage.
+	onboarding.reset();
+
 	// The wizard has no control for entity type any more (captured at signup instead) — fill it
 	// in from the server-fetched organization record the first time it's available locally.
 	$effect(() => {
@@ -106,22 +110,6 @@
 		if (isStepReachable(currentStep, completedSteps, remarkSteps)) return;
 		const first = firstIncompleteStep(completedSteps);
 		void goto(resolve(stepHref(STEPS[first - 1].path) as '/'), { replaceState: true });
-	});
-
-	$effect(() => {
-		JSON.stringify({
-			pan: onboarding.formData.businessPan,
-			entityType: onboarding.formData.entityType,
-			gstin: onboarding.formData.gstin,
-			business: onboarding.formData.businessDetails,
-			bank: onboarding.formData.bankAccounts,
-			directors: onboarding.formData.directors,
-			documents: onboarding.formData.documents,
-			mode: onboarding.mode,
-			verifications: onboarding.verifications,
-			focusField: onboarding.focusField
-		});
-		onboarding.persist();
 	});
 
 	$effect(() => {

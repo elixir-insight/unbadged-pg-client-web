@@ -15,6 +15,7 @@ import { toPipelineDropdownOptions } from '$lib/server/domains/pipeline/map-opti
 import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 import { loadOrganizationDocuments } from '$lib/server/domains/organization/loaders/documents';
 import { loadOrganizationBankAccounts } from '$lib/server/domains/organization/loaders/bank-accounts';
+import { unmaskOrganizationForReview } from '$lib/server/domains/organization/loaders/sensitive-data';
 import { parseUpdateKybSectionFormData } from '$lib/server/domains/organization/utils/form-data';
 import { updateKybSectionMutation } from '$lib/server/domains/organization/mutations/update-kyb-section';
 import { buildSections } from '$lib/kyb-review/sections';
@@ -92,7 +93,7 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		{ orgId, fromBankApi: bankAccounts, fromDetails: mapped.bankAccounts, bankAccountsLoadError },
 		'GET bank accounts for review'
 	);
-	const organization = {
+	const merged = {
 		...mapped,
 		documents,
 		directors,
@@ -100,14 +101,24 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		bankAccounts: bankAccounts.length > 0 ? bankAccounts : mapped.bankAccounts
 	};
 
-	// Pipelines feed the approve popup's profile form; only needed while the org is in review.
-	const [payinResult, payoutResult] =
-		organization.status === 'IN_REVIEW'
-			? await Promise.all([
-					pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYIN'),
-					pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYOUT')
-				])
-			: [null, null];
+	// Only while in review: pipelines feed the approve popup, and the reviewer sees decrypted
+	// PAN / Aadhaar. Every other status keeps the masked values the edit form relies on.
+	const inReview = merged.status === 'IN_REVIEW';
+	const [payinResult, payoutResult, unmasked] = inReview
+		? await Promise.all([
+				pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYIN'),
+				pipelineClient.list(fetch, log, tokens.accessToken, tokens.gatewayToken, 'PAYOUT'),
+				unmaskOrganizationForReview({
+					fetch,
+					log,
+					accessToken: tokens.accessToken,
+					gatewayToken: tokens.gatewayToken,
+					orgId,
+					organization: merged
+				})
+			])
+		: [null, null, null];
+	const organization = unmasked?.organization ?? merged;
 	const pipelineFailures = [payinResult, payoutResult]
 		.map((result) => (result && !result.ok ? result.error.message : null))
 		.filter((message): message is string => Boolean(message));
@@ -122,6 +133,7 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		kybReview: {
 			organization,
 			verifications: mapVerifications(items),
+			sensitiveDataError: unmasked?.sensitiveDataError ?? null,
 			sections: buildSections(organization),
 			pipelines: {
 				payin: toPipelineDropdownOptions(payinResult?.ok ? payinResult.data : null),

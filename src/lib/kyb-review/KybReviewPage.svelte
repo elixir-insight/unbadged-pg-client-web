@@ -26,12 +26,15 @@
 		sections,
 		verifications,
 		profileOptions,
+		sensitiveDataError = null,
 		onContinue
 	}: {
 		organization: Organization;
 		sections: ReviewSection[];
 		verifications: Record<string, FieldReview>;
 		profileOptions: ProfileFormOptions;
+		/** Set when some PAN / Aadhaar values couldn't be decrypted and are still masked. */
+		sensitiveDataError?: string | null;
 		onContinue: (href: string) => void;
 	} = $props();
 
@@ -130,6 +133,11 @@
 
 {#snippet sectionPanel(section: ReviewSection)}
 	<div class="flex flex-col gap-4">
+		{#if sensitiveDataError}
+			<p class="text-sm text-destructive" role="alert">
+				Some PAN / Aadhaar values couldn't be unmasked: {sensitiveDataError}
+			</p>
+		{/if}
 		{#if section.id === review.activeTab && review.message?.type === 'success'}
 			<p class="text-sm text-success" role="status">{review.message.text}</p>
 		{:else if section.id === review.activeTab && review.message?.type === 'error'}

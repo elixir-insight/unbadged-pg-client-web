@@ -10,8 +10,8 @@ import {
 import type { BankDetails, OnboardingPrefill } from '$lib/types/onboarding';
 import type { onboarding as OnboardingStore } from './onboarding.svelte';
 
-// The store restores from sessionStorage when its module loads, and every client test file
-// shares one browser — so clear it and import a fresh store, or another file's state leaks in.
+// Every client test file shares one browser and module graph — import a fresh store so another
+// file's in-memory state doesn't leak in.
 let onboarding: typeof OnboardingStore;
 beforeAll(async () => {
 	sessionStorage.clear();
@@ -153,9 +153,9 @@ describe('change and revert', () => {
 	});
 });
 
-// GET masks PAN/Aadhaar, but this tab's sessionStorage still holds the unmasked values it
-// saved — a reload must not read those as changes and re-save on every Continue.
-describe('dirty tracking after a reload in the same tab', () => {
+// Nothing survives a reload or a new visit: the wizard starts empty and is filled from the API
+// alone, so a previous session (or a previous user on this tab) can never leak into the form.
+describe('a reload or new visit starts from the API only', () => {
 	// A fresh module instance per call — what a page reload does. (vi.resetModules alone doesn't
 	// re-evaluate an already-imported module in browser mode.)
 	let reloads = 0;
@@ -176,44 +176,45 @@ describe('dirty tracking after a reload in the same tab', () => {
 		cleanup();
 	}
 
-	/** The form as this tab typed and saved it: same data as `prefill`, but unmasked. */
-	function saveUnmasked(store: typeof OnboardingStore) {
-		store.setBusinessPan('ABCDE1234F');
-		store.setDirectors([{ ...prefill.directors[0], pan: 'ABCDE1234G', aadhaar: '234567890123' }]);
-		store.markClean('identity', snap('identity', store.formData));
-		store.markClean('directors', snap('directors', store.formData));
-	}
-
-	it('keeps an unchanged form clean although the server copy is masked', async () => {
-		sessionStorage.clear();
+	it('does not bring back values typed before a reload', async () => {
 		const first = await reloadStore();
-		seedFromServer(first);
-		saveUnmasked(first);
+		first.setBusinessPan('ABCDE1234F');
+		first.selectGstin('29ABCPE1234F1ZB');
+
+		const reloaded = await reloadStore();
+		expect(reloaded.formData.businessPan).toBe('');
+		expect(reloaded.formData.gstin).toBe('');
+	});
+
+	it('shows exactly what the API returned after a reload, and treats it as saved', async () => {
+		const first = await reloadStore();
+		first.selectGstin('29ABCPE1234F1ZB');
 
 		const reloaded = await reloadStore();
 		seedFromServer(reloaded);
-		expect(reloaded.formData.businessPan).toBe('ABCDE1234F');
+		expect(reloaded.formData.gstin).toBe(prefill.gstin);
+		expect(reloaded.formData.businessPan).toBe(prefill.businessPan);
 		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(false);
-		expect(reloaded.isDirty('directors', snap('directors', reloaded.formData))).toBe(false);
 	});
 
-	it('still flags an unmasked value edited after that save', async () => {
+	it('clears legacy sessionStorage state left by older builds', async () => {
+		sessionStorage.setItem(
+			'pg-self-onboarding-v4',
+			JSON.stringify({ formData: { businessPan: 'OLDPN1234X' } })
+		);
+		const reloaded = await reloadStore();
+		expect(sessionStorage.getItem('pg-self-onboarding-v4')).toBeNull();
+		expect(reloaded.formData.businessPan).toBe('');
+	});
+
+	it('reset() empties a store already in memory (layout mount / next sign-in)', async () => {
 		const store = await reloadStore();
-		store.setBusinessPan('ABCDE9999F');
-		const reloaded = await reloadStore();
-		seedFromServer(reloaded);
-		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(true);
-	});
+		seedFromServer(store);
+		store.setBusinessPan('ABCDE1234F');
 
-	it('falls back to the server copy when it changed elsewhere since this tab saved', async () => {
-		sessionStorage.clear();
-		const first = await reloadStore();
-		seedFromServer(first);
-		saveUnmasked(first);
-
-		const reloaded = await reloadStore();
-		seedFromServer(reloaded, { ...prefill, gstin: '29ABCPE1234F1ZB' });
-		// Local form still holds this tab's GSTIN — it differs from the server, so it would save.
-		expect(reloaded.isDirty('identity', snap('identity', reloaded.formData))).toBe(true);
+		store.reset();
+		expect(store.formData.businessPan).toBe('');
+		expect(store.formData.gstin).toBe('');
+		expect(store.formData.directors).toEqual([]);
 	});
 });

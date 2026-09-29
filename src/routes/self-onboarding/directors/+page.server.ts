@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import type { Actions } from './$types';
 import { extractDirectorIds } from '$lib/components/self-onboarding/director-ids';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
@@ -8,6 +9,7 @@ import {
 } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
 import { saveFailure, saveOrganizationSection } from '$lib/server/domains/onboarding/save-section';
+import { uploadErrorDetails } from '$lib/server/domains/onboarding/upload-error';
 import { parseDocumentFileName } from '$lib/server/domains/organization/utils/document-field-names';
 import {
 	MAX_UPLOAD_FILE_SIZE_BYTES,
@@ -121,7 +123,49 @@ export const actions: Actions = {
 			directorId,
 			upstreamForm
 		);
-		if (!result.ok) return saveFailure(result.error);
+		if (!result.ok) {
+			const { error } = result;
+			const body = error.kind === 'http' ? error.body : undefined;
+			const details = uploadErrorDetails(body);
+			locals.logger.error(
+				{
+					directorId,
+					files: [...upstreamForm.entries()].map(([field, value]) => ({
+						field,
+						name: value instanceof File ? value.name : undefined,
+						type: value instanceof File ? value.type : undefined,
+						size: value instanceof File ? value.size : undefined
+					})),
+					kind: error.kind,
+					status: error.kind === 'http' ? error.status : undefined,
+					exceptionCode: error.kind === 'http' ? error.code : undefined,
+					message: error.message,
+					details,
+					// Full upstream body: the generic message alone doesn't say which file failed or why.
+					response: body
+				},
+				`director document upload failed — ${error.message}`
+			);
+			const status = error.kind === 'http' ? error.status : 502;
+			const text =
+				error.kind === 'http'
+					? details.length > 0
+						? `${error.message}: ${details.join('; ')}`
+						: error.message
+					: 'Something went wrong. Please try again.';
+			// Dev only: hand the raw upstream answer to the browser so it can be read in DevTools.
+			return fail(status, {
+				error: text,
+				...(dev && {
+					debug: {
+						directorId,
+						status,
+						code: error.kind === 'http' ? error.code : undefined,
+						response: body
+					}
+				})
+			});
+		}
 
 		return { success: true as const };
 	},

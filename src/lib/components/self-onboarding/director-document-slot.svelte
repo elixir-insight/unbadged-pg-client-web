@@ -95,6 +95,10 @@
 				return;
 			}
 			pickedFile = null;
+			if (result.type === 'failure' && result.data && 'debug' in result.data) {
+				// Only present in dev builds — the backend's raw answer for this upload.
+				console.error(`[director upload] ${field} failed`, result.data.debug);
+			}
 			error =
 				result.type === 'failure' &&
 				result.data &&

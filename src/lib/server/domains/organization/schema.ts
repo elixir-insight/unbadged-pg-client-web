@@ -291,6 +291,17 @@ export const UpdateOrganizationProfileResponseSchema = v.object({
 	data: v.optional(v.unknown())
 });
 
+/** GET /api/v1/management/organizations/{orgId}/sensitive-data — decrypted PAN / Aadhaar. Shape of `data` is read leniently. */
+export const GetOrganizationSensitiveDataResponseSchema = v.object({
+	message: v.optional(v.string()),
+	statusCode: v.optional(v.number()),
+	data: v.optional(v.unknown())
+});
+
+export type SensitiveDataQuery =
+	| { entityType: 'onboarding'; field: 'pan' }
+	| { entityType: 'director'; field: 'pan' | 'aadhar'; entityId: string };
+
 export const GetOrganizationProfileResponseSchema = v.object({
 	message: v.optional(v.string()),
 	statusCode: v.optional(v.number()),

@@ -10,6 +10,7 @@ import {
 	GetOrganizationDetailsResponseSchema,
 	GetOrganizationDocumentsResponseSchema,
 	GetOrganizationProfileResponseSchema,
+	GetOrganizationSensitiveDataResponseSchema,
 	GetOrganizationsTableResponseSchema,
 	UploadOrganizationDocumentsResponseSchema,
 	UpdateOrganizationProfileResponseSchema,
@@ -17,6 +18,7 @@ import {
 	UpdateOrganizationStatusResponseSchema,
 	type AddOrganizationBankRequest,
 	type CreateOrganizationRequest,
+	type SensitiveDataQuery,
 	type UpdateOrganizationKybRequest,
 	type UpdateOrganizationProfileRequest,
 	type UpdateOrganizationStatusRequest
@@ -85,6 +87,24 @@ export const organizationClient = {
 			accessToken,
 			gatewayToken,
 			schema: GetOrganizationProfileResponseSchema
+		}),
+
+	getSensitiveData: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orgId: string,
+		query: SensitiveDataQuery
+	) =>
+		apiFetch(`api/v1/management/organizations/${encodeURIComponent(orgId)}/sensitive-data`, {
+			fetch: fetchFn,
+			logger,
+			method: 'GET',
+			accessToken,
+			gatewayToken,
+			query,
+			schema: GetOrganizationSensitiveDataResponseSchema
 		}),
 
 	updateProfile: (

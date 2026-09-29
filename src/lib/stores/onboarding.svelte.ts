@@ -6,7 +6,6 @@ import {
 import {
 	ENTITY_TYPE_COMPANY_TYPES,
 	ENTITY_TYPE_LABELS,
-	parseEntityType,
 	DOCUMENT_KEYS,
 	isDocumentRequired,
 	type Address,
@@ -23,13 +22,10 @@ import {
 	type OnboardingMode
 } from '$lib/types/onboarding';
 import type { OrganizationSection } from '$lib/api/onboarding';
-import {
-	communicationFromSaved,
-	emptyAddress,
-	isAddressEmpty
-} from '$lib/utils/onboarding-address';
+import { emptyAddress, isAddressEmpty } from '$lib/utils/onboarding-address';
 
-const STORAGE_KEY = 'pg-self-onboarding-v4';
+/** Key prefix older builds persisted the wizard under (e.g. `pg-self-onboarding-v4`). */
+const LEGACY_STORAGE_PREFIX = 'pg-self-onboarding';
 
 /**
  * The saves the wizard makes: one per step that saves PUT /organization (identity, address,
@@ -141,127 +137,32 @@ function emptyForm(): OnboardingFormData {
 	};
 }
 
-type PersistedDocuments = Partial<Record<DocumentKey, Omit<DocumentSlot, 'file'>>>;
-
-/** Sessions persisted before the communication address was structured hold it as a string. */
-type PersistedBusinessDetails = Omit<
-	BusinessDetails,
-	'communicationAddress' | 'sameAsCommunication'
-> & {
-	communicationAddress: Address | string;
-	sameAsCommunication?: boolean;
-};
-
-interface PersistedState {
-	formData: Omit<OnboardingFormData, 'documents' | 'businessDetails'> & {
-		businessDetails: PersistedBusinessDetails;
-		documents: PersistedDocuments;
-	};
-	mode: OnboardingMode;
-	verifications?: Record<string, string>;
-	focusField?: string;
-	/** Payloads this tab last saved successfully — only ever written by markClean. */
-	lastSaved?: Partial<Record<SaveKey, string>>;
-}
-
-function omitFile(slot: DocumentSlot): Omit<DocumentSlot, 'file'> {
-	return {
-		uploaded: slot.uploaded,
-		required: slot.required,
-		fileName: slot.fileName
-	};
-}
-
-function stripFiles(data: OnboardingFormData): PersistedState['formData'] {
-	const documents: PersistedDocuments = mapDocumentKeys((key) => omitFile(data.documents[key]));
-
-	return { ...data, documents };
-}
-
-function restoreForm(persisted: PersistedState['formData']): OnboardingFormData {
-	// Slots missing from older persisted state (the document set has changed over time) start empty.
-	const restoreSlot = (slot: Omit<DocumentSlot, 'file'> | undefined): DocumentSlot => ({
-		uploaded: slot?.uploaded ?? false,
-		required: slot?.required ?? false,
-		fileName: slot?.fileName ?? '',
-		file: null
-	});
-	const entityType = parseEntityType(persisted.entityType);
-	const address = { ...emptyAddress(), ...persisted.businessDetails.address };
-	const communication = persisted.businessDetails.communicationAddress;
-
-	return {
-		...persisted,
-		entityType,
-		businessDetails: {
-			...emptyForm().businessDetails,
-			...persisted.businessDetails,
-			address,
-			...(typeof communication === 'string'
-				? communicationFromSaved(communication, address)
-				: {
-						communicationAddress: { ...emptyAddress(), ...communication },
-						sameAsCommunication: persisted.businessDetails.sameAsCommunication ?? true
-					})
-		},
-		bankAccounts:
-			persisted.bankAccounts && persisted.bankAccounts.length > 0
-				? persisted.bankAccounts.map((bank) => ({ ...emptyBankAccount(), ...bank }))
-				: [emptyBankAccount()],
-		documents: applyEntityDocumentRequirements(
-			mapDocumentKeys((key) => restoreSlot(persisted.documents?.[key])),
-			entityType
-		)
-	};
-}
-
-function readPersisted(): PersistedState | null {
-	if (typeof sessionStorage === 'undefined') return null;
+// Nothing is kept in browser storage: every visit starts empty and is filled from the API only
+// (see the self-onboarding layout's hydrate* calls). Clear what older builds left behind so a
+// previous user's details can never come back.
+if (typeof sessionStorage !== 'undefined') {
 	try {
-		const raw = sessionStorage.getItem(STORAGE_KEY);
-		if (!raw) return null;
-		return JSON.parse(raw) as PersistedState;
+		for (const key of Object.keys(sessionStorage)) {
+			if (key.startsWith(LEGACY_STORAGE_PREFIX)) sessionStorage.removeItem(key);
+		}
 	} catch {
-		return null;
+		// Storage blocked — nothing to clear.
 	}
 }
 
-const persisted = readPersisted();
-
-const formData = $state<OnboardingFormData>(
-	persisted ? restoreForm(persisted.formData) : emptyForm()
-);
-let mode = $state<OnboardingMode>(persisted?.mode ?? 'manual');
-let verifications = $state<Record<string, string>>(persisted?.verifications ?? {});
-let focusField = $state(persisted?.focusField ?? '');
-// Plain, like savedSnapshots — persisted so a reload can tell "unmasked value I saved" from
-// "unmasked value I typed but never saved" (see seedClean).
-const lastSaved: Partial<Record<SaveKey, string>> = { ...persisted?.lastSaved };
+const formData = $state<OnboardingFormData>(emptyForm());
+let mode = $state<OnboardingMode>('manual');
+let verifications = $state<Record<string, string>>({});
+let focusField = $state('');
+// Plain, like savedSnapshots — lets seedClean tell "unmasked value I saved" from "unmasked value
+// I typed but never saved" while the wizard stays open.
+const lastSaved: Partial<Record<SaveKey, string>> = {};
 // Save/submit errors pinned to fields (keyed like `verifications`, e.g. `kyb.gstNumber`) — each
 // shown under its field until that field is edited; never persisted.
 let fieldSaveErrors = $state<Record<string, string>>({});
 // The org's real profileStatus, fetched once per layout mount (see +layout.server.ts) — never
 // persisted, always refetched, so a status change server-side is never shown stale.
 let profileStatus = $state('');
-
-/**
- * Untracked so a store mutator called from inside an `$effect` (e.g. the layout's
- * setVerifications/hydrate* calls) never subscribes that effect to the whole store — otherwise
- * the write re-triggers the effect and it loops forever (effect_update_depth_exceeded).
- */
-function persist() {
-	if (typeof sessionStorage === 'undefined') return;
-	untrack(() => {
-		const payload: PersistedState = {
-			formData: stripFiles(formData),
-			mode,
-			verifications,
-			focusField,
-			lastSaved
-		};
-		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-	});
-}
 
 /**
  * Brings local director ids in line with the directors actually saved upstream. An id the
@@ -331,7 +232,23 @@ export const onboarding = {
 		return resolveOnboardingStatus(profileStatus);
 	},
 
-	persist,
+	/**
+	 * Empties the whole wizard. The self-onboarding layout calls it on every mount, before
+	 * hydrating from the API, so a visit (or a different user signing in on the same tab) never
+	 * starts from state left in memory by an earlier one.
+	 */
+	reset() {
+		untrack(() => {
+			Object.assign(formData, emptyForm());
+			mode = 'manual';
+			verifications = {};
+			focusField = '';
+			fieldSaveErrors = {};
+			profileStatus = '';
+			for (const key of Object.keys(lastSaved) as SaveKey[]) delete lastSaved[key];
+			for (const key of Object.keys(savedSnapshots) as SaveKey[]) delete savedSnapshots[key];
+		});
+	},
 
 	setProfileStatus(next: string) {
 		profileStatus = next;
@@ -339,12 +256,10 @@ export const onboarding = {
 
 	setVerifications(next: Record<string, string>) {
 		verifications = next;
-		persist();
 	},
 
 	setFocusField(field: string) {
 		focusField = field;
-		persist();
 	},
 
 	/** Replaces every pinned save error with `message` under each of `keys`. */
@@ -369,12 +284,10 @@ export const onboarding = {
 		const next = { ...verifications };
 		delete next[key];
 		verifications = next;
-		persist();
 	},
 
 	setBusinessPan(pan: string) {
 		formData.businessPan = pan;
-		persist();
 	},
 
 	setPan(pan: string, entityType: EntityType, entityName: string) {
@@ -383,7 +296,6 @@ export const onboarding = {
 		formData.entityName = entityName;
 		formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
 		formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
-		persist();
 	},
 
 	/**
@@ -399,7 +311,6 @@ export const onboarding = {
 			formData.entityName = ENTITY_TYPE_LABELS[entityType];
 			formData.businessDetails.companyType = ENTITY_TYPE_COMPANY_TYPES[entityType];
 			formData.documents = applyEntityDocumentRequirements(formData.documents, entityType);
-			persist();
 		});
 	},
 
@@ -453,23 +364,19 @@ export const onboarding = {
 			} else {
 				reconcileDirectors(prefill.directors);
 			}
-			persist();
 		});
 	},
 
 	switchToManual() {
 		mode = 'manual';
-		persist();
 	},
 
 	setGstinList(list: GstinItem[]) {
 		formData.gstinList = list;
-		persist();
 	},
 
 	selectGstin(gstin: string) {
 		formData.gstin = gstin;
-		persist();
 	},
 
 	updateBusinessDetails(patch: Partial<BusinessDetails>) {
@@ -479,12 +386,10 @@ export const onboarding = {
 			address: formData.businessDetails.address,
 			communicationAddress: formData.businessDetails.communicationAddress
 		};
-		persist();
 	},
 
 	updateBusinessAddress(patch: Partial<Address>) {
 		formData.businessDetails.address = patchAddress(formData.businessDetails.address, patch);
-		persist();
 	},
 
 	updateCommunicationAddress(patch: Partial<Address>) {
@@ -492,18 +397,15 @@ export const onboarding = {
 			formData.businessDetails.communicationAddress,
 			patch
 		);
-		persist();
 	},
 
 	/** Only flips the flag — the registered address typed earlier is kept for when it's unticked. */
 	setSameAsCommunication(same: boolean) {
 		formData.businessDetails.sameAsCommunication = same;
-		persist();
 	},
 
 	setDirectors(directors: Director[]) {
 		formData.directors = directors;
-		persist();
 	},
 
 	addDirector() {
@@ -511,7 +413,6 @@ export const onboarding = {
 			...formData.directors,
 			{ name: '', pan: '', aadhaar: '', email: '', phone: '' }
 		];
-		persist();
 	},
 
 	updateDirector(index: number, patch: Partial<Director>) {
@@ -520,12 +421,10 @@ export const onboarding = {
 		formData.directors = formData.directors.map((director, i) =>
 			i === index ? { ...director, ...patch } : director
 		);
-		persist();
 	},
 
 	removeDirector(index: number) {
 		formData.directors = formData.directors.filter((_, i) => i !== index);
-		persist();
 	},
 
 	/**
@@ -536,7 +435,6 @@ export const onboarding = {
 	syncDirectorIds(saved: Director[]) {
 		untrack(() => {
 			reconcileDirectors(saved);
-			persist();
 		});
 	},
 
@@ -546,12 +444,10 @@ export const onboarding = {
 			...director,
 			id: ids[i] ?? director.id
 		}));
-		persist();
 	},
 
 	addBankAccount() {
 		formData.bankAccounts = [...formData.bankAccounts, emptyBankAccount()];
-		persist();
 	},
 
 	/**
@@ -568,7 +464,6 @@ export const onboarding = {
 			if (saved.length === 0) return;
 			if (!formData.bankAccounts.every(isEmptyBankAccount)) return;
 			formData.bankAccounts = saved;
-			persist();
 		});
 	},
 
@@ -578,12 +473,10 @@ export const onboarding = {
 		formData.bankAccounts = formData.bankAccounts.map((bank, i) =>
 			i === index ? { ...bank, ...patch } : bank
 		);
-		persist();
 	},
 
 	removeBankAccount(index: number) {
 		formData.bankAccounts = formData.bankAccounts.filter((_, i) => i !== index);
-		persist();
 	},
 
 	/** Stores upstream account ids returned after a save; `undefined` entries keep the existing id. */
@@ -592,7 +485,6 @@ export const onboarding = {
 			...bank,
 			accountId: ids[i] ?? bank.accountId
 		}));
-		persist();
 	},
 
 	updateDocument(key: DocumentKey, file: File) {
@@ -602,7 +494,6 @@ export const onboarding = {
 			file,
 			fileName: file.name
 		};
-		persist();
 	},
 
 	clearDocument(key: DocumentKey) {
@@ -612,7 +503,6 @@ export const onboarding = {
 			file: null,
 			fileName: ''
 		};
-		persist();
 	},
 
 	/** Marks a document uploaded from GET .../documents (see documents/+page.server.ts) — safe to
@@ -621,7 +511,6 @@ export const onboarding = {
 		untrack(() => {
 			if (formData.documents[key].uploaded) return;
 			formData.documents[key] = { ...formData.documents[key], uploaded: true };
-			persist();
 		});
 	},
 
@@ -638,12 +527,11 @@ export const onboarding = {
 		const serialized = JSON.stringify(payload);
 		savedSnapshots[key] = serialized;
 		lastSaved[key] = serialized;
-		persist();
 	},
 
 	/**
 	 * Sets the baseline from the server's copy on load. The server masks PAN/Aadhaar, but this tab
-	 * still holds the unmasked values it saved (sessionStorage) — compared against the masked copy
+	 * still holds the unmasked values it saved (in memory) — compared against the masked copy
 	 * those would always read as changed and re-save on every Continue. So when this tab's last
 	 * save matches the server on every field the server shows, that save is the baseline instead;
 	 * anything else (edited elsewhere, never saved here) falls back to the server's copy.

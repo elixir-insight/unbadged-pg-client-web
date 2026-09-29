@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { OnboardingFormData } from '$lib/types/onboarding';
 import {
+	dropUnsavedAddress,
 	getDocumentKeyForFieldName,
 	documentFieldOptions,
 	isDocumentFieldName,
@@ -268,18 +269,20 @@ describe('toSectionPayload', () => {
 		expect(payload.addressDetails.address2).toBe('Floor 2');
 	});
 
-	it('fills an address not saved yet with placeholders on an identity save', () => {
+	it('leaves out an address not saved yet on an identity save', () => {
 		const empty = saved();
 		empty.businessDetails.address = { line1: '', line2: '', city: '', state: '', pincode: '' };
 		empty.businessDetails.communicationAddress = { ...empty.businessDetails.address };
-		const payload = toSectionPayload('identity', form(), empty);
-		expect(payload.kyb.communicationAddress).toBe('-');
-		expect(payload.addressDetails).toMatchObject({
-			address: '-',
-			city: '-',
-			state: '-',
-			pinCode: '-'
-		});
+		const payload = dropUnsavedAddress(toSectionPayload('identity', form(), empty));
+		expect(payload).not.toHaveProperty('addressDetails');
+		expect(payload.kyb).not.toHaveProperty('communicationAddress');
+		expect(payload.kyb?.gstNumber).toBeTruthy();
+	});
+
+	it('keeps a saved address on an identity save', () => {
+		const payload = dropUnsavedAddress(toSectionPayload('identity', form(), saved()));
+		expect(payload.addressDetails?.address2).toBe('Floor 2');
+		expect(payload.kyb?.communicationAddress).toBeTruthy();
 	});
 
 	it('takes only the directors from the form on a directors save', () => {
