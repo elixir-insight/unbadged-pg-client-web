@@ -27,7 +27,9 @@ function prefill(): OnboardingPrefill {
 				pan: '**********',
 				aadhaar: '************',
 				email: 'a@x.test',
-				phone: '9876543211'
+				phone: '9876543211',
+				aadhaarDocument: 'Uploaded',
+				panDocument: 'Uploaded'
 			}
 		]
 	};
@@ -95,6 +97,18 @@ describe('savedCompletedSteps', () => {
 		data.bankAccounts = [{ ...data.bankAccounts[0], accountId: undefined }];
 		data.prefill!.directors = [{ ...data.prefill!.directors[0], id: undefined }];
 		expect(savedCompletedSteps(data)).toEqual([1, 2, 5]);
+	});
+
+	it('keeps directors incomplete until both KYC documents are uploaded', () => {
+		const data = saved();
+		data.prefill!.directors = [
+			{
+				...data.prefill!.directors[0],
+				aadhaarDocument: undefined,
+				panDocument: undefined
+			}
+		];
+		expect(savedCompletedSteps(data)).not.toContain(4);
 	});
 
 	it('needs business TAN, AOA and MOA from every entity type but a sole proprietorship', () => {

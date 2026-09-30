@@ -108,7 +108,9 @@
 		};
 	});
 
-	const canApprove = $derived(allSectionsComplete(reviewOrganization));
+	const isInReview = $derived(organization.status === 'IN_REVIEW');
+	/** Preview approve is for staff completeness flow — not self-submitted IN_REVIEW KYB. */
+	const canApprove = $derived(!isInReview && allSectionsComplete(reviewOrganization));
 	const hasApprovePermission = $derived(userPermissions.can('ORGANIZATION', 'approve'));
 
 	const approvalBlockers = $derived.by(() => {
@@ -612,7 +614,11 @@
 				</UITooltip.TooltipProvider>
 			</div>
 		{:else}
-			{#if !canApprove}
+			{#if isInReview}
+				<p class="mb-4 text-sm text-muted-foreground">
+					This organization is in KYB field review. Approve or send remarks from the KYB page.
+				</p>
+			{:else if !canApprove}
 				<p class="mb-4 text-sm text-muted-foreground">
 					Approve stays disabled until KYB, bank details, and required documents are complete.
 					{#if approvalBlockers.length > 0}
@@ -623,7 +629,7 @@
 			<form method="POST" action="?/approve" use:enhance={onApproveEnhance}>
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					{#if hasApprovePermission}
+					{#if hasApprovePermission && !isInReview}
 						<Button type="submit" disabled={!canApprove || approving}>
 							<BadgeCheck class="size-4" />
 							{approving ? 'Approving…' : 'Approve'}

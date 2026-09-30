@@ -8,7 +8,12 @@ import {
 } from '$lib/types/onboarding';
 import { isAddressEmpty } from '$lib/utils/onboarding-address';
 import { firstIncompleteStep, type StepId } from './steps';
-import { isAddressFilled, isBankAccountFilled, isDirectorFilled } from './validation';
+import {
+	isAddressFilled,
+	isBankAccountFilled,
+	isDirectorFilled,
+	directorDocumentsUploaded
+} from './validation';
 
 /** What the self-onboarding layout loads from the backend (see +layout.server.ts). */
 export interface SavedOnboardingData {
@@ -54,10 +59,11 @@ function bankSaved(data: SavedOnboardingData): boolean {
 	);
 }
 
-/** At least one saved director with every required field; their documents are step 5's concern. */
+/** At least one saved director with every required field and both KYC documents. */
 function directorsSaved(data: SavedOnboardingData): boolean {
 	return (data.prefill?.directors ?? []).some(
-		(director) => director.id !== undefined && isDirectorFilled(director)
+		(director) =>
+			director.id !== undefined && isDirectorFilled(director) && directorDocumentsUploaded(director)
 	);
 }
 

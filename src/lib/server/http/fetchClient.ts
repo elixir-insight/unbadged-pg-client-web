@@ -3,6 +3,9 @@ import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
+/** Cap logged response bodies so HTML error pages don't flood logs. */
+const BODY_PREVIEW_LIMIT = 500;
+
 /**
  * Upstream validation errors can carry `message` as a list (one entry per rejected field) rather
  * than a string — callers display it verbatim, so flatten it into one readable line.
@@ -23,6 +26,12 @@ function upstreamMessage(message: unknown): string | undefined {
  */
 function leafIssues(issues: readonly v.BaseIssue<unknown>[]): v.BaseIssue<unknown>[] {
 	return issues.flatMap((issue) => (issue.issues?.length ? leafIssues(issue.issues) : [issue]));
+}
+
+function bodyPreview(raw: string): string {
+	const trimmed = raw.trim();
+	if (!trimmed) return '(empty body)';
+	return trimmed.length > BODY_PREVIEW_LIMIT ? `${trimmed.slice(0, BODY_PREVIEW_LIMIT)}…` : trimmed;
 }
 
 export async function apiFetch<TSchema extends v.GenericSchema>(
@@ -85,8 +94,18 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 			body: requestBody,
 			signal: controller.signal
 		});
-		const json: unknown = await res.json().catch(() => null);
+		const contentType = res.headers.get('content-type');
+		const rawText = await res.text();
 		const durationMs = Date.now() - start;
+
+		let json: unknown = null;
+		if (rawText.trim()) {
+			try {
+				json = JSON.parse(rawText) as unknown;
+			} catch {
+				json = null;
+			}
+		}
 
 		const errorBody =
 			json && typeof json === 'object'
@@ -101,8 +120,10 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 				{
 					status,
 					httpStatus: res.status,
+					contentType,
 					exceptionCode: errorBody?.exceptionCode,
 					message: errorMessage,
+					bodyPreview: bodyPreview(rawText),
 					durationMs
 				},
 				`request failed — ${errorMessage}`
@@ -116,7 +137,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 					message: errorMessage,
 					// Some business "errors" still carry usable data (e.g. the
 					// password-change challenge on sign-in) — keep it for callers.
-					body: json
+					body: json ?? bodyPreview(rawText)
 				} satisfies ApiError
 			};
 		}
@@ -129,13 +150,26 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 				expected: issue.expected,
 				received: issue.received
 			}));
-			log.warn({ status: res.status, durationMs, issues }, 'response validation failed');
+			const preview = bodyPreview(rawText);
+			log.warn(
+				{
+					status: res.status,
+					contentType,
+					durationMs,
+					issues,
+					bodyPreview: preview
+				},
+				'response validation failed'
+			);
 			return {
 				ok: false,
 				error: {
 					kind: 'validation',
 					message: 'Unexpected response shape',
-					issues: parsed.issues
+					issues: parsed.issues,
+					bodyPreview: preview,
+					contentType,
+					httpStatus: res.status
 				}
 			};
 		}

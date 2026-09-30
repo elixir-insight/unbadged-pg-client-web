@@ -9,6 +9,13 @@ import { activateProfileMutation } from '$lib/server/domains/organization/mutati
 import { updateOrganizationStatusMutation } from '$lib/server/domains/organization/mutations/update-status';
 import { failUploadAction } from '$lib/server/http/upload-action-error';
 import { requirePermission } from '$lib/server/domains/auth/requirePermission';
+import {
+	getValidSession,
+	SessionError,
+	SessionInactiveError
+} from '$lib/server/domains/auth/getValidSession';
+import { organizationClient } from '$lib/server/domains/organization/client';
+import { mapGetOrganizationResponse } from '$lib/server/domains/organization/mappers/from-api/get-organization';
 
 export const load: PageServerLoad = async ({ params, parent, cookies, fetch, locals, depends }) => {
 	depends('org-documents');
@@ -60,6 +67,34 @@ export const actions = {
 		requirePermission(locals.userPermissions, 'ORGANIZATION', 'approve');
 		const log = locals.logger;
 		const orgId = params.orgId?.trim() ?? '';
+
+		// Self-submitted merchants in IN_REVIEW must go through field-level KYB review on /kyb.
+		// Preview approve is only for staff-created orgs still in completeness/preview flow.
+		try {
+			const tokens = await getValidSession(cookies, fetch, log);
+			const details = await organizationClient.getDetails(
+				fetch,
+				log,
+				tokens.accessToken,
+				tokens.gatewayToken,
+				orgId
+			);
+			if (details.ok) {
+				const mapped = mapGetOrganizationResponse(details.data, orgId);
+				if (mapped?.status === 'IN_REVIEW') {
+					return fail(400, {
+						message:
+							'This organization is in KYB review. Approve or send remarks from the KYB review page.',
+						action: 'approve' as const
+					});
+				}
+			}
+		} catch (cause) {
+			if (!(cause instanceof SessionError || cause instanceof SessionInactiveError)) {
+				throw cause;
+			}
+			return fail(401, { message: 'Unauthorized', action: 'approve' as const });
+		}
 
 		const result = await updateOrganizationStatusMutation({
 			fetch,

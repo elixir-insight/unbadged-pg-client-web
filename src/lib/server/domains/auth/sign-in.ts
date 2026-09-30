@@ -10,6 +10,7 @@ import {
 	type MfaChallengeName
 } from './schema';
 import { storeSession } from './session';
+import { clearSignupAccount } from './sign-up';
 import { collectPortalGroups, resolvePortalHome } from '$lib/stores/auth/portal';
 import type {
 	PortalHomePath,
@@ -30,6 +31,7 @@ export function startAuthenticatedSession(
 	tokens: AuthTokenBundle
 ): PortalHomePath {
 	storeSession(cookies, tokens);
+	clearSignupAccount(cookies);
 	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
 	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
 	return resolvePortalHome(

@@ -2,6 +2,7 @@ import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
 import { authClient } from './client';
 import { clearAuthCookies } from './session';
+import { clearSignupAccount } from './sign-up';
 
 /**
  * Clears auth cookies first (so the browser session ends even if the
@@ -19,6 +20,7 @@ export async function performSignOut(opts: {
 	const refreshToken = cookies.get('refreshToken');
 
 	clearAuthCookies(cookies);
+	clearSignupAccount(cookies);
 	log.info('sign-out — cookies cleared');
 
 	if (!accessToken || !gatewayToken || !refreshToken) {

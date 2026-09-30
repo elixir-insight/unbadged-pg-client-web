@@ -117,4 +117,6 @@ export function clearAuthCookies(cookies: Cookies) {
 	cookies.delete('gatewayToken', { path: '/' });
 	cookies.delete('idToken', { path: '/' });
 	cookies.delete('refreshToken', { path: '/' });
+	// Leftover pre-auth signup cookie would reopen /confirm-email after logout.
+	cookies.delete('signupAccount', { path: '/' });
 }

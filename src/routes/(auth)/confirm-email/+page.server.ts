@@ -86,6 +86,7 @@ export const actions = {
 
 		const result = await performConfirmSignUp({
 			fetch,
+			cookies,
 			logger: log,
 			ip,
 			userEmail: parsed.output.userEmail,
