@@ -200,6 +200,8 @@ function mapStatus(value: string): OrganizationStatus {
 	const normalized = value.trim().toUpperCase().replace(/\s+/g, '_');
 	if (
 		normalized === 'IN_PROGRESS' ||
+		normalized === 'IN_REVIEW' ||
+		normalized === 'REMARKED' ||
 		normalized === 'APPROVED' ||
 		normalized === 'ACTIVE' ||
 		normalized === 'ON_HOLD' ||
@@ -321,8 +323,9 @@ function mapAccountType(value: string): AccountType {
 }
 
 export function mapBankAccounts(value: unknown): OrganizationBankAccount[] {
-	if (!Array.isArray(value)) return [];
-	return value
+	// A single account may arrive as a bare object (e.g. onboarding `bankDetails`).
+	const list = Array.isArray(value) ? value : asRecord(value) ? [value] : [];
+	return list
 		.map((item, index) => {
 			const record = asRecord(item);
 			if (!record) return null;
@@ -410,7 +413,7 @@ export function mapGetOrganizationResponse(
 	);
 	const serviceTypes = mapServiceTypes(payload.serviceTypes);
 	const bankAccounts = mapBankAccounts(
-		payload.bankAccounts ?? payload.banks ?? payload.bankAccountDetails
+		payload.bankAccounts ?? payload.banks ?? payload.bankAccountDetails ?? payload.bankDetails
 	);
 	const directors = mapDirectors(payload.directors);
 

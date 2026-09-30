@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { CreateOrganizationRequestSchema, type CreateOrganizationRequest } from '../../schema';
+import { toE164IndianPhone } from '$lib/validation/organization-kyb';
 
 const businessTypeLabelMap: Record<string, CreateOrganizationRequest['businessType']> = {
 	'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
@@ -45,12 +46,9 @@ export const CreateOrganizationFormBodySchema = v.pipe(
 
 export type CreateOrganizationFormBody = v.InferOutput<typeof CreateOrganizationFormBodySchema>;
 
-export function toE164IndianPhone(phone: string): string {
-	const digits = phone.replace(/\D/g, '');
-	if (digits.length === 10) return `+91${digits}`;
-	if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
-	return phone.startsWith('+') ? phone : `+${digits}`;
-}
+// Moved to the client-safe validation module (self-onboarding's shared payload builder needs it);
+// re-exported so existing server imports keep working.
+export { toE164IndianPhone };
 
 export function resolveCreateOrganizationProfileType(
 	input: Pick<CreateOrganizationFormBody, 'selectedCategory' | 'profileType'>

@@ -19,6 +19,12 @@ vitestGlobals.__vitest_browser_runner__ ??= {
 const dirname =
 	typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
+const chromiumProvider = playwright({
+	launchOptions: {
+		args: ['--disable-dev-shm-usage']
+	}
+});
+
 const lucideIconDeps = [
 	'activity',
 	'alert-circle',
@@ -176,12 +182,17 @@ export default defineConfig({
 		expect: {
 			requireAssertions: true
 		},
+		// Vitest reads connectTimeout from the root config, not per-project.
+		browser: {
+			connectTimeout: 120000
+		},
 		projects: [
 			{
-				extends: './vite.config.ts',
+				extends: true,
 				test: {
 					name: 'client',
 					testTimeout: 60000,
+					sequence: { groupOrder: 1 },
 					hookTimeout: 60000,
 					// Browser RPC (birpc) is flaky when multiple files / workers share one Chromium.
 					fileParallelism: false,
@@ -190,12 +201,11 @@ export default defineConfig({
 					retry: 2,
 					browser: {
 						enabled: true,
-						provider: playwright(),
-						connectTimeout: 120000,
+						headless: true,
+						provider: chromiumProvider,
 						instances: [
 							{
-								browser: 'chromium',
-								headless: true
+								browser: 'chromium'
 							}
 						]
 					},
@@ -204,10 +214,11 @@ export default defineConfig({
 				}
 			},
 			{
-				extends: './vite.config.ts',
+				extends: true,
 				test: {
 					name: 'server',
 					environment: 'node',
+					sequence: { groupOrder: 0 },
 					// Cap forks on Windows — too many workers cause
 					// "[vitest-pool]: Timeout waiting for worker to respond".
 					maxWorkers: 4,
@@ -230,13 +241,14 @@ export default defineConfig({
 					testTimeout: 60000,
 					hookTimeout: 60000,
 					fileParallelism: false,
+					isolate: false,
+					sequence: { groupOrder: 2 },
 					maxWorkers: 1,
 					retry: 2,
 					browser: {
 						enabled: true,
 						headless: true,
-						provider: playwright({}),
-						connectTimeout: 120000,
+						provider: chromiumProvider,
 						instances: [
 							{
 								browser: 'chromium',

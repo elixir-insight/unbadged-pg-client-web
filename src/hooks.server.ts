@@ -9,6 +9,7 @@ import {
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
+import { hasUnapprovedGroup, isSelfOnboardingPath } from '$lib/stores/auth/portal';
 import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/types';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortal } from '$lib/server/domains/members/portal';
@@ -24,6 +25,8 @@ import {
 // sign-in/sign-out or forgot/reset password flows.
 const PUBLIC_PATHS = [
 	'/login',
+	'/sign-up',
+	'/confirm-email',
 	'/forgot-password',
 	'/reset-password',
 	'/reset-temporary-password',
@@ -71,8 +74,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		const tokens = await getValidSession(event.cookies, event.fetch, event.locals.logger);
+
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+
 		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+
 		event.locals.merchantSession = parseMerchantSessionFromGateway(
 			gatewayPayload,
 			accessPayload['cognito:groups'] ?? []
@@ -80,6 +86,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.gatewayToken = tokens.gatewayToken;
 
 		const groups = accessPayload['cognito:groups'] ?? [];
+
 		const rootIdentifiers = gatewayPayload.group ? [...groups, gatewayPayload.group] : groups;
 
 		// ROOT (platform or merchant-org) is often missing from org role tables,
@@ -160,6 +167,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
+	}
+
+	const sessionGroups = event.locals.merchantSession?.groups ?? [];
+	if (hasUnapprovedGroup(sessionGroups)) {
+		const path = event.url.pathname;
+		const mayStay =
+			isSelfOnboardingPath(path) ||
+			path.startsWith('/api/') ||
+			path === '/logout' ||
+			path.startsWith('/logout/');
+		if (!mayStay) {
+			redirect(303, '/self-onboarding');
+		}
 	}
 
 	const response = await resolve(event);

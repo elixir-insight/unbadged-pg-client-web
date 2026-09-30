@@ -82,6 +82,14 @@ export function normalizeIndianMobilePhone(value: string): string {
 	return digits;
 }
 
+/** `+91XXXXXXXXXX` — the E.164 form the backend requires for every phone number it stores. */
+export function toE164IndianPhone(phone: string): string {
+	const digits = phone.replace(/\D/g, '');
+	if (digits.length === 10) return `+91${digits}`;
+	if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+	return phone.startsWith('+') ? phone : `+${digits}`;
+}
+
 /** Formats Aadhar as `XXXX XXXX XXXX` while typing. */
 export function formatAadharInput(value: string): string {
 	const digits = normalizeAadhar(value);

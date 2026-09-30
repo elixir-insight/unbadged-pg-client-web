@@ -373,6 +373,13 @@
 							{submitting ? 'Signing in…' : 'Login'}
 						</Button>
 					</form>
+
+					<p class="text-center text-sm text-gray-700">
+						Don't have an account?
+						<a href={resolve('/sign-up')} class="font-medium text-primary hover:underline">
+							Sign up
+						</a>
+					</p>
 				</div>
 			{/if}
 		</div>

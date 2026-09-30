@@ -75,7 +75,9 @@
 			role="region"
 			aria-label="File drop zone"
 			class={cn(
-				'flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed px-5 py-6 text-center transition-all duration-200',
+				// `relative` anchors the sr-only (absolute) file input to this box — otherwise it's
+				// positioned against some distant ancestor, and focusing it on click scrolls that one.
+				'relative flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed px-5 py-6 text-center transition-all duration-200',
 				isDragOver ? 'border-primary/60 bg-primary/6' : 'border-muted-foreground/25 bg-muted/10',
 				disabled && 'pointer-events-none opacity-50'
 			)}
@@ -123,7 +125,7 @@
 	{:else}
 		<label
 			class={cn(
-				'flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-2.5 transition-all duration-200',
+				'relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-2.5 transition-all duration-200',
 				isDragOver
 					? 'border-primary/60 bg-primary/6'
 					: 'border-muted-foreground/25 bg-muted/20 hover:border-primary/40 hover:bg-primary/3',

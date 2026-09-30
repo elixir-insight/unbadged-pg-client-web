@@ -14,6 +14,8 @@ export type {
 
 const TABLE_STATUSES: OrganizationStatus[] = [
 	'IN_PROGRESS',
+	'IN_REVIEW',
+	'REMARKED',
 	'APPROVED',
 	'ACTIVE',
 	'ON_HOLD',
@@ -21,10 +23,8 @@ const TABLE_STATUSES: OrganizationStatus[] = [
 	'REJECTED'
 ];
 
-function asOrganizationStatus(value: string): OrganizationStatus {
-	return TABLE_STATUSES.includes(value as OrganizationStatus)
-		? (value as OrganizationStatus)
-		: 'IN_PROGRESS';
+function isTableStatus(value: string): value is OrganizationStatus {
+	return TABLE_STATUSES.includes(value as OrganizationStatus);
 }
 
 function mapRecord(record: OrganizationTableRecord): OrganizationTableRow {
@@ -34,7 +34,7 @@ function mapRecord(record: OrganizationTableRecord): OrganizationTableRow {
 		businessType: record.businessType,
 		category: record.category,
 		createdAt: record.createdAt,
-		status: asOrganizationStatus(record.profileStatus)
+		status: record.profileStatus as OrganizationStatus
 	};
 }
 
@@ -52,6 +52,8 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 	return {
 		all: 0,
 		IN_PROGRESS: 0,
+		IN_REVIEW: 0,
+		REMARKED: 0,
 		APPROVED: 0,
 		ACTIVE: 0,
 		ON_HOLD: 0,
@@ -60,14 +62,23 @@ function emptyStatusCounts(): OrganizationTableStatusCounts {
 	};
 }
 
+function applyStatusCount(
+	counts: OrganizationTableStatusCounts,
+	status: string,
+	count: number
+): void {
+	if (isTableStatus(status)) {
+		counts[status] = count;
+	}
+}
+
 function readStatusCounts(payload: GetOrganizationsTableResponse): OrganizationTableStatusCounts {
 	const counts = emptyStatusCounts();
 
 	const directCounts = payload.statusCounts;
 	if (Array.isArray(directCounts)) {
 		for (const item of directCounts) {
-			const status = asOrganizationStatus(item.status);
-			counts[status] = item.count;
+			applyStatusCount(counts, item.status, item.count);
 		}
 	} else if (directCounts && typeof directCounts === 'object') {
 		for (const status of TABLE_STATUSES) {
@@ -96,8 +107,7 @@ function readStatusCounts(payload: GetOrganizationsTableResponse): OrganizationT
 					typeof item.status === 'string' &&
 					typeof item.count === 'number'
 				) {
-					const status = asOrganizationStatus(item.status);
-					counts[status] = item.count;
+					applyStatusCount(counts, item.status, item.count);
 				}
 			}
 		} else if (byStatus && typeof byStatus === 'object') {
@@ -115,7 +125,11 @@ function readStatusCounts(payload: GetOrganizationsTableResponse): OrganizationT
 	}
 
 	if (counts.all === 0) {
-		counts.all = TABLE_STATUSES.reduce((sum, status) => sum + counts[status], 0);
+		if (Array.isArray(directCounts)) {
+			counts.all = directCounts.reduce((sum, item) => sum + item.count, 0);
+		} else {
+			counts.all = TABLE_STATUSES.reduce((sum, status) => sum + counts[status], 0);
+		}
 	}
 
 	return counts;

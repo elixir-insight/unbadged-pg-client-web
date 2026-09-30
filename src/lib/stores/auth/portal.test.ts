@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	canAccessPortalPath,
 	collectPortalGroups,
+	hasUnapprovedGroup,
+	isSelfOnboardingPath,
 	isPlatformPortal,
 	normalizePortalGroups,
 	resolvePortalHome
@@ -67,6 +69,32 @@ describe('resolvePortalHome', () => {
 		expect(resolvePortalHome(['ROOT', 'PLATFORM'])).toBe('/partner');
 		expect(resolvePortalHome(['PLATFORM'])).toBe('/partner');
 	});
+
+	it('sends UNAPPROVED Cognito users to self-onboarding', () => {
+		expect(resolvePortalHome(['UNAPPROVED'])).toBe('/self-onboarding');
+		expect(resolvePortalHome(['unapproved'])).toBe('/self-onboarding');
+	});
+
+	it('prefers self-onboarding when UNAPPROVED is present with a portal group', () => {
+		expect(resolvePortalHome(['UNAPPROVED', 'MERCHANT'])).toBe('/self-onboarding');
+	});
+});
+
+describe('hasUnapprovedGroup', () => {
+	it('detects UNAPPROVED in Cognito groups', () => {
+		expect(hasUnapprovedGroup(['UNAPPROVED'])).toBe(true);
+		expect(hasUnapprovedGroup(['MERCHANT'])).toBe(false);
+		expect(hasUnapprovedGroup(null)).toBe(false);
+	});
+});
+
+describe('isSelfOnboardingPath', () => {
+	it('matches the self-onboarding route', () => {
+		expect(isSelfOnboardingPath('/self-onboarding')).toBe(true);
+		expect(isSelfOnboardingPath('/self-onboarding/kyb')).toBe(true);
+		expect(isSelfOnboardingPath('/onboarding')).toBe(false);
+		expect(isSelfOnboardingPath('/merchant')).toBe(false);
+	});
 });
 
 describe('canAccessPortalPath', () => {
@@ -91,5 +119,17 @@ describe('canAccessPortalPath', () => {
 
 	it('allows non-portal paths', () => {
 		expect(canAccessPortalPath('/api/roles', ['MERCHANT'])).toBe(true);
+	});
+
+	it('allows UNAPPROVED users on self-onboarding only', () => {
+		expect(canAccessPortalPath('/self-onboarding', ['UNAPPROVED'])).toBe(true);
+		expect(canAccessPortalPath('/self-onboarding/kyb', ['UNAPPROVED'])).toBe(true);
+		expect(canAccessPortalPath('/merchant', ['UNAPPROVED'])).toBe(false);
+		expect(canAccessPortalPath('/management', ['UNAPPROVED'])).toBe(false);
+		expect(canAccessPortalPath('/partner', ['UNAPPROVED'])).toBe(false);
+	});
+
+	it('blocks approved portal users from self-onboarding', () => {
+		expect(canAccessPortalPath('/self-onboarding', ['MERCHANT'])).toBe(false);
 	});
 });

@@ -41,6 +41,8 @@
 
 	const statusVariantMap: Record<OrganizationStatus, BadgeVariant> = {
 		IN_PROGRESS: 'alert',
+		IN_REVIEW: 'warning',
+		REMARKED: 'error',
 		APPROVED: 'success',
 		ACTIVE: 'info',
 		ON_HOLD: 'secondary',
@@ -50,6 +52,8 @@
 
 	const STATUS_ENUMS: OrganizationStatus[] = [
 		'IN_PROGRESS',
+		'IN_REVIEW',
+		'REMARKED',
 		'APPROVED',
 		'ACTIVE',
 		'ON_HOLD',
@@ -166,6 +170,8 @@
 	const filterCards: FilterCard[] = $derived([
 		{ label: 'All', count: statusCounts.all },
 		{ label: formatLabel('IN_PROGRESS'), count: statusCounts.IN_PROGRESS },
+		{ label: formatLabel('IN_REVIEW'), count: statusCounts.IN_REVIEW },
+		{ label: formatLabel('REMARKED'), count: statusCounts.REMARKED },
 		{ label: formatLabel('APPROVED'), count: statusCounts.APPROVED },
 		{ label: formatLabel('ACTIVE'), count: statusCounts.ACTIVE },
 		{ label: formatLabel('ON_HOLD'), count: statusCounts.ON_HOLD },

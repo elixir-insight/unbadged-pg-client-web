@@ -39,6 +39,28 @@ describe('mapGetOrganizationResponse', () => {
 		expect(organization?.documents.length).toBeGreaterThan(0);
 	});
 
+	it('preserves IN_REVIEW profileStatus on organization details', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: {
+					orgId: 'ORG_2cK',
+					legalCompanyName: 'Priority Pvt Ltd',
+					profileStatus: 'IN_REVIEW',
+					businessType: 'PARTNERSHIP',
+					profileType: 'MERCHANT'
+				}
+			},
+			'ORG_2cK'
+		);
+
+		expect(organization).toMatchObject({
+			id: 'ORG_2cK',
+			name: 'Priority Pvt Ltd',
+			status: 'IN_REVIEW'
+		});
+	});
+
 	it('maps kyb, addressDetails, and bank accounts from nested fields', () => {
 		const organization = mapGetOrganizationResponse(
 			{

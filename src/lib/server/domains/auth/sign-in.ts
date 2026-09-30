@@ -66,8 +66,19 @@ export type SignInMfaRequired = {
 	challengeDestination: string;
 	challengeExpiresIn: number;
 };
+export type SignInEmailConfirmationRequired = {
+	ok: false;
+	status: 403;
+	message: string;
+	requiresEmailConfirmation: true;
+	userEmail: string;
+};
 export type SignInResult =
-	SignInSuccess | SignInFailure | SignInPasswordChangeRequired | SignInMfaRequired;
+	| SignInSuccess
+	| SignInFailure
+	| SignInPasswordChangeRequired
+	| SignInMfaRequired
+	| SignInEmailConfirmationRequired;
 
 type SignInMfaChallengeItem = {
 	challengeName: MfaChallengeName;
@@ -96,6 +107,15 @@ function isMfaChallenge(item: SignInDataItem): item is SignInMfaChallengeItem {
 	return (
 		'challengeName' in item &&
 		(item.challengeName === 'EMAIL_OTP' || item.challengeName === 'SMS_MFA')
+	);
+}
+
+function isUserNotConfirmed(message: string, exceptionCode?: string): boolean {
+	const haystack = `${exceptionCode ?? ''} ${message}`.toLowerCase();
+	return (
+		haystack.includes('not confirmed') ||
+		haystack.includes('userunconfirmed') ||
+		haystack.includes('user_not_confirmed')
 	);
 }
 export async function performSignIn(opts: {
@@ -151,6 +171,16 @@ export async function performSignIn(opts: {
 		const upstreamStatus = result.error.kind === 'http' ? result.error.status : undefined;
 		const message =
 			result.error.kind === 'http' ? result.error.message : 'Invalid email or password.';
+		if (isUserNotConfirmed(message, exceptionCode)) {
+			log.info({ ip, userEmail, exceptionCode }, 'sign-in requires email confirmation');
+			return {
+				ok: false,
+				status: 403,
+				message,
+				requiresEmailConfirmation: true,
+				userEmail
+			};
+		}
 		// Legacy shape with exceptionCode (if upstream ever sends it).
 		const requiresForce =
 			exceptionCode === 'FAILED_TO_SIGN_IN' &&

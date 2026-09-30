@@ -10,6 +10,7 @@
 		userRole: 'Admin',
 		userInitials: 'AK',
 		vanNumber: 'VAN-2024-00123',
+		settingsHref: '/merchant/settings',
 		isCollapsed: false
 	} satisfies ProfileCardProps;
 

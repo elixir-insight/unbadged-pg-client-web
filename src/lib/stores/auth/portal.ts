@@ -19,6 +19,15 @@ export function isPortalGroup(value: string): value is PortalGroup {
 	return (PORTAL_GROUPS as readonly string[]).includes(value);
 }
 
+/** Cognito marks newly signed-up orgs as UNAPPROVED until KYB is complete. */
+export function hasUnapprovedGroup(groups: string[] | null | undefined): boolean {
+	return (groups ?? []).some((group) => group.trim().toUpperCase() === 'UNAPPROVED');
+}
+
+export function isSelfOnboardingPath(pathname: string): boolean {
+	return pathname === '/self-onboarding' || pathname.startsWith('/self-onboarding/');
+}
+
 /** True when gateway/org group is PLATFORM (Partner portal + Configuration settings). */
 export function isPlatformPortal(groups: string[] | null | undefined): boolean {
 	return (groups ?? []).some((group) => group.trim().toUpperCase() === 'PLATFORM');
@@ -60,11 +69,14 @@ export function normalizePortalGroups(groups: string[]): PortalGroup[] {
 }
 
 /**
- * Home path after sign-in. Uses MANAGEMENT → PARTNER → MERCHANT priority
- * when multiple portal groups are present. PLATFORM always lands on Partner,
- * including when ROOT would otherwise prefer Management.
+ * Home path after sign-in. UNAPPROVED Cognito users go to self-onboarding.
+ * Otherwise uses MANAGEMENT → PARTNER → MERCHANT priority when multiple
+ * portal groups are present. PLATFORM always lands on Partner, including
+ * when ROOT would otherwise prefer Management.
  */
 export function resolvePortalHome(groups: string[]): PortalHomePath {
+	if (hasUnapprovedGroup(groups)) return '/self-onboarding';
+
 	const hasPlatform = groups.some((group) => group.trim().toUpperCase() === 'PLATFORM');
 	if (hasPlatform) return '/partner';
 
@@ -77,16 +89,20 @@ export function resolvePortalHome(groups: string[]): PortalHomePath {
 
 /** Whether the session may access a given app pathname segment. */
 export function canAccessPortalPath(pathname: string, groups: string[]): boolean {
+	if (isSelfOnboardingPath(pathname)) {
+		return hasUnapprovedGroup(groups);
+	}
+
 	const portals = normalizePortalGroups(groups);
 
 	if (pathname === '/management' || pathname.startsWith('/management/')) {
-		return portals.includes('MANAGEMENT');
+		return !hasUnapprovedGroup(groups) && portals.includes('MANAGEMENT');
 	}
 	if (pathname === '/partner' || pathname.startsWith('/partner/')) {
-		return portals.includes('PARTNER');
+		return !hasUnapprovedGroup(groups) && portals.includes('PARTNER');
 	}
 	if (pathname === '/merchant' || pathname.startsWith('/merchant/')) {
-		return portals.includes('MERCHANT');
+		return !hasUnapprovedGroup(groups) && portals.includes('MERCHANT');
 	}
 
 	return true;

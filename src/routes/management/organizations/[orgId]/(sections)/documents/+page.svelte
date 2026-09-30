@@ -25,7 +25,7 @@
 	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
 	import { formDataFieldName, directorFormDataFieldName } from './map-upload-field';
-	import DocumentPreviewModal from './document-preview-modal.svelte';
+	import { DocumentPreviewModal } from '$lib/components/document-preview';
 	import DocumentActionsMenu from './document-actions-menu.svelte';
 	import { userPermissions } from '$lib/stores/rbac';
 	import {

@@ -36,6 +36,9 @@ export function createManagementSessionTokens() {
 			userId: 100001,
 			userName: 'E2E Admin',
 			userEmail: 'e2e-admin@elixirpay.com',
+			// ROOT gets the full permission catalog in hooks.server.ts without calling the members
+			// API — there's no backend in e2e, so a MEMBER's permissions fetch fails and every
+			// RBAC-gated tab (e.g. Collections) stays hidden.
 			userType: 'ROOT',
 			serviceTypes: ['PAYIN', 'PAYOUT'],
 			iss: 'https://e2e.example.com',
