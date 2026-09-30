@@ -35,6 +35,8 @@
 		)
 	);
 
+	// Every tracked field counts: the backend refuses approval while any of them is unverified
+	// (buildSections puts each one on screen so it can be reviewed).
 	const records = $derived(
 		Object.entries(saved).map(([fieldName, review]) => ({
 			fieldName,

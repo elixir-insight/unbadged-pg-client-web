@@ -13,6 +13,7 @@ import {
 	ORGANIZATION_FIELD_MAP,
 	type OrganizationDocumentName
 } from '$lib/onboarding/verificationFields';
+import { backendFileNameToDocumentType } from '$lib/server/domains/organization/utils/document-field-names';
 import { flattenCommunicationAddress, joinStreetAddress } from '$lib/validation/organization-kyb';
 import type { ReviewField, ReviewSection } from './types';
 
@@ -108,8 +109,29 @@ function registeredStreet(address: OrganizationAddress): string {
 	return shown(joinStreetAddress(address.line1, address.line2));
 }
 
-export function buildSections(organization: Organization): ReviewSection[] {
+/** Which tab a tracked field that no section lists goes on, by its verification key prefix. */
+const LEFTOVER_SECTION: readonly [prefix: string, sectionId: string][] = [
+	['addressDetails.', 'address'],
+	['directors.', 'directors'],
+	['bankAccounts.', 'bank']
+];
+
+/** `documents.<backend field name>` → that field name, for a document tracked by verifications. */
+function trackedDocumentName(fieldName: string): string | null {
+	const match = /^documents\.(.+)$/.exec(fieldName);
+	return match ? match[1] : null;
+}
+
+/**
+ * @param trackedFieldNames every fieldName GET /verifications returns. The backend refuses
+ *   approval while any of them is unverified, so each one must be on screen to be reviewed.
+ */
+export function buildSections(
+	organization: Organization,
+	trackedFieldNames: readonly string[] = []
+): ReviewSection[] {
 	const { kyb, addressDetails, directors, bankAccounts, documents } = organization;
+	const tracked = new Set(trackedFieldNames);
 
 	const legal: ReviewSection = {
 		id: 'legal',
@@ -139,7 +161,14 @@ export function buildSections(organization: Organization): ReviewSection[] {
 		title: 'Registered Address',
 		subtitle: 'Review the registered and communication addresses.',
 		fields: [
-			field(addressField('address'), 'Address', registeredStreet(addressDetails)),
+			// When the backend tracks line 2 on its own, it's reviewed on its own; otherwise both
+			// lines are reviewed together under `address`.
+			...(tracked.has(addressField('address2'))
+				? [
+						field(addressField('address'), 'Address line 1', shown(addressDetails.line1)),
+						field(addressField('address2'), 'Address line 2', shown(addressDetails.line2))
+					]
+				: [field(addressField('address'), 'Address', registeredStreet(addressDetails))]),
 			field(addressField('city'), 'City', shown(addressDetails.city)),
 			field(addressField('state'), 'State', shown(addressDetails.state)),
 			field(addressField('country'), 'Country', shown(addressDetails.country)),
@@ -199,9 +228,17 @@ export function buildSections(organization: Organization): ReviewSection[] {
 	});
 
 	// TODO: Photo attestation has no backend fieldName yet, so it is omitted from this section.
-	const documentFields = BUSINESS_DOCUMENTS.map((def) => documentField(documents, def));
+	// A document is up for review once uploaded or tracked by verifications — an untracked,
+	// never-uploaded one (e.g. a sole proprietorship's TAN / MOA / AOA) is left out.
+	const documentFields = BUSINESS_DOCUMENTS.filter(
+		(def) =>
+			tracked.has(docField(def.name)) ||
+			documents.some(
+				(document) => document.documentType === def.documentType && document.fileName?.trim()
+			)
+	).map((def) => documentField(documents, def));
 
-	return [
+	const sections: ReviewSection[] = [
 		legal,
 		address,
 		{
@@ -223,4 +260,29 @@ export function buildSections(organization: Organization): ReviewSection[] {
 			fields: documentFields
 		}
 	];
+
+	// Anything tracked that no section shows yet (e.g. a rental agreement or logo, which
+	// BUSINESS_DOCUMENTS doesn't list) — without it on screen, approval could never go through.
+	const shownNames = new Set(sections.flatMap((section) => section.fields.map((f) => f.fieldName)));
+	for (const fieldName of trackedFieldNames) {
+		if (shownNames.has(fieldName)) continue;
+		shownNames.add(fieldName);
+		const documentName = trackedDocumentName(fieldName);
+		const documentType = documentName ? backendFileNameToDocumentType[documentName] : undefined;
+		if (documentName) {
+			const label = documentType ?? titled(documentName.replace(/([a-z])([A-Z])/g, '$1_$2'));
+			const match = documentType
+				? documents.find((document) => document.documentType === documentType)
+				: undefined;
+			documentFields.push(uploadedField(fieldName, label, match));
+		} else {
+			// Put it on the tab its key belongs to (addressDetails.* → Address, …), not always Legal.
+			const label = titled(fieldName.replace(/([a-z])([A-Z])/g, '$1_$2').replace(/[.]/g, '_'));
+			const section = LEFTOVER_SECTION.find(([prefix]) => fieldName.startsWith(prefix))?.[1];
+			const target = sections.find((item) => item.id === section) ?? legal;
+			target.fields.push(field(fieldName, label, '—'));
+		}
+	}
+
+	return sections;
 }

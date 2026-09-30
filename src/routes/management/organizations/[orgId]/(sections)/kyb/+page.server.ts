@@ -129,12 +129,14 @@ export const load: PageServerLoad = async ({ params, cookies, fetch, locals, dep
 		remarks: item.remarks
 	}));
 
+	const verifications = mapVerifications(items);
+
 	return {
 		kybReview: {
 			organization,
-			verifications: mapVerifications(items),
+			verifications,
 			sensitiveDataError: unmasked?.sensitiveDataError ?? null,
-			sections: buildSections(organization),
+			sections: buildSections(organization, Object.keys(verifications)),
 			pipelines: {
 				payin: toPipelineDropdownOptions(payinResult?.ok ? payinResult.data : null),
 				payout: toPipelineDropdownOptions(payoutResult?.ok ? payoutResult.data : null),

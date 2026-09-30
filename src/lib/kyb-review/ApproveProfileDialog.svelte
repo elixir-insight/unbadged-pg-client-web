@@ -12,6 +12,9 @@
 		type ProfileType
 	} from './profile';
 
+	/** availableServiceTypes value for Collections (PAYIN). */
+	const COLLECTIONS = 'Pay-Ins';
+
 	let {
 		open = $bindable(false),
 		orgId,
@@ -21,7 +24,7 @@
 		open?: boolean;
 		orgId: string;
 		/** The org's current profile, used to pre-fill the form each time the popup opens. */
-		initial: { profileType: ProfileType; serviceTypes: string[]; affiliateId: string };
+		initial: { profileType: ProfileType; affiliateId: string };
 		options: ProfileFormOptions;
 	} = $props();
 
@@ -56,7 +59,8 @@
 
 	function reset() {
 		profileType = initial.profileType;
-		selectedServiceTypes = [...initial.serviceTypes];
+		// Starts with Collections only (Disbursements off); the reviewer can change either.
+		selectedServiceTypes = [COLLECTIONS];
 		servicePipelines = {};
 		affiliateId = initial.affiliateId;
 		errors = {};
@@ -81,6 +85,11 @@
 			affiliateId
 		};
 	}
+
+	/** Save & Approve stays disabled until every required field is filled; a retry is always allowed. */
+	const formValid = $derived(
+		profileSaved || Object.keys(validateProfileForm(formInput())).length === 0
+	);
 
 	function validate(): boolean {
 		errors = validateProfileForm(formInput());
@@ -217,7 +226,7 @@
 	{#snippet footer()}
 		<div class="flex w-full flex-wrap items-center justify-end gap-2">
 			<Button variant="outline" disabled={busy !== null} onclick={cancel}>Cancel</Button>
-			<Button disabled={busy !== null} onclick={saveAndApprove}>{submitLabel}</Button>
+			<Button disabled={busy !== null || !formValid} onclick={saveAndApprove}>{submitLabel}</Button>
 		</div>
 	{/snippet}
 </Modal>

@@ -39,8 +39,15 @@ export const ORGANIZATION_FIELD_MAP = {
 	registeredYear: 'kyb.registeredYear'
 } as const;
 
-/** Registered address keys that are tracked; `address2` is not. */
-export const ADDRESS_FIELDS = ['address', 'city', 'state', 'country', 'pinCode'] as const;
+/** Registered address keys that can be tracked; `address2` (line 2) is tracked for some orgs. */
+export const ADDRESS_FIELDS = [
+	'address',
+	'address2',
+	'city',
+	'state',
+	'country',
+	'pinCode'
+] as const;
 export type AddressField = (typeof ADDRESS_FIELDS)[number];
 
 export const DIRECTOR_FIELDS = ['name', 'pan', 'aadhar', 'email', 'phoneNumber'] as const;
