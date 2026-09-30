@@ -40,7 +40,7 @@
 	)}
 >
 	<span
-		class="flex items-center border-r border-border bg-muted/40 px-3 text-sm text-muted-foreground"
+		class="flex items-center border-r border-border bg-muted/40 px-3 text-base text-muted-foreground md:text-sm"
 	>
 		+91
 	</span>
@@ -53,7 +53,7 @@
 		{disabled}
 		value={displayValue}
 		oninput={handleInput}
-		class="border-0 shadow-none focus-visible:ring-0 aria-invalid:border-0 aria-invalid:ring-0"
+		class="h-full border-0 shadow-none focus-visible:ring-0 aria-invalid:border-0 aria-invalid:ring-0"
 		{...restProps}
 	/>
 </div>

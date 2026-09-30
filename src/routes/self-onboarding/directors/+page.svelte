@@ -106,7 +106,8 @@
 		onboarding.formData.directors.every(directorDocumentsUploaded)
 	);
 
-	let pendingSave: Promise<string> | null = null;
+	/** The in-flight save shared by every slot waiting on it; resolves to its failure, if any. */
+	let pendingSave: Promise<{ error: string; localError: string } | null> | null = null;
 
 	function directorsSnapshot() {
 		return toSectionSnapshot('directors', toKybPayload(onboarding.formData));
@@ -162,18 +163,23 @@
 			saving = true;
 			pendingSave = saveDirectorsInPlace()
 				.catch(() => 'Could not save director. Please try again.')
+				.then(async (error) => {
+					if (!error) return null;
+					// Toasted here, once per save — not once per waiting slot, or picking the Aadhaar and
+					// PAN files together showed the same error twice.
+					toast.error(error);
+					// This save carries the whole organization, so it can fail on another step's field
+					// (e.g. "Invalid GST Format") — send the user there instead of showing it on the slot.
+					return { error, localError: await routeSaveError(error, 4) };
+				})
 				.finally(() => {
 					saving = false;
 					pendingSave = null;
 				});
 		}
-		const error = await pendingSave;
-		if (error) {
-			toast.error(error);
-			// This save carries the whole organization, so it can fail on another step's field
-			// (e.g. "Invalid GST Format") — send the user there instead of showing it on the slot.
-			const localError = await routeSaveError(error, 4);
-			return { ok: false, error: localError || error };
+		const failed = await pendingSave;
+		if (failed) {
+			return { ok: false, error: failed.localError || failed.error };
 		}
 		const id = onboarding.formData.directors[index]?.id;
 		return id === undefined

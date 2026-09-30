@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
@@ -146,13 +146,18 @@
 		document.getElementById(field)?.focus();
 	}
 
-	function goToStep2() {
+	// Focus (and so highlight) the first field of the step just shown; wait for it to un-hide first.
+	async function goToStep2() {
 		userEmail = userEmail.trim().toLowerCase();
 		currentStep = 2;
+		await tick();
+		focusField('legalCompanyName');
 	}
 
-	function backToStep1() {
+	async function backToStep1() {
 		currentStep = 1;
+		await tick();
+		focusField('userEmail');
 	}
 
 	const onEnhance: SubmitFunction = ({ cancel }) => {
