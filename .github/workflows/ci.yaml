@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+      INVOICE_API_BASE_URL: ${{ vars.INVOICE_API_BASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
