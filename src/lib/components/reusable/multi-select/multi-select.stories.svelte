@@ -11,9 +11,10 @@
 		tags: ['autodocs'],
 		argTypes: {
 			placeholder: { control: 'text' },
-			disabled: { control: 'boolean' }
+			disabled: { control: 'boolean' },
+			selectAll: { control: 'boolean' }
 		},
-		args: { placeholder: 'Select options…', disabled: false }
+		args: { placeholder: 'Select options…', disabled: false, selectAll: false }
 	});
 
 	const options = [
@@ -54,6 +55,15 @@
 
 <!-- Disabled trigger -->
 <Story name="Disabled" args={{ options, disabled: true }}>
+	{#snippet template(args: MultiSelectProps)}
+		<div class="w-80">
+			<MultiSelect {...args} />
+		</div>
+	{/snippet}
+</Story>
+
+<!-- Select all toggles every enabled option -->
+<Story name="Select All" args={{ options, selectAll: true, placeholder: 'Select frameworks…' }}>
 	{#snippet template(args: MultiSelectProps)}
 		<div class="w-80">
 			<MultiSelect {...args} />

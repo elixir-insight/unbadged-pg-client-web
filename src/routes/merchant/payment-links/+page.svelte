@@ -27,6 +27,7 @@
 		PaymentLinkStatus
 	} from '$lib/types/payment-link';
 	import { formatPaymentLinkAmount, formatPaymentLinkDate } from '$lib/utils/payment-links-store';
+	import { isPaymentLinkCancellable } from '$lib/utils/payment-link-map';
 	import { debounce } from '$lib/utils/debounce.js';
 	import { Plus, RefreshCw, X } from '$lib/assets/icons';
 	import type { PageData } from './$types';
@@ -62,6 +63,7 @@
 	let createModalOpen = $state(false);
 	let drawerOpen = $state(false);
 	let selectedLink = $state<PaymentLink | null>(null);
+	let cancelConfirmOpen = $state(false);
 	let refreshing = $state(false);
 
 	const debouncedSearch = debounce((value: string) => pagination.setSearch(value), 200);
@@ -95,13 +97,21 @@
 
 	function handleLinkCreated(link: PaymentLink) {
 		selectedLink = link;
+		cancelConfirmOpen = false;
 		drawerOpen = true;
 		pagination.clearAllFilters();
 		void invalidate('payment-links:list');
 	}
 
+	function handleLinkCancelled(link: PaymentLink) {
+		selectedLink = link;
+		cancelConfirmOpen = false;
+		void invalidate('payment-links:list');
+	}
+
 	function openLinkDetails(link: PaymentLinkListRow) {
 		selectedLink = link;
+		cancelConfirmOpen = false;
 		drawerOpen = true;
 	}
 
@@ -269,8 +279,29 @@
 
 <CreatePaymentLinkModal bind:open={createModalOpen} onCreated={handleLinkCreated} />
 
-<Drawer bind:open={drawerOpen} title="Payment Link Details" direction="right" class="max-w-md">
+<Drawer
+	bind:open={drawerOpen}
+	title="Payment Link Details"
+	direction="right"
+	class="h-full max-w-md"
+>
 	{#if selectedLink}
-		<PaymentLinkDetailsDrawer link={selectedLink} />
+		<PaymentLinkDetailsDrawer
+			link={selectedLink}
+			bind:confirmOpen={cancelConfirmOpen}
+			onCancelled={handleLinkCancelled}
+		/>
 	{/if}
+	{#snippet footer()}
+		{#if selectedLink && isPaymentLinkCancellable(selectedLink.status)}
+			<Button
+				type="button"
+				variant="destructive"
+				class="w-full"
+				onclick={() => (cancelConfirmOpen = true)}
+			>
+				Cancel payment link
+			</Button>
+		{/if}
+	{/snippet}
 </Drawer>

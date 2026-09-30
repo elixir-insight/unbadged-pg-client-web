@@ -21,6 +21,7 @@ type SettingsLoadResult = {
 		registeredDate: string;
 		website: string;
 		username: string;
+		gstNumber: string;
 	} | null;
 	profileError: string | null;
 	mfaConfig: { method?: 'EMAIL' | 'SMS'; configured: boolean; enabled: boolean } | null;
@@ -89,7 +90,8 @@ const profilePayload = {
 			country: 'India',
 			registeredDate: '2026-07-21',
 			website: 'https://www.elixirglobal.in',
-			username: 'Elixir global'
+			username: 'Elixir global',
+			gstNumber: '29AABCU9603R1ZM'
 		}
 	],
 	message: 'Organization profile fetched successfully',

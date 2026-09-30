@@ -66,3 +66,51 @@ export async function createPaymentLinkRequest(
 		status: raw.status ?? 'issued'
 	};
 }
+
+export type CancelPaymentLinkResponse = {
+	amount: string;
+	clientOrderId: string;
+	message: string;
+	orderId: string;
+	status: string;
+};
+
+function cancelPaymentLinkErrorMessage(status: number, apiMessage?: string): string {
+	const message = apiMessage?.trim();
+	if (message) return message;
+	if (status === 409) {
+		return 'Cannot cancel this payment link because it is already paid or has an active payment.';
+	}
+	if (status === 410) return 'This payment link has expired.';
+	if (status === 404) return 'Payment link not found.';
+	if (status === 400) return 'Invalid payment link ID.';
+	return `Request failed (${status})`;
+}
+
+export async function cancelPaymentLinkRequest(
+	orderId: string
+): Promise<CancelPaymentLinkResponse> {
+	const res = await fetch(`/api/payment-links/${encodeURIComponent(orderId)}/cancel`, {
+		method: 'POST'
+	});
+
+	const raw: (Partial<CancelPaymentLinkResponse> & ErrorResponseBody) | null = await res
+		.json()
+		.catch(() => null);
+
+	if (!res.ok) {
+		throw new Error(cancelPaymentLinkErrorMessage(res.status, raw?.message));
+	}
+
+	if (!raw?.orderId) {
+		throw new Error('Unexpected response from cancel payment link');
+	}
+
+	return {
+		amount: raw.amount ?? '',
+		clientOrderId: raw.clientOrderId ?? '',
+		message: raw.message ?? 'Payment link cancelled',
+		orderId: raw.orderId,
+		status: raw.status ?? 'cancelled'
+	};
+}

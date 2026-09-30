@@ -275,7 +275,8 @@ export const OrganizationProfileRecordSchema = v.object({
 	country: v.string(),
 	registeredDate: v.string(),
 	website: v.string(),
-	username: v.string()
+	username: v.string(),
+	gstNumber: v.optional(v.nullable(v.string()), '')
 });
 
 /** PATCH /api/v1/management/onboard/organization/{orgId}/profile — set during KYB approval. */

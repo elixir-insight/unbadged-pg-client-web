@@ -320,6 +320,7 @@
 					options={[...PAYMENT_LINK_METHOD_OPTIONS]}
 					placeholder="Select payment methods"
 					disabled={submitting}
+					selectAll
 				/>
 				{#if fieldErrors.allowedPaymentMethods}
 					<p class="text-xs text-destructive">{fieldErrors.allowedPaymentMethods}</p>

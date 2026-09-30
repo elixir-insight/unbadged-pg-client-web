@@ -3,12 +3,14 @@ import {
 	LayoutDashboard,
 	ArrowLeftRight,
 	MessageSquareWarning,
+	CreditCard,
 	Landmark,
 	FileText,
 	// TrendingUp,
 	Users,
 	ShieldCheck,
-	Link
+	Link,
+	Receipt
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -52,9 +54,21 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
+			{
+				title: 'Invoices',
+				href: '/merchant/invoices',
+				icon: Receipt,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/invoices\/create$/,
+						title: 'New Invoice'
+					}
+				]
+			},
 			// Dispute omitted from nav until backend API is ready
 			{
-				title: 'Dispute',
+				title: 'Disputes',
 				href: '/merchant/dispute',
 				icon: MessageSquareWarning,
 				service: 'payin',
@@ -65,6 +79,13 @@ export const merchantNav: NavGroup[] = [
 						title: 'View Dispute'
 					}
 				]
+			},
+			{
+				title: 'Chargebacks',
+				href: '/merchant/chargeback',
+				icon: CreditCard,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' }
 			},
 			{
 				title: 'Settlements',

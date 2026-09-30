@@ -141,7 +141,7 @@ export const managementNav: NavGroup[] = [
 				]
 			},
 			{
-				title: 'Chargeback',
+				title: 'Chargebacks',
 				href: '/management/chargeback',
 				icon: CreditCard,
 				service: 'payin',

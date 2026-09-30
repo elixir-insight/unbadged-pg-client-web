@@ -9,7 +9,7 @@ frontend:
         - npm ci
     build:
       commands:
-        - env | grep -E '^API_BASE_URL=' >> .env
+        - env | grep -E '^(API_BASE_URL|INVOICE_API_BASE_URL)=' >> .env
         - echo "----- .env file contents -----"
         - cat .env
         - npm run build

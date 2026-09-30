@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ActivityIcon, Clock } from '$lib/assets/icons';
-	import { Button } from '$lib/components/reusable';
+	import { Button, Tooltip } from '$lib/components/reusable';
 	import { disputeCurrentStage, type DisputeStatusOption } from '$lib/utils/dispute-status';
 
 	interface Props {
@@ -8,6 +8,7 @@
 		catalog?: DisputeStatusOption[];
 		evidenceDueBy: string;
 		changeDisabled?: boolean;
+		changeDisabledReason?: string | null;
 		onChangeStatus?: () => void;
 	}
 
@@ -16,6 +17,7 @@
 		catalog = [],
 		evidenceDueBy,
 		changeDisabled = false,
+		changeDisabledReason = null,
 		onChangeStatus
 	}: Props = $props();
 
@@ -61,15 +63,31 @@
 				<p class="mt-1 text-base font-semibold wrap-break-word text-primary">{currentStage}</p>
 			</div>
 			{#if onChangeStatus}
-				<Button
-					variant="destructive"
-					size="sm"
-					class="h-auto shrink-0 px-2 py-1"
-					onclick={onChangeStatus}
-					disabled={changeDisabled}
-				>
-					Change Status
-				</Button>
+				{#if changeDisabled && changeDisabledReason}
+					<Tooltip content={changeDisabledReason}>
+						<span class="inline-flex">
+							<Button
+								variant="destructive"
+								size="sm"
+								class="h-auto shrink-0 px-2 py-1"
+								onclick={onChangeStatus}
+								disabled
+							>
+								Change Status
+							</Button>
+						</span>
+					</Tooltip>
+				{:else}
+					<Button
+						variant="destructive"
+						size="sm"
+						class="h-auto shrink-0 px-2 py-1"
+						onclick={onChangeStatus}
+						disabled={changeDisabled}
+					>
+						Change Status
+					</Button>
+				{/if}
 			{/if}
 		</div>
 
