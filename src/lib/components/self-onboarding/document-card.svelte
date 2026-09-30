@@ -4,13 +4,14 @@
 	import { Chip } from '$lib/components/ui/badge';
 	import { CheckCircle2, FileText, Loader2, LockIcon } from '$lib/assets/icons';
 	import type { DocumentSlot, PendingDocument } from '$lib/types/onboarding';
-	import { DOCUMENT_ACCEPT, DOCUMENT_MAX_BYTES } from './validation';
+	import { DOCUMENT_ACCEPT, DOCUMENT_MAX_BYTES, IMAGE_DOCUMENT_ACCEPT } from './validation';
 
 	let {
 		label,
 		documentSlot,
 		fieldOptions,
 		locked = false,
+		imageOnly = false,
 		pending = null,
 		uploading = false,
 		onpick,
@@ -27,6 +28,8 @@
 		fieldOptions: DropdownOption[];
 		/** Correction mode: this document was not rejected, so it cannot be replaced. */
 		locked?: boolean;
+		/** Images only (e.g. the organization logo) — PDFs are rejected. */
+		imageOnly?: boolean;
 		pending?: PendingDocument | null;
 		/** True while the step is uploading this slot's pending file. */
 		uploading?: boolean;
@@ -55,6 +58,7 @@
 	const acceptedExtensions = new Set(['pdf', 'jpeg', 'jpg', 'png', 'heif', 'heic']);
 
 	function isAccepted(file: File): boolean {
+		if (imageOnly && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name))) return false;
 		if (acceptedTypes.has(file.type)) return true;
 		const ext = file.name.split('.').pop()?.toLowerCase();
 		return ext !== undefined && acceptedExtensions.has(ext);
@@ -67,7 +71,9 @@
 			return;
 		}
 		if (!isAccepted(file)) {
-			error = 'Upload a PDF, JPEG, PNG, HEIF, or HEIC file.';
+			error = imageOnly
+				? 'Upload a JPEG, PNG, HEIF, or HEIC image.'
+				: 'Upload a PDF, JPEG, PNG, HEIF, or HEIC file.';
 			return;
 		}
 		if (file.size > DOCUMENT_MAX_BYTES) {
@@ -82,7 +88,9 @@
 	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 		<div>
 			<p class="text-sm font-semibold">{label}</p>
-			<p class="text-xs text-muted-foreground">PDF, JPEG, PNG, HEIF · max 5 MB</p>
+			<p class="text-xs text-muted-foreground">
+				{imageOnly ? 'JPEG, PNG, HEIF' : 'PDF, JPEG, PNG, HEIF'} · max 5 MB
+			</p>
 		</div>
 		{#if documentSlot.required}
 			<Chip variant="secondary">Required</Chip>
@@ -152,7 +160,7 @@
 			/>
 		{/if}
 		<FileUpload
-			accept={DOCUMENT_ACCEPT}
+			accept={imageOnly ? IMAGE_DOCUMENT_ACCEPT : DOCUMENT_ACCEPT}
 			placeholder="Click or drag a file to upload"
 			onchange={handleFile}
 		/>

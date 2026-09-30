@@ -121,6 +121,7 @@ export type PendingDocument = { file: File; fieldName: string };
  * addressProof are "pick one of" slots — see ORG_DOCUMENT_FIELDS in api/onboarding.ts.
  */
 export interface Documents {
+	organizationLogo: DocumentSlot;
 	gstCertificate: DocumentSlot;
 	businessPanCard: DocumentSlot;
 	uboDeclaration: DocumentSlot;
@@ -136,6 +137,7 @@ export interface Documents {
 export type DocumentKey = keyof Documents;
 
 export const DOCUMENT_KEYS: DocumentKey[] = [
+	'organizationLogo',
 	'gstCertificate',
 	'businessPanCard',
 	'uboDeclaration',

@@ -65,6 +65,7 @@ function form(): OnboardingFormData {
 			}
 		],
 		documents: {
+			organizationLogo: { uploaded: false, required: true },
 			gstCertificate: { uploaded: false, required: true },
 			businessPanCard: { uploaded: false, required: true },
 			uboDeclaration: { uploaded: false, required: true },

@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/reusable';
@@ -121,7 +119,6 @@
 			{#if applicationId}
 				<p class="mt-4 font-mono text-sm tracking-wide text-primary">{applicationId}</p>
 			{/if}
-			<Button class="mt-8" onclick={() => goto(resolve('/management'))}>Go to dashboard</Button>
 		</div>
 	</div>
 {:else}

@@ -116,7 +116,6 @@
 			placeholder="Enter your account number"
 			required
 			monospace
-			secret
 			inputmode="numeric"
 			autocomplete="off"
 			remarkKey="bankDetails.accountNumber"
@@ -131,7 +130,6 @@
 			placeholder="Re-enter your account number"
 			required
 			monospace
-			secret
 			blockPaste
 			inputmode="numeric"
 			autocomplete="off"

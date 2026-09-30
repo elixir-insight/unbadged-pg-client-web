@@ -166,6 +166,7 @@
 					documentSlot={docs[key]}
 					fieldOptions={slotFieldOptions(key, remark)}
 					locked={onboarding.onboardingStatus === 'remarked' && !remark}
+					imageOnly={key === 'organizationLogo'}
 					pending={pending[key] ?? null}
 					{uploading}
 					onpick={(document) => pick(key, document)}

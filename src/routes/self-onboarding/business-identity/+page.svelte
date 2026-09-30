@@ -105,7 +105,7 @@
 		remarkKey="kyb.businessPan"
 		hint={panSaved
 			? 'Already saved — hidden for security. Type a new PAN only to change it.'
-			: '10 characters, format ABCDE1234F. 4th character must be P, F or C.'}
+			: '10 characters, format ABCDE1234F.'}
 		error={businessPanError(data.businessPan)}
 		showErrors={attempted}
 		value={data.businessPan}
@@ -135,7 +135,7 @@
 			autocomplete="off"
 			remarkKey="kyb.gstNumber"
 			hint="15 characters, e.g. 27ABCPE1234F1ZB."
-			error={gstinError(data.gstin, data.businessPan)}
+			error={gstinError(data.gstin)}
 			showErrors={attempted}
 			value={data.gstin}
 			normalize={(next) => normalizeId(next, 15)}

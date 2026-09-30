@@ -50,6 +50,7 @@ function saved(overrides: Partial<SavedOnboardingData> = {}): SavedOnboardingDat
 			}
 		],
 		uploadedFieldNames: [
+			'orgLogo',
 			'gstCertificate',
 			'businessPan',
 			'uboDeclaration',

@@ -7,7 +7,13 @@ import type {
 	DocumentKey,
 	OnboardingFormData
 } from '$lib/types/onboarding';
-import { isMaskedAadhar, isMaskedPan } from '$lib/validation/organization-kyb';
+import * as v from 'valibot';
+import {
+	businessPanSchema,
+	gstinSchema,
+	isMaskedAadhar,
+	isMaskedPan
+} from '$lib/validation/organization-kyb';
 import { effectiveRegisteredAddress } from '$lib/utils/onboarding-address';
 import type { StepId } from './steps';
 
@@ -27,11 +33,14 @@ export const WEBSITE_REGEX =
 export const MIN_REGISTERED_YEAR = 1800;
 
 export const DOCUMENT_ACCEPT = '.pdf,.jpeg,.jpg,.png,.heif,.heic';
+/** Slots that must be an image, e.g. the organization logo. */
+export const IMAGE_DOCUMENT_ACCEPT = '.jpeg,.jpg,.png,.heif,.heic';
 export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
 
 export { DOCUMENT_KEYS };
 
 export const DOCUMENT_LABELS: Record<DocumentKey, string> = {
+	organizationLogo: 'Organization Logo',
 	gstCertificate: 'GST Certificate',
 	businessPanCard: 'Business PAN Card',
 	uboDeclaration: 'UBO Declaration',
@@ -48,26 +57,23 @@ export function isValidPan(value: string): boolean {
 	return PAN_REGEX.test(value);
 }
 
-/** 4th PAN character = holder type; the backend only accepts a business PAN held by P/F/C. */
-export const BUSINESS_PAN_HOLDER_TYPES = ['P', 'F', 'C'];
-
-/** Individual (P), firm / LLP (F) or company (C) — the only holder types the backend accepts. */
-export function hasBusinessPanHolderType(value: string): boolean {
-	return BUSINESS_PAN_HOLDER_TYPES.includes(value.charAt(3));
+/** The first issue management onboarding's schema reports for `value`, or '' when it passes. */
+function schemaError(schema: v.GenericSchema<string, string>, value: string): string {
+	const result = v.safeParse(schema, value);
+	return result.success ? '' : result.issues[0].message;
 }
 
 /**
- * A masked value (`**********`) is one the backend already holds — it redacts it on GET, and
- * toKybPayload leaves it out of the save — so it counts as valid rather than asking again.
+ * Same rules as management onboarding (businessPanSchema). A masked value (`**********`) is one
+ * the backend already holds — it redacts it on GET, and toKybPayload leaves it out of the save —
+ * so it counts as valid rather than asking again.
  */
-export function isValidBusinessPan(value: string): boolean {
-	return isMaskedPan(value) || (isValidPan(value) && hasBusinessPanHolderType(value));
+export function businessPanError(value: string): string {
+	return schemaError(businessPanSchema, value);
 }
 
-export function businessPanError(value: string): string {
-	if (isValidBusinessPan(value)) return '';
-	if (!isValidPan(value)) return 'Enter a valid 10-character PAN.';
-	return 'The 4th character must be P (individual), F (firm / LLP) or C (company).';
+export function isValidBusinessPan(value: string): boolean {
+	return businessPanError(value) === '';
 }
 
 /**
@@ -89,69 +95,13 @@ export function isValidDirectorAadhaar(value: string): boolean {
 	return isMaskedAadhar(value) || isValidAadhaar(value);
 }
 
-const GSTIN_CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-/**
- * The 15th GSTIN character is a check digit over the first 14 (GSTN's base-36 scheme). The
- * backend verifies it and rejects a mismatch as "Invalid GST Format" — check it here so the error
- * shows on the GSTIN field, not on some later save that happens to carry it (e.g. a director
- * document upload, which saves the whole organization first).
- */
-export function gstinCheckDigit(first14: string): string {
-	let total = 0;
-	for (let i = 0; i < 14; i += 1) {
-		const product = GSTIN_CHARSET.indexOf(first14[i]) * (i % 2 === 0 ? 1 : 2);
-		total += Math.floor(product / 36) + (product % 36);
-	}
-	return GSTIN_CHARSET[(36 - (total % 36)) % 36];
-}
-
-/**
- * Every PAN's 4th character is its holder type (Income Tax Department list: company, person,
- * HUF, firm, AOP, trust, BOI, local authority, artificial juridical person, government).
- */
-const PAN_HOLDER_TYPES = new Set(['C', 'P', 'H', 'F', 'A', 'T', 'B', 'L', 'J', 'G']);
-
-/** Characters 3–12 of a GSTIN are the holder's PAN. */
-export function gstinPan(gstin: string): string {
-	return gstin.slice(2, 12);
-}
-
-function hasValidEmbeddedPan(gstin: string): boolean {
-	return PAN_HOLDER_TYPES.has(gstinPan(gstin).charAt(3));
+/** Same rules as management onboarding (gstinSchema). */
+export function gstinError(value: string): string {
+	return schemaError(gstinSchema, value);
 }
 
 export function isValidGstin(value: string): boolean {
-	return (
-		GSTIN_REGEX.test(value) &&
-		hasValidEmbeddedPan(value) &&
-		gstinCheckDigit(value.slice(0, 14)) === value[14]
-	);
-}
-
-/**
- * A GSTIN is issued against the business PAN, so the two must agree. Only checkable once the PAN
- * is typed in — a saved PAN comes back masked, and then the backend checks it on save.
- */
-export function gstinMatchesBusinessPan(gstin: string, businessPan: string): boolean {
-	if (isMaskedPan(businessPan) || !isValidPan(businessPan)) return true;
-	return gstinPan(gstin) === businessPan;
-}
-
-export function gstinError(value: string, businessPan = ''): string {
-	if (!GSTIN_REGEX.test(value)) return 'Enter a valid 15-character GSTIN.';
-	if (!hasValidEmbeddedPan(value)) {
-		return `Characters 3–12 of a GSTIN are the business PAN, and ${gstinPan(value)} isn’t a valid PAN — re-check it against your GST certificate.`;
-	}
-	// Format is right but the check digit isn't — almost always a mistyped character. Say so
-	// rather than "not valid", which reads like the format is wrong.
-	if (!isValidGstin(value)) {
-		return 'The last character of this GSTIN doesn’t match the rest — re-check it against your GST certificate.';
-	}
-	if (!gstinMatchesBusinessPan(value, businessPan)) {
-		return `This GSTIN belongs to PAN ${gstinPan(value)}, not the business PAN above — characters 3–12 must match it.`;
-	}
-	return '';
+	return gstinError(value) === '';
 }
 
 export function isValidIfsc(value: string): boolean {
@@ -310,7 +260,6 @@ export function isIdentityComplete(data: OnboardingFormData): boolean {
 		data.entityType !== null &&
 		filled(details.brandName) &&
 		isValidGstin(data.gstin) &&
-		gstinMatchesBusinessPan(data.gstin, data.businessPan) &&
 		isCinValid(details.cin, data.entityType) &&
 		isTanValid(details.tan) &&
 		filled(details.industry) &&

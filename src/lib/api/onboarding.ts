@@ -340,6 +340,7 @@ export function toBankSaveSnapshot(banks: BankDetails[]) {
 // backendFieldNameMap / document-field-names.ts), so nothing here is guessed. A slot with more
 // than one entry is a "pick one of" choice, exactly like management's documentChoiceGroups.
 export const ORG_DOCUMENT_FIELDS: Record<DocumentKey, Record<string, string>> = {
+	organizationLogo: { orgLogo: 'Organization logo' },
 	gstCertificate: { gstCertificate: 'GST certificate' },
 	businessPanCard: { businessPan: 'Business PAN card' },
 	uboDeclaration: { uboDeclaration: 'UBO declaration' },

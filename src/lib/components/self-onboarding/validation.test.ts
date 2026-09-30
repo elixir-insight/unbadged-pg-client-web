@@ -7,7 +7,6 @@ import {
 	directorPanError,
 	directorsAreComplete,
 	businessPanError,
-	gstinCheckDigit,
 	gstinError,
 	isCinValid,
 	isIdentityComplete,
@@ -77,6 +76,7 @@ function validForm(): OnboardingFormData {
 			}
 		],
 		documents: {
+			organizationLogo: { uploaded: false, required: true },
 			gstCertificate: { uploaded: false, required: true },
 			businessPanCard: { uploaded: false, required: true },
 			uboDeclaration: { uploaded: false, required: true },
@@ -136,49 +136,23 @@ describe('field validators', () => {
 	});
 });
 
-describe('GSTIN check digit', () => {
-	it('rejects a GSTIN whose last character is not its check digit', () => {
-		expect(gstinCheckDigit('27ABCPE1234F1Z')).toBe('B');
-		expect(isValidGstin('27ABCPE1234F1ZB')).toBe(true);
-		expect(isValidGstin('27ABCDE1234F1Z8')).toBe(false);
-	});
-
-	it('says which rule failed', () => {
-		expect(gstinError('27ABC')).toBe('Enter a valid 15-character GSTIN.');
-		expect(gstinError('27ABCDE1234F1Z8')).toMatch(/isn’t a valid PAN/);
-		// The value from the bug report: right format, wrong check digit (should end in Z).
-		expect(gstinError('27ABCPE1234F1ZC')).toMatch(/last character/);
-	});
-
-	it('rejects a GSTIN whose embedded PAN has no valid holder type', () => {
-		// From the bug report: check digit is right, but PAN ABCDE1234F has holder type D.
-		expect(gstinCheckDigit('27ABCDE1234F2Z')).toBe('Z');
-		expect(isValidGstin('27ABCDE1234F2ZZ')).toBe(false);
-		expect(gstinError('27ABCDE1234F2ZZ')).toMatch(/ABCDE1234F isn’t a valid PAN/);
-	});
-
-	it('requires the GSTIN to carry the typed business PAN', () => {
-		expect(gstinError('27ABCPE1234F1ZB', 'ABCPE1234F')).toBe('');
-		expect(gstinError('27ABCPE1234F1ZB', 'ZZZPE9999F')).toMatch(/characters 3–12/);
-		// A saved (masked) PAN can't be compared — left to the backend.
-		expect(gstinError('27ABCPE1234F1ZB', '**********')).toBe('');
-		expect(gstinError('27ABCPE1234F1ZB')).toBe('');
+describe('GSTIN — same rules as management onboarding', () => {
+	it('checks the 15-character format only', () => {
+		expect(gstinError('')).toBe('GSTIN is required');
+		expect(gstinError('27ABC')).toBe('Enter a valid 15-character GSTIN');
+		// The values from the bug report — right format, so accepted like management does.
+		expect(isValidGstin('29ABCDP1234F1ZW')).toBe(true);
+		expect(isValidGstin('27ABCDE1234F1Z8')).toBe(true);
 	});
 });
 
-describe('business PAN holder type', () => {
-	it('accepts only individual (P), firm (F) or company (C) holders', () => {
+describe('business PAN — same rules as management onboarding', () => {
+	it('checks the 10-character format only', () => {
+		expect(businessPanError('')).toBe('Business PAN is required');
+		expect(businessPanError('ABC')).toBe('Enter a valid PAN (e.g. ABCDE1234F)');
+		// From the bug report: 4th character D is no longer rejected.
+		expect(isValidBusinessPan('ABCDP1234F')).toBe(true);
 		expect(isValidBusinessPan('ABCPE1234F')).toBe(true);
-		expect(isValidBusinessPan('ABCFE1234F')).toBe(true);
-		expect(isValidBusinessPan('ABCCE1234F')).toBe(true);
-		expect(isValidBusinessPan('ABCDE1234F')).toBe(false);
-		expect(isValidBusinessPan('ABCHE1234F')).toBe(false);
-	});
-
-	it('explains a wrong holder type separately from a malformed PAN', () => {
-		expect(businessPanError('ABCPE1234F')).toBe('');
-		expect(businessPanError('ABC')).toBe('Enter a valid 10-character PAN.');
-		expect(businessPanError('ABCDE1234F')).toMatch(/4th character must be P/);
 	});
 });
 

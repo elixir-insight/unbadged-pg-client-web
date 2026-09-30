@@ -150,6 +150,8 @@
 				{maxlength}
 				{inputmode}
 				{autocomplete}
+				spellcheck={false}
+				autocorrect="off"
 				{value}
 				aria-label={label}
 				aria-invalid={Boolean(shownError)}
