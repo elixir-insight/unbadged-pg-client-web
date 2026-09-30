@@ -1,6 +1,7 @@
 import type { Logger } from 'pino';
 import { apiFetch } from '../../http/fetchClient';
 import {
+	CancelPaymentLinkResponseSchema,
 	CreatePaymentLinkCreatedSchema,
 	PaymentLinkCountsResponseSchema,
 	PaymentLinkListResponseSchema,
@@ -64,5 +65,21 @@ export const paymentLinksClient = {
 			gatewayToken,
 			body,
 			schema: CreatePaymentLinkCreatedSchema
+		}),
+
+	cancel: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		accessToken: string,
+		gatewayToken: string,
+		orderId: string
+	) =>
+		apiFetch(`${PAYMENT_LINKS_PATH}/${encodeURIComponent(orderId)}/cancel`, {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			accessToken,
+			gatewayToken,
+			schema: CancelPaymentLinkResponseSchema
 		})
 };

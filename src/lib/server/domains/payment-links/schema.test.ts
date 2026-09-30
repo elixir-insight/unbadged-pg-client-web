@@ -3,6 +3,7 @@ import * as v from 'valibot';
 import { PAYMENT_LINK_DUMMY_CUSTOMER_ADDRESS, PAYMENT_LINK_MERCHANT_URL } from './constants';
 import { buildCreatePaymentLinkRequest } from './mappers/to-api/create';
 import {
+	CancelPaymentLinkResponseSchema,
 	CreatePaymentLinkClientRequestSchema,
 	CreatePaymentLinkCreatedSchema,
 	CreatePaymentLinkUpstreamRequestSchema,
@@ -206,5 +207,63 @@ describe('PaymentLinkCountsResponseSchema', () => {
 			expect(parsed.output.data[0]?.created).toBe(3);
 			expect(parsed.output.data[0]?.captured).toBe(4);
 		}
+	});
+});
+
+describe('CancelPaymentLinkResponseSchema', () => {
+	it('parses the documented cancel envelope', () => {
+		const parsed = v.safeParse(CancelPaymentLinkResponseSchema, {
+			data: {
+				amount: '1500.50',
+				clientOrderId: 'rcpt-1001',
+				message: 'Payment link cancelled successfully',
+				orderId: 'ORD_GGZII3IT0K',
+				status: 'CANCELLED'
+			},
+			message: 'Payment link cancelled successfully',
+			statusCode: 200
+		});
+
+		expect(parsed.success).toBe(true);
+		if (parsed.success) {
+			expect(parsed.output.data.orderId).toBe('ORD_GGZII3IT0K');
+			expect(parsed.output.data.status).toBe('CANCELLED');
+			expect(parsed.output.data.amount).toBe('1500.50');
+			expect(parsed.output.message).toBe('Payment link cancelled successfully');
+		}
+	});
+
+	it('coerces a numeric amount to a string', () => {
+		const parsed = v.safeParse(CancelPaymentLinkResponseSchema, {
+			data: {
+				amount: 1500.5,
+				clientOrderId: 'rcpt-1001',
+				message: 'Cancelled',
+				orderId: 'ORD_GGZII3IT0K',
+				status: 'CANCELLED'
+			},
+			message: 'Cancelled',
+			statusCode: 0
+		});
+
+		expect(parsed.success).toBe(true);
+		if (parsed.success) {
+			expect(parsed.output.data.amount).toBe('1500.5');
+		}
+	});
+
+	it('rejects a response without an orderId', () => {
+		const parsed = v.safeParse(CancelPaymentLinkResponseSchema, {
+			data: {
+				amount: '1500.50',
+				clientOrderId: 'rcpt-1001',
+				message: 'Cancelled',
+				status: 'CANCELLED'
+			},
+			message: 'Cancelled',
+			statusCode: 200
+		});
+
+		expect(parsed.success).toBe(false);
 	});
 });
