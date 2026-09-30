@@ -36,7 +36,7 @@ export function createManagementSessionTokens() {
 			userId: 100001,
 			userName: 'E2E Admin',
 			userEmail: 'e2e-admin@elixirpay.com',
-			userType: 'MEMBER',
+			userType: 'ROOT',
 			serviceTypes: ['PAYIN', 'PAYOUT'],
 			iss: 'https://e2e.example.com',
 			token_use: 'gateway',

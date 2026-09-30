@@ -14,6 +14,7 @@ export interface MerchantProfileView {
 	registeredDate: string;
 	website: string;
 	username: string;
+	gstNumber: string;
 }
 
 function orDash(value: string): string {
@@ -33,6 +34,7 @@ export function mapMerchantProfile(record: MerchantProfileRecord): MerchantProfi
 		country: orDash(record.country),
 		registeredDate: record.registeredDate.trim() ? formatDate(record.registeredDate) : '—',
 		website: record.website.trim(),
-		username: orDash(record.username)
+		username: orDash(record.username),
+		gstNumber: (record.gstNumber ?? '').trim()
 	};
 }

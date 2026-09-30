@@ -9,7 +9,8 @@ import {
 	// TrendingUp,
 	Users,
 	ShieldCheck,
-	Link
+	Link,
+	Receipt
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -53,6 +54,19 @@ export const merchantNav: NavGroup[] = [
 				icon: Link,
 				service: 'payin'
 			},
+			{
+				title: 'Invoices',
+				href: '/merchant/invoices',
+				icon: Receipt,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/invoices\/create$/,
+						title: 'New Invoice'
+					}
+				]
+			},
+			// Dispute omitted from nav until backend API is ready
 			{
 				title: 'Disputes',
 				href: '/merchant/dispute',

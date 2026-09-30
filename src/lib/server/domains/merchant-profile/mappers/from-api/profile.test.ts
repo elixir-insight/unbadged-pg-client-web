@@ -13,7 +13,8 @@ describe('mapMerchantProfile', () => {
 			country: 'India',
 			registeredDate: '2026-07-21',
 			website: 'https://www.elixirglobal.in',
-			username: 'Elixir global'
+			username: 'Elixir global',
+			gstNumber: '29AABCU9603R1ZM'
 		});
 
 		expect(profile).toMatchObject({
@@ -25,7 +26,26 @@ describe('mapMerchantProfile', () => {
 			businessType: 'Private Limited',
 			country: 'India',
 			registeredDate: '21/07/2026',
-			website: 'https://www.elixirglobal.in'
+			website: 'https://www.elixirglobal.in',
+			gstNumber: '29AABCU9603R1ZM'
 		});
+	});
+
+	it('defaults missing gstNumber to an empty string', () => {
+		const profile = mapMerchantProfile({
+			orgId: 'ORG_2bV',
+			companyName: 'Elixir global',
+			orgName: 'Elixir global',
+			email: 'raghul.r@elixirpay.in',
+			phone: '+916382303714',
+			businessType: 'PRIVATE_LIMITED',
+			country: 'India',
+			registeredDate: '2026-07-21',
+			website: 'https://www.elixirglobal.in',
+			username: 'Elixir global',
+			gstNumber: ''
+		});
+
+		expect(profile.gstNumber).toBe('');
 	});
 });
