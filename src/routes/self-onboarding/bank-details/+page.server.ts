@@ -2,8 +2,16 @@ import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { toBankPayload } from '$lib/api/onboarding';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
-import { extractAccountId } from '$lib/server/domains/onboarding/extract';
+import {
+	extractAccountId,
+	extractProfileStatus,
+	extractVerifications
+} from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import {
+	isBankAccountEditableWhenRemarked,
+	isRemarkedProfileStatus
+} from '$lib/server/domains/onboarding/remarked-saves';
 import { GENERIC_SAVE_ERROR } from '$lib/server/domains/onboarding/save-section';
 import type { BankDetails } from '$lib/types/onboarding';
 
@@ -26,6 +34,33 @@ export const actions: Actions = {
 			return fail(400, { error: 'Malformed request.' });
 		}
 
+		const orgResult = await onboardingClient.fetchOrganization(
+			fetch,
+			locals.logger,
+			session.tokens
+		);
+		if (!orgResult.ok) {
+			return fail(orgResult.error.kind === 'http' ? orgResult.error.status : 502, {
+				error: orgResult.error.kind === 'http' ? orgResult.error.message : GENERIC_SAVE_ERROR
+			});
+		}
+
+		const profileStatus = extractProfileStatus(orgResult.data.data);
+		const rejectedKeys = isRemarkedProfileStatus(profileStatus)
+			? Object.keys(extractVerifications(orgResult.data.data))
+			: null;
+
+		if (
+			rejectedKeys &&
+			!banks.some((bank) => isBankAccountEditableWhenRemarked(bank, rejectedKeys))
+		) {
+			// Nothing on this step was rejected — mirror saveOrganizationSection no-op.
+			return {
+				success: true as const,
+				accountIds: banks.map((bank) => bank.accountId)
+			};
+		}
+
 		// Each bank account is its own create/update call (no batch endpoint like organization
 		// directors have) — saved in order, positionally matched back to accountIds on the client.
 		// Keeps going on a failure instead of stopping, so one bad account (e.g. #2) can't strand
@@ -34,6 +69,11 @@ export const actions: Actions = {
 		const accountIds: (number | undefined)[] = [];
 		let firstError: { status: number; message: string } | null = null;
 		for (const bank of banks) {
+			if (rejectedKeys && !isBankAccountEditableWhenRemarked(bank, rejectedKeys)) {
+				accountIds.push(bank.accountId);
+				continue;
+			}
+
 			const payload = toBankPayload(bank);
 			const result =
 				bank.accountId === undefined

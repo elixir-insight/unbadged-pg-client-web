@@ -4,7 +4,7 @@
 	import { Loader2, Trash2 } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import type { Director } from '$lib/types/onboarding';
-	import { directorDocumentRemark, getFieldRemark } from '$lib/utils/remarkRouting';
+	import { directorDocumentRemark, directorFieldRemark } from '$lib/utils/remarkRouting';
 	import { normalizeAadhar, normalizePanInput } from '$lib/validation/organization-kyb';
 	import DirectorDocumentSlot from './director-document-slot.svelte';
 	import FieldGrid from './field-grid.svelte';
@@ -39,14 +39,22 @@
 
 	const phoneInvalid = $derived(director.phone.length > 0 && !isValidPhone(director.phone));
 	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
-	/** `verifications` keys for this director's fields, e.g. `directors[0].pan`. */
-	const remarkKey = (field: string) => `directors[${index}].${field}`;
+	/** Prefer the real `verifications` key (index or management id) so Fix-this focus lands. */
+	function fieldRemarkKey(field: string): string {
+		return (
+			directorFieldRemark(onboarding.verifications, index, director.id, field)?.key ??
+			`directors[${index}].${field}`
+		);
+	}
 	const phoneRemark = $derived(
-		getFieldRemark(onboarding.verifications, remarkKey('phone')) ||
-			getFieldRemark(onboarding.verifications, remarkKey('phoneNumber'))
+		directorFieldRemark(onboarding.verifications, index, director.id, 'phone')
 	);
-	const aadharRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'aadhar'));
-	const panRemark = $derived(directorDocumentRemark(onboarding.verifications, index, 'pan'));
+	const aadharRemark = $derived(
+		directorDocumentRemark(onboarding.verifications, index, 'aadhar', director.id)
+	);
+	const panRemark = $derived(
+		directorDocumentRemark(onboarding.verifications, index, 'pan', director.id)
+	);
 
 	/** Records the upload; a replacement also answers the management remark on that document. */
 	function handleUploaded(patch: Partial<Director>, remarkToClear: string | undefined) {
@@ -108,7 +116,7 @@
 			placeholder="Enter your name"
 			required
 			value={director.name}
-			remarkKey={remarkKey('name')}
+			remarkKey={fieldRemarkKey('name')}
 			forceEdit
 			error={director.name.trim() ? '' : 'Name is required.'}
 			{showErrors}
@@ -123,7 +131,7 @@
 			placeholder="Enter your PAN number"
 			hint="Personal PAN, 10 characters, e.g. ABCPE1234F (4th character P)."
 			value={director.pan}
-			remarkKey={remarkKey('pan')}
+			remarkKey={fieldRemarkKey('pan')}
 			normalize={normalizePanInput}
 			error={directorPanError(director.pan)}
 			{showErrors}
@@ -137,7 +145,7 @@
 			maxlength={12}
 			inputmode="numeric"
 			value={director.aadhaar}
-			remarkKey={remarkKey('aadhar')}
+			remarkKey={fieldRemarkKey('aadhar')}
 			normalize={normalizeAadhar}
 			error={isValidDirectorAadhaar(director.aadhaar)
 				? ''
@@ -151,12 +159,12 @@
 			required
 			type="email"
 			value={director.email}
-			remarkKey={remarkKey('email')}
+			remarkKey={fieldRemarkKey('email')}
 			error={isValidEmail(director.email) ? '' : 'Enter a valid email address.'}
 			{showErrors}
 			oninput={(next) => onupdate(index, { email: next })}
 		/>
-		<label class="block min-w-0 space-y-1.5">
+		<label class="block min-w-0 space-y-1.5" data-remark-field={phoneRemark?.key}>
 			<span class="text-sm font-medium text-foreground">
 				Phone <span class="text-destructive">*</span>
 			</span>
@@ -169,6 +177,14 @@
 			/>
 			{#if showErrors && phoneInvalid}
 				<p class="text-xs text-destructive">Enter a valid 10-digit mobile number.</p>
+			{/if}
+			{#if phoneRemark}
+				<p class="flex items-start gap-1.5 text-xs text-warning">
+					<span class="min-w-0">
+						<span class="block font-semibold">Management Remark</span>
+						<span class="block">{phoneRemark.message}</span>
+					</span>
+				</p>
 			{/if}
 		</label>
 	</FieldGrid>

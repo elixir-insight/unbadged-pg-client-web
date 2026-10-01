@@ -1,9 +1,20 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { isDocumentFieldName } from '$lib/api/onboarding';
-import { DOCUMENT_KEYS, DOCUMENT_LABELS } from '$lib/components/self-onboarding/validation';
+import {
+	DOCUMENT_ACCEPT,
+	DOCUMENT_KEYS,
+	DOCUMENT_LABELS,
+	DOCUMENT_MAX_BYTES,
+	IMAGE_DOCUMENT_ACCEPT
+} from '$lib/components/self-onboarding/validation';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
+import { extractProfileStatus, extractVerifications } from '$lib/server/domains/onboarding/extract';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import {
+	isOrgDocumentEditableWhenRemarked,
+	isRemarkedProfileStatus
+} from '$lib/server/domains/onboarding/remarked-saves';
 import { GENERIC_SAVE_ERROR } from '$lib/server/domains/onboarding/save-section';
 import type { DocumentKey } from '$lib/types/onboarding';
 
@@ -12,6 +23,18 @@ function isDocumentKey(value: unknown): value is DocumentKey {
 }
 
 type UploadItem = { documentType: DocumentKey; fieldName: string; file: File };
+
+const ALLOWED_EXTENSIONS = new Set(
+	`${DOCUMENT_ACCEPT},${IMAGE_DOCUMENT_ACCEPT}`
+		.split(',')
+		.map((part) => part.trim().replace(/^\./, '').toLowerCase())
+		.filter(Boolean)
+);
+
+function fileExtension(name: string): string {
+	const dot = name.lastIndexOf('.');
+	return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+}
 
 /** The picked documents, as `documents` (JSON list of slot + field) plus one `file:<slot>` each. */
 function readUploads(form: FormData): UploadItem[] | string {
@@ -38,6 +61,13 @@ function readUploads(form: FormData): UploadItem[] | string {
 		if (!(file instanceof File) || file.size === 0) {
 			return `${DOCUMENT_LABELS[documentType]}: a file is required.`;
 		}
+		if (file.size > DOCUMENT_MAX_BYTES) {
+			return `${DOCUMENT_LABELS[documentType]}: file must be 5MB or smaller.`;
+		}
+		const extension = fileExtension(file.name);
+		if (!ALLOWED_EXTENSIONS.has(extension)) {
+			return `${DOCUMENT_LABELS[documentType]}: upload a PDF or image file.`;
+		}
 		items.push({ documentType, fieldName, file });
 	}
 	return items;
@@ -58,8 +88,35 @@ export const actions: Actions = {
 		const items = readUploads(await request.formData());
 		if (typeof items === 'string') return fail(400, { error: items, uploaded: [] });
 
+		const orgResult = await onboardingClient.fetchOrganization(
+			fetch,
+			locals.logger,
+			session.tokens
+		);
+		if (!orgResult.ok) {
+			return fail(orgResult.error.kind === 'http' ? orgResult.error.status : 502, {
+				error: orgResult.error.kind === 'http' ? orgResult.error.message : GENERIC_SAVE_ERROR,
+				uploaded: []
+			});
+		}
+
+		const profileStatus = extractProfileStatus(orgResult.data.data);
+		const rejectedKeys = isRemarkedProfileStatus(profileStatus)
+			? Object.keys(extractVerifications(orgResult.data.data))
+			: null;
+
 		const uploaded: DocumentKey[] = [];
 		for (const { documentType, fieldName, file } of items) {
+			if (
+				rejectedKeys &&
+				!isOrgDocumentEditableWhenRemarked(documentType, fieldName, rejectedKeys)
+			) {
+				return fail(403, {
+					error: `${DOCUMENT_LABELS[documentType]}: only documents rejected by management can be replaced.`,
+					uploaded
+				});
+			}
+
 			const upstreamForm = new FormData();
 			upstreamForm.append(fieldName, file, file.name);
 

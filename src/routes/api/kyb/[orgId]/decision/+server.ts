@@ -22,7 +22,8 @@ function readDecision(value: unknown): ReviewDecision | null {
 
 /** Finishes a KYB review: PUT .../organization/{orgId}/status with APPROVED or REMARKED. */
 export const PUT: RequestHandler = async ({ params, request, cookies, fetch, locals }) => {
-	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
+	// Matches preview activate/approve — finishing KYB is an approve action, not a draft write.
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'approve');
 
 	const orgId = params.orgId?.trim() ?? '';
 	if (!orgId) {

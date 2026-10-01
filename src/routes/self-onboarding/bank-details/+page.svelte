@@ -16,7 +16,6 @@
 	} from '$lib/components/self-onboarding/validation';
 	import { Plus } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
-	import { getFieldRemark } from '$lib/utils/remarkRouting';
 
 	let saving = $state(false);
 	let attempted = $state(false);
@@ -24,9 +23,6 @@
 	/** Gates the Continue button — every required field has a value, format not checked yet. */
 	const filled = $derived(bankAccountsAreFilled(onboarding.formData));
 	const canContinue = $derived(bankAccountsAreComplete(onboarding.formData));
-	const accountTypeRemark = $derived(
-		getFieldRemark(onboarding.verifications, 'bankDetails.accountType')
-	);
 	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
 
 	function readAccountIds(resultData: unknown): (number | undefined)[] | undefined {
@@ -91,7 +87,6 @@
 				{index}
 				showErrors={attempted}
 				removable={onboarding.formData.bankAccounts.length > 1}
-				{accountTypeRemark}
 				onupdate={(i, patch) => onboarding.updateBankAccount(i, patch)}
 				onremove={(i) => onboarding.removeBankAccount(i)}
 			/>

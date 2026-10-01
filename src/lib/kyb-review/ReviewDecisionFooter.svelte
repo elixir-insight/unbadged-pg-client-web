@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/reusable';
 	import { getReviewOutcome } from '$lib/onboarding/reviewState';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { submitReviewDecision } from './api';
 	import ApproveProfileDialog from './ApproveProfileDialog.svelte';
 	import type { ProfileFormOptions, ProfileType } from './profile';
@@ -28,6 +29,7 @@
 	let saving = $state(false);
 	let approveOpen = $state(false);
 	let errorMessage = $state('');
+	const hasApprovePermission = $derived(userPermissions.can('ORGANIZATION', 'approve'));
 
 	const labels = $derived<Record<string, string>>(
 		Object.fromEntries(
@@ -94,15 +96,27 @@
 				</ul>
 			</div>
 			<div class="flex justify-end">
-				<Button variant="destructive" disabled={saving} onclick={sendRemarks}>
+				<Button
+					variant="destructive"
+					disabled={saving || !hasApprovePermission}
+					onclick={sendRemarks}
+				>
 					{saving ? 'Sending…' : 'Send Remarks'}
 				</Button>
 			</div>
+			{#if !hasApprovePermission}
+				<p class="text-sm text-muted-foreground">You need Organization approve permission.</p>
+			{/if}
 		{:else}
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<p class="text-sm text-foreground">All fields are verified.</p>
-				<Button onclick={() => (approveOpen = true)}>Approve</Button>
+				<Button disabled={!hasApprovePermission} onclick={() => (approveOpen = true)}>
+					Approve
+				</Button>
 			</div>
+			{#if !hasApprovePermission}
+				<p class="text-sm text-muted-foreground">You need Organization approve permission.</p>
+			{/if}
 		{/if}
 
 		{#if errorMessage}

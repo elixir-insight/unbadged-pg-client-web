@@ -4,7 +4,7 @@
 	import { Trash2 } from '$lib/assets/icons';
 	import { onboarding } from '$lib/stores/onboarding.svelte';
 	import type { BankDetails } from '$lib/types/onboarding';
-	import { getFieldRemark } from '$lib/utils/remarkRouting';
+	import { bankFieldRemark } from '$lib/utils/remarkRouting';
 	import FieldGrid from './field-grid.svelte';
 	import FieldRow from './field-row.svelte';
 	import InlineRemark from './inline-remark.svelte';
@@ -20,7 +20,6 @@
 		index,
 		showErrors = false,
 		removable,
-		accountTypeRemark = '',
 		onupdate,
 		onremove
 	}: {
@@ -29,20 +28,37 @@
 		showErrors?: boolean;
 		/** Hides the remove control — at least one bank account must always remain. */
 		removable: boolean;
-		accountTypeRemark?: string;
 		onupdate: (index: number, patch: Partial<BankDetails>) => void;
 		onremove: (index: number) => void;
 	} = $props();
 
 	const remarked = $derived(onboarding.onboardingStatus === 'remarked');
-	const accountTypeLocked = $derived(
-		remarked &&
-			!getFieldRemark(onboarding.verifications, 'bankDetails.accountType') &&
-			!accountTypeRemark
+	const holderRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'accountHolderName')
 	);
+	const ifscRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'ifscCode')
+	);
+	const bankNameRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'bankName')
+	);
+	const branchRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'branchName')
+	);
+	const accountNumberRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'accountNumber')
+	);
+	const accountTypeRemark = $derived(
+		bankFieldRemark(onboarding.verifications, bank.accountId, 'accountType')
+	);
+	const accountTypeLocked = $derived(remarked && !accountTypeRemark);
 
 	function digitsOnly(value: string): string {
 		return value.replace(/\D/g, '').slice(0, 18);
+	}
+
+	function remarkKeyOr(remark: { key: string } | undefined, fallback: string): string {
+		return remark?.key ?? fallback;
 	}
 </script>
 
@@ -67,7 +83,7 @@
 			label="Account holder name"
 			placeholder="Enter your account holder name"
 			required
-			remarkKey="bankDetails.accountHolderName"
+			remarkKey={remarkKeyOr(holderRemark, 'bankDetails.accountHolderName')}
 			error={bank.accountHolderName.trim() ? '' : 'Account holder name is required.'}
 			{showErrors}
 			value={bank.accountHolderName}
@@ -79,7 +95,7 @@
 			required
 			monospace
 			maxlength={11}
-			remarkKey="bankDetails.ifscCode"
+			remarkKey={remarkKeyOr(ifscRemark, 'bankDetails.ifscCode')}
 			hint="11 characters, e.g. HDFC0001234."
 			error={isValidIfsc(bank.ifscCode) ? '' : 'Enter a valid 11-character IFSC.'}
 			{showErrors}
@@ -95,7 +111,7 @@
 			label="Bank name"
 			placeholder="Enter your bank name"
 			required
-			remarkKey="bankDetails.bankName"
+			remarkKey={remarkKeyOr(bankNameRemark, 'bankDetails.bankName')}
 			error={bank.bankName.trim() ? '' : 'Bank name is required.'}
 			{showErrors}
 			value={bank.bankName}
@@ -105,7 +121,7 @@
 			label="Branch name"
 			placeholder="Enter your branch name"
 			required
-			remarkKey="bankDetails.branchName"
+			remarkKey={remarkKeyOr(branchRemark, 'bankDetails.branchName')}
 			error={bank.branchName.trim() ? '' : 'Branch name is required.'}
 			{showErrors}
 			value={bank.branchName}
@@ -118,7 +134,7 @@
 			monospace
 			inputmode="numeric"
 			autocomplete="off"
-			remarkKey="bankDetails.accountNumber"
+			remarkKey={remarkKeyOr(accountNumberRemark, 'bankDetails.accountNumber')}
 			error={isValidAccountNumber(bank.accountNumber) ? '' : 'Enter a 9–18 digit account number.'}
 			{showErrors}
 			value={bank.accountNumber}
@@ -133,7 +149,7 @@
 			blockPaste
 			inputmode="numeric"
 			autocomplete="off"
-			unlockWith="bankDetails.accountNumber"
+			unlockWith={remarkKeyOr(accountNumberRemark, 'bankDetails.accountNumber')}
 			error={bank.accountNumber === bank.confirmAccountNumber
 				? ''
 				: 'Account numbers do not match.'}
@@ -142,7 +158,10 @@
 			normalize={digitsOnly}
 			oninput={(next) => onupdate(index, { confirmAccountNumber: next })}
 		/>
-		<InlineRemark remark={accountTypeRemark} fieldKey="bankDetails.accountType">
+		<InlineRemark
+			remark={accountTypeRemark?.message ?? ''}
+			fieldKey={remarkKeyOr(accountTypeRemark, 'bankDetails.accountType')}
+		>
 			<div class="block min-w-0 space-y-1.5">
 				<span class="text-sm font-medium text-foreground">
 					Account type <span class="text-destructive">*</span>

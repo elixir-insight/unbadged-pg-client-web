@@ -1,8 +1,11 @@
 import type { LayoutServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
+import type { Logger } from 'pino';
 import type { BankDetails, OnboardingPrefill } from '$lib/types/onboarding';
 import {
 	extractBankDetails,
 	extractBusinessType,
+	extractDocuments,
 	extractOnboardingPrefill,
 	extractProfileStatus,
 	extractUploadedFieldNames,
@@ -10,6 +13,8 @@ import {
 } from '$lib/server/domains/onboarding/extract';
 import { onboardingClient } from '$lib/server/domains/onboarding/client';
 import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
+import { parseDocumentFileName } from '$lib/server/domains/organization/utils/document-field-names';
+import { hasUnapprovedGroup, resolvePortalHome } from '$lib/stores/auth/portal';
 
 /**
  * Everything already saved upstream, re-fetched on every step change (see the `url.pathname`
@@ -20,16 +25,38 @@ import { requireOnboardingSession } from '$lib/server/domains/onboarding/guard';
  * +layout.svelte). The three calls run in parallel and each is best-effort: a failed one just
  * leaves its part empty, and the client behaves as if nothing was saved there yet.
  */
-const EMPTY = {
-	businessType: '',
-	profileStatus: '',
-	verifications: {} as Record<string, string>,
-	prefill: null as OnboardingPrefill | null,
-	bankAccounts: [] as BankDetails[],
-	uploadedFieldNames: [] as string[]
-};
+async function attachDirectorDocuments(
+	fetchFn: typeof fetch,
+	log: Logger,
+	tokens: { accessToken: string; gatewayToken: string },
+	prefill: OnboardingPrefill | null
+): Promise<OnboardingPrefill | null> {
+	if (!prefill?.directors.length) return prefill;
+	const directors = await Promise.all(
+		prefill.directors.map(async (director) => {
+			if (director.id === undefined) return director;
+			const result = await onboardingClient.getDirectorDocuments(fetchFn, log, tokens, director.id);
+			if (!result.ok) return director;
+			const fields = extractDocuments(result.data.data).map((doc) => {
+				const parsed = doc.fileName ? parseDocumentFileName(doc.fileName) : null;
+				return parsed?.kind === 'director' ? parsed.field : null;
+			});
+			return {
+				...director,
+				...(fields.includes('aadharDocument') ? { aadhaarDocument: 'Uploaded' } : {}),
+				...(fields.includes('panDocument') ? { panDocument: 'Uploaded' } : {})
+			};
+		})
+	);
+	return { ...prefill, directors };
+}
 
 export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) => {
+	const groups = locals.merchantSession?.groups ?? [];
+	if (!hasUnapprovedGroup(groups)) {
+		redirect(303, resolvePortalHome(groups));
+	}
+
 	// Reading the pathname makes SvelteKit re-run this load on every step navigation, not just on
 	// the first mount. GETs only — nothing is saved by moving between steps.
 	locals.logger.debug({ step: url.pathname }, 'self-onboarding: loading saved state');
@@ -37,9 +64,11 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) =>
 		cookies,
 		fetch,
 		log: locals.logger,
-		groups: locals.merchantSession?.groups
+		groups
 	});
-	if (!session.ok) return EMPTY;
+	if (!session.ok) {
+		redirect(303, resolvePortalHome(groups));
+	}
 
 	const [orgResult, bankResult, documentsResult] = await Promise.all([
 		onboardingClient.fetchOrganization(fetch, locals.logger, session.tokens),
@@ -62,14 +91,21 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) =>
 	}
 
 	const org = orgResult.ok ? orgResult.data.data : undefined;
+	const prefill = await attachDirectorDocuments(
+		fetch,
+		locals.logger,
+		session.tokens,
+		extractOnboardingPrefill(org)
+	);
+
 	return {
 		businessType: extractBusinessType(org),
 		profileStatus: extractProfileStatus(org),
 		verifications: extractVerifications(org),
-		prefill: extractOnboardingPrefill(org),
-		bankAccounts: bankResult.ok ? extractBankDetails(bankResult.data.data) : [],
+		prefill,
+		bankAccounts: bankResult.ok ? extractBankDetails(bankResult.data.data) : ([] as BankDetails[]),
 		uploadedFieldNames: documentsResult.ok
 			? extractUploadedFieldNames(documentsResult.data.data)
-			: []
+			: ([] as string[])
 	};
 };

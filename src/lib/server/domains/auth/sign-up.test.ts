@@ -209,8 +209,12 @@ describe('performConfirmSignUp', () => {
 			data: { statusCode: 200, message: 'Email confirmed', data: [] }
 		});
 
+		const cookies = fakeCookies();
+		storeSignupAccount(cookies, { orgId: 'org_1', userEmail: 'owner@acme.test' });
+
 		const result = await performConfirmSignUp({
 			fetch: vi.fn() as unknown as typeof fetch,
+			cookies,
 			logger: fakeLogger(),
 			ip: '127.0.0.1',
 			userEmail: 'owner@acme.test',
@@ -218,6 +222,7 @@ describe('performConfirmSignUp', () => {
 		});
 
 		expect(result).toEqual({ ok: true, message: 'Email confirmed' });
+		expect(readSignupAccount(cookies)).toBeNull();
 	});
 
 	it('surfaces the upstream message on http failure', async () => {
@@ -228,6 +233,7 @@ describe('performConfirmSignUp', () => {
 
 		const result = await performConfirmSignUp({
 			fetch: vi.fn() as unknown as typeof fetch,
+			cookies: fakeCookies(),
 			logger: fakeLogger(),
 			ip: '127.0.0.1',
 			userEmail: 'owner@acme.test',

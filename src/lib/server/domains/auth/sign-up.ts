@@ -40,6 +40,10 @@ export function storeSignupAccount(cookies: Cookies, data: SignUpAccount) {
 	cookies.set(SIGNUP_ACCOUNT_COOKIE, JSON.stringify(data), { ...COOKIE_OPTS, maxAge: 60 * 60 });
 }
 
+export function clearSignupAccount(cookies: Cookies) {
+	cookies.delete(SIGNUP_ACCOUNT_COOKIE, { path: '/' });
+}
+
 export function readSignupAccount(cookies: Cookies): SignUpAccount | null {
 	const raw = cookies.get(SIGNUP_ACCOUNT_COOKIE);
 	if (!raw) return null;
@@ -93,7 +97,24 @@ export async function performSignUp(opts: {
 		const message =
 			result.error.kind === 'http' ? resolveErrorMessage(result.error.message) : FALLBACK_MESSAGE;
 		log.warn(
-			{ ip, userEmail: body.userEmail, errorKind: result.error.kind, status },
+			{
+				ip,
+				userEmail: body.userEmail,
+				errorKind: result.error.kind,
+				status,
+				apiMessage: result.error.message,
+				...(result.error.kind === 'http' && {
+					httpStatus: result.error.status,
+					exceptionCode: result.error.code,
+					apiBody: result.error.body
+				}),
+				...(result.error.kind === 'validation' && {
+					httpStatus: result.error.httpStatus,
+					contentType: result.error.contentType,
+					bodyPreview: result.error.bodyPreview,
+					issues: result.error.issues
+				})
+			},
 			'sign-up failed'
 		);
 		return { ok: false, status, message };
@@ -102,7 +123,13 @@ export async function performSignUp(opts: {
 	if (result.data.statusCode !== 201) {
 		const message = resolveErrorMessage(result.data.message);
 		log.warn(
-			{ ip, userEmail: body.userEmail, statusCode: result.data.statusCode },
+			{
+				ip,
+				userEmail: body.userEmail,
+				statusCode: result.data.statusCode,
+				apiMessage: result.data.message,
+				apiData: result.data.data
+			},
 			'sign-up failed — unexpected statusCode'
 		);
 		return { ok: false, status: 502, message };
@@ -146,12 +173,13 @@ function mapAuthCallFailure(
 
 export async function performConfirmSignUp(opts: {
 	fetch: typeof fetch;
+	cookies: Cookies;
 	logger: Logger;
 	ip: string;
 	userEmail: string;
 	confirmationCode: string;
 }): Promise<ConfirmSignUpResult> {
-	const { fetch: fetchFn, logger: log, ip, userEmail, confirmationCode } = opts;
+	const { fetch: fetchFn, cookies, logger: log, ip, userEmail, confirmationCode } = opts;
 	log.info({ ip, userEmail }, 'sign-up confirm attempt');
 
 	const result = await authClient.confirmSignup(fetchFn, log, { userEmail, confirmationCode });
@@ -167,6 +195,7 @@ export async function performConfirmSignUp(opts: {
 		return { ok: false, status: 502, message };
 	}
 
+	clearSignupAccount(cookies);
 	log.info({ ip, userEmail }, 'sign-up confirm succeeded');
 	return { ok: true, message: resolveErrorMessage(result.data.message) };
 }
