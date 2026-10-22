@@ -197,7 +197,7 @@ describe('buildUpdateOrganizationKybRequest', () => {
 
 		expect(upstream.directors).toEqual([]);
 		expect(upstream.kyb.gstNumber).toBe('29ABCDE1234F1Z5');
-		expect(upstream.addressDetails.city).toBe('-');
+		expect(upstream.addressDetails.city).toBe('');
 		expect(upstream.kyb).not.toHaveProperty('brandName');
 	});
 
