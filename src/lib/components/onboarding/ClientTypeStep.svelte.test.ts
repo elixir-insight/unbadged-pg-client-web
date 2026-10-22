@@ -1,17 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { branding } from '$lib/branding';
 import ClientTypeStep from './ClientTypeStep.svelte';
 
 const clientTypes = [
 	{
 		value: 'Merchant',
 		title: 'Merchant',
-		image: '/images/MerchantCategory.png'
+		image: branding.assets.onboarding.merchant
 	},
 	{
 		value: 'Partner',
 		title: 'Partner',
-		image: '/images/handShaking.png'
+		image: branding.assets.onboarding.partner
 	}
 ] as const;
 

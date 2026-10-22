@@ -18,6 +18,7 @@
 	import LivePreviewPanel from '../../components/fee-config/LivePreviewPanel.svelte';
 	import OpenDecisionsCard from '../../components/fee-config/OpenDecisionsCard.svelte';
 	import PaymentPathCard from '../../components/fee-config/PaymentPathCard.svelte';
+	import { branding } from '$lib/branding';
 	import { defaultOrganizationLandingPath } from '../../helpers';
 
 	let { data } = $props();
@@ -251,7 +252,7 @@
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
 	<div
-		class="flex items-center gap-2 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-sm text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-400"
+		class="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15 dark:text-warning"
 		role="status"
 	>
 		<AlertCircle class="size-3.5 shrink-0" aria-hidden="true" />
@@ -283,7 +284,7 @@
 
 			<FeeSectionCard
 				title="Commission"
-				subtitle="Pipeline fee elixir pay earns — negotiated per organization."
+				subtitle={branding.copy.pipelineFeeSubtitle}
 				disabled={!pathReady}
 				placeholder="Select a payment path to configure commission."
 				bind:slabs={commissionSlabs}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { branding } from '$lib/branding';
 import { mapOrganizationsTableResponse } from './organizations-table';
 
 describe('mapOrganizationsTableResponse', () => {
@@ -23,7 +24,7 @@ describe('mapOrganizationsTableResponse', () => {
 				},
 				{
 					id: 'ORG_2bY',
-					name: 'ElixirPay',
+					name: branding.name,
 					businessType: 'PRIVATE_LIMITED',
 					category: 'MANAGEMENT',
 					profileStatus: 'ACTIVE',
@@ -47,7 +48,7 @@ describe('mapOrganizationsTableResponse', () => {
 		expect(mapped.organizations).toHaveLength(3);
 		expect(mapped.organizations[2]).toMatchObject({
 			id: 'ORG_2bY',
-			name: 'ElixirPay',
+			name: branding.name,
 			category: 'MANAGEMENT',
 			status: 'ACTIVE'
 		});

@@ -25,10 +25,10 @@
 	} as const;
 
 	const toneClasses = {
-		success: 'bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400',
-		warning: 'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400',
-		info: 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-		critical: 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400'
+		success: 'bg-success/15 text-success dark:bg-success/10 dark:text-success',
+		warning: 'bg-warning/15 text-warning dark:bg-warning/10 dark:text-warning',
+		info: 'bg-primary/15 text-primary dark:bg-primary/10 dark:text-primary',
+		critical: 'bg-destructive/15 text-destructive dark:bg-destructive/10 dark:text-destructive'
 	} as const;
 </script>
 

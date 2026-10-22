@@ -10,6 +10,7 @@
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 
 	let {
 		app,
@@ -109,8 +110,8 @@
 </script>
 
 <svelte:head>
-	<title>{pageTitle} | ElixirPay</title>
-	<meta property="og:title" content="{pageTitle} | ElixirPay" />
+	<title>{branding.meta.titleTemplate(pageTitle)}</title>
+	<meta property="og:title" content={branding.meta.titleTemplate(pageTitle)} />
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 

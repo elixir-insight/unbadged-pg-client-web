@@ -67,7 +67,7 @@
 			</p>
 		</div>
 		<span
-			class="flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-400"
+			class="flex shrink-0 items-center gap-0.5 rounded-full bg-success/15 px-2 py-1 text-xs font-medium text-success dark:bg-success/15 dark:text-success"
 		>
 			<TrendingUp class="size-3" />
 			{availableFundsChangeLabel}

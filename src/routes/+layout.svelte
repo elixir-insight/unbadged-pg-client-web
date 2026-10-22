@@ -2,7 +2,7 @@
 	import { onNavigate } from '$app/navigation';
 	import { tick } from 'svelte';
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import { branding } from '$lib/branding';
 	import { Toast } from '$lib/components/reusable';
 	import { merchantSession } from '$lib/stores/auth';
 	import {
@@ -51,11 +51,11 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
-	<title>ElixirPay</title>
-	<meta name="description" content="ElixirPay — Payment Gateway Management Platform" />
+	<link rel="icon" href={branding.assets.favicon} />
+	<title>{branding.name}</title>
+	<meta name="description" content={branding.meta.description} />
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="ElixirPay" />
+	<meta property="og:site_name" content={branding.meta.siteName} />
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

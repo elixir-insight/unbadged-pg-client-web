@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
 import { mockCognitoToken } from './mock-token';
 import type { CognitoIdToken, GatewayTokenPayload } from './types';
+import { branding, brandEmail } from '$lib/branding';
 
 function tokenWithGroups(groups: string[]): CognitoIdToken {
 	return { ...mockCognitoToken, 'cognito:groups': groups };
@@ -11,12 +12,12 @@ function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayToke
 	return {
 		orgId: 10002,
 		userId: 100002,
-		userName: 'Elixir Pay',
-		userEmail: 'admin@elixirpay.com',
+		userName: branding.name,
+		userEmail: branding.emails.support,
 		userType: 'ROOT',
 		group: 'MERCHANT',
 		serviceTypes: ['PAYIN'],
-		iss: 'Elixir Pay',
+		iss: branding.name,
 		token_use: 'gateway',
 		exp: 1_784_059_619,
 		iat: 1_784_056_019,
@@ -51,8 +52,8 @@ describe('parseMerchantSessionFromGateway', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
 		expect(session.userId).toBe('100002');
 		expect(session.organizationId).toBe('10002');
-		expect(session.merchantName).toBe('Elixir Pay');
-		expect(session.email).toBe('admin@elixirpay.com');
+		expect(session.merchantName).toBe(branding.name);
+		expect(session.email).toBe(branding.emails.support);
 		expect(session.userType).toBe('ROOT');
 	});
 
@@ -86,12 +87,13 @@ describe('parseMerchantSessionFromGateway', () => {
 	});
 
 	it('falls back to email local-part when userName is null', () => {
+		const email = brandEmail('Abdullah.a');
 		const session = parseMerchantSessionFromGateway(
-			gatewayToken({ userName: null, userEmail: 'Abdullah.a@elixirpay.in' }),
+			gatewayToken({ userName: null, userEmail: email }),
 			['MERCHANT']
 		);
 		expect(session.merchantName).toBe('Abdullah.a');
-		expect(session.email).toBe('Abdullah.a@elixirpay.in');
+		expect(session.email).toBe(email);
 	});
 
 	it('falls back to User when userName and email are blank', () => {

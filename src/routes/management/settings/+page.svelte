@@ -7,6 +7,7 @@
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 	import ApiCredentialSection from './api-credential-section.svelte';
 	import MfaSection from './mfa-section.svelte';
 	import type { PageData } from './$types';
@@ -18,8 +19,8 @@
 	const displayName = $derived(merchantSession.session?.merchantName ?? 'Admin');
 	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
 	const userRole = $derived(formatUserType(merchantSession.session?.userType ?? 'MEMBER'));
-	const sessionEmail = $derived(merchantSession.session?.email ?? 'admin@elixirpay.com');
-	const website = 'https://elixirpay.com';
+	const sessionEmail = $derived(merchantSession.session?.email ?? branding.emails.support);
+	const website = branding.urls.website;
 
 	let changePasswordOpen = $state(false);
 
@@ -136,7 +137,7 @@
 						<a
 							href={website}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="truncate text-foreground transition-colors hover:text-primary"
 						>
 							{website}

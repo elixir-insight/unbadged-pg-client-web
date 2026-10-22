@@ -44,7 +44,7 @@
 		{disabled}
 		class={cn(
 			'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors',
-			'border-border  dark:border-white/10 dark:bg-white/5',
+			'border-border dark:border-border/40 dark:bg-card/5',
 			'glass-dropdown-trigger cursor-pointer focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
 			disabled && 'cursor-not-allowed opacity-50',
 			className
@@ -56,7 +56,7 @@
 			{#each value as v (v)}
 				{@const label = options.find((o) => o.value === v)?.label ?? v}
 				<span
-					class="inline-flex items-center gap-1 rounded-md border border-border bg-gray-50 px-2 py-0.5 text-xs font-medium dark:border-white/10 dark:bg-white/10"
+					class="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium dark:border-border dark:bg-muted"
 				>
 					{label}
 					<button

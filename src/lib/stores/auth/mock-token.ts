@@ -1,4 +1,5 @@
 import type { CognitoIdToken } from './types';
+import { branding } from '$lib/branding';
 
 export const mockCognitoToken: CognitoIdToken = {
 	sub: '2183adaa-1041-701a-34df-ff1d32f11e85',
@@ -19,5 +20,5 @@ export const mockCognitoToken: CognitoIdToken = {
 	exp: 1782711374,
 	iat: 1782710474,
 	jti: 'b50f547e-2423-4502-8710-4b71082face3',
-	email: 'merchant@elixirpay.com'
+	email: branding.emails.demo
 };

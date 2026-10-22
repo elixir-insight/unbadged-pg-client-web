@@ -31,9 +31,9 @@
 	}: Props = $props();
 
 	const toneClasses: Record<VirtualAccountSummary['tone'], string> = {
-		primary: 'bg-chart-1 text-white',
-		info: 'bg-chart-2 text-white',
-		success: 'bg-chart-3 text-white'
+		primary: 'bg-chart-1 text-primary-foreground',
+		info: 'bg-chart-2 text-primary-foreground',
+		success: 'bg-chart-3 text-primary-foreground'
 	};
 </script>
 
@@ -59,7 +59,7 @@
 		{#each accounts as account, i (account.accountNumber)}
 			<div
 				class={cn(
-					'relative flex flex-1 items-center justify-between rounded-t-xl px-3 shadow-[0_-4px_10px_rgba(0,0,0,0.08)]',
+					'relative flex flex-1 items-center justify-between rounded-t-xl px-3 shadow-sm',
 					toneClasses[account.tone]
 				)}
 				style="margin-top: {i === 0 ? '0px' : '-6px'}; z-index: {i + 1};"
@@ -70,7 +70,7 @@
 		{/each}
 
 		<div
-			class="relative flex min-h-0 flex-[2.5] flex-col justify-center gap-2 rounded-2xl border border-border bg-muted p-3 pb-4 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+			class="relative flex min-h-0 flex-[2.5] flex-col justify-center gap-2 rounded-2xl border border-border bg-muted p-3 pb-4 shadow-md"
 			style="margin-top: -14px; z-index: {accounts.length +
 				1}; mask-image: radial-gradient(circle 10px at 50% 0, transparent 10px, black 10.5px); -webkit-mask-image: radial-gradient(circle 10px at 50% 0, transparent 10px, black 10.5px);"
 		>
@@ -81,9 +81,7 @@
 			<div>
 				<p class="flex items-center gap-1 text-[11px] text-muted-foreground">
 					Wallet balance
-					<span
-						class="flex items-center gap-0.5 font-medium text-emerald-500 dark:text-emerald-400"
-					>
+					<span class="flex items-center gap-0.5 font-medium text-success dark:text-success">
 						<TrendingUp class="size-3" />
 						{balanceChangeLabel}
 					</span>

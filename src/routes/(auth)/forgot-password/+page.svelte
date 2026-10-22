@@ -2,11 +2,12 @@
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { Input, Button, toast } from '$lib/components/reusable';
-	import { CompanyLogoLight } from '$lib/assets/icons';
+	import { branding } from '$lib/branding';
 	import { theme } from '$lib/stores/theme.svelte';
 	import type { PageProps } from './$types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 
+	// const Logo = branding.assets.logoLight;
 	let { form }: PageProps = $props();
 
 	let email = $state('');
@@ -39,14 +40,12 @@
 <!-- Right Panel -->
 <main class="flex flex-1 items-center justify-center px-10">
 	<div class="flex w-full max-w-md flex-col gap-17">
-		<div class="">
-			<CompanyLogoLight width="200" class="h-auto" />
-		</div>
+		<div class="text-5xl font-semibold text-foreground">Payment Gateway</div>
 
 		<div class="flex flex-col gap-10">
 			<div class="flex flex-col gap-2">
-				<h1 class="text-3xl font-semibold tracking-tight text-gray-700">Forgot Password</h1>
-				<p class="text-base text-gray-700">No worries, we will send you reset instructions.</p>
+				<h1 class="text-3xl font-semibold tracking-tight text-foreground">Forgot Password</h1>
+				<p class="text-base text-foreground">No worries, we will send you reset instructions.</p>
 			</div>
 
 			<form class="flex flex-col gap-6" method="POST" use:enhance={handleEnhance}>
@@ -55,12 +54,12 @@
 				{/if}
 
 				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-gray-700" for="userEmail">Email</label>
+					<label class="text-lg font-normal text-foreground" for="userEmail">Email</label>
 					<Input
 						id="userEmail"
 						name="userEmail"
 						// type="email"
-						placeholder="name@company.com"
+						placeholder={branding.emails.placeholder}
 						bind:value={email}
 						autocomplete="email"
 						aria-invalid={form?.emailError ? 'true' : undefined}
@@ -82,18 +81,20 @@
 
 <footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
 	<a
-		href="https://elixirpay.in/terms"
+		href={branding.urls.terms}
 		target="_blank"
+		rel="external noopener noreferrer"
 		class="underline underline-offset-4 hover:text-foreground"
 	>
-		Terms and Conditions
+		{branding.copy.termsLabel}
 	</a>
 	<span class="mx-3 text-border" aria-hidden="true">|</span>
 	<a
-		href="https://elixirpay.in/privacy"
+		href={branding.urls.privacy}
 		target="_blank"
+		rel="external noopener noreferrer"
 		class="underline underline-offset-4 hover:text-foreground"
 	>
-		Privacy Policy
+		{branding.copy.privacyLabel}
 	</a>
 </footer>

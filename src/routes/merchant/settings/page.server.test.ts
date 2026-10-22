@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
+import { brandEmail, branding } from '$lib/branding';
 import { load, actions } from './+page.server';
 
 // `load` is annotated `: PageServerLoad` in +page.server.ts, which widens its
@@ -73,15 +74,15 @@ const profilePayload = {
 	data: [
 		{
 			orgId: 'ORG_2bV',
-			companyName: 'Elixir global',
-			orgName: 'Elixir global',
-			email: 'raghul.r@elixirpay.in',
+			companyName: branding.name,
+			orgName: branding.name,
+			email: brandEmail('raghul.r'),
 			phone: '+916382303714',
 			businessType: 'PRIVATE_LIMITED',
 			country: 'India',
 			registeredDate: '2026-07-21',
-			website: 'https://www.elixirglobal.in',
-			username: 'Elixir global'
+			website: branding.urls.website,
+			username: branding.name
 		}
 	],
 	message: 'Organization profile fetched successfully',
@@ -123,8 +124,8 @@ describe('merchant settings +page.server load', () => {
 		expect(result.apiCredentialError).toBeNull();
 		expect(result.profile).toMatchObject({
 			orgId: 'ORG_2bV',
-			companyName: 'Elixir global',
-			email: 'raghul.r@elixirpay.in'
+			companyName: branding.name,
+			email: brandEmail('raghul.r')
 		});
 		expect(result.profileError).toBeNull();
 	});
