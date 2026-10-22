@@ -1,0 +1,175 @@
+/*
+ * Brand theme tokens — single source of truth for brand colours, surfaces,
+ * typography and shadows. Imported once by `src/routes/layout.css`.
+ *
+ * To rebrand: change values here (and `src/lib/branding/config.ts`).
+ * Components must consume the semantic tokens below — via Tailwind classes
+ * such as `bg-primary text-foreground border-border`, or directly via
+ * `var(--brand-primary)`, `var(--primary)`, `var(--background)`, etc.
+ * The `--brand-*` names are aliases of the semantic tokens so new code can
+ * be explicit about brand intent without duplicating values.
+ */
+
+:root {
+	--background: oklch(1 0 0);
+	color-scheme: light;
+	--foreground: oklch(0.2077 0.0398 265.7549);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.2077 0.0398 265.7549);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.2077 0.0398 265.7549);
+	--primary: oklch(0.52 0.12 244);
+	--primary-foreground: oklch(1 0 0);
+	--secondary: oklch(0.9683 0.0069 247.8956);
+	--secondary-foreground: oklch(0.2077 0.0398 265.7549);
+	--muted: oklch(0.9842 0.0034 247.8575);
+	--muted-foreground: oklch(0.5544 0.0407 257.4166);
+	--accent: oklch(0.9771 0.0125 236.6197);
+	--accent-foreground: oklch(0.52 0.12 244);
+	--destructive: oklch(0.588 0.2078 25.3313);
+	--destructive-foreground: oklch(1 0 0);
+	--success: oklch(0.6274 0.17 148.42);
+	--success-foreground: oklch(1 0 0);
+	--warning: oklch(0.7686 0.1647 70.08);
+	--warning-foreground: oklch(0.2077 0.0398 265.7549);
+	--border: oklch(0.9288 0.0126 255.5078);
+	--input: oklch(0.9288 0.0126 255.5078);
+	--ring: oklch(0.52 0.12 244);
+	--chart-1: oklch(0.52 0.12 244);
+	--chart-2: oklch(0.6847 0.1479 237.3225);
+	--chart-3: oklch(0.7535 0.139 232.6615);
+	--chart-4: oklch(0.8276 0.1013 230.3179);
+	--chart-5: oklch(0.9014 0.0555 230.9024);
+	--sidebar: oklch(0.9842 0.0034 247.8575);
+	--sidebar-foreground: oklch(0.3717 0.0392 257.287);
+	--sidebar-primary: oklch(0.52 0.12 244);
+	--sidebar-primary-foreground: oklch(1 0 0);
+	--sidebar-accent: oklch(0.9683 0.0069 247.8956);
+	--sidebar-accent-foreground: oklch(0.52 0.12 244);
+	--sidebar-border: oklch(0.9288 0.0126 255.5078);
+	--sidebar-ring: oklch(0.52 0.12 244);
+
+	/* Brand aliases — explicit names for new/white-label-aware code. */
+	--brand-primary: var(--primary);
+	--brand-primary-foreground: var(--primary-foreground);
+	--brand-secondary: var(--secondary);
+	--brand-background: var(--background);
+	--brand-surface: var(--card);
+	--brand-surface-foreground: var(--card-foreground);
+	--brand-text: var(--foreground);
+	--brand-text-muted: var(--muted-foreground);
+	--brand-border: var(--border);
+	--brand-input: var(--input);
+	--brand-ring: var(--ring);
+
+	/* Logo mark palette (company-logo.svelte + legacy logo variants). */
+	--logo-primary: #0076b8;
+	--logo-wordmark: #2e3f88;
+	--logo-wordmark-on-dark: #ffffff;
+	--logo-mark-center: #2d3588;
+	--logo-red-start: #e53031;
+	--logo-red-end: #f07f62;
+	--logo-yellow-start: #f6cb25;
+	--logo-yellow-end: #f4de71;
+	--logo-blue-start: #4085c1;
+	--logo-blue-end: #83c3e3;
+	--logo-mask: #ffffff;
+
+	--font-sans: 'Inter', sans-serif;
+	--font-serif: 'Merriweather', serif;
+	--font-mono: 'JetBrains Mono', monospace;
+	--radius: 0.5rem;
+	--shadow-x: 0px;
+	--shadow-y: 2px;
+	--shadow-blur: 10px;
+	--shadow-spread: 0px;
+	--shadow-opacity: 0.05;
+	--shadow-color: #000000;
+	--shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.03);
+	--shadow-xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.03);
+	--shadow-sm: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+	--shadow: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+	--shadow-md: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+	--shadow-lg: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+	--shadow-xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+	--shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.13);
+	--tracking-normal: -0.01em;
+	--spacing: 0.25rem;
+	--font-size-h1: 1.5rem;
+	--font-size-h2: 1.25rem;
+	--font-size-h3: 1rem;
+	--font-size-h4: 0.875rem;
+	--font-size-h5: 0.625rem;
+}
+
+.dark {
+	color-scheme: dark;
+	--background: oklch(0.1288 0.0406 264.6952);
+	--foreground: oklch(0.9842 0.0034 247.8575);
+	--card: oklch(0.2077 0.0398 265.7549);
+	--card-foreground: oklch(0.9842 0.0034 247.8575);
+	--popover: oklch(0.2077 0.0398 265.7549);
+	--popover-foreground: oklch(0.9842 0.0034 247.8575);
+	--primary: oklch(0.7535 0.139 232.6615);
+	--primary-foreground: oklch(0.2935 0.0632 243.1571);
+	--secondary: oklch(0.2795 0.0368 260.031);
+	--secondary-foreground: oklch(0.9842 0.0034 247.8575);
+	--muted: oklch(0.2795 0.0368 260.031);
+	--muted-foreground: oklch(0.7107 0.0351 256.7878);
+	--accent: oklch(0.2795 0.0368 260.031);
+	--accent-foreground: oklch(0.7535 0.139 232.6615);
+	--destructive: oklch(0.3958 0.1331 25.723);
+	--destructive-foreground: oklch(0.8845 0.0593 18.3341);
+	--success: oklch(0.5461 0.1481 148.42);
+	--success-foreground: oklch(0.9646 0.0224 148.42);
+	--warning: oklch(0.6535 0.1647 70.08);
+	--warning-foreground: oklch(0.9716 0.0286 70.08);
+	--border: oklch(0.2795 0.0368 260.031);
+	--input: oklch(0.2795 0.0368 260.031);
+	--ring: oklch(0.7535 0.139 232.6615);
+	--chart-1: oklch(0.7535 0.139 232.6615);
+	--chart-2: oklch(0.3912 0.0845 240.8759);
+	--chart-3: oklch(0.6847 0.1479 237.3225);
+	--chart-4: oklch(0.8276 0.1013 230.3179);
+	--chart-5: oklch(0.2935 0.0632 243.1571);
+	--sidebar: oklch(0.2077 0.0398 265.7549);
+	--sidebar-foreground: oklch(0.9683 0.0069 247.8956);
+	--sidebar-primary: oklch(0.7535 0.139 232.6615);
+	--sidebar-primary-foreground: oklch(0.2935 0.0632 243.1571);
+	--sidebar-accent: oklch(0.2795 0.0368 260.031);
+	--sidebar-accent-foreground: oklch(0.7535 0.139 232.6615);
+	--sidebar-border: oklch(0.2795 0.0368 260.031);
+	--sidebar-ring: oklch(0.7535 0.139 232.6615);
+
+	/* Brand aliases — kept in sync with the semantic tokens above. */
+	--brand-primary: var(--primary);
+	--brand-primary-foreground: var(--primary-foreground);
+	--brand-secondary: var(--secondary);
+	--brand-background: var(--background);
+	--brand-surface: var(--card);
+	--brand-surface-foreground: var(--card-foreground);
+	--brand-text: var(--foreground);
+	--brand-text-muted: var(--muted-foreground);
+	--brand-border: var(--border);
+	--brand-input: var(--input);
+	--brand-ring: var(--ring);
+
+	--font-sans: 'Inter', sans-serif;
+	--font-serif: 'Merriweather', serif;
+	--font-mono: 'JetBrains Mono', monospace;
+	--radius: 0.5rem;
+	--shadow-x: 0px;
+	--shadow-y: 4px;
+	--shadow-blur: 15px;
+	--shadow-spread: 0px;
+	--shadow-opacity: 0.3;
+	--shadow-color: #000000;
+	--shadow-2xs: 0px 4px 15px 0px hsl(0 0% 0% / 0.15);
+	--shadow-xs: 0px 4px 15px 0px hsl(0 0% 0% / 0.15);
+	--shadow-sm: 0px 4px 15px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
+	--shadow: 0px 4px 15px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
+	--shadow-md: 0px 4px 15px 0px hsl(0 0% 0% / 0.3), 0px 2px 4px -1px hsl(0 0% 0% / 0.3);
+	--shadow-lg: 0px 4px 15px 0px hsl(0 0% 0% / 0.3), 0px 4px 6px -1px hsl(0 0% 0% / 0.3);
+	--shadow-xl: 0px 4px 15px 0px hsl(0 0% 0% / 0.3), 0px 8px 10px -1px hsl(0 0% 0% / 0.3);
+	--shadow-2xl: 0px 4px 15px 0px hsl(0 0% 0% / 0.75);
+}

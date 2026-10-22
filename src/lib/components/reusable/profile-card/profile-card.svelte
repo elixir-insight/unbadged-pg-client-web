@@ -85,14 +85,16 @@
 
 			<DropdownMenu.Separator class="my-1 h-px bg-border" />
 
-			<DropdownMenu.Item
-				onclick={handleSettingsClick}
-				class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-			>
-				<Settings class="h-4 w-4 shrink-0" />
-				Settings
-			</DropdownMenu.Item>
-			<DropdownMenu.Separator class="my-1 h-px bg-border" />
+			{#if settingsHref}
+				<DropdownMenu.Item
+					onclick={handleSettingsClick}
+					class="flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+				>
+					<Settings class="h-4 w-4 shrink-0" />
+					Settings
+				</DropdownMenu.Item>
+				<DropdownMenu.Separator class="my-1 h-px bg-border" />
+			{/if}
 
 			{#if confirmLogout}
 				<DropdownMenu.Item

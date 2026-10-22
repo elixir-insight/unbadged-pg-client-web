@@ -4,14 +4,18 @@ import {
 	type UpdateOrganizationKybRequest
 } from '../../schema';
 import { toE164IndianPhone } from './create-organization';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import {
 	aadharSchema,
 	addressSchema,
+	brandNameSchema,
 	businessPanSchema,
 	businessPhoneSchema,
 	flattenCommunicationAddress,
 	gstinSchema,
 	industrySchema,
+	isMaskedAadhar,
+	isMaskedPan,
 	joinStreetAddress,
 	normalizeAadhar,
 	normalizePanInput,
@@ -35,13 +39,26 @@ const passthroughAddressSchema = v.object({
 	country: v.string()
 });
 
+const passthroughDirectorSchema = v.object({
+	name: v.optional(v.string(), ''),
+	pan: v.optional(v.string(), ''),
+	email: v.optional(v.string(), ''),
+	phone: v.optional(v.string(), ''),
+	aadhar: v.optional(v.string(), '')
+});
+
 export const UpdateOrganizationDirectorFormSchema = v.object({
+	id: v.optional(v.union([v.string(), v.number()])),
 	name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Name is required')),
 	pan: v.pipe(
 		v.string(),
 		v.trim(),
-		v.transform(normalizePanInput),
-		v.minLength(1, 'PAN is required')
+		v.transform((val) => (isMaskedPan(val) ? val.trim() : normalizePanInput(val))),
+		v.minLength(1, 'PAN is required'),
+		v.check(
+			(val) => isMaskedPan(val) || /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(val),
+			'Enter a valid PAN (e.g. ABCDE1234F)'
+		)
 	),
 	email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),
 	phone: businessPhoneSchema,
@@ -57,7 +74,9 @@ const sharedLegalFields = {
 	organizationWebsite: organizationWebsiteSchema,
 	registeredYear: registeredYearSchema,
 	cin: optionalCinSchema,
-	tan: optionalTanSchema
+	tan: optionalTanSchema,
+	brandName: v.optional(v.string()),
+	category: v.optional(v.picklist(['MERCHANT', 'PARTNER', 'PLATFORM']))
 };
 
 export const UpdateOrganizationLegalSectionSchema = v.object({
@@ -65,7 +84,7 @@ export const UpdateOrganizationLegalSectionSchema = v.object({
 	...sharedLegalFields,
 	registeredAddress: passthroughAddressSchema,
 	communicationAddress: passthroughAddressSchema,
-	directors: v.optional(v.array(UpdateOrganizationDirectorFormSchema), [])
+	directors: v.optional(v.array(passthroughDirectorSchema), [])
 });
 
 export const UpdateOrganizationAddressSectionSchema = v.object({
@@ -73,7 +92,7 @@ export const UpdateOrganizationAddressSectionSchema = v.object({
 	...sharedLegalFields,
 	registeredAddress: UpdateOrganizationFormAddressSchema,
 	communicationAddress: UpdateOrganizationFormAddressSchema,
-	directors: v.optional(v.array(UpdateOrganizationDirectorFormSchema), [])
+	directors: v.optional(v.array(passthroughDirectorSchema), [])
 });
 
 export const UpdateOrganizationDirectorsSectionSchema = v.object({
@@ -124,16 +143,30 @@ function resolveCin(businessType: string, cin: string): string {
 	return v.parse(cinSchema, cin);
 }
 
+function optionalPersistedDirectorId(id: string | number | undefined): number | undefined {
+	if (id === undefined) return undefined;
+	const trimmed = String(id).trim();
+	return /^\d+$/.test(trimmed) ? Number(trimmed) : undefined;
+}
+
 function mapDirectorsPayload(
 	directors: UpdateOrganizationFormBody['directors'] | undefined
 ): UpdateOrganizationKybRequest['directors'] {
-	return (directors ?? []).map((director) => ({
-		aadhar: normalizeAadhar(director.aadhar),
-		email: director.email,
-		name: director.name,
-		pan: normalizePanInput(director.pan),
-		phoneNumber: toE164IndianPhone(director.phone)
-	}));
+	return (directors ?? []).map((director) => {
+		const aadhar = director.aadhar ?? '';
+		const pan = director.pan ?? '';
+		const id = optionalPersistedDirectorId(director.id);
+		return {
+			...(id !== undefined ? { id } : {}),
+			email: director.email,
+			name: director.name,
+			phoneNumber: toE164IndianPhone(director.phone),
+			...(isMaskedAadhar(aadhar) || !normalizeAadhar(aadhar)
+				? {}
+				: { aadhar: normalizeAadhar(aadhar) }),
+			...(isMaskedPan(pan) ? {} : { pan: normalizePanInput(pan) })
+		};
+	});
 }
 
 function mapAddressDetailsForSection(
@@ -175,15 +208,32 @@ function mapCommunicationAddressForSection(
 	throw new Error('Communication address is required');
 }
 
+function resolveBrandName(
+	input: UpdateOrganizationFormBody,
+	section: KybUpdateSection
+): string | undefined {
+	const isPartner = isPartnerStyleCategory(input.category);
+	if (!isPartner && !input.brandName?.trim()) return undefined;
+
+	if (isPartner && section === 'legal') {
+		return v.parse(brandNameSchema, input.brandName ?? '');
+	}
+
+	const trimmed = input.brandName?.trim();
+	return trimmed || undefined;
+}
+
 function mapSectionToUpstream(
 	input: UpdateOrganizationFormBody,
 	section: KybUpdateSection
 ): UpdateOrganizationKybRequest {
+	const brandName = resolveBrandName(input, section);
 	const payload: UpdateOrganizationKybRequest = {
 		addressDetails: mapAddressDetailsForSection(input.registeredAddress, section),
+		...(brandName ? { brandName } : {}),
 		directors: section === 'legal' ? [] : mapDirectorsPayload(input.directors),
 		kyb: {
-			businessPan: input.businessPan,
+			...(isMaskedPan(input.businessPan) ? {} : { businessPan: input.businessPan }),
 			businessPhone: toE164IndianPhone(input.businessPhone),
 			cin: resolveCin(input.businessType, input.cin),
 			communicationAddress: mapCommunicationAddressForSection(input, section),

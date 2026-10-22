@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { brandEmail } from '$lib/branding';
 import * as v from 'valibot';
 import { GetOrganizationProfileResponseSchema } from './schema';
 
@@ -10,7 +11,7 @@ describe('GetOrganizationProfileResponseSchema', () => {
 					orgId: 'ORG_2c7',
 					companyName: 'Priority.Co',
 					orgName: 'Priority.Co',
-					email: 'Vidyasri.d@elixirpay.in',
+					email: brandEmail('Vidyasri.d'),
 					phone: '+919841656800',
 					businessType: 'PRIVATE_LIMITED',
 					country: 'India',
@@ -26,7 +27,7 @@ describe('GetOrganizationProfileResponseSchema', () => {
 		expect(result.success).toBe(true);
 		if (result.success) {
 			expect(result.output.data[0]).toMatchObject({
-				email: 'Vidyasri.d@elixirpay.in',
+				email: brandEmail('Vidyasri.d'),
 				phone: '+919841656800'
 			});
 		}

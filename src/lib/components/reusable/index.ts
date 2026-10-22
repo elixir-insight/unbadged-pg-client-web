@@ -57,4 +57,11 @@ export type {
 export { default as DateRangePicker } from './date-range-picker/date-range-picker.svelte';
 export { default as StatusStatCard } from './status-stat-card/StatusStatCard.svelte';
 export type { StatusStatCardColor } from './status-stat-card/StatusStatCard.svelte';
+export { default as DatePicker } from './date-picker/date-picker.svelte';
 export { default as ErrorPage } from './error-page/error-page.svelte';
+export { default as AccessRestricted } from './access-restricted/access-restricted.svelte';
+export { default as NotificationBell } from './notification-bell/notification-bell.svelte';
+export { default as OtpInput } from './otp-input/otp-input.svelte';
+export { default as PasswordChecklist } from './password-checklist/password-checklist.svelte';
+export { default as CardSelect } from './card-select/card-select.svelte';
+export type { CardSelectOption } from './card-select/card-select.svelte';

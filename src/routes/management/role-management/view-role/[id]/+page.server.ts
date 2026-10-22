@@ -2,8 +2,10 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { RoleDetail } from '$lib/stores/role-management/role-management';
 import type { ApiPermissionModule } from '$lib/stores/role-management/permissions-mapper';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'read');
 	const [roleRes, permsRes] = await Promise.all([
 		fetch(`/api/roles/${params.id}?portal=management`),
 		fetch('/api/roles/permissions?portal=management')

@@ -17,6 +17,11 @@ import {
 	UpdateMfaRequestSchema,
 	VerifyMfaRequestSchema,
 	VerifyMfaResponseSchema,
+	SignUpApiBodySchema,
+	SignUpResponseSchema,
+	ConfirmSignUpRequestSchema,
+	ConfirmSignUpResponseSchema,
+	ResendSignUpConfirmationRequestSchema,
 	type MfaMethod
 } from './schema';
 
@@ -35,6 +40,48 @@ export const authClient = {
 			skipAuth: true,
 			body: { userEmail, password, force },
 			schema: SignInResponseSchema
+		}),
+
+	signUp: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		body: v.InferOutput<typeof SignUpApiBodySchema>
+	) =>
+		apiFetch('/api/v1/onboarding/sign-up', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body,
+			schema: SignUpResponseSchema
+		}),
+
+	confirmSignup: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		body: v.InferOutput<typeof ConfirmSignUpRequestSchema>
+	) =>
+		apiFetch('/api/v1/onboarding/sign-up/confirm', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body,
+			schema: ConfirmSignUpResponseSchema
+		}),
+
+	resendConfirmationCode: (
+		fetchFn: typeof fetch,
+		logger: Logger,
+		body: v.InferOutput<typeof ResendSignUpConfirmationRequestSchema>
+	) =>
+		apiFetch('/api/v1/onboarding/sign-up/resend-confirmation', {
+			fetch: fetchFn,
+			logger,
+			method: 'POST',
+			skipAuth: true,
+			body,
+			schema: ConfirmSignUpResponseSchema
 		}),
 
 	refresh: (

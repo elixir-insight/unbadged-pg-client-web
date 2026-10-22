@@ -7,16 +7,14 @@ import {
 	SessionError,
 	SessionInactiveError
 } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { parseCreateOrganizationFormData } from '$lib/server/domains/organization/utils/form-data';
 import { createOrganizationMutation } from '$lib/server/domains/organization/mutations/create-organization';
-import {
-	createOrganization,
-	generateMockOrganizationId,
-	organizations,
-	parseOrganizationBusinessType
-} from '$lib/data/mockData';
+import { rememberOrgCategory } from '$lib/server/domains/organization/utils/org-category-cookie';
+import { resolveCreateOrganizationProfileType } from '$lib/server/domains/organization/mappers/to-api/create-organization';
 
 export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 	const log = locals.logger;
 
 	let tokens;
@@ -52,6 +50,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, locals }) => {
 
 export const actions = {
 	create: async ({ request, cookies, fetch, locals }) => {
+		requirePermission(locals.userPermissions, 'ORGANIZATION', 'write');
 		const log = locals.logger;
 		const formData = await request.formData();
 		const parsed = parseCreateOrganizationFormData(formData);
@@ -61,26 +60,6 @@ export const actions = {
 			return fail(400, {
 				message: parsed.issues[0]?.message ?? 'Invalid organization payload'
 			});
-		}
-
-		// Partner onboarding isn't wired to the live API yet — create a mock org instead.
-		if (parsed.output.selectedCategory === 'Partner') {
-			const organizationId = generateMockOrganizationId();
-			organizations.push(
-				createOrganization({
-					id: organizationId,
-					name: parsed.output.orgName,
-					businessType: parseOrganizationBusinessType(parsed.output.orgBusinessType),
-					category: 'PARTNER',
-					status: 'IN_PROGRESS',
-					kybStatus: 'Not Started',
-					createdAt: new Date().toISOString().slice(0, 10),
-					assignedAdmin: '',
-					serviceTypes: []
-				})
-			);
-			log.info({ organizationId }, 'created mock partner organization');
-			redirect(303, `/management/organizations/${organizationId}/kyb`);
 		}
 
 		const result = await createOrganizationMutation({
@@ -94,6 +73,9 @@ export const actions = {
 			return fail(result.status, { message: result.message });
 		}
 
-		redirect(303, `/management/organizations/${result.organizationId}/kyb`);
+		const category = resolveCreateOrganizationProfileType(parsed.output);
+		rememberOrgCategory(cookies, result.organizationId, category);
+		const categoryQuery = category === 'MERCHANT' ? '' : `?category=${category}`;
+		redirect(303, `/management/organizations/${result.organizationId}/kyb${categoryQuery}`);
 	}
 } satisfies Actions;

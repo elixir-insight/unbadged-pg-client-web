@@ -7,7 +7,18 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { toast } from 'svelte-sonner';
 	import { Button, Chip } from '$lib/components/reusable';
-	import { BadgeCheck, ZapIcon } from '$lib/assets/icons';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
+	import * as UITooltip from '$lib/components/ui/tooltip';
+	import {
+		ArrowLeft,
+		BadgeCheck,
+		Coins,
+		MessageSquareWarning,
+		Pencil,
+		RotateCcw,
+		TriangleAlert,
+		ZapIcon
+	} from '$lib/assets/icons';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import type { OrganizationDocumentUpload } from '$lib/data/mockData';
 	import { cn } from '$lib/utils';
@@ -19,20 +30,22 @@
 	} from '../../completeness';
 	import {
 		createChipSnippet,
+		feesPath,
 		formatLabel,
 		formatRegisteredAddress,
 		isPreviewNavigation,
 		isPreviewSectionParamChange,
 		maskAccountNumber
 	} from '../../helpers';
+	import { isPartnerStyleCategory } from '$lib/organization/category';
 	import { formatDate } from '$lib/utils/format-time';
-	import DocumentPreviewModal from '../documents/document-preview-modal.svelte';
+	import { DocumentPreviewModal } from '$lib/components/document-preview';
 	import DocumentActionsMenu from '../documents/document-actions-menu.svelte';
-	import { hasDocumentPreview } from '../documents/document-preview';
+	import { hasDocumentPreview } from '$lib/components/document-preview';
 	import ActivateProfileModal from './activate-profile-modal.svelte';
 	import { getContext } from 'svelte';
 	import { ORG_LAYOUT_CONTEXT_KEY, type OrgLayoutContext } from '../../layout-context';
-	import { MessageSquareWarning } from '$lib/assets/icons';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	type PreviewSection = 'legal' | 'address' | 'directors' | 'bank' | 'documents';
 
@@ -74,6 +87,8 @@
 	const isActive = $derived(organization.status === 'ACTIVE');
 	const isOnHold = $derived(organization.status === 'ON_HOLD');
 	const isFrozen = $derived(organization.status === 'FROZEN');
+	const showViewFeesLink = $derived(isActive || isOnHold || isFrozen);
+	const viewFeesHref = $derived(feesPath(orgId) as ResolvedPathname);
 
 	const reviewOrganization = $derived.by(() => {
 		const org = data.organization;
@@ -93,7 +108,10 @@
 		};
 	});
 
-	const canApprove = $derived(allSectionsComplete(reviewOrganization));
+	const isInReview = $derived(organization.status === 'IN_REVIEW');
+	/** Preview approve is for staff completeness flow — not self-submitted IN_REVIEW KYB. */
+	const canApprove = $derived(!isInReview && allSectionsComplete(reviewOrganization));
+	const hasApprovePermission = $derived(userPermissions.can('ORGANIZATION', 'approve'));
 
 	const approvalBlockers = $derived.by(() => {
 		const blockers: string[] = [];
@@ -255,6 +273,63 @@
 	</div>
 {/snippet}
 
+{#snippet profileNavigationButtons()}
+	<UITooltip.TooltipProvider delayDuration={0}>
+		<ButtonGroup.Root aria-label="Profile navigation">
+			<UITooltip.Tooltip>
+				<UITooltip.TooltipTrigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="outline"
+							size="icon"
+							href={continueEditingHref}
+							aria-label="Edit {activeSectionLabel}"
+						>
+							<Pencil class="size-4" />
+						</Button>
+					{/snippet}
+				</UITooltip.TooltipTrigger>
+				<UITooltip.TooltipContent>Edit {activeSectionLabel}</UITooltip.TooltipContent>
+			</UITooltip.Tooltip>
+			{#if showViewFeesLink}
+				<UITooltip.Tooltip>
+					<UITooltip.TooltipTrigger>
+						{#snippet child({ props })}
+							<Button
+								{...props}
+								variant="outline"
+								size="icon"
+								href={viewFeesHref}
+								aria-label="View fees"
+							>
+								<Coins class="size-4" />
+							</Button>
+						{/snippet}
+					</UITooltip.TooltipTrigger>
+					<UITooltip.TooltipContent>View fees</UITooltip.TooltipContent>
+				</UITooltip.Tooltip>
+			{/if}
+			<UITooltip.Tooltip>
+				<UITooltip.TooltipTrigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="outline"
+							size="icon"
+							href="/management/organizations"
+							aria-label="Back to organizations"
+						>
+							<ArrowLeft class="size-4" />
+						</Button>
+					{/snippet}
+				</UITooltip.TooltipTrigger>
+				<UITooltip.TooltipContent>Back to organizations</UITooltip.TooltipContent>
+			</UITooltip.Tooltip>
+		</ButtonGroup.Root>
+	</UITooltip.TooltipProvider>
+{/snippet}
+
 <div class="space-y-6">
 	<nav aria-label="Preview sections" class="flex gap-0.5 rounded-lg bg-muted p-1">
 		{#each previewSections as section (section.key)}
@@ -294,6 +369,9 @@
 	{:else if activeSection === 'legal'}
 		<div class="grid gap-4 md:grid-cols-2">
 			{@render readOnlyField('Legal Company Name', organization.kyb.legalCompanyName)}
+			{#if isPartnerStyleCategory(organization.category)}
+				{@render readOnlyField('Brand name', organization.kyb.brandName)}
+			{/if}
 			{@render readOnlyField('Business Type', organization.kyb.businessType)}
 			{@render readOnlyField('GSTIN', organization.kyb.gstin)}
 			{@render readOnlyField('Business PAN', organization.kyb.businessPan)}
@@ -415,16 +493,33 @@
 
 	<div class="border-t border-border/60 pt-4">
 		{#if isActive}
-			<p class="mb-4 text-sm text-muted-foreground">This organization is active.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="destructive" onclick={() => orgLayout.openPutOnHold()}>
-					<MessageSquareWarning class="size-4" />
-					Put on hold
-				</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="destructive"
+										size="icon"
+										aria-label="Put on hold"
+										disabled={!hasApprovePermission}
+										onclick={() => orgLayout.openPutOnHold()}
+									>
+										<MessageSquareWarning class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Put on hold'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isOnHold}
 			<p class="mb-4 text-sm text-muted-foreground">
@@ -432,20 +527,62 @@
 				above.
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="destructive" onclick={() => orgLayout.openFreeze()}>Freeze</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="destructive"
+										size="icon"
+										aria-label="Freeze organization"
+										disabled={!hasApprovePermission}
+										onclick={() => orgLayout.openFreeze()}
+									>
+										<TriangleAlert class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Freeze'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isFrozen}
 			<p class="mb-4 text-sm text-muted-foreground">This organization is frozen.</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex flex-wrap gap-2">
-					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button variant="outline" href="/management/organizations">Back to organizations</Button>
-				</div>
-				<Button variant="outline" onclick={() => orgLayout.openReactivate()}>Reactivate</Button>
+				{@render profileNavigationButtons()}
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<ButtonGroup.Root aria-label="Organization status actions">
+						<UITooltip.Tooltip>
+							<UITooltip.TooltipTrigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="outline"
+										size="icon"
+										aria-label="Reactivate organization"
+										disabled={!hasApprovePermission}
+										onclick={() => orgLayout.openReactivate()}
+									>
+										<RotateCcw class="size-4" />
+									</Button>
+								{/snippet}
+							</UITooltip.TooltipTrigger>
+							<UITooltip.TooltipContent
+								>{hasApprovePermission
+									? 'Reactivate'
+									: "You don't have permission to perform this action."}</UITooltip.TooltipContent
+							>
+						</UITooltip.Tooltip>
+					</ButtonGroup.Root>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else if isApproved}
 			<p class="mb-4 text-sm text-muted-foreground">
@@ -454,13 +591,34 @@
 			</p>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-				<Button onclick={() => (activateOpen = true)}>
-					<ZapIcon class="size-4" />
-					Activate
-				</Button>
+				<UITooltip.TooltipProvider delayDuration={0}>
+					<UITooltip.Tooltip>
+						<UITooltip.TooltipTrigger>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									disabled={!hasApprovePermission}
+									onclick={() => (activateOpen = true)}
+								>
+									<ZapIcon class="size-4" />
+									Activate
+								</Button>
+							{/snippet}
+						</UITooltip.TooltipTrigger>
+						{#if !hasApprovePermission}
+							<UITooltip.TooltipContent
+								>You don't have permission to perform this action.</UITooltip.TooltipContent
+							>
+						{/if}
+					</UITooltip.Tooltip>
+				</UITooltip.TooltipProvider>
 			</div>
 		{:else}
-			{#if !canApprove}
+			{#if isInReview}
+				<p class="mb-4 text-sm text-muted-foreground">
+					This organization is in KYB field review. Approve or send remarks from the KYB page.
+				</p>
+			{:else if !canApprove}
 				<p class="mb-4 text-sm text-muted-foreground">
 					Approve stays disabled until KYB, bank details, and required documents are complete.
 					{#if approvalBlockers.length > 0}
@@ -471,10 +629,12 @@
 			<form method="POST" action="?/approve" use:enhance={onApproveEnhance}>
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<Button variant="outline" href={continueEditingHref}>Edit {activeSectionLabel}</Button>
-					<Button type="submit" disabled={!canApprove || approving}>
-						<BadgeCheck class="size-4" />
-						{approving ? 'Approving…' : 'Approve'}
-					</Button>
+					{#if hasApprovePermission && !isInReview}
+						<Button type="submit" disabled={!canApprove || approving}>
+							<BadgeCheck class="size-4" />
+							{approving ? 'Approving…' : 'Approve'}
+						</Button>
+					{/if}
 				</div>
 			</form>
 		{/if}

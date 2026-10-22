@@ -4,6 +4,7 @@ import { directorFormDataFieldName, formDataFieldName } from './map-upload-field
 describe('formDataFieldName', () => {
 	it('maps a known document type to its backend field name', () => {
 		expect(formDataFieldName('PAN Card')).toBe('PAN_CARD');
+		expect(formDataFieldName('Brand logo')).toBe('BRAND_LOGO');
 	});
 
 	it('strips parentheses before falling back to a normalized name', () => {

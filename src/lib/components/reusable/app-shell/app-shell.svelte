@@ -9,7 +9,11 @@
 	import Sidebar from '../sidebar/sidebar.svelte';
 	import { Menu } from '$lib/assets/icons';
 	import Breadcrumb from '$lib/components/reusable/breadcrumb/breadcrumb.svelte';
+	import NotificationBell from '$lib/components/reusable/notification-bell/notification-bell.svelte';
+	import { breadcrumb } from '$lib/stores/breadcrumb.svelte';
+	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 
 	let {
 		app,
@@ -35,6 +39,14 @@
 		partner: 'Partner'
 	};
 
+	const notificationsHref = $derived(
+		app === 'management'
+			? ('/management/notifications' as const)
+			: app === 'merchant'
+				? ('/merchant/notifications' as const)
+				: undefined
+	);
+
 	const allItems = $derived(navConfig[app].flatMap((g) => g.items));
 
 	const rootRouteIds: Record<AppId, string> = {
@@ -52,6 +64,8 @@
 			allItems.find((i) => page.url.pathname.startsWith(i.href + '/'))?.title ??
 			appLabels[app]
 	);
+
+	const userName = $derived(merchantSession.session?.merchantName ?? 'User');
 	const breadcrumbRoutes = $derived(
 		allItems.flatMap((item) =>
 			(item.breadcrumbChildren ?? []).map((child) => ({
@@ -68,6 +82,10 @@
 	}
 
 	const breadcrumbItems = $derived.by(() => {
+		if (breadcrumb.items.length > 0) {
+			return breadcrumb.items;
+		}
+
 		const root = rootRoutes[app];
 		const rest = page.url.pathname.startsWith(root) ? page.url.pathname.slice(root.length) : '';
 
@@ -109,8 +127,8 @@
 </script>
 
 <svelte:head>
-	<title>{pageTitle} | ElixirPay</title>
-	<meta property="og:title" content="{pageTitle} | ElixirPay" />
+	<title>{branding.meta.titleTemplate(pageTitle)}</title>
+	<meta property="og:title" content={branding.meta.titleTemplate(pageTitle)} />
 	<meta property="og:url" content={page.url.href} />
 </svelte:head>
 
@@ -118,13 +136,16 @@
 	<Sidebar {app} bind:isMobileOpen />
 
 	<main
-		class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:bg-muted md:p-4"
+		class="flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden bg-background md:bg-muted md:p-4"
 	>
 		<div
 			class="flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-xl md:shadow-sm md:ring-1 md:ring-border"
 		>
 			<header
-				class={`${isDashboard ? ' md:hidden' : ''} flex h-14 shrink-0 items-center gap-3 border-b border-border px-4`}
+				class={cn(
+					'flex h-14 shrink-0 items-center gap-3 px-4',
+					!isDashboard && 'border-b border-border'
+				)}
 			>
 				<!-- Mobile: open drawer -->
 				<button
@@ -135,8 +156,18 @@
 					<Menu class="h-4 w-4" />
 				</button>
 
+				{#if isDashboard && (app === 'management' || app === 'merchant' || app === 'partner')}
+					<p class="min-w-0 truncate text-sm text-muted-foreground">
+						Welcome, <span class="font-bold text-foreground">{userName}</span>
+					</p>
+				{/if}
+
 				{#if !isDashboard}
 					<Breadcrumb items={breadcrumbItems} class="text-sm font-semibold" />
+				{/if}
+
+				{#if app === 'management' || app === 'merchant'}
+					<NotificationBell class="ml-auto" viewAllHref={notificationsHref} />
 				{/if}
 			</header>
 

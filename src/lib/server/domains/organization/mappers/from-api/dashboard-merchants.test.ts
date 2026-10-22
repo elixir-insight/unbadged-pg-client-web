@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { branding } from '$lib/branding';
 import { mapDashboardMerchantsToOptions } from './dashboard-merchants';
 import type { DashboardMerchant } from '../../schema';
 
@@ -11,7 +12,7 @@ function merchant(overrides: Partial<DashboardMerchant> = {}): DashboardMerchant
 		deletedAt: '',
 		displayOrgId: 'ORG_2bV',
 		email: 'merchant@example.com',
-		legalCompanyName: 'Elixir global',
+		legalCompanyName: branding.name,
 		phoneNumber: '',
 		profileDescription: '',
 		profileStatus: 'ACTIVE',
@@ -27,7 +28,7 @@ function merchant(overrides: Partial<DashboardMerchant> = {}): DashboardMerchant
 describe('mapDashboardMerchantsToOptions', () => {
 	it('maps merchant orgs for the dropdown', () => {
 		expect(mapDashboardMerchantsToOptions([merchant()])).toEqual([
-			{ orgId: 'ORG_2bV', merchantName: 'Elixir global' }
+			{ orgId: 'ORG_2bV', merchantName: branding.name }
 		]);
 	});
 
@@ -37,7 +38,7 @@ describe('mapDashboardMerchantsToOptions', () => {
 				merchant({
 					displayOrgId: 'ORG_2bU',
 					profileType: 'MANAGEMENT',
-					legalCompanyName: 'ElixirPay'
+					legalCompanyName: branding.name
 				})
 			])
 		).toEqual([]);

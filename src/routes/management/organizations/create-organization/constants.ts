@@ -2,6 +2,7 @@ import { ArrowDownToLine, ArrowUpFromLine } from '$lib/assets/icons';
 
 export type Mode = 'manual' | 'surepass';
 export type ClientType = 'Merchant' | 'Partner';
+export type PartnerProfileType = 'PARTNER' | 'PLATFORM';
 
 export const modeOrder: Record<Mode, number> = { manual: 0, surepass: 1 };
 

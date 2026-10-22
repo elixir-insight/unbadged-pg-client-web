@@ -19,6 +19,6 @@ describe('getUserInitials', () => {
 	});
 
 	it('uses first two characters for a single name', () => {
-		expect(getUserInitials('Elixir')).toBe('EL');
+		expect(getUserInitials('PaymentGateway')).toBe('PA');
 	});
 });

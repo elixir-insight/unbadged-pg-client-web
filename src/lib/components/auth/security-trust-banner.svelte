@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { LockIcon, ShieldCheck, Landmark } from '$lib/assets/icons';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 
 	let { class: className }: { class?: string } = $props();
 
-	const items = [
-		{ icon: LockIcon, title: '256-bit SSL', subtitle: 'Encryption' },
-		{ icon: ShieldCheck, title: 'PCI DSS', subtitle: 'Certified' },
-		{ icon: Landmark, title: 'RBI Guidelines', subtitle: 'Followed' }
-	] as const;
+	const icons = [LockIcon, ShieldCheck, Landmark] as const;
+	const items = branding.copy.trustBadges.map((badge, index) => ({
+		...badge,
+		icon: icons[index] ?? LockIcon
+	}));
 </script>
 
 <div

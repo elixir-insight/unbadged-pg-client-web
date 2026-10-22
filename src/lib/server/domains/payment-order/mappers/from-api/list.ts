@@ -22,7 +22,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-IN', {
 
 const STATUS_FILTERS: Record<PayinOrderStatus, string> = {
 	created: 'CREATED',
-	pending: 'INITIATED,AUTHORIZED,SUSPECTED',
+	pending: 'INITIATED,AUTHORIZED,SUSPECTED,ATTEMPTED',
 	success: 'CAPTURED',
 	failed: 'FAILED,REJECTED,CANCELLED',
 	expired: 'EXPIRED'
@@ -176,8 +176,7 @@ function mapPaymentOrderTimelineItem(item: PaymentOrderTimelineItem): PayinTimel
 	return {
 		entryTitle: item.eventTitle,
 		entryType: mapTimelineEntryType(item),
-		entryDescription:
-			item.eventDescription?.trim() || item.gatewayDescription?.trim() || item.status,
+		entryDescription: item.eventDescription?.trim() || '',
 		txnAmount: refundId ? '' : amount,
 		refundAmount: refundId ? amount : '',
 		transactionStatus: status,
@@ -189,7 +188,7 @@ function mapPaymentOrderTimelineItem(item: PaymentOrderTimelineItem): PayinTimel
 		cardNumber: '',
 		cardType: '',
 		transactionMessage: item.status,
-		errorDescription: status === 'failed' ? item.gatewayDescription?.trim() || '' : '',
+		errorDescription: '',
 		refundId,
 		refundSpeed: '',
 		refundMode: '',

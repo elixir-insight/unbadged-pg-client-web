@@ -1,4 +1,5 @@
 import type { Logger } from 'pino';
+import { isPartnerStyleCategory } from '$lib/organization/category';
 import { validateOrganizationActivation } from '$lib/validation/organization-activation';
 import { updateOrganizationStatusMutation } from './update-status';
 import { mutationFailure, type MutationResult } from './types';
@@ -29,7 +30,8 @@ export async function activateProfileMutation(params: {
 		apiKey,
 		saltKey,
 		businessCertificateType,
-		file: fileEntry instanceof File ? fileEntry : null
+		file: fileEntry instanceof File ? fileEntry : null,
+		category: params.category
 	});
 
 	if (!validation.valid) {
@@ -55,9 +57,12 @@ export async function activateProfileMutation(params: {
 
 	params.log.info({ orgId, category: params.category }, 'organization profile activated');
 
-	// No VAN creation for either category — go straight to commission/fee configuration.
+	const isPartner = isPartnerStyleCategory(params.category);
+
 	return {
 		ok: true,
-		redirectPath: `/management/organizations/${orgId}/activate/merchant`
+		redirectPath: isPartner
+			? `/management/organizations`
+			: `/management/organizations/${orgId}/activate/merchant`
 	};
 }

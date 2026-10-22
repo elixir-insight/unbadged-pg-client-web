@@ -2,11 +2,15 @@ import type { NavGroup } from './types';
 import {
 	LayoutDashboard,
 	ArrowLeftRight,
-	// MessageSquareWarning,
+	MessageSquareWarning,
+	CreditCard,
 	Landmark,
 	FileText,
+	// TrendingUp,
 	Users,
-	ShieldCheck
+	ShieldCheck,
+	Link,
+	Receipt
 } from '$lib/assets/icons';
 
 export const merchantNav: NavGroup[] = [
@@ -21,6 +25,10 @@ export const merchantNav: NavGroup[] = [
 				title: 'Transactions',
 				href: '/merchant/transactions',
 				icon: ArrowLeftRight,
+				requiredPermissionAnyOf: [
+					{ module: 'PAYINS', action: 'read' },
+					{ module: 'PAYOUTS', action: 'read' }
+				],
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/transactions\/collections$/,
@@ -40,20 +48,77 @@ export const merchantNav: NavGroup[] = [
 					}
 				]
 			},
-			// Disputes navigation is temporarily hidden.
-			// {
-			// 	title: 'Disputes',
-			// 	href: '/merchant/disputes',
-			// 	icon: MessageSquareWarning,
-			// 	service: 'payin'
-			// },
-			{ title: 'Settlements', href: '/merchant/settlements', icon: Landmark, service: 'payin' }
+			{
+				title: 'Payment Links',
+				href: '/merchant/payment-links',
+				icon: Link,
+				service: 'payin'
+			},
+			{
+				title: 'Invoices',
+				href: '/merchant/invoices',
+				icon: Receipt,
+				service: 'payin',
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/invoices\/create$/,
+						title: 'New Invoice'
+					}
+				]
+			},
+			// Dispute omitted from nav until backend API is ready
+			{
+				title: 'Disputes',
+				href: '/merchant/dispute',
+				icon: MessageSquareWarning,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' },
+				breadcrumbChildren: [
+					{
+						matcher: /^\/merchant\/dispute\/[^/]+$/,
+						title: 'View Dispute'
+					}
+				]
+			},
+			{
+				title: 'Chargebacks',
+				href: '/merchant/chargeback',
+				icon: CreditCard,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' }
+			},
+			{
+				title: 'Settlements',
+				href: '/merchant/settlements',
+				icon: Landmark,
+				service: 'payin',
+				requiredPermission: { module: 'PAYINS', action: 'read' }
+			}
 			// Funds + Beneficiaries intentionally omitted from nav for now
 		]
 	},
 	{
 		title: 'Analytics',
-		items: [{ title: 'Reports', href: '/merchant/reports', icon: FileText }]
+		items: [
+			// Transaction Insights omitted from nav for now
+			// {
+			// 	title: 'Transaction Insights',
+			// 	href: '/merchant/transaction-insights',
+			// 	icon: TrendingUp,
+			// 	breadcrumbChildren: [
+			// 		{
+			// 			matcher: /^\/merchant\/transaction-insights\/[^/]+$/,
+			// 			title: 'Merchant Calendar'
+			// 		}
+			// 	]
+			// },
+			{
+				title: 'Reports',
+				href: '/merchant/reports',
+				icon: FileText,
+				requiredPermission: { module: 'REPORTS', action: 'read' }
+			}
+		]
 	},
 	{
 		title: 'Administration',
@@ -62,6 +127,7 @@ export const merchantNav: NavGroup[] = [
 				title: 'User Management',
 				href: '/merchant/user-management',
 				icon: Users,
+				requiredPermission: { module: 'USER_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/user-management\/view-user\/[^/]+$/,
@@ -89,6 +155,7 @@ export const merchantNav: NavGroup[] = [
 				title: 'Role Management',
 				href: '/merchant/role-management',
 				icon: ShieldCheck,
+				requiredPermission: { module: 'ROLE_MANAGEMENT', action: 'read' },
 				breadcrumbChildren: [
 					{
 						matcher: /^\/merchant\/role-management\/view-role\/[^/]+$/,

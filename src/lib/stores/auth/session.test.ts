@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { branding, brandEmail } from '$lib/branding';
 import { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
 import { mockCognitoToken } from './mock-token';
 import type { CognitoIdToken, GatewayTokenPayload } from './types';
@@ -10,13 +11,14 @@ function tokenWithGroups(groups: string[]): CognitoIdToken {
 function gatewayToken(overrides: Partial<GatewayTokenPayload> = {}): GatewayTokenPayload {
 	return {
 		orgId: 10002,
+		displayOrgId: 'ORG_2bV',
 		userId: 100002,
-		userName: 'Elixir Pay',
-		userEmail: 'admin@elixirpay.com',
+		userName: branding.name,
+		userEmail: branding.emails.support,
 		userType: 'ROOT',
 		group: 'MERCHANT',
 		serviceTypes: ['PAYIN'],
-		iss: 'Elixir Pay',
+		iss: branding.name,
 		token_use: 'gateway',
 		exp: 1_784_059_619,
 		iat: 1_784_056_019,
@@ -51,14 +53,27 @@ describe('parseMerchantSessionFromGateway', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
 		expect(session.userId).toBe('100002');
 		expect(session.organizationId).toBe('10002');
-		expect(session.merchantName).toBe('Elixir Pay');
-		expect(session.email).toBe('admin@elixirpay.com');
+		expect(session.displayOrgId).toBe('ORG_2bV');
+		expect(session.merchantName).toBe(branding.name);
+		expect(session.email).toBe(branding.emails.support);
 		expect(session.userType).toBe('ROOT');
 	});
 
-	it('uses portal groups from the access token only', () => {
+	it('falls back displayOrgId to organizationId when absent from token', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken({ displayOrgId: undefined }), [
+			'MERCHANT'
+		]);
+		expect(session.displayOrgId).toBe('10002');
+	});
+
+	it('merges access-token groups with the gateway group claim', () => {
 		const session = parseMerchantSessionFromGateway(gatewayToken(), ['MANAGEMENT']);
-		expect(session.groups).toEqual(['MANAGEMENT']);
+		expect(session.groups).toEqual(['MANAGEMENT', 'MERCHANT']);
+	});
+
+	it('includes PLATFORM from the gateway so partner routing can apply', () => {
+		const session = parseMerchantSessionFromGateway(gatewayToken({ group: 'PLATFORM' }), ['ROOT']);
+		expect(session.groups).toEqual(['ROOT', 'PLATFORM']);
 	});
 
 	it('derives merchant service access from the gateway token', () => {
@@ -87,11 +102,11 @@ describe('parseMerchantSessionFromGateway', () => {
 
 	it('falls back to email local-part when userName is null', () => {
 		const session = parseMerchantSessionFromGateway(
-			gatewayToken({ userName: null, userEmail: 'Abdullah.a@elixirpay.in' }),
+			gatewayToken({ userName: null, userEmail: brandEmail('Abdullah.a') }),
 			['MERCHANT']
 		);
 		expect(session.merchantName).toBe('Abdullah.a');
-		expect(session.email).toBe('Abdullah.a@elixirpay.in');
+		expect(session.email).toBe(brandEmail('Abdullah.a'));
 	});
 
 	it('falls back to User when userName and email are blank', () => {

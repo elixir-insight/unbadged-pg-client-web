@@ -10,6 +10,7 @@
 		title,
 		subtitle,
 		disabled = false,
+		readOnly = false,
 		placeholder,
 		slabs = $bindable([]),
 		effectiveFrom = $bindable(''),
@@ -18,11 +19,18 @@
 		validationErrors = [],
 		saveLabel,
 		saved = false,
+		saving = false,
+		saveDisabled = false,
+		loadedFromServer = false,
+		savedLabel = 'Saved to local configuration.',
+		suggestNextBaseAmount = false,
+		showEffectiveDates = false,
 		onSave
 	}: {
 		title: string;
 		subtitle: string;
 		disabled?: boolean;
+		readOnly?: boolean;
 		placeholder?: string;
 		slabs?: FeeSlabRow[];
 		effectiveFrom?: string;
@@ -31,6 +39,12 @@
 		validationErrors?: string[];
 		saveLabel: string;
 		saved?: boolean;
+		saving?: boolean;
+		saveDisabled?: boolean;
+		loadedFromServer?: boolean;
+		savedLabel?: string;
+		suggestNextBaseAmount?: boolean;
+		showEffectiveDates?: boolean;
 		onSave?: () => void;
 	} = $props();
 </script>
@@ -43,7 +57,7 @@
 			{placeholder}
 		</p>
 	{:else}
-		<FeeSlabTable bind:slabs {rowErrors} />
+		<FeeSlabTable bind:slabs {rowErrors} {readOnly} {suggestNextBaseAmount} />
 
 		{#if validationErrors.length > 0}
 			<ul class="mt-4 space-y-1" role="alert">
@@ -53,9 +67,11 @@
 			</ul>
 		{/if}
 
-		<div class="mt-5">
-			<EffectiveDateFields bind:effectiveFrom bind:effectiveTo />
-		</div>
+		{#if showEffectiveDates}
+			<div class="mt-5">
+				<EffectiveDateFields bind:effectiveFrom bind:effectiveTo disabled={readOnly} />
+			</div>
+		{/if}
 	{/if}
 {/snippet}
 
@@ -63,14 +79,18 @@
 	{#if !disabled}
 		<div class="flex items-center justify-between gap-3">
 			{#if saved}
-				<p class="text-sm text-primary" role="status">Saved to local configuration.</p>
+				<p class="text-sm text-primary" role="status">{savedLabel}</p>
+			{:else if loadedFromServer}
+				<p class="text-sm text-muted-foreground" role="status">Loaded from server configuration.</p>
 			{:else}
 				<span></span>
 			{/if}
-			<Button type="button" onclick={onSave} {disabled}>
-				<Check class="size-4" />
-				{saveLabel}
-			</Button>
+			{#if !readOnly}
+				<Button type="button" onclick={onSave} disabled={disabled || saving || saveDisabled}>
+					<Check class="size-4" />
+					{saveLabel}
+				</Button>
+			{/if}
 		</div>
 	{/if}
 {/snippet}

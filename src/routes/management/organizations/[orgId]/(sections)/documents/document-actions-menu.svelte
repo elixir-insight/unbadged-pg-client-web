@@ -6,7 +6,7 @@
 	import type { OrganizationDocument } from '$lib/data/mockData';
 	import { isFileTooLarge, MAX_UPLOAD_FILE_SIZE_LABEL } from '$lib/validation/file-upload';
 	import { toast } from 'svelte-sonner';
-	import { hasDocumentPreview } from './document-preview';
+	import { hasDocumentPreview } from '$lib/components/document-preview';
 	import { type DocumentUploadState, isUploadedDocumentStatus } from './document-upload-state';
 
 	type DocumentActionsTarget = Pick<

@@ -4,7 +4,8 @@
 	import { navigating, page } from '$app/state';
 	import { SvelteURL } from 'svelte/reactivity';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
-	import { StatCard, Avatar } from '$lib/components/reusable';
+	import { userPermissions } from '$lib/stores/rbac';
+	import { StatCard, Avatar, AccessRestricted } from '$lib/components/reusable';
 	import {
 		CollectionTrendCard,
 		ConversionFunnelCard,
@@ -69,84 +70,103 @@
 			</div>
 		</div>
 	{:else if merchantSession.hasPayinAccess()}
-		<div class="min-h-0 flex-1 overflow-y-auto pr-1">
-			<div class="space-y-4 pb-1">
-				<DashboardRangeControl {range} onRangeChange={changeRange} />
+		{#if userPermissions.can('PAYINS', 'read')}
+			<div class="min-h-0 flex-1 overflow-y-auto pr-1">
+				<div class="space-y-4 pb-1">
+					<DashboardRangeControl {range} onRangeChange={changeRange} />
 
-				{#if isDashboardLoading}
-					<DashboardSkeleton />
-				{:else}
-					{#if data.kpisError}
-						<p class="text-sm text-destructive" role="alert">{data.kpisError}</p>
+					{#if isDashboardLoading}
+						<DashboardSkeleton />
+					{:else}
+						{#if data.kpisError}
+							<p class="text-sm text-destructive" role="alert">{data.kpisError}</p>
+						{/if}
+
+						<section
+							aria-label="Collection summary"
+							class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+						>
+							<DashboardStatCard
+								label="Total collections"
+								value={data.kpis.totalCollections.amount}
+								change={data.kpisError ? undefined : data.kpis.totalCollections.changePercent}
+								subtext={rangeDescription}
+								class="h-full"
+							/>
+							<DashboardStatCard
+								label="Success rate"
+								value={data.kpis.successRate}
+								subtext="Captured transactions"
+								class="h-full"
+							/>
+							<DashboardStatCard
+								label="Avg transaction value"
+								value={data.kpis.avgTransactionValue.amount}
+								change={data.kpisError ? undefined : data.kpis.avgTransactionValue.changePercent}
+								subtext="Across successful payments"
+								class="h-full"
+							/>
+							<DashboardStatCard
+								label="Total settled"
+								value={data.kpis.totalSettled}
+								subtext={rangeDescription}
+								tone="success"
+								class="h-full"
+							/>
+						</section>
+
+						<section aria-label="Collection analytics" class="grid grid-cols-12 gap-4">
+							<CollectionTrendCard
+								data={data.collectionsTrend}
+								{granularity}
+								error={data.collectionsTrendError}
+								onGranularityChange={changeGranularity}
+								class="col-span-12 min-h-80 lg:col-span-8"
+							/>
+							<PaymentMixCard
+								data={data.paymentMix}
+								error={data.paymentMixError}
+								class="col-span-12 min-h-80 lg:col-span-4"
+							/>
+						</section>
+
+						<section
+							aria-label="Collection operations"
+							class="grid grid-cols-12 items-stretch gap-4"
+						>
+							<ConversionFunnelCard
+								stages={data.conversionFunnel.stages}
+								outcomes={data.conversionFunnel.outcomes}
+								overallConversionRate={data.conversionFunnelError
+									? null
+									: data.conversionFunnel.overallConversionRate}
+								error={data.conversionFunnelError}
+								class="col-span-12 h-full lg:col-span-5"
+							/>
+							<RecentTransactionsTable
+								transactions={data.recentTransactions}
+								error={data.recentTransactionsError}
+								emptyMessage={data.recentTransactionsEmptyMessage}
+								class="col-span-12 h-full lg:col-span-7"
+							/>
+						</section>
+
+						<DashboardSettlementsTable
+							settlements={data.settlements}
+							error={data.settlementsError}
+						/>
 					{/if}
-
-					<section aria-label="Collection summary" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-						<DashboardStatCard
-							label="Total collections"
-							value={data.kpis.totalCollections.amount}
-							change={data.kpisError ? undefined : data.kpis.totalCollections.changePercent}
-							subtext={rangeDescription}
-							class="h-full"
-						/>
-						<DashboardStatCard
-							label="Success rate"
-							value={data.kpis.successRate}
-							subtext="Captured transactions"
-							class="h-full"
-						/>
-						<DashboardStatCard
-							label="Avg transaction value"
-							value={data.kpis.avgTransactionValue.amount}
-							change={data.kpisError ? undefined : data.kpis.avgTransactionValue.changePercent}
-							subtext="Across successful payments"
-							class="h-full"
-						/>
-						<DashboardStatCard
-							label="Total settled"
-							value={data.kpis.totalSettled}
-							subtext={rangeDescription}
-							tone="success"
-							class="h-full"
-						/>
-					</section>
-
-					<section aria-label="Collection analytics" class="grid grid-cols-12 gap-4">
-						<CollectionTrendCard
-							data={data.collectionsTrend}
-							{granularity}
-							error={data.collectionsTrendError}
-							onGranularityChange={changeGranularity}
-							class="col-span-12 min-h-80 lg:col-span-8"
-						/>
-						<PaymentMixCard
-							data={data.paymentMix}
-							error={data.paymentMixError}
-							class="col-span-12 min-h-80 lg:col-span-4"
-						/>
-					</section>
-
-					<section aria-label="Collection operations" class="grid grid-cols-12 items-stretch gap-4">
-						<ConversionFunnelCard
-							stages={data.conversionFunnel.stages}
-							outcomes={data.conversionFunnel.outcomes}
-							overallConversionRate={data.conversionFunnelError
-								? null
-								: data.conversionFunnel.overallConversionRate}
-							error={data.conversionFunnelError}
-							class="col-span-12 h-full lg:col-span-5"
-						/>
-						<RecentTransactionsTable
-							transactions={data.recentTransactions}
-							error={data.recentTransactionsError}
-							emptyMessage={data.recentTransactionsEmptyMessage}
-							class="col-span-12 h-full lg:col-span-7"
-						/>
-					</section>
-
-					<DashboardSettlementsTable settlements={data.settlements} error={data.settlementsError} />
-				{/if}
+				</div>
 			</div>
-		</div>
+		{:else}
+			<div class="min-h-0 flex-1 overflow-y-auto pr-1">
+				<AccessRestricted
+					title="Collections access restricted"
+					description="You don't have permission to view Payins data for this organization."
+					moduleLabel="Payins"
+				/>
+			</div>
+		{/if}
 	{:else if merchantSession.hasPayoutAccess()}
 		<div class="space-y-6">
 			<div class="flex items-center justify-between">

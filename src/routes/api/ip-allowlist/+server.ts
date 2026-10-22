@@ -3,6 +3,7 @@ import * as v from 'valibot';
 import type { RequestHandler } from './$types';
 import { ipAllowlistClient, parseIpAllowlistPortal } from '$lib/server/domains/ip-allowlist/client';
 import { CreateIpAllowlistRequestSchema } from '$lib/server/domains/ip-allowlist/schema';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 function resolveOrgId(locals: App.Locals): string | null {
 	const orgId = locals.merchantSession?.organizationId?.trim();
@@ -10,6 +11,7 @@ function resolveOrgId(locals: App.Locals): string | null {
 }
 
 export const GET: RequestHandler = async ({ url, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'PROFILE', 'read');
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 
@@ -55,6 +57,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals, fetch }) => {
 };
 
 export const POST: RequestHandler = async ({ url, request, cookies, locals, fetch }) => {
+	requirePermission(locals.userPermissions, 'PROFILE', 'write');
 	const accessToken = cookies.get('accessToken');
 	const gatewayToken = locals.gatewayToken;
 

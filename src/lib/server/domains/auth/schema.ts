@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { PasswordSchema } from '$lib/validation/password';
+import { SIGN_UP_BUSINESS_TYPE_VALUES, SignUpBodySchema } from '$lib/validation/sign-up';
 
 export const AuthTokensSchema = v.object({
 	accessToken: v.string(),
@@ -180,3 +181,48 @@ export const VerifyMfaRequestSchema = v.object({
 });
 
 export const VerifyMfaResponseSchema = SignInTokensResponseSchema;
+
+export const SignUpRequestSchema = SignUpBodySchema;
+export type SignUpRequest = v.InferOutput<typeof SignUpRequestSchema>;
+
+export const SignUpApiBodySchema = v.object({
+	legalCompanyName: v.string(),
+	businessType: v.picklist(SIGN_UP_BUSINESS_TYPE_VALUES),
+	userEmail: v.string(),
+	phoneNumber: v.string(),
+	password: v.string(),
+	affiliateId: v.string()
+});
+export type SignUpApiBody = v.InferOutput<typeof SignUpApiBodySchema>;
+
+export const SignUpResponseSchema = v.object({
+	data: v.array(
+		v.object({
+			orgId: v.string(),
+			userEmail: v.string()
+		})
+	),
+	message: v.string(),
+	statusCode: v.number()
+});
+export type SignUpResponse = v.InferOutput<typeof SignUpResponseSchema>;
+
+export const ConfirmSignUpRequestSchema = v.object({
+	userEmail: AuthEmailSchema,
+	confirmationCode: v.pipe(v.string(), v.trim(), v.length(6, 'Enter the 6-digit code.'))
+});
+export type ConfirmSignUpRequest = v.InferOutput<typeof ConfirmSignUpRequestSchema>;
+
+export const ResendSignUpConfirmationRequestSchema = v.object({
+	userEmail: AuthEmailSchema
+});
+export type ResendSignUpConfirmationRequest = v.InferOutput<
+	typeof ResendSignUpConfirmationRequestSchema
+>;
+
+export const ConfirmSignUpResponseSchema = v.object({
+	data: v.array(v.unknown()),
+	message: v.string(),
+	statusCode: v.number()
+});
+export type ConfirmSignUpResponse = v.InferOutput<typeof ConfirmSignUpResponseSchema>;

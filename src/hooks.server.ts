@@ -9,12 +9,24 @@ import {
 import { clearAuthCookies } from '$lib/server/domains/auth/session';
 import { decodeJwt } from '$lib/server/domains/auth/jwt';
 import { parseMerchantSessionFromGateway } from '$lib/stores/auth/session';
+import { hasUnapprovedGroup, isSelfOnboardingPath } from '$lib/stores/auth/portal';
 import type { AccessTokenPayload, GatewayTokenPayload } from '$lib/stores/auth/types';
+import { membersClient } from '$lib/server/domains/members/client';
+import { resolveMembersApiPortal } from '$lib/server/domains/members/portal';
+import {
+	isRootUser,
+	normalizeUserPermissions,
+	portalGroupKeyFromPathname,
+	rootUserPermissions,
+	type RbacPermissions
+} from '$lib/rbac';
 
 // Keep auth pages + API routes public so missing/expired cookies never block
 // sign-in/sign-out or forgot/reset password flows.
 const PUBLIC_PATHS = [
 	'/login',
+	'/sign-up',
+	'/confirm-email',
 	'/forgot-password',
 	'/reset-password',
 	'/reset-temporary-password',
@@ -27,6 +39,14 @@ function isPublicPath(pathname: string) {
 	return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
+function serializeUserPermissions(permissions: RbacPermissions): Record<string, string[]> {
+	const serialized: Record<string, string[]> = {};
+	for (const [module, actions] of Object.entries(permissions)) {
+		if (actions) serialized[module] = [...actions].sort();
+	}
+	return serialized;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const requestId = crypto.randomUUID();
 	event.locals.requestId = requestId;
@@ -35,12 +55,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		method: event.request.method,
 		path: event.url.pathname
 	});
+	event.locals.logger.info('request started');
 
 	const start = Date.now();
 
 	if (isPublicPath(event.url.pathname)) {
 		event.locals.merchantSession = null;
 		event.locals.gatewayToken = null;
+		event.locals.userPermissions = {};
 		const response = await resolve(event);
 		event.locals.logger.info(
 			{ status: response.status, durationMs: Date.now() - start },
@@ -52,16 +74,75 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		const tokens = await getValidSession(event.cookies, event.fetch, event.locals.logger);
+
 		const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+
 		const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
+
 		event.locals.merchantSession = parseMerchantSessionFromGateway(
 			gatewayPayload,
 			accessPayload['cognito:groups'] ?? []
 		);
 		event.locals.gatewayToken = tokens.gatewayToken;
+
+		const groups = accessPayload['cognito:groups'] ?? [];
+
+		const rootIdentifiers = gatewayPayload.group ? [...groups, gatewayPayload.group] : groups;
+
+		// ROOT (platform or merchant-org) is often missing from org role tables,
+		// so /user/permissions returns data: [{}]. Grant the full catalog instead.
+		if (isRootUser(gatewayPayload.userType, rootIdentifiers)) {
+			event.locals.userPermissions = rootUserPermissions();
+			event.locals.logger.info(
+				{
+					userType: gatewayPayload.userType,
+					groups: rootIdentifiers,
+					permissions: serializeUserPermissions(event.locals.userPermissions)
+				},
+				'root user — granting full permissions'
+			);
+		} else {
+			// Fail closed: an empty permissions object means every can() check
+			// returns false, so a fetch failure blocks RBAC-gated actions/UI
+			// rather than silently granting them.
+			event.locals.userPermissions = {};
+			const permsResult = await membersClient.getMyPermissions(
+				event.fetch,
+				event.locals.logger,
+				tokens.accessToken,
+				tokens.gatewayToken
+			);
+			if (permsResult.ok) {
+				// Page requests carry their own portal in the pathname (/management/...,
+				// /merchant/...). BFF API requests (/api/...) don't — fall back to the
+				// same referer/groups resolution the rest of the app's API routes use,
+				// so permissions aren't accidentally merged across portals.
+				const groupKey =
+					portalGroupKeyFromPathname(event.url.pathname) ??
+					resolveMembersApiPortal({
+						portalParam: event.url.searchParams.get('portal'),
+						referer: event.request.headers.get('referer'),
+						groups
+					}).toUpperCase();
+				event.locals.userPermissions = normalizeUserPermissions(permsResult.data.data, groupKey);
+				event.locals.logger.info(
+					{ permissions: serializeUserPermissions(event.locals.userPermissions) },
+					'user permissions loaded'
+				);
+			} else {
+				event.locals.logger.warn(
+					{
+						errorKind: permsResult.error.kind,
+						message: permsResult.error.message
+					},
+					'failed to fetch user permissions — RBAC-gated actions will be blocked this request'
+				);
+			}
+		}
 	} catch (e) {
 		event.locals.merchantSession = null;
 		event.locals.gatewayToken = null;
+		event.locals.userPermissions = {};
 
 		if (e instanceof SessionError) {
 			const isInactive = e instanceof SessionInactiveError;
@@ -86,6 +167,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 		event.locals.logger.error({ err: e }, 'unexpected error in session resolution');
 		throw e;
+	}
+
+	const sessionGroups = event.locals.merchantSession?.groups ?? [];
+	if (hasUnapprovedGroup(sessionGroups)) {
+		const path = event.url.pathname;
+		const mayStay =
+			isSelfOnboardingPath(path) ||
+			path.startsWith('/api/') ||
+			path === '/logout' ||
+			path.startsWith('/logout/');
+		if (!mayStay) {
+			redirect(303, '/self-onboarding');
+		}
 	}
 
 	const response = await resolve(event);

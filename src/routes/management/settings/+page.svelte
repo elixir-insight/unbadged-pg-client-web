@@ -4,29 +4,31 @@
 	import type { TabItem } from '$lib/components/reusable';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import ChangePasswordModal from '$lib/components/settings/change-password-modal.svelte';
+	import NotificationPreferencesTab from '$lib/components/settings/notification-preferences-tab.svelte';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
 	import ApiCredentialSection from './api-credential-section.svelte';
-	import MfaSection from './mfa-section.svelte';
+	import MfaSection from '$lib/components/settings/mfa-section.svelte';
 	import type { PageData } from './$types';
+	import { branding } from '$lib/branding';
 
 	let { data }: { data: PageData } = $props();
 
 	merchantSession.initialize();
 
 	const displayName = $derived(merchantSession.session?.merchantName ?? 'Admin');
-	const organizationId = $derived(merchantSession.session?.organizationId ?? '');
+	const displayOrgId = $derived(merchantSession.session?.displayOrgId ?? '');
 	const userRole = $derived(formatUserType(merchantSession.session?.userType ?? 'MEMBER'));
-	const sessionEmail = $derived(merchantSession.session?.email ?? 'admin@elixirpay.com');
-	const website = 'https://elixirpay.com';
+	const sessionEmail = $derived(merchantSession.session?.email ?? branding.emails.support);
+	const website = branding.urls.website;
 
 	let changePasswordOpen = $state(false);
 
 	const overviewFields = $derived([
 		{ label: 'Display Name', value: displayName },
 		{ label: 'Role', value: userRole },
-		{ label: 'Organization ID', value: organizationId || '—' },
+		{ label: 'Organization ID', value: displayOrgId || '—' },
 		{ label: 'Portal', value: 'Management' },
 		{ label: 'Support Email', value: sessionEmail, kind: 'email' as const }
 	]);
@@ -48,6 +50,11 @@
 			value: 'mfa',
 			label: 'MFA',
 			content: mfa
+		},
+		{
+			value: 'notifications',
+			label: 'Notifications',
+			content: notificationsTab
 		}
 	];
 </script>
@@ -101,6 +108,10 @@
 	<MfaSection mfaConfig={data.mfaConfig} mfaError={data.mfaError} />
 {/snippet}
 
+{#snippet notificationsTab()}
+	<NotificationPreferencesTab portal="management" />
+{/snippet}
+
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 sm:px-6">
 	<section class="overflow-hidden rounded-xl border border-border bg-card">
 		<div class="relative h-28 bg-muted sm:h-32">
@@ -125,8 +136,8 @@
 
 			<div class="pt-12 sm:pt-14">
 				<h2 class="text-xl font-bold text-foreground">{displayName}</h2>
-				{#if organizationId}
-					<p class="mt-0.5 text-sm text-muted-foreground">@{organizationId}</p>
+				{#if displayOrgId}
+					<p class="mt-0.5 text-sm text-muted-foreground">@{displayOrgId}</p>
 				{/if}
 				<p class="mt-0.5 text-sm text-muted-foreground">{userRole}</p>
 
@@ -136,7 +147,7 @@
 						<a
 							href={website}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="truncate text-foreground transition-colors hover:text-primary"
 						>
 							{website}

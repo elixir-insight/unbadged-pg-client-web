@@ -1,10 +1,12 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 
 export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'ROLE_MANAGEMENT', 'read');
 	let tokens;
 	try {
 		tokens = await getValidSession(cookies, fetch, locals.logger);
@@ -37,7 +39,6 @@ export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals
 	}
 
 	const modules = result.data?.data?.[0]?.permissions ?? [];
-
 	return json({
 		modules,
 		message: result.data?.message ?? '',

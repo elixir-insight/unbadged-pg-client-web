@@ -115,36 +115,6 @@ export const load: PageServerLoad = async ({ url, cookies, fetch, locals, depend
 		)
 	]);
 
-	if (listResult.ok) {
-		log.debug(
-			{
-				statusCode: listResult.data.statusCode,
-				message: listResult.data.message,
-				pagination: listResult.data.pagination,
-				virtualAccountNumber,
-				payments: listResult.data.data.map((payment) => ({
-					payinAttemptId: payment.payinAttemptId,
-					orderId: payment.orderId,
-					transactionStatus: payment.transactionStatus,
-					paymentMethod: payment.paymentMethod,
-					createdAt: payment.createdAt
-				}))
-			},
-			'merchant payment attempts API response'
-		);
-	}
-
-	if (countsResult.ok) {
-		log.debug(
-			{
-				statusCode: countsResult.data.statusCode,
-				message: countsResult.data.message,
-				counts: countsResult.data.data
-			},
-			'merchant payment attempt counts API response'
-		);
-	}
-
 	let payments: PaymentAttemptListRow[] = [];
 	let pagination = base.pagination;
 	let listError: string | null = null;
