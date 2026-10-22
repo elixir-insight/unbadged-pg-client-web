@@ -19,6 +19,7 @@
 	import { generateAndDownloadReport } from './generate-report';
 	import type { ReportFileFormat, ReportFilters, ReportPortal, ReportType } from './types';
 	import { validateReportForm } from './validation';
+	import { userPermissions } from '$lib/stores/rbac';
 
 	interface Props {
 		portal: ReportPortal;
@@ -223,15 +224,17 @@
 			{/if}
 		</fieldset>
 
-		<div class="mt-6 flex justify-end border-t border-border pt-6">
-			<Button disabled={isGenerating} onclick={handleGenerate}>
-				{#if isGenerating}
-					<Loader2 class="size-4 animate-spin" aria-hidden="true" />
-					Generating...
-				{:else}
-					Generate Report
-				{/if}
-			</Button>
-		</div>
+		{#if userPermissions.can('REPORTS', 'write')}
+			<div class="mt-6 flex justify-end border-t border-border pt-6">
+				<Button disabled={isGenerating} onclick={handleGenerate}>
+					{#if isGenerating}
+						<Loader2 class="size-4 animate-spin" aria-hidden="true" />
+						Generating...
+					{:else}
+						Generate Report
+					{/if}
+				</Button>
+			</div>
+		{/if}
 	</div>
 </div>

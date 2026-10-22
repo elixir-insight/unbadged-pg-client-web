@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { getTransferStore, formatInr, maskAccountNumber } from '../fund-transfer.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Check, XCircle } from '$lib/assets/icons';
@@ -124,7 +123,7 @@
 				<Button class="flex-1" onclick={() => store.startNewTransfer()}>
 					Add new fund transfer
 				</Button>
-				<Button variant="outline" href={resolve('/management/transactions')} class="flex-1">
+				<Button variant="outline" href="/management/transactions" class="flex-1">
 					View transactions
 				</Button>
 			</div>
@@ -187,7 +186,7 @@
 				<Button class="flex-1" onclick={() => store.startNewTransfer()}>
 					Add new fund transfer
 				</Button>
-				<Button variant="outline" href={resolve('/management/transactions')} class="flex-1">
+				<Button variant="outline" href="/management/transactions" class="flex-1">
 					View transactions
 				</Button>
 			</div>

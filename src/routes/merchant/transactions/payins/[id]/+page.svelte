@@ -9,6 +9,7 @@
 	import Details, { type DetailSection } from './details.svelte';
 	import RefundModal from './refund-modal.svelte';
 	import { toast } from '$lib/components/reusable';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { settlements as mockSettlements } from '$lib/data/settlement-mock';
 
 	type TransactionStatus = 'success' | 'pending' | 'failed';
@@ -585,13 +586,15 @@
 			<ArrowLeft class="size-4" />
 		</button> -->
 		<h1 class="text-lg font-semibold text-foreground">Transaction Details</h1>
-		<Button
-			onclick={() => (refundModalOpen = true)}
-			disabled={transaction?.transactionStatus !== 'success'}
-		>
-			<Undo class="size-4" />
-			Initiate refund
-		</Button>
+		{#if userPermissions.can('PAYINS', 'write')}
+			<Button
+				onclick={() => (refundModalOpen = true)}
+				disabled={transaction?.transactionStatus !== 'success'}
+			>
+				<Undo class="size-4" />
+				Initiate refund
+			</Button>
+		{/if}
 	</div>
 
 	{#if !transaction}

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import * as v from 'valibot';
+import { GetOrganizationDetailsResponseSchema } from '../../schema';
 import { mapGetOrganizationResponse } from './get-organization';
 
 describe('mapGetOrganizationResponse', () => {
@@ -37,6 +39,28 @@ describe('mapGetOrganizationResponse', () => {
 		expect(organization?.documents.length).toBeGreaterThan(0);
 	});
 
+	it('preserves IN_REVIEW profileStatus on organization details', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: {
+					orgId: 'ORG_2cK',
+					legalCompanyName: 'Priority Pvt Ltd',
+					profileStatus: 'IN_REVIEW',
+					businessType: 'PARTNERSHIP',
+					profileType: 'MERCHANT'
+				}
+			},
+			'ORG_2cK'
+		);
+
+		expect(organization).toMatchObject({
+			id: 'ORG_2cK',
+			name: 'Priority Pvt Ltd',
+			status: 'IN_REVIEW'
+		});
+	});
+
 	it('maps kyb, addressDetails, and bank accounts from nested fields', () => {
 		const organization = mapGetOrganizationResponse(
 			{
@@ -62,6 +86,7 @@ describe('mapGetOrganizationResponse', () => {
 						industry: 'Technology',
 						organizationWebsite: 'https://www.example.com',
 						registeredYear: 2018,
+						brandName: 'Acme Brand',
 						communicationAddress: '20 Market Street, Floor 2, Bengaluru, Karnataka, 560002, India'
 					},
 					bankAccounts: [
@@ -91,6 +116,7 @@ describe('mapGetOrganizationResponse', () => {
 			country: 'India'
 		});
 		expect(organization?.kyb.gstin).toBe('29ABCDE1234F1Z5');
+		expect(organization?.kyb.brandName).toBe('Acme Brand');
 		expect(organization?.kyb.registeredYear).toBe(2018);
 		expect(organization?.kyb.communicationAddress.line1).toBe('20 Market Street');
 		expect(organization?.bankAccounts).toEqual([
@@ -213,6 +239,105 @@ describe('mapGetOrganizationResponse', () => {
 				name: 'Jane Doe'
 			})
 		]);
+	});
+
+	it('maps platform profile type', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2bp',
+						legalCompanyName: 'Platform Co',
+						profileType: 'PLATFORM'
+					}
+				]
+			},
+			'org_2bp'
+		);
+		expect(organization?.category).toBe('PLATFORM');
+		expect(organization?.documents.some((document) => document.documentType === 'Brand logo')).toBe(
+			true
+		);
+	});
+
+	it('maps top-level brandName from GET details', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2bm',
+						legalCompanyName: 'Dixon and Vazquez LLC',
+						profileType: 'PARTNER',
+						brandName: 'NexaPay'
+					}
+				]
+			},
+			'org_2bm'
+		);
+		expect(organization?.kyb.brandName).toBe('NexaPay');
+	});
+
+	it('maps brand name from a JSON-string kyb payload', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2bm',
+						legalCompanyName: 'Dixon and Vazquez LLC',
+						profileType: 'PARTNER',
+						kyb: JSON.stringify({ brandName: 'NexaPay' })
+					}
+				]
+			},
+			'org_2bm'
+		);
+		expect(organization?.kyb.brandName).toBe('NexaPay');
+	});
+
+	it('maps snake_case brand_name from nested kyb', () => {
+		const organization = mapGetOrganizationResponse(
+			{
+				statusCode: 200,
+				data: [
+					{
+						orgId: 'org_2bm',
+						legalCompanyName: 'Dixon and Vazquez LLC',
+						profileType: 'PARTNER',
+						kyb: {
+							brand_name: 'NexaPay'
+						}
+					}
+				]
+			},
+			'org_2bm'
+		);
+		expect(organization?.kyb.brandName).toBe('NexaPay');
+	});
+
+	it('keeps nested kyb.brandName after GET details schema parse', () => {
+		const parsed = v.parse(GetOrganizationDetailsResponseSchema, {
+			message: 'ok',
+			statusCode: 200,
+			data: [
+				{
+					orgId: 'org_2bm',
+					legalCompanyName: 'Dixon and Vazquez LLC',
+					profileType: 'PARTNER',
+					gstNumber: '33AABCF1234M1ZX',
+					kyb: {
+						brandName: 'ShopNest',
+						gstNumber: '33AABCF1234M1ZX',
+						industry: 'E-Commerce'
+					}
+				}
+			]
+		});
+
+		const organization = mapGetOrganizationResponse(parsed, 'org_2bm');
+		expect(organization?.kyb.brandName).toBe('ShopNest');
 	});
 
 	it('returns null when data is missing', () => {

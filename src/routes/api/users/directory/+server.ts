@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
 import { getValidSession, SessionError } from '$lib/server/domains/auth/getValidSession';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 import { membersClient } from '$lib/server/domains/members/client';
 import { resolveMembersApiPortalFromRequest } from '$lib/server/domains/members/portal';
 
@@ -19,6 +20,7 @@ async function requireSession(cookies: Cookies, fetchFn: typeof fetch, logger: L
 
 /** Lightweight user directory for reporting-to pickers and name lookup. */
 export const GET: RequestHandler = async ({ url, request, cookies, fetch, locals }) => {
+	requirePermission(locals.userPermissions, 'USER_MANAGEMENT', 'read');
 	const tokens = await requireSession(cookies, fetch, locals.logger);
 	const portal = resolveMembersApiPortalFromRequest({
 		url,

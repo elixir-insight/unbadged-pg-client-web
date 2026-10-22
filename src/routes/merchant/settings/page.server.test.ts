@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import { branding, brandEmail } from '$lib/branding';
 import type { Cookies } from '@sveltejs/kit';
 import type { Logger } from 'pino';
-import { brandEmail, branding } from '$lib/branding';
+import type { RbacAction, RbacPermissions } from '$lib/rbac';
 import { load, actions } from './+page.server';
 
 // `load` is annotated `: PageServerLoad` in +page.server.ts, which widens its
@@ -21,8 +22,11 @@ type SettingsLoadResult = {
 		registeredDate: string;
 		website: string;
 		username: string;
+		gstNumber: string;
 	} | null;
 	profileError: string | null;
+	mfaConfig: { method?: 'EMAIL' | 'SMS'; configured: boolean; enabled: boolean } | null;
+	mfaError: string | null;
 };
 
 async function callLoad(event: Parameters<typeof load>[0]): Promise<SettingsLoadResult> {
@@ -63,6 +67,11 @@ function fakeLogger(): Logger {
 	return logger;
 }
 
+function settingsLocals(...actions: RbacAction[]) {
+	const userPermissions: RbacPermissions = { PROFILE: new Set(actions) };
+	return { logger: fakeLogger(), userPermissions };
+}
+
 function jsonResponse(status: number, body: unknown) {
 	return new Response(JSON.stringify(body), {
 		status,
@@ -82,7 +91,8 @@ const profilePayload = {
 			country: 'India',
 			registeredDate: '2026-07-21',
 			website: branding.urls.website,
-			username: branding.name
+			username: branding.name,
+			gstNumber: '29AABCU9603R1ZM'
 		}
 	],
 	message: 'Organization profile fetched successfully',
@@ -92,6 +102,7 @@ const profilePayload = {
 function mockSettingsFetch(handlers: {
 	credentials?: Response | unknown;
 	profile?: Response | unknown;
+	mfa?: Response | unknown;
 }) {
 	return vi.fn().mockImplementation((input: RequestInfo | URL) => {
 		const url = String(input);
@@ -103,6 +114,15 @@ function mockSettingsFetch(handlers: {
 
 		if (url.includes('/api/v1/merchant/profile')) {
 			const response = handlers.profile ?? profilePayload;
+			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
+		}
+
+		if (url.includes('/api/v1/user/mfa')) {
+			const response = handlers.mfa ?? {
+				data: [{ configured: false, enabled: false }],
+				message: 'ok',
+				statusCode: 200
+			};
 			return Promise.resolve(response instanceof Response ? response : jsonResponse(200, response));
 		}
 
@@ -128,6 +148,8 @@ describe('merchant settings +page.server load', () => {
 			email: brandEmail('raghul.r')
 		});
 		expect(result.profileError).toBeNull();
+		expect(result.mfaConfig).toEqual({ configured: false, enabled: false });
+		expect(result.mfaError).toBeNull();
 	});
 
 	it('returns only id/clientId when a credential exists — never clientSecret', async () => {
@@ -246,6 +268,54 @@ describe('merchant settings +page.server load', () => {
 			} as never)
 		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
 	});
+
+	it('returns configured MFA from /api/v1/user/mfa', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: {
+				data: [{ method: 'EMAIL', configured: true, enabled: true }],
+				message: 'ok',
+				statusCode: 200
+			}
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toEqual({ method: 'EMAIL', configured: true, enabled: true });
+		expect(result.mfaError).toBeNull();
+	});
+
+	it('returns mfaError when MFA fetch fails with 500', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(500, { message: 'boom', statusCode: 500, exceptionCode: 'X' })
+		});
+
+		const result = await callLoad({
+			cookies: fakeCookies(),
+			fetch: fetchFn,
+			locals: { logger: fakeLogger() }
+		} as never);
+
+		expect(result.mfaConfig).toBeNull();
+		expect(result.mfaError).toBeTruthy();
+	});
+
+	it('redirects to login on a 401 from MFA', async () => {
+		const fetchFn = mockSettingsFetch({
+			mfa: jsonResponse(401, { message: 'Unauthorized', statusCode: 401, exceptionCode: 'X' })
+		});
+
+		await expect(
+			load({
+				cookies: fakeCookies(),
+				fetch: fetchFn,
+				locals: { logger: fakeLogger() }
+			} as never)
+		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
+	});
 });
 
 describe('merchant settings +page.server actions.generate (POST api-credentials)', () => {
@@ -261,7 +331,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toEqual({ clientId: 'client-1', clientSecret: 'secret-1' });
@@ -277,7 +347,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({ status: 422, data: { selfCorrect: true } });
@@ -295,7 +365,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({
@@ -315,7 +385,7 @@ describe('merchant settings +page.server actions.generate (POST api-credentials)
 		const result = await actions.generate({
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('write')
 		} as never);
 
 		expect(result).toMatchObject({ status: 500, data: { retryable: true } });
@@ -340,7 +410,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 			request: formRequest('cred-1'),
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('delete')
 		} as never);
 
 		expect(result).toEqual({ revoked: true });
@@ -358,7 +428,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 				request: formRequest('cred-1'),
 				cookies: fakeCookies(),
 				fetch: fetchFn,
-				locals: { logger: fakeLogger() }
+				locals: settingsLocals('delete')
 			} as never)
 		).rejects.toMatchObject({ status: 303, location: '/login?reason=session-expired' });
 	});
@@ -374,7 +444,7 @@ describe('merchant settings +page.server actions.revoke (DELETE api-credentials/
 			request: formRequest('cred-1'),
 			cookies: fakeCookies(),
 			fetch: fetchFn,
-			locals: { logger: fakeLogger() }
+			locals: settingsLocals('delete')
 		} as never);
 
 		expect(result).toMatchObject({ status: 500, data: { message: 'boom' } });

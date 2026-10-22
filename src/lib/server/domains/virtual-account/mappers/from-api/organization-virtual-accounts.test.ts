@@ -22,6 +22,7 @@ describe('mapOrganizationVirtualAccounts', () => {
 				txnAmountMin: 0,
 				updatedAt: '',
 				updatedBy: 0,
+				vaNumber: 'TEST202610013919',
 				virtualAccountNumber: 'TEST202610013919'
 			}
 		];
@@ -50,6 +51,7 @@ describe('mapOrganizationVirtualAccounts', () => {
 						status: 'ACTIVE',
 						tps: 0,
 						updatedAt: '',
+						vaNumber: null,
 						virtualAccountNumber: '   '
 					}
 				],

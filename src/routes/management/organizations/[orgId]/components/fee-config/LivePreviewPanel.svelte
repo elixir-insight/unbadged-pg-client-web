@@ -1,24 +1,25 @@
 <script lang="ts">
 	import { Input } from '$lib/components/reusable';
 	import { calculateFeePreview, formatCurrency, formatLivePreviewPath } from '$lib/fee-config';
-	import type {
-		FeePreviewBreakdown,
-		FeeSlabRow,
-		PaymentPathSelection
-	} from '$lib/fee-config/types';
+	import type { FeePreviewBreakdown, FeeSlabRow } from '$lib/fee-config/types';
+	import type { PaymentPathApiSelection } from '$lib/payment-method-configuration';
 
 	let {
 		selection,
 		testGrossAmount = $bindable('50000'),
 		chargesSlabs,
 		commissionSlabs,
-		partnerSlabs
+		partnerSlabs = [],
+		showPartnerFee = false,
+		pathBreadcrumb
 	}: {
-		selection: PaymentPathSelection;
+		selection: PaymentPathApiSelection;
 		testGrossAmount?: string;
 		chargesSlabs: FeeSlabRow[];
 		commissionSlabs: FeeSlabRow[];
-		partnerSlabs: FeeSlabRow[];
+		partnerSlabs?: FeeSlabRow[];
+		showPartnerFee?: boolean;
+		pathBreadcrumb?: string;
 	} = $props();
 
 	const grossAmount = $derived(Number(testGrossAmount) || 0);
@@ -27,7 +28,7 @@
 		return calculateFeePreview(grossAmount, chargesSlabs, commissionSlabs, partnerSlabs);
 	});
 
-	const pathBreadcrumb = $derived(formatLivePreviewPath(selection));
+	const pathLabel = $derived(pathBreadcrumb ?? formatLivePreviewPath(selection));
 </script>
 
 <section class="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -39,7 +40,7 @@
 	</div>
 
 	<div class="space-y-5 p-5">
-		<p class="font-mono text-sm text-primary tabular-nums">{pathBreadcrumb}</p>
+		<p class="font-mono text-sm text-primary tabular-nums">{pathLabel}</p>
 
 		<label class="block space-y-2">
 			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -82,17 +83,19 @@
 					{preview.commissionFee ? `−${formatCurrency(preview.commissionFee.amount)}` : '—'}
 				</p>
 			</li>
-			<li class="flex items-start justify-between gap-3">
-				<div>
-					<p class="text-foreground">Partner fee</p>
-					{#if preview.partnerFee}
-						<p class="text-xs text-muted-foreground">{preview.partnerFee.rateLabel}</p>
-					{/if}
-				</div>
-				<p class="font-mono text-destructive tabular-nums">
-					{preview.partnerFee ? `−${formatCurrency(preview.partnerFee.amount)}` : '—'}
-				</p>
-			</li>
+			{#if showPartnerFee}
+				<li class="flex items-start justify-between gap-3">
+					<div>
+						<p class="text-foreground">Partner fee</p>
+						{#if preview.partnerFee}
+							<p class="text-xs text-muted-foreground">{preview.partnerFee.rateLabel}</p>
+						{/if}
+					</div>
+					<p class="font-mono text-destructive tabular-nums">
+						{preview.partnerFee ? `−${formatCurrency(preview.partnerFee.amount)}` : '—'}
+					</p>
+				</li>
+			{/if}
 		</ul>
 
 		<div class="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">

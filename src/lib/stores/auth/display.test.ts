@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-// import { branding } from '$lib/branding';
 import { formatUserType, getUserInitials } from './display';
 
 describe('formatUserType', () => {
@@ -19,7 +18,7 @@ describe('getUserInitials', () => {
 		expect(getUserInitials('Aarav Kapoor')).toBe('AK');
 	});
 
-	// it('uses first two characters for a single name', () => {
-	// 	expect(getUserInitials(branding.name)).toBe(branding.name.slice(0, 2).toUpperCase());
-	// });
+	it('uses first two characters for a single name', () => {
+		expect(getUserInitials('PaymentGateway')).toBe('PA');
+	});
 });

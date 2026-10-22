@@ -10,10 +10,15 @@ import {
 	type MutationResult
 } from '$lib/server/domains/organization/mutations/types';
 import { virtualAccountClient } from '../client';
-import { CreateVirtualAccountRequestSchema, type CreateVirtualAccountRequest } from '../schema';
+import {
+	CreateVirtualAccountRequestSchema,
+	type CreateVirtualAccountRequest,
+	type MerchantVirtualAccount
+} from '../schema';
 
 export type CreateVirtualAccountSuccess = {
 	message: string;
+	accounts: MerchantVirtualAccount[];
 };
 
 export async function createVirtualAccountMutation(params: {
@@ -56,6 +61,7 @@ export async function createVirtualAccountMutation(params: {
 
 	return {
 		ok: true,
-		message: result.data.message ?? 'Virtual account created successfully'
+		message: result.data.message ?? 'Virtual account created successfully',
+		accounts: result.data.data ?? []
 	};
 }

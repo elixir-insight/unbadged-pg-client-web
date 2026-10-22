@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { Button } from '$lib/components/reusable';
+	import { Clock, TriangleAlert } from '$lib/assets/icons';
 	import {
 		DetailPageLayout,
 		DetailSummaryCard,
@@ -8,18 +12,27 @@
 		Timeline,
 		type DetailSection
 	} from '$lib/components/transactions/collections';
+	import RaiseDisputeModal from '$lib/components/transactions/disputes/raise-dispute-modal.svelte';
+	import { paymentDisputeActionLabel } from '$lib/utils/dispute-status';
 	import {
 		getCurrentScope,
 		gotoScopedPath,
 		scopeQueryString
 	} from '$lib/utils/transaction-scope.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	const canRaiseDispute = $derived(userPermissions.can('PAYINS', 'write'));
+
 	const scope = $derived(getCurrentScope());
 	const scopeQuery = $derived(scopeQueryString(scope));
 	const payment = $derived(data.payment);
+	const orgId = $derived(payment?.orgId || scope.orgId);
+	const disputeAlreadyRaised = $derived(Boolean(payment?.disputeId) || Boolean(data.disputeStatus));
+	const disputeActionLabel = $derived(paymentDisputeActionLabel(data.disputeStatus));
+	let raiseDisputeOpen = $state(false);
 
 	function parseAmount(value: string): number {
 		return Number(value.replace(/[₹,\s]/g, '')) || 0;
@@ -31,6 +44,23 @@
 			currency: 'INR',
 			maximumFractionDigits: 2
 		}).format(value);
+	}
+
+	function raiseDispute(): void {
+		if (!payment || disputeAlreadyRaised) return;
+		raiseDisputeOpen = true;
+	}
+
+	function onDisputeRaised(): void {
+		const listPath = resolve('/management/dispute');
+		if (!orgId) {
+			void goto(listPath);
+			return;
+		}
+
+		const href =
+			`${listPath}?merchantId=${encodeURIComponent(orgId)}` as `${typeof listPath}?${string}`;
+		void goto(resolve(href as '/'));
 	}
 
 	const totalFees = $derived(
@@ -158,5 +188,29 @@
 				<Timeline entries={data.timeline} />
 			{/if}
 		{/snippet}
+
+		{#snippet sidebarActions()}
+			{#if disputeAlreadyRaised}
+				<Button variant="outline" class="w-full" disabled>
+					<Clock class="size-4" />
+					{disputeActionLabel}
+				</Button>
+			{:else if canRaiseDispute}
+				<Button variant="destructive" class="w-full" onclick={raiseDispute}>
+					<TriangleAlert class="size-4" />
+					Raise a dispute
+				</Button>
+			{/if}
+		{/snippet}
 	</DetailPageLayout>
+
+	<RaiseDisputeModal
+		bind:open={raiseDisputeOpen}
+		{orgId}
+		orderId={payment.orderId}
+		pipelineTransactionId={payment.pipelineTransactionId}
+		amountValue={payment.amountValue}
+		amountDisplay={payment.transactionAmount}
+		onsuccess={onDisputeRaised}
+	/>
 {/if}

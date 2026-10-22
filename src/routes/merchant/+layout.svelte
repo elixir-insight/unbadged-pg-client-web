@@ -10,7 +10,9 @@
 	const isErrorPage = $derived(page.error != null);
 
 	const PAYIN_ROUTES = [
-		'/merchant/disputes',
+		'/merchant/dispute',
+		'/merchant/payment-links',
+		'/merchant/invoices',
 		'/merchant/settlements',
 		'/merchant/transactions/collections'
 	];

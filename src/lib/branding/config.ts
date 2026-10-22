@@ -1,10 +1,20 @@
 import type { Component } from 'svelte';
 import favicon from '$lib/assets/favicon.svg';
-// import CompanyLogoAlt from '$lib/assets/icons/company-logo-alt.svelte';
-// import CompanyLogoDark from '$lib/assets/icons/company-logo-dark.svelte';
-// import CompanyLogoLight from '$lib/assets/icons/company-logo-light.svelte';
-import CompanyLogo from '$lib/assets/icons/company-logo.svelte';
+import CompanyLogoMark from '$lib/assets/icons/company-logo-mark.svelte';
 
+export type BrandLogoComponent = Component<{
+	width?: string;
+	height?: string;
+	class?: string;
+}>;
+
+/**
+ * Public branding configuration — the single source of truth for brand
+ * identity (name, URLs, copy, assets). This is *not* a place for secrets
+ * or deployment configuration; those stay in environment variables.
+ *
+ * To rebrand the app, change values here and in `./theme.css`.
+ */
 const BRAND_NAME = 'Payment Gateway';
 const COPYRIGHT_YEAR = 2026;
 
@@ -42,11 +52,7 @@ export type BrandingConfig = {
 	};
 	assets: {
 		favicon: string;
-		logoLight: Component;
-		// logoDark: Component;
-		// logoAlt: Component;
-		loginVideo: string;
-		loginFallbackImage: string;
+		logoMark: BrandLogoComponent;
 		onboarding: {
 			merchant: string;
 			partner: string;
@@ -63,14 +69,14 @@ export const branding: BrandingConfig = {
 		titleTemplate: (pageTitle) => `${pageTitle} | ${BRAND_NAME}`
 	},
 	urls: {
-		terms: 'https://PaymentGateway.in/terms',
-		privacy: 'https://PaymentGateway.in/privacy',
-		marketing: 'https://PaymentGateway.in',
-		website: 'https://PaymentGateway.com'
+		terms: '',
+		privacy: '',
+		marketing: '',
+		website: ''
 	},
 	emails: {
-		support: 'admin@paywave.com',
-		demo: 'merchant@paywave.com',
+		support: 'admin@paymentgateway.com',
+		demo: 'merchant@paymentgateway.com',
 		placeholder: 'name@company.com'
 	},
 	copy: {
@@ -78,7 +84,7 @@ export const branding: BrandingConfig = {
 		footer: `© ${COPYRIGHT_YEAR} ${BRAND_NAME} • Secure Payment Gateway Platform`,
 		termsLabel: 'Terms and Conditions',
 		privacyLabel: 'Privacy Policy',
-		pipelineFeeSubtitle: 'Pipeline fee PayWave pay earns — negotiated per organization.',
+		pipelineFeeSubtitle: `Pipeline fee ${BRAND_NAME} earns — negotiated per organization.`,
 		trustBadges: [
 			{ title: '256-bit SSL', subtitle: 'Encryption' },
 			{ title: 'PCI DSS', subtitle: 'Certified' },
@@ -87,11 +93,7 @@ export const branding: BrandingConfig = {
 	},
 	assets: {
 		favicon,
-		logoLight: CompanyLogo,
-		// logoDark: CompanyLogoDark,
-		// logoAlt: CompanyLogoAlt,5
-		loginVideo: '/images/login-img.png',
-		loginFallbackImage: '/images/login-img.png',
+		logoMark: CompanyLogoMark,
 		onboarding: {
 			merchant: '/images/MerchantCategory.png',
 			partner: '/images/handShaking.png'

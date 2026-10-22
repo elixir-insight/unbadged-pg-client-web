@@ -10,8 +10,13 @@ import {
 	type MfaChallengeName
 } from './schema';
 import { storeSession } from './session';
-import { resolvePortalHome } from '$lib/stores/auth/portal';
-import type { PortalHomePath, AccessTokenPayload } from '$lib/stores/auth/types';
+import { clearSignupAccount } from './sign-up';
+import { collectPortalGroups, resolvePortalHome } from '$lib/stores/auth/portal';
+import type {
+	PortalHomePath,
+	AccessTokenPayload,
+	GatewayTokenPayload
+} from '$lib/stores/auth/types';
 
 export type AuthTokenBundle = v.InferOutput<typeof AuthTokensSchema>;
 
@@ -26,8 +31,12 @@ export function startAuthenticatedSession(
 	tokens: AuthTokenBundle
 ): PortalHomePath {
 	storeSession(cookies, tokens);
+	clearSignupAccount(cookies);
 	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
-	return resolvePortalHome(accessPayload['cognito:groups'] ?? []);
+	const gatewayPayload = decodeJwt<GatewayTokenPayload>(tokens.gatewayToken);
+	return resolvePortalHome(
+		collectPortalGroups(accessPayload['cognito:groups'], gatewayPayload.group)
+	);
 }
 export type SignInSuccess = {
 	ok: true;
@@ -59,8 +68,19 @@ export type SignInMfaRequired = {
 	challengeDestination: string;
 	challengeExpiresIn: number;
 };
+export type SignInEmailConfirmationRequired = {
+	ok: false;
+	status: 403;
+	message: string;
+	requiresEmailConfirmation: true;
+	userEmail: string;
+};
 export type SignInResult =
-	SignInSuccess | SignInFailure | SignInPasswordChangeRequired | SignInMfaRequired;
+	| SignInSuccess
+	| SignInFailure
+	| SignInPasswordChangeRequired
+	| SignInMfaRequired
+	| SignInEmailConfirmationRequired;
 
 type SignInMfaChallengeItem = {
 	challengeName: MfaChallengeName;
@@ -89,6 +109,15 @@ function isMfaChallenge(item: SignInDataItem): item is SignInMfaChallengeItem {
 	return (
 		'challengeName' in item &&
 		(item.challengeName === 'EMAIL_OTP' || item.challengeName === 'SMS_MFA')
+	);
+}
+
+function isUserNotConfirmed(message: string, exceptionCode?: string): boolean {
+	const haystack = `${exceptionCode ?? ''} ${message}`.toLowerCase();
+	return (
+		haystack.includes('not confirmed') ||
+		haystack.includes('userunconfirmed') ||
+		haystack.includes('user_not_confirmed')
 	);
 }
 export async function performSignIn(opts: {
@@ -144,6 +173,16 @@ export async function performSignIn(opts: {
 		const upstreamStatus = result.error.kind === 'http' ? result.error.status : undefined;
 		const message =
 			result.error.kind === 'http' ? result.error.message : 'Invalid email or password.';
+		if (isUserNotConfirmed(message, exceptionCode)) {
+			log.info({ ip, userEmail, exceptionCode }, 'sign-in requires email confirmation');
+			return {
+				ok: false,
+				status: 403,
+				message,
+				requiresEmailConfirmation: true,
+				userEmail
+			};
+		}
 		// Legacy shape with exceptionCode (if upstream ever sends it).
 		const requiresForce =
 			exceptionCode === 'FAILED_TO_SIGN_IN' &&
@@ -243,10 +282,7 @@ export async function performSignIn(opts: {
 			message: 'Sign-in succeeded but no tokens were returned.'
 		};
 	}
-	const accessPayload = decodeJwt<AccessTokenPayload>(tokens.accessToken);
-	const groups = accessPayload['cognito:groups'] ?? [];
-	const redirectTo = resolvePortalHome(groups);
-	log.info({ ip, userEmail, redirectTo, groups }, 'sign-in succeeded');
-	startAuthenticatedSession(cookies, tokens);
+	const redirectTo = startAuthenticatedSession(cookies, tokens);
+	log.info({ ip, userEmail, redirectTo }, 'sign-in succeeded');
 	return { ok: true, redirectTo };
 }

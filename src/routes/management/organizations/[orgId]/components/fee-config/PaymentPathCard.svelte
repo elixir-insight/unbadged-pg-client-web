@@ -1,54 +1,64 @@
 <script lang="ts">
-	import { Dropdown, Input } from '$lib/components/reusable';
+	import { Dropdown } from '$lib/components/reusable';
 	import type { DropdownOption } from '$lib/components/reusable';
 	import {
-		FIXED_PIPELINE,
-		getInstrumentsForMethod,
-		getRailsForMethodInstrument,
-		isValidPaymentPathCombo,
-		PAYMENT_METHODS,
-		railsDisplayLabel,
-		resolveMethodConfigId
-	} from '$lib/fee-config';
-	import type { PaymentPathSelection } from '$lib/fee-config/types';
+		findPaymentMethodConfiguration,
+		getInstrumentOptions,
+		getPaymentRailOptions,
+		getServiceTypeOptions,
+		resolveMethodConfigIdFromConfigs
+	} from '$lib/payment-method-configuration';
+	import type {
+		PaymentMethodConfigItem,
+		PaymentPathApiSelection
+	} from '$lib/payment-method-configuration';
 	import FeeConfigCard from './FeeConfigCard.svelte';
 
 	let {
-		selection = $bindable()
+		selection = $bindable(),
+		pipelineOptions = [],
+		methodConfigurations = [],
+		configurationsLoading = false,
+		configurationsError = null,
+		onPipelineSelect
 	}: {
-		selection: PaymentPathSelection;
+		selection: PaymentPathApiSelection;
+		pipelineOptions?: DropdownOption[];
+		methodConfigurations?: PaymentMethodConfigItem[];
+		configurationsLoading?: boolean;
+		configurationsError?: string | null;
+		onPipelineSelect?: (pipelineCode: string) => void | Promise<void>;
 	} = $props();
 
-	const methodConfigId = $derived(resolveMethodConfigId(selection));
-
-	const methodOptions: DropdownOption[] = PAYMENT_METHODS.map((method) => ({
-		value: method,
-		label: method
-	}));
-
-	const instrumentOptions = $derived(
-		getInstrumentsForMethod(selection.method).map((instrument) => ({
-			value: instrument,
-			label: instrument
-		}))
+	const methodConfigId = $derived(
+		resolveMethodConfigIdFromConfigs(methodConfigurations, selection)
+	);
+	const matchedConfiguration = $derived(
+		findPaymentMethodConfiguration(methodConfigurations, selection)
 	);
 
+	const methodOptions = $derived(getServiceTypeOptions(methodConfigurations));
+	const instrumentOptions = $derived(getInstrumentOptions(methodConfigurations, selection.method));
 	const railsOptions = $derived(
-		getRailsForMethodInstrument(selection.method, selection.instrument).map((rails) => ({
-			value: rails,
-			label: railsDisplayLabel(rails)
-		}))
+		getPaymentRailOptions(methodConfigurations, selection.method, selection.instrument)
 	);
 
-	const pathResolved = $derived(
-		isValidPaymentPathCombo(selection.method, selection.instrument, selection.paymentRails) &&
-			methodConfigId !== null
-	);
+	const pathResolved = $derived(methodConfigId !== null);
+
+	function onPipelineChange(value: string) {
+		selection = {
+			pipeline: value,
+			method: '',
+			instrument: '',
+			paymentRails: ''
+		};
+		void onPipelineSelect?.(value);
+	}
 
 	function onMethodChange(value: string) {
 		selection = {
 			...selection,
-			method: value as PaymentPathSelection['method'],
+			method: value,
 			instrument: '',
 			paymentRails: ''
 		};
@@ -57,7 +67,7 @@
 	function onInstrumentChange(value: string) {
 		selection = {
 			...selection,
-			instrument: value as PaymentPathSelection['instrument'],
+			instrument: value,
 			paymentRails: ''
 		};
 	}
@@ -65,7 +75,7 @@
 	function onRailsChange(value: string) {
 		selection = {
 			...selection,
-			paymentRails: value as PaymentPathSelection['paymentRails']
+			paymentRails: value
 		};
 	}
 </script>
@@ -76,15 +86,25 @@
 			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 				Pipeline
 			</span>
-			<Input value={FIXED_PIPELINE} disabled aria-label="Pipeline" />
+			<Dropdown
+				bind:value={selection.pipeline}
+				options={pipelineOptions}
+				placeholder="Select pipeline"
+				class="w-full"
+				disabled={pipelineOptions.length === 0 || configurationsLoading}
+				onValueChange={onPipelineChange}
+			/>
 		</label>
 		<label class="space-y-2">
-			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Method</span>
+			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+				Service type
+			</span>
 			<Dropdown
 				bind:value={selection.method}
 				options={methodOptions}
-				placeholder="Select method"
+				placeholder="Select service type"
 				class="w-full"
+				disabled={!selection.pipeline || configurationsLoading || methodOptions.length === 0}
 				onValueChange={onMethodChange}
 			/>
 		</label>
@@ -97,29 +117,39 @@
 				options={instrumentOptions}
 				placeholder="Select instrument"
 				class="w-full"
-				disabled={!selection.method}
+				disabled={!selection.method || configurationsLoading || instrumentOptions.length === 0}
 				onValueChange={onInstrumentChange}
 			/>
 		</label>
 		<label class="space-y-2">
 			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-				Payment rails
+				Payment rail
 			</span>
 			<Dropdown
 				bind:value={selection.paymentRails}
 				options={railsOptions}
-				placeholder="Select rails"
+				placeholder="Select payment rail"
 				class="w-full"
-				disabled={!selection.instrument}
+				disabled={!selection.instrument || configurationsLoading || railsOptions.length === 0}
 				onValueChange={onRailsChange}
 			/>
 		</label>
 	</div>
 
-	{#if selection.paymentRails && !pathResolved}
+	{#if configurationsLoading}
+		<p class="mt-3 text-sm text-muted-foreground" role="status">Loading payment path options…</p>
+	{:else if configurationsError}
+		<p class="mt-3 text-sm text-destructive" role="alert">{configurationsError}</p>
+	{:else if selection.pipeline && methodConfigurations.length === 0}
+		<p class="mt-3 text-sm text-muted-foreground" role="status">
+			No payment method configurations found for this pipeline.
+		</p>
+	{:else if selection.paymentRails && !pathResolved}
 		<p class="mt-3 text-sm text-destructive" role="alert">
 			No matching method configuration exists for this combination.
 		</p>
+	{:else if matchedConfiguration?.description}
+		<p class="mt-3 text-sm text-muted-foreground">{matchedConfiguration.description}</p>
 	{/if}
 {/snippet}
 

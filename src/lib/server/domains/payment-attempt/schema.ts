@@ -12,6 +12,7 @@ export const PaymentAttemptItemSchema = v.object({
 	createdAt: v.optional(v.nullable(v.string()), ''),
 	createdAtIst: v.optional(v.nullable(v.string()), ''),
 	disputeId: v.optional(v.nullable(v.string()), ''),
+	disputeStatus: v.optional(v.nullable(v.string()), ''),
 	gatewayDescription: v.optional(v.nullable(v.string()), ''),
 	gatewayFee: v.optional(v.nullable(v.string()), ''),
 	gatewayGst: v.optional(v.nullable(v.string()), ''),

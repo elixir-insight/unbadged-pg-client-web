@@ -1,1 +1,7 @@
-export { branding, brandEmail, type BrandingConfig, type BrandTrustBadge } from './config';
+export {
+	branding,
+	brandEmail,
+	type BrandingConfig,
+	type BrandLogoComponent,
+	type BrandTrustBadge
+} from './config';

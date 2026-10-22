@@ -7,12 +7,12 @@
 	import { merchantNav } from '$lib/navigation/merchant-nav';
 	import { partnerNav } from '$lib/navigation/partner-nav';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
+	import { userPermissions } from '$lib/stores/rbac';
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import ProfileCard from '../profile-card/profile-card.svelte';
 	import { X } from '$lib/assets/icons';
-	// import { branding } from '$lib/branding';
+	import { branding } from '$lib/branding';
 
-	// const Logo = branding.assets.logoLight;
 	let {
 		app,
 		isMobileOpen = $bindable(false)
@@ -29,12 +29,27 @@
 
 	const navGroups = $derived(navConfig[app]);
 
+	function isItemVisible(item: (typeof navGroups)[number]['items'][number]): boolean {
+		if (item.service && !merchantSession.hasService(item.service)) return false;
+		if (
+			item.requiredPermission &&
+			!userPermissions.can(item.requiredPermission.module, item.requiredPermission.action)
+		)
+			return false;
+		if (
+			item.requiredPermissionAnyOf &&
+			!item.requiredPermissionAnyOf.some((p) => userPermissions.can(p.module, p.action))
+		)
+			return false;
+		return true;
+	}
+
 	const visibleNavGroups = $derived(
 		app !== 'partner'
 			? navGroups
 					.map((g) => ({
 						...g,
-						items: g.items.filter((i) => !i.service || merchantSession.hasService(i.service))
+						items: g.items.filter(isItemVisible)
 					}))
 					.filter((g) => g.items.length > 0)
 			: navGroups
@@ -42,7 +57,8 @@
 
 	const settingsHrefs: Partial<Record<AppId, string>> = {
 		management: '/management/settings',
-		merchant: '/merchant/settings'
+		merchant: '/merchant/settings',
+		partner: '/partner/settings'
 	};
 
 	const profileProps = $derived(
@@ -51,11 +67,17 @@
 					userName: merchantSession.session.merchantName,
 					userRole: formatUserType(merchantSession.session.userType ?? ''),
 					userInitials: getUserInitials(merchantSession.session.merchantName),
-					confirmLogout: app === 'management' || app === 'merchant',
-					...(app === 'merchant' ? { vanNumber: merchantSession.session.organizationId } : {}),
+					confirmLogout: app === 'management' || app === 'merchant' || app === 'partner',
+					...(app === 'merchant' || app === 'management' || app === 'partner'
+						? { vanNumber: merchantSession.session.displayOrgId }
+						: {}),
 					...(settingsHrefs[app] ? { settingsHref: settingsHrefs[app] } : {})
 				}
-			: null
+			: app === 'management'
+				? { settingsHref: '/management/settings' }
+				: app === 'partner'
+					? { settingsHref: '/partner/settings' }
+					: {}
 	);
 
 	const rootRoutes: Record<AppId, string> = {
@@ -78,7 +100,7 @@
 <!-- Mobile backdrop -->
 {#if isMobileOpen}
 	<div
-		class="fixed inset-0 z-40 bg-foreground/50 md:hidden"
+		class="fixed inset-0 z-40 bg-black/50 md:hidden"
 		role="presentation"
 		onclick={() => (isMobileOpen = false)}
 		onkeydown={(e) => {
@@ -96,14 +118,14 @@
 >
 	<!-- Sidebar header -->
 	<div
-		class="mt-4 flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
+		class="mt-2 flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-3"
 	>
 		<a
 			href={resolve(...([rootRoutes[app]] as Parameters<typeof resolve>))}
 			aria-label="Go to dashboard"
-			class="flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+			class="flex min-w-0 items-center gap-2 rounded-sm text-lg font-semibold text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 		>
-			<!-- <Logo width="168" class="h-auto w-40 shrink-0" /> --> Payment Gateway
+			{branding.name}
 		</a>
 
 		<!-- Mobile: close drawer -->

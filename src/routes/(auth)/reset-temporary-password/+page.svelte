@@ -2,10 +2,8 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Input, Button } from '$lib/components/reusable';
-	import { branding } from '$lib/branding';
+	import AuthFormShell from '$lib/components/auth/auth-form-shell.svelte';
 	import { Eye, EyeOff } from '$lib/assets/icons/index';
-
-	// const Logo = branding.assets.logoLight;
 
 	let { data, form } = $props();
 
@@ -30,101 +28,78 @@
 	};
 </script>
 
-<main class="flex flex-1 items-center justify-center px-10">
-	<div class="flex w-full max-w-md flex-col gap-17">
-		<div class="text-5xl font-semibold text-foreground">
-			<!-- <Logo width="280" class="h-auto w-52 sm:w-64" /> --> Payment Gateway
-		</div>
+<AuthFormShell title="Reset Password">
+	{#snippet subtitle()}
+		Set a new password for <span class="font-medium text-foreground">{data.userEmail}</span>
+	{/snippet}
 
-		<div class="flex flex-col gap-10">
-			<div class="flex flex-col gap-2">
-				<h1 class="text-3xl font-semibold tracking-tight text-foreground">Reset Password</h1>
-				<p class="text-base text-foreground">
-					Set a new password for <span class="font-medium">{data.userEmail}</span>
-				</p>
+	{#if form?.message}
+		<p class="text-sm text-destructive" role="alert">{form.message}</p>
+	{/if}
+
+	<form method="POST" class="flex flex-col gap-3" use:enhance={onEnhance}>
+		<div class="flex flex-col gap-2">
+			<label class="text-sm font-medium text-foreground" for="new-password"> New Password </label>
+			<div class="relative">
+				<Input
+					id="new-password"
+					name="newPassword"
+					type={showNewPassword ? 'text' : 'password'}
+					placeholder="Enter Password"
+					bind:value={newPassword}
+					autocomplete="new-password"
+					required
+					disabled={submitting}
+					class="h-9 pr-10 text-sm!"
+				/>
+				<button
+					type="button"
+					onclick={() => (showNewPassword = !showNewPassword)}
+					class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+					aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+				>
+					{#if showNewPassword}
+						<EyeOff class="h-4 w-4" />
+					{:else}
+						<Eye class="h-4 w-4" />
+					{/if}
+				</button>
 			</div>
-
-			{#if form?.message}
-				<p class="text-sm text-destructive" role="alert">{form.message}</p>
-			{/if}
-
-			<form method="POST" class="flex flex-col gap-6" use:enhance={onEnhance}>
-				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-foreground" for="new-password">
-						New Password
-					</label>
-					<div class="relative">
-						<Input
-							id="new-password"
-							name="newPassword"
-							type={showNewPassword ? 'text' : 'password'}
-							placeholder="Enter Password"
-							bind:value={newPassword}
-							autocomplete="new-password"
-							required
-							disabled={submitting}
-							class="h-11 pr-11 text-base!"
-						/>
-						<button
-							type="button"
-							onclick={() => (showNewPassword = !showNewPassword)}
-							class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-							aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-						>
-							{#if showNewPassword}
-								<EyeOff class="h-4 w-4" />
-							{:else}
-								<Eye class="h-4 w-4" />
-							{/if}
-						</button>
-					</div>
-				</div>
-
-				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-foreground" for="confirm-password">
-						Confirm New Password
-					</label>
-					<div class="relative">
-						<Input
-							id="confirm-password"
-							name="confirmPassword"
-							type={showConfirmPassword ? 'text' : 'password'}
-							placeholder="Enter confirm password"
-							bind:value={confirmPassword}
-							autocomplete="new-password"
-							required
-							disabled={submitting}
-							class="h-11 pr-11 text-base!"
-						/>
-						<button
-							type="button"
-							onclick={() => (showConfirmPassword = !showConfirmPassword)}
-							class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-							aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-						>
-							{#if showConfirmPassword}
-								<EyeOff class="h-4 w-4" />
-							{:else}
-								<Eye class="h-4 w-4" />
-							{/if}
-						</button>
-					</div>
-				</div>
-
-				<Button type="submit" class="h-11 w-full text-base" disabled={!canSubmit || submitting}>
-					{submitting ? 'Resetting…' : 'Reset Password'}
-				</Button>
-			</form>
 		</div>
-	</div>
-</main>
 
-<footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
-	<a href={branding.urls.terms} target="_blank" rel="external noopener noreferrer">
-		{branding.copy.termsLabel}
-	</a>
-	<span class="mx-3 text-border" aria-hidden="true">|</span>
-	<a href={branding.urls.privacy} target="_blank" rel="external noopener noreferrer">
-		{branding.copy.privacyLabel}
-	</a>
-</footer>
+		<div class="flex flex-col gap-2">
+			<label class="text-sm font-medium text-foreground" for="confirm-password">
+				Confirm New Password
+			</label>
+			<div class="relative">
+				<Input
+					id="confirm-password"
+					name="confirmPassword"
+					type={showConfirmPassword ? 'text' : 'password'}
+					placeholder="Enter confirm password"
+					bind:value={confirmPassword}
+					autocomplete="new-password"
+					required
+					disabled={submitting}
+					class="h-9 pr-10 text-sm!"
+				/>
+				<button
+					type="button"
+					onclick={() => (showConfirmPassword = !showConfirmPassword)}
+					class="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+					aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+				>
+					{#if showConfirmPassword}
+						<EyeOff class="h-4 w-4" />
+					{:else}
+						<Eye class="h-4 w-4" />
+					{/if}
+				</button>
+			</div>
+		</div>
+
+		<Button type="submit" class="h-9 min-h-9 w-full text-sm" disabled={!canSubmit || submitting}>
+			{submitting ? 'Resetting…' : 'Reset Password'}
+		</Button>
+	</form>
+</AuthFormShell>

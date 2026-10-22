@@ -2,6 +2,10 @@ export { merchantSession, createSessionStore } from './session.svelte';
 export { parseMerchantSession, parseMerchantSessionFromGateway } from './session';
 export {
 	canAccessPortalPath,
+	collectPortalGroups,
+	hasUnapprovedGroup,
+	isSelfOnboardingPath,
+	isPlatformPortal,
 	isPortalGroup,
 	normalizePortalGroups,
 	resolvePortalHome

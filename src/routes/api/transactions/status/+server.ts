@@ -2,10 +2,12 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { findTransaction } from '$lib/server/check-status-store';
 import type { SearchByType } from '$lib/types/check-status';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
 const VALID_SEARCH_BY = new Set<SearchByType>(['utr', 'crn', 'client_order_id']);
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 	let body: { searchBy?: string; value?: string };
 
 	try {

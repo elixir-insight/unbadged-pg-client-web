@@ -3,6 +3,37 @@ import type { Logger } from 'pino';
 import { buildUrl } from './query';
 import type { ApiError, Result } from './errors';
 
+/** Cap logged response bodies so HTML error pages don't flood logs. */
+const BODY_PREVIEW_LIMIT = 500;
+
+/**
+ * Upstream validation errors can carry `message` as a list (one entry per rejected field) rather
+ * than a string — callers display it verbatim, so flatten it into one readable line.
+ */
+function upstreamMessage(message: unknown): string | undefined {
+	if (typeof message === 'string' && message.trim()) return message;
+	if (Array.isArray(message)) {
+		const parts = message.filter((part): part is string => typeof part === 'string' && !!part);
+		if (parts.length > 0) return parts.join('; ');
+	}
+	return undefined;
+}
+
+/**
+ * The issues that actually failed. A union (e.g. `Array | null`) only reports "expected one of
+ * these" at its own path — the field inside the array that broke it sits in its nested `issues`,
+ * which is what the log needs to show.
+ */
+function leafIssues(issues: readonly v.BaseIssue<unknown>[]): v.BaseIssue<unknown>[] {
+	return issues.flatMap((issue) => (issue.issues?.length ? leafIssues(issue.issues) : [issue]));
+}
+
+function bodyPreview(raw: string): string {
+	const trimmed = raw.trim();
+	if (!trimmed) return '(empty body)';
+	return trimmed.length > BODY_PREVIEW_LIMIT ? `${trimmed.slice(0, BODY_PREVIEW_LIMIT)}…` : trimmed;
+}
+
 export async function apiFetch<TSchema extends v.GenericSchema>(
 	path: string,
 	opts: {
@@ -47,7 +78,7 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 		headers['X-Gateway-Token'] = gatewayToken;
 	}
 
-	log.info({ url }, `outbound request → ${url}`);
+	log.info({ url }, 'starting api call');
 	log.debug({ headers, multipart: isFormDataBody }, 'outbound request');
 
 	try {
@@ -63,24 +94,36 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 			body: requestBody,
 			signal: controller.signal
 		});
-		const json: unknown = await res.json().catch(() => null);
+		const contentType = res.headers.get('content-type');
+		const rawText = await res.text();
 		const durationMs = Date.now() - start;
+
+		let json: unknown = null;
+		if (rawText.trim()) {
+			try {
+				json = JSON.parse(rawText) as unknown;
+			} catch {
+				json = null;
+			}
+		}
 
 		const errorBody =
 			json && typeof json === 'object'
-				? (json as { exceptionCode?: string; message?: string; statusCode?: number })
+				? (json as { exceptionCode?: string; message?: unknown; statusCode?: number })
 				: null;
 
 		// Upstream sometimes returns business errors with 2xx (e.g. sign-in session exists → 202).
 		if (!res.ok || errorBody?.exceptionCode) {
 			const status = errorBody?.statusCode ?? res.status;
-			const errorMessage = errorBody?.message ?? `Request failed (${status})`;
+			const errorMessage = upstreamMessage(errorBody?.message) ?? `Request failed (${status})`;
 			log.warn(
 				{
 					status,
 					httpStatus: res.status,
+					contentType,
 					exceptionCode: errorBody?.exceptionCode,
 					message: errorMessage,
+					bodyPreview: bodyPreview(rawText),
 					durationMs
 				},
 				`request failed — ${errorMessage}`
@@ -94,15 +137,28 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 					message: errorMessage,
 					// Some business "errors" still carry usable data (e.g. the
 					// password-change challenge on sign-in) — keep it for callers.
-					body: json
+					body: json ?? bodyPreview(rawText)
 				} satisfies ApiError
 			};
 		}
 
 		const parsed = v.safeParse(opts.schema, json);
 		if (!parsed.success) {
+			const issues = leafIssues(parsed.issues).map((issue) => ({
+				path: issue.path?.map((segment) => segment.key).join('.'),
+				message: issue.message,
+				expected: issue.expected,
+				received: issue.received
+			}));
+			const preview = bodyPreview(rawText);
 			log.warn(
-				{ status: res.status, durationMs, issues: parsed.issues },
+				{
+					status: res.status,
+					contentType,
+					durationMs,
+					issues,
+					bodyPreview: preview
+				},
 				'response validation failed'
 			);
 			return {
@@ -110,12 +166,15 @@ export async function apiFetch<TSchema extends v.GenericSchema>(
 				error: {
 					kind: 'validation',
 					message: 'Unexpected response shape',
-					issues: parsed.issues
+					issues: parsed.issues,
+					bodyPreview: preview,
+					contentType,
+					httpStatus: res.status
 				}
 			};
 		}
 
-		log.debug({ status: res.status, durationMs }, 'request succeeded');
+		log.info({ status: res.status, durationMs }, 'api response');
 		return { ok: true, data: parsed.output };
 	} catch (e) {
 		const isAbort = e instanceof DOMException && e.name === 'AbortError';

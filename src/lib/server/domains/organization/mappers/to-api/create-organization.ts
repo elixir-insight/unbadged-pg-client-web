@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { CreateOrganizationRequestSchema, type CreateOrganizationRequest } from '../../schema';
+import { toE164IndianPhone } from '$lib/validation/organization-kyb';
 
 const businessTypeLabelMap: Record<string, CreateOrganizationRequest['businessType']> = {
 	'Sole Proprietorship': 'SOLE_PROPRIETORSHIP',
@@ -16,36 +17,56 @@ const serviceTypeLabelMap: Record<
 	Payouts: 'PAYOUT'
 };
 
-const profileTypeLabelMap: Record<string, CreateOrganizationRequest['profileType']> = {
-	Merchant: 'MERCHANT',
-	Partner: 'PARTNER'
-};
+const profileTypeLabelMap = {
+	MERCHANT: 'MERCHANT',
+	PARTNER: 'PARTNER',
+	PLATFORM: 'PLATFORM'
+} as const;
 
-export const CreateOrganizationFormBodySchema = v.object({
-	selectedCategory: v.picklist(['Merchant', 'Partner']),
-	orgName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization name is required')),
-	orgPhone: v.pipe(v.string(), v.trim(), v.minLength(1, 'Mobile number is required')),
-	orgEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),
-	orgBusinessType: v.pipe(v.string(), v.minLength(1, 'Business type is required')),
-	affiliateId: v.optional(v.string(), ''),
-	selectedServiceTypes: v.optional(v.array(v.string()), []),
-	servicePipelines: v.optional(v.record(v.string(), v.string()), {})
-});
+export const CreateOrganizationFormBodySchema = v.pipe(
+	v.object({
+		selectedCategory: v.picklist(['Merchant', 'Partner']),
+		profileType: v.optional(v.picklist(['', 'PARTNER', 'PLATFORM']), ''),
+		orgName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization name is required')),
+		orgPhone: v.pipe(v.string(), v.trim(), v.minLength(1, 'Mobile number is required')),
+		orgEmail: v.pipe(v.string(), v.trim(), v.email('Enter a valid email address')),
+		orgBusinessType: v.pipe(v.string(), v.minLength(1, 'Business type is required')),
+		affiliateId: v.optional(v.string(), ''),
+		selectedServiceTypes: v.optional(v.array(v.string()), []),
+		servicePipelines: v.optional(v.record(v.string(), v.string()), {})
+	}),
+	v.check(
+		(input) =>
+			input.selectedCategory !== 'Partner' ||
+			input.profileType === 'PARTNER' ||
+			input.profileType === 'PLATFORM',
+		'Profile type is required'
+	)
+);
 
 export type CreateOrganizationFormBody = v.InferOutput<typeof CreateOrganizationFormBodySchema>;
 
-export function toE164IndianPhone(phone: string): string {
-	const digits = phone.replace(/\D/g, '');
-	if (digits.length === 10) return `+91${digits}`;
-	if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
-	return phone.startsWith('+') ? phone : `+${digits}`;
+// Moved to the client-safe validation module (self-onboarding's shared payload builder needs it);
+// re-exported so existing server imports keep working.
+export { toE164IndianPhone };
+
+export function resolveCreateOrganizationProfileType(
+	input: Pick<CreateOrganizationFormBody, 'selectedCategory' | 'profileType'>
+): CreateOrganizationRequest['profileType'] {
+	if (input.selectedCategory === 'Merchant') {
+		return profileTypeLabelMap.MERCHANT;
+	}
+	if (input.profileType === 'PLATFORM') {
+		return profileTypeLabelMap.PLATFORM;
+	}
+	return profileTypeLabelMap.PARTNER;
 }
 
 export function buildCreateOrganizationRequest(
 	input: CreateOrganizationFormBody
 ): CreateOrganizationRequest {
 	const businessType = businessTypeLabelMap[input.orgBusinessType];
-	const profileType = profileTypeLabelMap[input.selectedCategory];
+	const profileType = resolveCreateOrganizationProfileType(input);
 
 	if (!businessType) {
 		throw new Error('Invalid business type');

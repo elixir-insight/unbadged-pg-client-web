@@ -10,6 +10,8 @@ export { default as ArrowUpDown } from '@lucide/svelte/icons/arrow-up-down';
 export { default as ArrowRight } from '@lucide/svelte/icons/arrow-right';
 export { default as Download } from '@lucide/svelte/icons/download';
 export { default as Plus } from '@lucide/svelte/icons/plus';
+export { default as CirclePlus } from '@lucide/svelte/icons/circle-plus';
+export { default as Package } from '@lucide/svelte/icons/package';
 export { default as Eye } from '@lucide/svelte/icons/eye';
 export { default as MessageSquareWarning } from '@lucide/svelte/icons/message-square-warning';
 export { default as CheckCircle2 } from '@lucide/svelte/icons/check-circle-2';
@@ -27,6 +29,7 @@ export { default as ChevronsUpDown } from '@lucide/svelte/icons/chevrons-up-down
 
 // ── Header / Shell ────────────────────────────────────────────────────────────
 export { default as Bell } from '@lucide/svelte/icons/bell';
+export { default as BellOff } from '@lucide/svelte/icons/bell-off';
 export { default as Sun } from '@lucide/svelte/icons/sun';
 export { default as Moon } from '@lucide/svelte/icons/moon';
 export { default as Menu } from '@lucide/svelte/icons/menu';
@@ -46,6 +49,7 @@ export { default as ClipboardCheck } from '@lucide/svelte/icons/clipboard-check'
 export { default as Building2 } from '@lucide/svelte/icons/building-2';
 export { default as FileClock } from '@lucide/svelte/icons/file-clock';
 export { default as FileText } from '@lucide/svelte/icons/file-text';
+export { default as FolderOpen } from '@lucide/svelte/icons/folder-open';
 export { default as Settings } from '@lucide/svelte/icons/settings';
 export { default as ShieldCheck } from '@lucide/svelte/icons/shield-check';
 export { default as Pencil } from '@lucide/svelte/icons/pencil';
@@ -105,6 +109,7 @@ export { default as UserPlusIcon } from '@lucide/svelte/icons/user-plus';
 export { default as KeyIcon } from '@lucide/svelte/icons/key';
 export { default as ActivityIcon } from '@lucide/svelte/icons/activity';
 export { default as TriangleAlert } from '@lucide/svelte/icons/triangle-alert';
+export { default as CompanyLogoMark } from './company-logo-mark.svelte';
 export { default as CompanyLogoAlt } from './company-logo-alt.svelte';
 export { default as CompanyLogoDark } from './company-logo-dark.svelte';
 export { default as CompanyLogoLight } from './company-logo-light.svelte';

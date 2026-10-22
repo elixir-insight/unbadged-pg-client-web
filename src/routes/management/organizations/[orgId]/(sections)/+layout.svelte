@@ -49,14 +49,32 @@
 
 	const flowSteps = $derived(getFlowNavSteps(organization.status));
 
-	const currentStepKey = $derived(
-		getCurrentFlowNavStepKey(page.url.pathname, page.url.searchParams, organization.status)
-	);
+	const reviewStepKeys = new Set<FlowStep['key']>([
+		'legal',
+		'address',
+		'directors',
+		'bank',
+		'documents',
+		'review'
+	]);
+
+	const currentStepKey = $derived.by((): FlowStep['key'] => {
+		if (organization.status === 'IN_REVIEW' && page.url.pathname.includes('/kyb')) {
+			const step = page.url.searchParams.get('step') ?? 'legal';
+			if (reviewStepKeys.has(step as FlowStep['key'])) return step as FlowStep['key'];
+		}
+		return getCurrentFlowNavStepKey(page.url.pathname, page.url.searchParams, organization.status);
+	});
 
 	const showSectionNavigation = $derived(!(isPostOnboarding && currentStepKey === 'review'));
 
-	function resolveStepHref(step: FlowStep, organizationId: string) {
-		return resolve(flowStepHref(organizationId, step.key) as '/');
+	/** Unresolved step path; the template passes it through resolve(). */
+	function stepPath(step: FlowStep, organizationId: string): string {
+		if (organization.status === 'IN_REVIEW') {
+			const kybPath = `/management/organizations/${organizationId}/kyb`;
+			return step.key === 'legal' ? kybPath : `${kybPath}?step=${step.key}`;
+		}
+		return flowStepHref(organizationId, step.key);
 	}
 </script>
 
@@ -76,9 +94,9 @@
 			>
 				{#each flowSteps as step (step.key)}
 					{@const isActive = step.key === currentStepKey}
-					{@const stepHref = resolveStepHref(step, orgId)}
+					{@const stepHref = stepPath(step, orgId)}
 					<a
-						href={stepHref}
+						href={resolve(stepHref as '/')}
 						aria-disabled={sectionLoading}
 						tabindex={sectionLoading ? -1 : undefined}
 						class={cn(

@@ -36,7 +36,7 @@
 	{/if}
 	<Drawer.Content class={className}>
 		{#if title || description}
-			<Drawer.Header>
+			<Drawer.Header class="shrink-0">
 				{#if title}
 					<Drawer.Title>{title}</Drawer.Title>
 				{/if}
@@ -46,12 +46,14 @@
 			</Drawer.Header>
 		{/if}
 		{#if children}
-			<div class={cn('px-4 pb-2', scrollable ? 'overflow-auto' : 'overflow-visible')}>
+			<div
+				class={cn('px-4 pb-2', scrollable ? 'min-h-0 flex-1 overflow-auto' : 'overflow-visible')}
+			>
 				{@render children()}
 			</div>
 		{/if}
 		{#if footer}
-			<Drawer.Footer>
+			<Drawer.Footer class="shrink-0 empty:hidden">
 				{@render footer()}
 			</Drawer.Footer>
 		{/if}

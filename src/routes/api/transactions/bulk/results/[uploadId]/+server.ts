@@ -1,8 +1,10 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { buildResultsCsv } from '$lib/server/check-status-store';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 	const csv = buildResultsCsv(params.uploadId);
 	if (!csv) {
 		throw error(404, 'Results file not found');

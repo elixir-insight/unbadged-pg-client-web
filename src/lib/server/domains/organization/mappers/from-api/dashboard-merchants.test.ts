@@ -11,7 +11,7 @@ function merchant(overrides: Partial<DashboardMerchant> = {}): DashboardMerchant
 		createdBy: '',
 		deletedAt: '',
 		displayOrgId: 'ORG_2bV',
-		email: branding.emails.demo,
+		email: 'merchant@example.com',
 		legalCompanyName: branding.name,
 		phoneNumber: '',
 		profileDescription: '',

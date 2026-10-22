@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { Input, Button, toast } from '$lib/components/reusable';
-	import { branding } from '$lib/branding';
-	import { theme } from '$lib/stores/theme.svelte';
+	import AuthFormShell from '$lib/components/auth/auth-form-shell.svelte';
 	import type { PageProps } from './$types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 
-	// const Logo = branding.assets.logoLight;
 	let { form }: PageProps = $props();
 
 	let email = $state('');
@@ -15,9 +12,6 @@
 
 	const canSubmit = $derived(email.trim().length > 0 && !submitting);
 
-	onMount(() => {
-		theme.init();
-	});
 	const handleEnhance: SubmitFunction = ({ formData }) => {
 		email = email.trim().toLowerCase();
 		formData.set('userEmail', email);
@@ -37,64 +31,32 @@
 	};
 </script>
 
-<!-- Right Panel -->
-<main class="flex flex-1 items-center justify-center px-10">
-	<div class="flex w-full max-w-md flex-col gap-17">
-		<div class="text-5xl font-semibold text-foreground">Payment Gateway</div>
+<AuthFormShell title="Forgot Password" subtitle="No worries, we will send you reset instructions.">
+	<form class="flex flex-col gap-3" method="POST" use:enhance={handleEnhance}>
+		{#if form?.error}
+			<p class="text-sm text-destructive" role="alert">{form.error}</p>
+		{/if}
 
-		<div class="flex flex-col gap-10">
-			<div class="flex flex-col gap-2">
-				<h1 class="text-3xl font-semibold tracking-tight text-foreground">Forgot Password</h1>
-				<p class="text-base text-foreground">No worries, we will send you reset instructions.</p>
-			</div>
-
-			<form class="flex flex-col gap-6" method="POST" use:enhance={handleEnhance}>
-				{#if form?.error}
-					<p class="text-sm text-destructive">{form.error}</p>
-				{/if}
-
-				<div class="flex flex-col gap-3">
-					<label class="text-lg font-normal text-foreground" for="userEmail">Email</label>
-					<Input
-						id="userEmail"
-						name="userEmail"
-						// type="email"
-						placeholder={branding.emails.placeholder}
-						bind:value={email}
-						autocomplete="email"
-						aria-invalid={form?.emailError ? 'true' : undefined}
-						class="h-11 text-base!"
-						onblur={() => (email = email.trim().toLowerCase())}
-					/>
-					{#if form?.emailError}
-						<p class="text-sm text-destructive">{form.emailError}</p>
-					{/if}
-				</div>
-
-				<Button type="submit" class="h-11 w-full text-base" disabled={!canSubmit}>
-					{submitting ? 'Sending…' : 'Reset password'}
-				</Button>
-			</form>
+		<div class="flex flex-col gap-2">
+			<label class="text-sm font-medium text-foreground" for="userEmail">Email</label>
+			<Input
+				id="userEmail"
+				name="userEmail"
+				type="email"
+				placeholder="name@company.com"
+				bind:value={email}
+				autocomplete="email"
+				aria-invalid={form?.emailError ? 'true' : undefined}
+				class="h-9 text-sm!"
+				onblur={() => (email = email.trim().toLowerCase())}
+			/>
+			{#if form?.emailError}
+				<p class="text-sm text-destructive" role="alert">{form.emailError}</p>
+			{/if}
 		</div>
-	</div>
-</main>
 
-<footer class="px-10 pb-8 text-center text-sm text-muted-foreground">
-	<a
-		href={branding.urls.terms}
-		target="_blank"
-		rel="external noopener noreferrer"
-		class="underline underline-offset-4 hover:text-foreground"
-	>
-		{branding.copy.termsLabel}
-	</a>
-	<span class="mx-3 text-border" aria-hidden="true">|</span>
-	<a
-		href={branding.urls.privacy}
-		target="_blank"
-		rel="external noopener noreferrer"
-		class="underline underline-offset-4 hover:text-foreground"
-	>
-		{branding.copy.privacyLabel}
-	</a>
-</footer>
+		<Button type="submit" class="h-9 min-h-9 w-full text-sm" disabled={!canSubmit}>
+			{submitting ? 'Sending…' : 'Reset password'}
+		</Button>
+	</form>
+</AuthFormShell>

@@ -1,8 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getBulkUpload, processBulkUpload } from '$lib/server/check-status-store';
+import { requirePermission } from '$lib/server/domains/auth/requirePermission';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	requirePermission(locals.userPermissions, 'PAYINS', 'read');
 	let body: { uploadId?: string };
 
 	try {

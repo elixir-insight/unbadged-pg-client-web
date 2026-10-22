@@ -12,16 +12,21 @@
 		label,
 		required = false,
 		id,
+		containerClass,
 		class: className,
 		...restProps
-	}: WithElementRef<HTMLTextareaAttributes> & { label?: string; required?: boolean } = $props();
+	}: WithElementRef<HTMLTextareaAttributes> & {
+		label?: string;
+		required?: boolean;
+		containerClass?: string;
+	} = $props();
 
 	const generatedId = $props.id();
 	const textareaId = $derived(id ?? generatedId);
 </script>
 
 {#if label}
-	<div class="space-y-1.5">
+	<div class={cn('space-y-1.5', containerClass)}>
 		<label for={textareaId} class="text-sm font-medium text-foreground">
 			{label}
 			{#if required}

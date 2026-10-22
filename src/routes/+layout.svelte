@@ -5,6 +5,7 @@
 	import { branding } from '$lib/branding';
 	import { Toast } from '$lib/components/reusable';
 	import { merchantSession } from '$lib/stores/auth';
+	import { userPermissions } from '$lib/stores/rbac';
 	import {
 		isKybSubStepNavigation,
 		isPreviewSubSectionNavigation
@@ -15,6 +16,7 @@
 
 	$effect(() => {
 		merchantSession.hydrate(data.session);
+		userPermissions.hydrate(data.permissions);
 	});
 
 	onNavigate((navigation) => {
