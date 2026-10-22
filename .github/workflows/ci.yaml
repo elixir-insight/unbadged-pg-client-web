@@ -11,8 +11,11 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     env:
-      API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
-      INVOICE_API_BASE_URL: ${{ vars.INVOICE_API_BASE_URL }}
+      # CI only verifies the build — it never deploys or calls these APIs.
+      # Placeholders keep $env/static/private non-empty when the repo
+      # variables are unset; real values are injected by Amplify at deploy.
+      API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL || 'https://ci-placeholder.invalid' }}
+      INVOICE_API_BASE_URL: ${{ vars.INVOICE_API_BASE_URL || 'https://ci-placeholder.invalid' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
