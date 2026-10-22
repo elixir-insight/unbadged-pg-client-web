@@ -36,10 +36,10 @@ describe('NotificationsCard', () => {
 		const screen = render(NotificationsCard, { items });
 		const iconWrappers = screen.container.querySelectorAll('.divide-y > div > span:first-child');
 
-		expect(iconWrappers[0].className).toContain('text-green-600');
-		expect(iconWrappers[1].className).toContain('text-orange-600');
-		expect(iconWrappers[2].className).toContain('text-blue-600');
-		expect(iconWrappers[3].className).toContain('text-red-600');
+		expect(iconWrappers[0].className).toContain('text-success');
+		expect(iconWrappers[1].className).toContain('text-warning');
+		expect(iconWrappers[2].className).toContain('text-primary');
+		expect(iconWrappers[3].className).toContain('text-destructive');
 	});
 
 	it('renders no rows when there are no notifications', async () => {

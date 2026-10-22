@@ -8,10 +8,10 @@
 	import { formatUserType, getUserInitials } from '$lib/stores/auth/display';
 	import { merchantSession } from '$lib/stores/auth/session.svelte';
 	import { cn } from '$lib/utils';
+	import { branding } from '$lib/branding';
 	import ApiCredentialSection from './api-credential-section.svelte';
 	import MfaSection from '$lib/components/settings/mfa-section.svelte';
 	import type { PageData } from './$types';
-	import { branding } from '$lib/branding';
 
 	let { data }: { data: PageData } = $props();
 

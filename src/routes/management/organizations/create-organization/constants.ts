@@ -16,7 +16,7 @@ export const modes = {
 		gradient: 'from-chart-2/30 via-chart-4/15 to-transparent',
 		gradientDark: 'dark:from-chart-2/25 dark:via-chart-4/12 dark:to-transparent',
 		border: 'border-chart-2/30 dark:border-chart-2/20',
-		ctaClass: 'bg-chart-2 text-white hover:opacity-90 shadow-lg shadow-chart-2/25',
+		ctaClass: 'bg-chart-2 text-primary-foreground hover:opacity-90 shadow-lg shadow-chart-2/25',
 		iconBg: 'bg-chart-2/10 dark:bg-chart-2/20',
 		accentText: 'text-chart-2 dark:text-chart-2',
 		features: [

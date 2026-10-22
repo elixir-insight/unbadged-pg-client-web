@@ -20,14 +20,14 @@
 	} = $props();
 
 	const ICON_COLORS = [
-		{ bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
-		{ bg: 'bg-violet-500/20', text: 'text-violet-400', border: 'border-violet-500/30' },
-		{ bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-		{ bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' },
-		{ bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30' },
-		{ bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
-		{ bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
-		{ bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/30' }
+		{ bg: 'bg-chart-1/20', text: 'text-chart-1', border: 'border-chart-1/30' },
+		{ bg: 'bg-chart-2/20', text: 'text-chart-2', border: 'border-chart-2/30' },
+		{ bg: 'bg-success/20', text: 'text-success', border: 'border-success/30' },
+		{ bg: 'bg-warning/20', text: 'text-warning', border: 'border-warning/30' },
+		{ bg: 'bg-destructive/20', text: 'text-destructive', border: 'border-destructive/30' },
+		{ bg: 'bg-chart-3/20', text: 'text-chart-3', border: 'border-chart-3/30' },
+		{ bg: 'bg-chart-4/20', text: 'text-chart-4', border: 'border-chart-4/30' },
+		{ bg: 'bg-primary/20', text: 'text-primary', border: 'border-primary/30' }
 	];
 
 	const colorIndex = $derived(role.roleId % ICON_COLORS.length);

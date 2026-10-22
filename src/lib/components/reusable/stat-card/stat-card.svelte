@@ -98,8 +98,8 @@
 			class={cn(
 				'mt-2 flex items-center gap-1 text-xs font-medium',
 				trend.direction === 'up'
-					? 'text-green-600 dark:text-green-400'
-					: 'text-red-600 dark:text-red-400'
+					? 'text-success dark:text-success'
+					: 'text-destructive dark:text-destructive'
 			)}
 		>
 			{#if trend.direction === 'up'}

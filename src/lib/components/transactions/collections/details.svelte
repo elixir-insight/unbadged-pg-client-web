@@ -99,7 +99,7 @@
 										row.mono && 'font-mono text-xs',
 										row.bold ? 'font-bold' : 'font-medium',
 										row.variant === 'negative' && 'text-destructive',
-										row.variant === 'positive' && 'text-green-600 dark:text-green-400',
+										row.variant === 'positive' && 'text-success dark:text-success',
 										!row.variant && 'text-foreground'
 									)}
 								>
