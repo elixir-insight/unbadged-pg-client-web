@@ -5,7 +5,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-import adapter from 'amplify-adapter';
+import adapter from '@sveltejs/adapter-netlify';
 
 // Vite 8 can wrap SSR dynamic imports with the browser-runner helper. That
 // global only exists in the browser, so define a no-op fallback for Node.
