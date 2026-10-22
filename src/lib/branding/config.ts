@@ -1,7 +1,6 @@
 import type { Component } from 'svelte';
 import favicon from '$lib/assets/favicon.svg';
-// import CompanyLogo from '$lib/assets/icons/company-logo.svelte';
-// import CompanyLogoMark from '$lib/assets/icons/company-logo-mark.svelte';
+import CompanyLogoMark from '$lib/assets/icons/company-logo-mark.svelte';
 
 export type BrandLogoComponent = Component<{
 	width?: string;
@@ -53,10 +52,7 @@ export type BrandingConfig = {
 	};
 	assets: {
 		favicon: string;
-		// logoLight: BrandLogoComponent;
-		// logoMark: BrandLogoComponent;
-		// loginVideo: string;
-		// loginFallbackImage: string;
+		logoMark: BrandLogoComponent;
 		onboarding: {
 			merchant: string;
 			partner: string;
@@ -97,10 +93,7 @@ export const branding: BrandingConfig = {
 	},
 	assets: {
 		favicon,
-		// logoLight: CompanyLogo,
-		// logoMark: CompanyLogoMark,
-		// loginVideo: '/images/login-img.png',
-		// loginFallbackImage: '/images/login-img.png',
+		logoMark: CompanyLogoMark,
 		onboarding: {
 			merchant: '/images/MerchantCategory.png',
 			partner: '/images/handShaking.png'
