@@ -175,11 +175,11 @@ function mapAddressDetailsForSection(
 ): UpdateOrganizationKybRequest['addressDetails'] {
 	if (section === 'legal' && !isAddressFilled(address)) {
 		return {
-			address: '-',
-			city: '-',
+			address: '',
+			city: '',
 			country: 'India',
-			pinCode: '-',
-			state: '-'
+			pinCode: '',
+			state: ''
 		};
 	}
 
@@ -203,7 +203,7 @@ function mapCommunicationAddressForSection(
 		return flattenCommunicationAddress(input.registeredAddress);
 	}
 	if (section === 'legal') {
-		return '-';
+		return '';
 	}
 	throw new Error('Communication address is required');
 }
