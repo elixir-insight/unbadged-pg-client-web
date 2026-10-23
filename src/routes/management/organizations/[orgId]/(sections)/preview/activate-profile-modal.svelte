@@ -140,9 +140,6 @@
 
 			if (result.type === 'redirect') {
 				closeModal();
-				toast.success('Profile activated', {
-					description: 'Continue with commission and fee configuration'
-				});
 				await applyAction(result);
 				return;
 			}

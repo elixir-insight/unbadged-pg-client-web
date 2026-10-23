@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import type { ResolvedPathname } from '$app/types';
 	import { resolve } from '$app/paths';
-	import { Button, toast } from '$lib/components/reusable';
-	import { AlertCircle } from '$lib/assets/icons';
+	import { Button, Modal, toast } from '$lib/components/reusable';
+	import { AlertCircle, CircleCheck, Copy } from '$lib/assets/icons';
 	import {
 		createCommissionDefaultSlabs,
 		createDefaultSlabRows,
@@ -95,7 +95,8 @@
 	let commissionSaved = $state(false);
 	let chargesConfigured = $state(false);
 	let commissionConfigured = $state(false);
-	let vanCreatedNotified = $state(false);
+	let vanCreatedModalShown = $state(false);
+	let vanCreatedModalOpen = $state(false);
 	let pipelinesErrorNotified = $state(false);
 	let configurationsErrorNotified = $state(false);
 	let chargeConfigurationsErrorNotified = $state(false);
@@ -660,14 +661,25 @@
 	});
 
 	$effect(() => {
-		if (!data.vanCreated || vanCreatedNotified || !payinVan?.virtualAccountNumber) {
+		if (!data.vanCreated || vanCreatedModalShown || !payinVan?.virtualAccountNumber) {
 			return;
 		}
-		vanCreatedNotified = true;
-		toast.success('Collection account created', {
-			description: `Virtual account ${payinVan.virtualAccountNumber} is ready.`
-		});
+		vanCreatedModalShown = true;
+		vanCreatedModalOpen = true;
 	});
+
+	async function copyVanNumber() {
+		const vaNumber = payinVan?.virtualAccountNumber?.trim();
+		if (!vaNumber) return;
+		try {
+			await navigator.clipboard.writeText(vaNumber);
+			toast.success('VAN copied', { description: 'Virtual account number copied to clipboard.' });
+		} catch {
+			toast.error('Could not copy VAN', {
+				description: 'Copy the virtual account number manually.'
+			});
+		}
+	}
 
 	$effect(() => {
 		if (!data.pipelinesError || pipelinesErrorNotified) {
@@ -809,3 +821,34 @@
 		</aside>
 	</div>
 </div>
+
+<Modal bind:open={vanCreatedModalOpen} title="Virtual account created">
+	<div class="flex flex-col items-center gap-4 py-2 text-center">
+		<span
+			class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success"
+			aria-hidden="true"
+		>
+			<CircleCheck class="size-6" />
+		</span>
+		<p class="text-sm text-muted-foreground">
+			Your VAN number has been created successfully. Use it to configure fees for this organization.
+		</p>
+		<div class="w-full rounded-lg border border-border bg-muted/30 px-4 py-3">
+			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">VAN Number</p>
+			<p class="mt-1 font-mono text-lg font-semibold break-all text-foreground">
+				{payinVan?.virtualAccountNumber}
+			</p>
+			{#if payinVan?.pipelineCode}
+				<p class="mt-0.5 text-xs text-muted-foreground">{payinVan.pipelineCode}</p>
+			{/if}
+		</div>
+	</div>
+
+	{#snippet footer()}
+		<Button variant="outline" onclick={copyVanNumber}>
+			<Copy class="size-4" aria-hidden="true" />
+			Copy VAN
+		</Button>
+		<Button onclick={() => (vanCreatedModalOpen = false)}>Continue</Button>
+	{/snippet}
+</Modal>
